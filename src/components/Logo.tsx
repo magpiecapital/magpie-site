@@ -1,11 +1,6 @@
 /**
- * Magpie brand mark.
- *
- * Silhouette-first design: a clean ivory magpie profile with a gold beak
- * and a tiny gold coin dot. Reads at 20px, reads at 120px.
- *
- *   <Mark />       — icon only (nav, favicon, social avatar)
- *   <Wordmark />   — icon + lowercase "magpie" wordmark
+ * Magpie brand mark — pure flat silhouette.
+ * Black bird, tiny electric-lime coin accent. Reads at 16px.
  */
 
 export function Mark({ size = 40, className = "" }: { size?: number; className?: string }) {
@@ -19,7 +14,7 @@ export function Mark({ size = 40, className = "" }: { size?: number; className?:
       className={className}
       aria-label="Magpie"
     >
-      {/* Silhouette — body + head + tail fused into one continuous fill */}
+      {/* Silhouette (body + head + long tail) */}
       <path
         d="M 28 10
            Q 34 10, 34 15
@@ -33,27 +28,25 @@ export function Mark({ size = 40, className = "" }: { size?: number; className?:
            L 13 32
            Q 17 28, 20 23
            Q 22 18, 24 14
-           Q 26 10, 28 10 Z"
-        fill="#f5f1e6"
+           Q 26 10, 28 10 Z
+           M 34 14 L 40 14.5 L 34 17 Z"
+        fill="#0a0a0a"
       />
-      {/* Beak — gold triangular tip */}
-      <path d="M 34 14 L 40 14.5 L 34 17 Z" fill="#e8c674" />
-      {/* Eye */}
-      <circle cx="30" cy="14" r="1.1" fill="#0a0a0b" />
-      {/* Coin in the air near beak — the "shiny object" */}
-      <circle cx="43" cy="13" r="2.2" fill="#e8c674" />
-      <circle cx="42.3" cy="12.3" r="0.7" fill="#fff8d8" />
+      {/* Eye (negative space) */}
+      <circle cx="30" cy="14" r="1" fill="#ffffff" />
+      {/* Coin — butter amber accent */}
+      <circle cx="43" cy="13" r="2.4" fill="#f7c948" />
     </svg>
   );
 }
 
 export function Wordmark({ className = "", size = 32 }: { className?: string; size?: number }) {
   return (
-    <div className={`flex items-center gap-2.5 ${className}`}>
+    <div className={`flex items-center gap-2 ${className}`}>
       <Mark size={size} />
       <span
-        className="text-[var(--paper)] font-medium tracking-[-0.03em]"
-        style={{ fontSize: `${size * 0.62}px` }}
+        className="font-semibold tracking-[-0.03em] text-[var(--ink)]"
+        style={{ fontSize: `${size * 0.6}px` }}
       >
         magpie
       </span>
