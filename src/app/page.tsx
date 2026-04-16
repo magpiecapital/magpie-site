@@ -1,297 +1,157 @@
-import { Wordmark, LogoMark } from "@/components/Logo";
+import { Mark, Wordmark } from "@/components/Logo";
 
-const TELEGRAM_URL = "https://t.me/BagBankBot"; // TODO: update after BotFather
-const TWITTER_URL = "https://x.com/bagbankxyz"; // TODO: set real handle
-
-const TIERS = [
-  { ltv: "30%", days: "2 days", tag: "Express" },
-  { ltv: "25%", days: "3 days", tag: "Quick" },
-  { ltv: "20%", days: "7 days", tag: "Standard" },
-];
-
-const STEPS = [
-  {
-    n: "01",
-    title: "Deposit your bag",
-    body: "Send any supported memecoin to your BagBank wallet. We auto-detect it.",
-  },
-  {
-    n: "02",
-    title: "Pick a tier",
-    body: "Choose your LTV + duration. We quote the SOL you'll receive, net of a 1.5% fee.",
-  },
-  {
-    n: "03",
-    title: "SOL hits instantly",
-    body: "One on-chain tx. Your bag locks in the vault, SOL lands in your wallet.",
-  },
-  {
-    n: "04",
-    title: "Repay or get liquidated",
-    body: "Pay back in SOL before the clock runs out or your collateral's value drops below 1.1x.",
-  },
-];
-
-const FEATURES = [
-  {
-    title: "No credit check.",
-    body: "Your bag is the credit. No KYC, no email, no form.",
-  },
-  {
-    title: "Telegram native.",
-    body: "The entire protocol lives in a DM. Inline buttons, no dApp to install.",
-  },
-  {
-    title: "Fully custodial wallet.",
-    body: "We generate your Solana wallet on first /start. Export your key any time.",
-  },
-  {
-    title: "Manage loans live.",
-    body: "Top up collateral, partially repay, or extend your loan — all on-chain.",
-  },
-  {
-    title: "Health alerts.",
-    body: "Progressive DMs at 1.3x, 1.2x, 1.1x collateral ratio. Never get surprised.",
-  },
-  {
-    title: "Auto-repay.",
-    body: "Deposit SOL into your wallet and we'll close your loan for you.",
-  },
-];
-
-const FAQ = [
-  {
-    q: "What can I use as collateral?",
-    a: "Any memecoin we've whitelisted with a live Jupiter oracle price. Run /supported in the bot to see the current list.",
-  },
-  {
-    q: "What happens if I don't repay on time?",
-    a: "Your collateral gets liquidated on-chain. The vault transfers your bag to the lender and swaps it to SOL. You keep the loan you took — so it's effectively a sale at the LTV you chose.",
-  },
-  {
-    q: "Can I get liquidated early?",
-    a: "Only if your collateral's SOL value falls below 1.1x of what you owe. We DM warnings at 1.3x, 1.2x, and 1.1x with quick-action buttons.",
-  },
-  {
-    q: "What's the fee?",
-    a: "1.5% origination, charged at loan open. Same 1.5% to extend. No interest accrues — the amount you owe is fixed at loan open.",
-  },
-  {
-    q: "Is my key safe?",
-    a: "It's custodial. We hold an AES-256-GCM encrypted private key server-side. You can /export it any time and migrate your funds off-platform.",
-  },
-];
+const TELEGRAM_URL = "https://t.me/magpie_bot"; // update post-BotFather
 
 export default function Home() {
   return (
-    <div className="relative z-10 min-h-screen">
-      {/* Background glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 -z-10"
-        style={{
-          background:
-            "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(245,204,74,0.12), transparent 60%), radial-gradient(ellipse 60% 50% at 100% 100%, rgba(20,241,149,0.08), transparent 60%)",
-        }}
-      />
-
+    <div className="min-h-screen">
       {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Wordmark />
-          <nav className="hidden items-center gap-8 text-sm text-[var(--muted)] md:flex">
-            <a href="#how" className="transition hover:text-[var(--foreground)]">How it works</a>
-            <a href="#tiers" className="transition hover:text-[var(--foreground)]">Tiers</a>
-            <a href="#features" className="transition hover:text-[var(--foreground)]">Features</a>
-            <a href="#faq" className="transition hover:text-[var(--foreground)]">FAQ</a>
-          </nav>
+      <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--ink)]/75 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+          <Wordmark size={28} />
           <a
             href={TELEGRAM_URL}
-            className="rounded-full bg-[var(--gold-bright)] px-4 py-2 text-sm font-semibold text-[var(--background)] transition hover:bg-[var(--gold)]"
+            className="rounded-full bg-[var(--paper)] px-4 py-2 text-sm font-medium text-[var(--ink)] transition hover:bg-[var(--gold-bright)]"
           >
-            Launch bot
+            Launch
           </a>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="mx-auto max-w-6xl px-6 pt-20 pb-24 md:pt-32 md:pb-32">
-        <div className="fade-up">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-3 py-1 text-xs text-[var(--muted)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-[var(--green)] shimmer" />
-            Live on Solana mainnet
+      <section className="relative overflow-hidden border-b border-[var(--hairline)]">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(232,198,116,0.10), transparent 70%)",
+          }}
+        />
+        <div className="relative mx-auto max-w-6xl px-6 pt-28 pb-32 md:pt-40 md:pb-44">
+          <div className="fade-up">
+            <div className="mb-8 inline-flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-[var(--stone)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-[var(--gold-bright)] pulse-dot" />
+              Live on Solana
+            </div>
           </div>
-          <h1 className="max-w-4xl text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl">
-            Pawn your bags.
+
+          <h1 className="fade-up fade-up-1 max-w-5xl text-[clamp(3.5rem,9vw,8rem)] leading-[0.95] tracking-[-0.04em] font-medium">
+            Borrow SOL
             <br />
-            <span className="bg-gradient-to-r from-[var(--gold-bright)] via-[var(--gold)] to-[var(--gold-bright)] bg-clip-text text-transparent">
-              Get SOL instantly.
+            <span style={{ fontFamily: "var(--font-display)" }} className="italic text-[var(--gold-bright)]">
+              against your bags.
             </span>
           </h1>
-          <p className="mt-6 max-w-2xl text-lg text-[var(--muted)] md:text-xl">
-            Memecoin-collateralized loans on Telegram. Deposit your bag, pick a tier,
-            get SOL in your wallet in a single transaction. Repay in 2, 3, or 7 days.
+
+          <p className="fade-up fade-up-2 mt-10 max-w-xl text-lg text-[var(--paper-dim)] md:text-xl">
+            Memecoin-collateralized lending. One Telegram chat. Funded in seconds.
           </p>
-          <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
+
+          <div className="fade-up fade-up-3 mt-12 flex items-center gap-4">
             <a
               href={TELEGRAM_URL}
-              className="group inline-flex items-center justify-center gap-2 rounded-full bg-[var(--gold-bright)] px-6 py-3.5 text-base font-semibold text-[var(--background)] transition hover:bg-[var(--gold)]"
+              className="group inline-flex items-center gap-2 rounded-full bg-[var(--gold-bright)] px-7 py-4 text-base font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
             >
               Open in Telegram
               <span className="transition group-hover:translate-x-0.5">→</span>
             </a>
             <a
               href="#how"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-6 py-3.5 text-base font-medium text-[var(--foreground)] transition hover:border-[var(--gold-bright)]"
+              className="text-base font-medium text-[var(--paper-dim)] transition hover:text-[var(--paper)]"
             >
               How it works
             </a>
           </div>
         </div>
+      </section>
 
-        {/* Hero visual */}
-        <div className="mt-20 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {/* Stats strip */}
+      <section className="border-b border-[var(--hairline)]">
+        <div className="mx-auto grid max-w-6xl grid-cols-3 divide-x divide-[var(--hairline)]">
           {[
-            { label: "Funded in", value: "< 10 sec" },
-            { label: "Origination fee", value: "1.5%" },
-            { label: "Min tenor", value: "2 days" },
+            { v: "< 10s", l: "Funding time" },
+            { v: "1.5%", l: "Flat origination" },
+            { v: "30%", l: "Max LTV" },
           ].map((s) => (
-            <div
-              key={s.label}
-              className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6"
-            >
-              <div className="text-sm text-[var(--muted)]">{s.label}</div>
-              <div className="mt-1 text-3xl font-semibold tracking-tight">{s.value}</div>
+            <div key={s.l} className="px-6 py-10 md:px-10 md:py-14">
+              <div
+                style={{ fontFamily: "var(--font-display)" }}
+                className="text-5xl text-[var(--gold-bright)] md:text-6xl"
+              >
+                {s.v}
+              </div>
+              <div className="mt-3 text-sm uppercase tracking-[0.15em] text-[var(--stone)]">{s.l}</div>
             </div>
           ))}
         </div>
       </section>
 
       {/* How it works */}
-      <section id="how" className="border-t border-[var(--border)] bg-[var(--card)]/30">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <div className="mb-14">
-            <div className="text-sm uppercase tracking-[0.2em] text-[var(--gold-bright)]">How it works</div>
-            <h2 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
-              Four steps. One Telegram chat.
+      <section id="how" className="border-b border-[var(--hairline)]">
+        <div className="mx-auto max-w-6xl px-6 py-28 md:py-36">
+          <div className="mb-20 max-w-2xl">
+            <div className="text-xs uppercase tracking-[0.2em] text-[var(--stone)]">How it works</div>
+            <h2 className="mt-4 text-5xl tracking-[-0.03em] font-medium md:text-6xl">
+              Three steps.
+              <br />
+              <span style={{ fontFamily: "var(--font-display)" }} className="italic text-[var(--gold-bright)]">
+                No paperwork.
+              </span>
             </h2>
           </div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {STEPS.map((s) => (
-              <div
-                key={s.n}
-                className="group relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 transition hover:border-[var(--gold-bright)]"
-              >
-                <div className="font-mono text-xs text-[var(--gold-bright)]">{s.n}</div>
-                <div className="mt-3 text-xl font-semibold">{s.title}</div>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{s.body}</p>
+          <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-8">
+            {[
+              { n: "01", t: "Deposit", d: "Send your bag to your Magpie wallet." },
+              { n: "02", t: "Borrow", d: "Pick a tier. SOL hits instantly." },
+              { n: "03", t: "Repay", d: "Pay back in days. Reclaim your bag." },
+            ].map((s) => (
+              <div key={s.n} className="border-t border-[var(--hairline)] pt-6">
+                <div className="font-mono text-sm text-[var(--gold-bright)]">{s.n}</div>
+                <div className="mt-4 text-2xl font-medium">{s.t}</div>
+                <p className="mt-2 text-[var(--paper-dim)]">{s.d}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Tiers */}
-      <section id="tiers" className="border-t border-[var(--border)]">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <div className="mb-14">
-            <div className="text-sm uppercase tracking-[0.2em] text-[var(--gold-bright)]">Loan tiers</div>
-            <h2 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
-              Pick your risk. Pick your runway.
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {TIERS.map((t, i) => (
-              <div
-                key={t.tag}
-                className={`relative rounded-2xl border p-8 transition ${
-                  i === 1
-                    ? "border-[var(--gold-bright)] bg-gradient-to-b from-[var(--gold-bright)]/10 to-transparent"
-                    : "border-[var(--border)] bg-[var(--card)]"
-                }`}
-              >
-                {i === 1 && (
-                  <div className="absolute -top-3 left-6 rounded-full bg-[var(--gold-bright)] px-3 py-1 text-xs font-semibold text-[var(--background)]">
-                    Most used
-                  </div>
-                )}
-                <div className="text-sm text-[var(--muted)]">{t.tag}</div>
-                <div className="mt-4 flex items-baseline gap-2">
-                  <span className="text-5xl font-semibold tracking-tight">{t.ltv}</span>
-                  <span className="text-[var(--muted)]">LTV</span>
-                </div>
-                <div className="mt-2 text-lg">{t.days} to repay</div>
-                <div className="mt-6 border-t border-[var(--border)] pt-6 text-sm text-[var(--muted)]">
-                  Borrow {t.ltv} of your bag&apos;s SOL value.
-                  Repay within {t.days}. 1.5% origination.
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-8 text-sm text-[var(--muted)]">
-            Liquidation trigger: collateral value &lt; 1.1× owed, or past due. Health alerts DMed before every threshold.
-          </p>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="border-t border-[var(--border)] bg-[var(--card)]/30">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <div className="mb-14">
-            <div className="text-sm uppercase tracking-[0.2em] text-[var(--gold-bright)]">Why BagBank</div>
-            <h2 className="mt-3 max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
-              Built for the Telegram trader.
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <div
-                key={f.title}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6"
-              >
-                <div className="text-lg font-semibold">{f.title}</div>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--muted)]">{f.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Command preview */}
-      <section className="border-t border-[var(--border)]">
-        <div className="mx-auto max-w-6xl px-6 py-24">
-          <div className="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
+      {/* Terminal preview */}
+      <section className="border-b border-[var(--hairline)]">
+        <div className="mx-auto max-w-6xl px-6 py-28 md:py-36">
+          <div className="grid grid-cols-1 items-center gap-16 md:grid-cols-2">
             <div>
-              <div className="text-sm uppercase tracking-[0.2em] text-[var(--gold-bright)]">Commands</div>
-              <h2 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
-                Every action is one slash away.
+              <div className="text-xs uppercase tracking-[0.2em] text-[var(--stone)]">Product</div>
+              <h2 className="mt-4 text-5xl tracking-[-0.03em] font-medium md:text-6xl">
+                A bank
+                <br />
+                <span style={{ fontFamily: "var(--font-display)" }} className="italic text-[var(--gold-bright)]">
+                  in a DM.
+                </span>
               </h2>
-              <p className="mt-4 text-[var(--muted)]">
-                The entire lending protocol — borrow, repay, top-up, partial repay, extend,
-                withdraw — lives in a Telegram chat. Inline buttons, no menus, no dApp.
+              <p className="mt-8 max-w-sm text-[var(--paper-dim)]">
+                Every action — borrow, repay, top-up, extend — lives in Telegram.
+                No dApp. No menus. Just slash commands.
               </p>
             </div>
-            <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] font-mono text-sm">
-              <div className="flex items-center gap-1.5 border-b border-[var(--border)] px-4 py-3">
-                <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
-                <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
-                <span className="h-3 w-3 rounded-full bg-[#28c840]" />
-                <span className="ml-3 text-xs text-[var(--muted)]">@BagBankBot</span>
+            <div className="rounded-xl border border-[var(--hairline)] bg-[var(--ink-soft)] font-mono text-sm">
+              <div className="flex items-center gap-1.5 border-b border-[var(--hairline)] px-4 py-3">
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--hairline)]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--hairline)]" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[var(--hairline)]" />
+                <span className="ml-3 text-xs text-[var(--stone)]">@magpie_bot</span>
               </div>
-              <div className="space-y-2 p-5">
+              <div className="space-y-2.5 p-6 text-[var(--paper-dim)]">
                 {[
-                  ["/borrow", "take out a SOL loan"],
-                  ["/positions", "active loans + live health"],
-                  ["/repay", "full repayment"],
-                  ["/partialrepay", "pay down part of a loan"],
-                  ["/topup", "add collateral, boost health"],
-                  ["/extend", "roll the clock for 1.5%"],
-                  ["/withdraw", "send SOL or tokens out"],
-                  ["/export", "export your private key"],
+                  ["/borrow", "open a SOL loan"],
+                  ["/positions", "active loans & health"],
+                  ["/topup", "add collateral"],
+                  ["/extend", "extend the due date"],
+                  ["/repay", "close & reclaim"],
                 ].map(([cmd, desc]) => (
-                  <div key={cmd} className="flex gap-3">
-                    <span className="text-[var(--gold-bright)]">{cmd}</span>
-                    <span className="text-[var(--muted)]">— {desc}</span>
+                  <div key={cmd} className="flex gap-4">
+                    <span className="w-28 text-[var(--gold-bright)]">{cmd}</span>
+                    <span>{desc}</span>
                   </div>
                 ))}
               </div>
@@ -300,74 +160,36 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FAQ */}
-      <section id="faq" className="border-t border-[var(--border)] bg-[var(--card)]/30">
-        <div className="mx-auto max-w-4xl px-6 py-24">
-          <div className="mb-14">
-            <div className="text-sm uppercase tracking-[0.2em] text-[var(--gold-bright)]">FAQ</div>
-            <h2 className="mt-3 text-4xl font-semibold tracking-tight md:text-5xl">
-              Questions, answered.
-            </h2>
-          </div>
-          <div className="divide-y divide-[var(--border)]">
-            {FAQ.map((item) => (
-              <details
-                key={item.q}
-                className="group py-6 [&_summary::-webkit-details-marker]:hidden"
-              >
-                <summary className="flex cursor-pointer items-center justify-between gap-4">
-                  <span className="text-lg font-medium">{item.q}</span>
-                  <span className="text-[var(--gold-bright)] transition group-open:rotate-45">+</span>
-                </summary>
-                <p className="mt-3 text-[var(--muted)]">{item.a}</p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="border-t border-[var(--border)]">
-        <div className="mx-auto max-w-6xl px-6 py-28 text-center">
-          <h2 className="mx-auto max-w-3xl text-5xl font-semibold tracking-tight md:text-6xl">
-            Your bag&apos;s worth more{" "}
-            <span className="bg-gradient-to-r from-[var(--gold-bright)] to-[var(--gold)] bg-clip-text text-transparent">
-              liquid.
+      {/* Closing CTA */}
+      <section className="border-b border-[var(--hairline)]">
+        <div className="mx-auto max-w-6xl px-6 py-32 md:py-44 text-center">
+          <Mark size={80} className="mx-auto mb-10" />
+          <h2 className="mx-auto max-w-4xl text-6xl tracking-[-0.03em] font-medium md:text-7xl">
+            Your bag is worth
+            <br />
+            <span style={{ fontFamily: "var(--font-display)" }} className="italic text-[var(--gold-bright)]">
+              more liquid.
             </span>
           </h2>
-          <p className="mt-5 text-lg text-[var(--muted)]">Open the bot. Get SOL in under a minute.</p>
           <a
             href={TELEGRAM_URL}
-            className="mt-10 inline-flex items-center gap-2 rounded-full bg-[var(--gold-bright)] px-7 py-4 text-base font-semibold text-[var(--background)] transition hover:bg-[var(--gold)]"
+            className="mt-14 inline-flex items-center gap-2 rounded-full bg-[var(--gold-bright)] px-8 py-4 text-base font-medium text-[var(--ink)] transition hover:bg-[var(--paper)]"
           >
-            Launch @BagBankBot →
+            Open @magpie_bot →
           </a>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--border)]">
-        <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-6 py-12 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-3">
-            <LogoMark size={28} />
-            <span className="text-sm text-[var(--muted)]">
-              © {new Date().getFullYear()} BagBank. Built on Solana.
-            </span>
+      <footer>
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-10 md:flex-row md:items-center">
+          <Wordmark size={24} />
+          <div className="flex items-center gap-8 text-sm text-[var(--stone)]">
+            <a href={TELEGRAM_URL} className="transition hover:text-[var(--paper)]">Telegram</a>
+            <a href="#" className="transition hover:text-[var(--paper)]">X</a>
+            <a href="#" className="transition hover:text-[var(--paper)]">Docs</a>
           </div>
-          <div className="flex items-center gap-6 text-sm text-[var(--muted)]">
-            <a href={TELEGRAM_URL} className="transition hover:text-[var(--foreground)]">
-              Telegram
-            </a>
-            <a href={TWITTER_URL} className="transition hover:text-[var(--foreground)]">
-              Twitter / X
-            </a>
-            <a href="#faq" className="transition hover:text-[var(--foreground)]">
-              FAQ
-            </a>
-          </div>
-        </div>
-        <div className="border-t border-[var(--border)] px-6 py-5 text-center text-xs text-[var(--muted)]">
-          Loans are secured by on-chain collateral. Missed repayments or a collateral drop below 1.1× your owed amount will trigger liquidation. Not financial advice.
+          <div className="text-xs text-[var(--stone)]">© {new Date().getFullYear()} Magpie</div>
         </div>
       </footer>
     </div>

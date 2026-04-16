@@ -1,91 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #f5f5f0;
-  --card: #111110;
-  --border: #26261f;
-  --gold: #d4af37;
-  --gold-bright: #f5cc4a;
-  --green: #14f195;
-  --green-dim: #0d9a5f;
-  --muted: #71716a;
+  /* Palette — dark, ivory, single gold accent. No other colors. */
+  --ink: #0a0a0b;
+  --ink-soft: #111113;
+  --hairline: #1d1d20;
+  --stone: #7a7874;
+  --paper: #f5f1e6;
+  --paper-dim: #c4bfb0;
+  --gold: #d4a852;
+  --gold-bright: #e8c674;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-border: var(--border);
+  --color-background: var(--ink);
+  --color-foreground: var(--paper);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-hairline: var(--hairline);
+  --color-stone: var(--stone);
+  --color-paper: var(--paper);
+  --color-paper-dim: var(--paper-dim);
   --color-gold: var(--gold);
   --color-gold-bright: var(--gold-bright);
-  --color-green: var(--green);
-  --color-green-dim: var(--green-dim);
-  --color-muted: var(--muted);
   --font-sans: var(--font-inter);
+  --font-display: var(--font-instrument);
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
-html {
-  scroll-behavior: smooth;
-}
+html { scroll-behavior: smooth; }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--ink);
+  color: var(--paper);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
-}
-
-/* Grain overlay */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.025;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.011em;
 }
 
 ::selection {
-  background: var(--gold);
-  color: var(--background);
-}
-
-::-webkit-scrollbar {
-  width: 10px;
-}
-::-webkit-scrollbar-track {
-  background: var(--background);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 5px;
-}
-::-webkit-scrollbar-thumb:hover {
   background: var(--gold-bright);
+  color: var(--ink);
 }
 
-@keyframes shimmer {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
-}
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--ink); }
+::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 4px; }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.fade-up {
-  animation: fadeUp 0.7s ease-out both;
-}
+.fade-up { animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.fade-up-1 { animation-delay: 0.08s; }
+.fade-up-2 { animation-delay: 0.16s; }
+.fade-up-3 { animation-delay: 0.24s; }
 
-.shimmer {
-  animation: shimmer 2.5s ease-in-out infinite;
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
+.pulse-dot { animation: pulse-dot 2.2s ease-in-out infinite; }
