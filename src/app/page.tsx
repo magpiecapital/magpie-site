@@ -1,36 +1,30 @@
 import Link from "next/link";
 import { Mark, Wordmark } from "@/components/Logo";
+import { Reveal } from "@/components/Reveal";
+import { PhoneMock } from "@/components/PhoneMock";
 
 const TELEGRAM_URL = "https://t.me/magpie_bot";
 
 const STEPS = [
   {
     n: "01",
-    t: "Connect in Telegram",
-    d: "Open @magpie_bot, verify your wallet, and pick a bag.",
-    detail:
-      "No seed phrase. Magpie generates a loan-scoped deposit address; your keys stay yours. Export anytime.",
+    t: "Open @magpie_bot",
+    d: "Start a chat. Verify your wallet. No seed phrase — keys stay yours, exportable anytime.",
   },
   {
     n: "02",
-    t: "Pick your tier",
-    d: "Choose loan length. Magpie quotes LTV, fee, and payout instantly.",
-    detail:
-      "Live oracle pricing on every quote. The bot shows your SOL payout and the liquidation price before you sign.",
+    t: "Get an instant quote",
+    d: "Pick a tier and a bag. Live oracle pricing shows your payout and liquidation price before you sign.",
   },
   {
     n: "03",
     t: "Deposit your bag",
-    d: "Send tokens to the address. SOL lands when the deposit confirms.",
-    detail:
-      "Usually under 10 seconds on Solana mainnet. You'll get a Telegram ping the moment funds hit your wallet.",
+    d: "Send to a loan-scoped address. SOL hits your wallet when the deposit confirms — usually under ten seconds.",
   },
   {
     n: "04",
     t: "Manage or repay",
-    d: "Top-up, partial-repay, or extend. Repay fully to reclaim your bag.",
-    detail:
-      "Health alerts fire at 90% and 24h-to-due. Miss repay and only the collateral is liquidated — never your other holdings.",
+    d: "Top-up, partial-repay, or extend anytime. Repay fully to reclaim your bag. Alerts fire at 90% health and 24h-to-due.",
   },
 ];
 
@@ -41,11 +35,7 @@ const TIERS = [
     ltv: "30%",
     fee: "1.5%",
     best: "Degens catching a pump",
-    points: [
-      "Highest LTV available",
-      "Fastest turnaround",
-      "Best for short-term conviction",
-    ],
+    points: ["Highest LTV available", "Fastest turnaround", "Short-term conviction"],
     highlight: true,
   },
   {
@@ -54,11 +44,7 @@ const TIERS = [
     ltv: "25%",
     fee: "1.5%",
     best: "Weekend trades",
-    points: [
-      "Balanced risk profile",
-      "Room to ride out volatility",
-      "Most popular tier",
-    ],
+    points: ["Balanced risk profile", "Room for volatility", "Most popular"],
     highlight: false,
   },
   {
@@ -67,12 +53,54 @@ const TIERS = [
     ltv: "20%",
     fee: "1.5%",
     best: "Patient holders",
-    points: [
-      "Most headroom vs. liquidation",
-      "Week-long runway",
-      "Lowest stress, safest margin",
-    ],
+    points: ["Most headroom to liquidation", "Week-long runway", "Lowest stress"],
     highlight: false,
+  },
+];
+
+const PILLARS = [
+  {
+    title: "Non-custodial",
+    body: "Loan-scoped deposit addresses. Your other holdings are untouchable. Export your keys anytime.",
+  },
+  {
+    title: "Transparent pricing",
+    body: "One flat 1.5% origination fee. No hidden rate curves, no dynamic APR, no variable haircuts.",
+  },
+  {
+    title: "Liquidation-safe",
+    body: "Only the pledged bag can be liquidated — never your wallet. On-chain, auditable, deterministic.",
+  },
+  {
+    title: "Telegram-native",
+    body: "No new app. No extension. No seed phrase in a browser tab. Just a chat and a confirm button.",
+  },
+];
+
+const FAQ = [
+  {
+    q: "What tokens can I pledge?",
+    a: "Any Solana SPL memecoin with sufficient on-chain liquidity and oracle coverage. The bot shows eligible bags from your wallet automatically.",
+  },
+  {
+    q: "What happens if the price drops?",
+    a: "You get a health alert at 90% and 24 hours before due. You can top-up more collateral, partial-repay, or extend — all in the chat. Miss all of that and only the pledged bag is liquidated to cover the loan.",
+  },
+  {
+    q: "How fast is this really?",
+    a: "A typical end-to-end flow is under 30 seconds. The SOL payout lands as soon as your deposit confirms on Solana mainnet, usually in 8–12 seconds.",
+  },
+  {
+    q: "Do I need to lock the full collateral upfront?",
+    a: "Yes — collateral funds the loan. But you can add more anytime to improve your health ratio, or partial-repay to reduce what you owe.",
+  },
+  {
+    q: "Is this custodial?",
+    a: "No. Magpie generates a fresh deposit address per loan. You can export the private key from the bot at any time. We never hold your other assets.",
+  },
+  {
+    q: "What's the smart contract?",
+    a: "An Anchor program deployed on Solana mainnet. Source is publicly auditable. Liquidations and fee flows are deterministic and enforced on-chain.",
   },
 ];
 
@@ -91,7 +119,7 @@ export default function Home() {
   return (
     <div className="min-h-screen">
       {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur">
+      <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Wordmark size={28} />
           <nav className="flex items-center gap-8">
@@ -100,6 +128,9 @@ export default function Home() {
             </a>
             <a href="#tiers" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               Tiers
+            </a>
+            <a href="#faq" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
+              FAQ
             </a>
             <Link href="/dashboard" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               Dashboard
@@ -110,42 +141,74 @@ export default function Home() {
       </header>
 
       {/* Hero */}
-      <section className="relative mx-auto max-w-6xl px-6 pt-24 pb-28 md:pt-32 md:pb-36">
-        <div className="fade-up mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium">
-          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)] pulse-dot" />
-          Live on Solana
-        </div>
+      <section className="relative overflow-hidden">
+        <div className="hero-glow" />
+        <div className="mx-auto max-w-6xl px-6 pt-20 pb-28 md:pt-28 md:pb-36">
+          <div className="fade-up mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
+            <span className="live-dot" />
+            <span className="text-[var(--ink)]">Live on Solana mainnet</span>
+          </div>
 
-        <h1 className="fade-up fade-up-1 max-w-5xl text-[clamp(3.2rem,10vw,9rem)] leading-[0.9] tracking-[-0.045em] font-semibold">
-          Borrow SOL.
-          <br />
-          Keep your bag.
-        </h1>
+          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-[clamp(3rem,9vw,8.5rem)] leading-[0.92] tracking-[-0.04em] font-medium">
+            Borrow SOL.
+            <br />
+            Keep your <span className="italic">bag</span>.
+          </h1>
 
-        <p className="fade-up fade-up-2 mt-8 max-w-xl text-xl text-[var(--ink-soft)]">
-          Lending for memecoin holders. All in a Telegram chat.
-        </p>
+          <p className="fade-up fade-up-2 mt-8 max-w-xl text-xl text-[var(--ink-soft)] leading-relaxed">
+            Memecoin-collateralized lending, delivered in a Telegram chat. Pledge your bag, get SOL in seconds, repay on your schedule.
+          </p>
 
-        <div className="fade-up fade-up-3 mt-10 flex items-center gap-5">
-          <a href={TELEGRAM_URL} className="btn-accent text-base">
-            Launch on Telegram
-            <span aria-hidden>→</span>
-          </a>
-          <a href="#how" className="text-sm font-medium text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline">
-            How it works
-          </a>
-        </div>
+          <div className="fade-up fade-up-3 mt-10 flex flex-wrap items-center gap-4">
+            <a href={TELEGRAM_URL} className="btn-accent text-base">
+              Launch on Telegram
+              <span aria-hidden>→</span>
+            </a>
+            <a href="#how" className="btn-ghost text-base">
+              How it works
+            </a>
+          </div>
 
-        {/* Floating mark */}
-        <div className="pointer-events-none absolute right-0 top-24 hidden opacity-90 md:block">
-          <div className="hop">
-            <Mark size={220} />
+          <div className="fade-up fade-up-4 mt-16 grid max-w-3xl grid-cols-3 gap-0 divide-x divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm">
+            {[
+              { v: "<10s", l: "Funded" },
+              { v: "1.5%", l: "Flat fee" },
+              { v: "30%", l: "Max LTV" },
+            ].map((s) => (
+              <div key={s.l} className="px-4 py-5 text-center md:px-6">
+                <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl">{s.v}</div>
+                <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">{s.l}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Floating mark */}
+          <div className="pointer-events-none absolute right-8 top-32 hidden opacity-90 lg:block">
+            <div className="hop">
+              <Mark size={240} />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Value prop marquee */}
-      <section className="overflow-hidden border-y border-[var(--hairline)] bg-[var(--accent)]">
+      {/* Trust bar */}
+      <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 py-10 md:flex-row md:justify-between">
+          <div className="text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]">
+            Built on
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-10 md:gap-14">
+            <EcoLogo label="Solana" />
+            <EcoLogo label="Anchor" />
+            <EcoLogo label="Pyth" />
+            <EcoLogo label="Jupiter" />
+            <EcoLogo label="Telegram" />
+          </div>
+        </div>
+      </section>
+
+      {/* Marquee */}
+      <section className="overflow-hidden border-b border-[var(--hairline)] bg-[var(--accent)]">
         <div className="flex marquee whitespace-nowrap py-5 text-[var(--ink)] font-semibold tracking-tight">
           {[...MARQUEE, ...MARQUEE].map((item, i) => (
             <span key={i} className="flex items-center gap-6 px-6 text-lg">
@@ -157,160 +220,282 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section id="how" className="mx-auto max-w-6xl px-6 py-28 md:py-36">
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="chip mb-5">How it works</div>
-            <h2 className="max-w-3xl text-5xl tracking-[-0.035em] font-semibold md:text-7xl">
-              Four taps.
-              <br />
-              <span className="text-[var(--ink-soft)]">You&apos;re funded.</span>
-            </h2>
-          </div>
-          <p className="max-w-md text-lg text-[var(--ink-soft)]">
-            Magpie wraps a Solana lending program in a Telegram bot. You pledge memecoins as collateral, receive SOL instantly, and repay on your own schedule.
-          </p>
-        </div>
-
-        <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-2">
-          {STEPS.map((s) => (
-            <div
-              key={s.n}
-              className="group rounded-3xl border border-[var(--hairline)] bg-[var(--surface)] p-8 transition hover:border-[var(--ink)]"
-            >
-              <div className="flex items-baseline gap-4">
-                <div className="font-mono text-sm text-[var(--ink-soft)]">{s.n}</div>
-                <div className="text-3xl font-semibold tracking-tight">{s.t}</div>
-              </div>
-              <div className="mt-4 text-lg text-[var(--ink)]">{s.d}</div>
-              <div className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
-                {s.detail}
-              </div>
+      <section id="how" className="mx-auto max-w-6xl px-6 py-28 md:py-40">
+        <Reveal>
+          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="chip mb-5">How it works</div>
+              <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+                Four taps.
+                <br />
+                <span className="italic text-[var(--ink-soft)]">You&apos;re funded.</span>
+              </h2>
             </div>
-          ))}
+            <p className="max-w-md text-lg text-[var(--ink-soft)] leading-relaxed">
+              Magpie wraps a Solana lending program in a Telegram bot. Pledge memecoins as collateral, receive SOL instantly, repay on your own schedule.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="mt-20 grid grid-cols-1 gap-14 md:grid-cols-2 md:items-center md:gap-20">
+          <Reveal className="order-2 md:order-1">
+            <div className="flex flex-col gap-4">
+              {STEPS.map((s, i) => (
+                <div
+                  key={s.n}
+                  className="group flex gap-5 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 transition hover:border-[var(--ink)] hover:shadow-sm md:p-6"
+                  style={{ animationDelay: `${i * 0.08}s` }}
+                >
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[var(--surface)] font-mono text-sm font-semibold text-[var(--ink-soft)] group-hover:bg-[var(--accent)] group-hover:text-[var(--ink)] transition">
+                    {s.n}
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold tracking-tight">{s.t}</div>
+                    <div className="mt-1.5 text-sm leading-relaxed text-[var(--ink-soft)]">
+                      {s.d}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+          <Reveal className="order-1 md:order-2" delay={150}>
+            <PhoneMock />
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Why Magpie — pillars */}
+      <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
+        <div className="mx-auto max-w-6xl px-6 py-28 md:py-36">
+          <Reveal>
+            <div className="chip mb-5">Why Magpie</div>
+            <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-6xl">
+              The <span className="italic">quiet</span> lender for loud bags.
+            </h2>
+          </Reveal>
+
+          <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--hairline)] md:grid-cols-2">
+            {PILLARS.map((p, i) => (
+              <Reveal key={p.title} delay={i * 80}>
+                <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-8 md:p-10">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-[var(--ink)]">
+                      {String(i + 1).padStart(2, "0")}
+                    </div>
+                    <div className="text-xl font-semibold tracking-tight">{p.title}</div>
+                  </div>
+                  <div className="text-base leading-relaxed text-[var(--ink-soft)]">
+                    {p.body}
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Lending tiers */}
-      <section id="tiers" className="border-y border-[var(--hairline)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-6 py-28 md:py-36">
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="chip mb-5">Lending tiers</div>
-              <h2 className="max-w-3xl text-5xl tracking-[-0.035em] font-semibold md:text-7xl">
-                Pick your risk.
-                <br />
-                <span className="text-[var(--ink-soft)]">Pick your payout.</span>
-              </h2>
+      <section id="tiers" className="bg-[var(--surface)]">
+        <div className="mx-auto max-w-6xl px-6 py-28 md:py-40">
+          <Reveal>
+            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+              <div>
+                <div className="chip mb-5">Lending tiers</div>
+                <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+                  Pick your risk.
+                  <br />
+                  <span className="italic text-[var(--ink-soft)]">Pick your payout.</span>
+                </h2>
+              </div>
+              <p className="max-w-md text-lg leading-relaxed text-[var(--ink-soft)]">
+                Higher LTV means more SOL per bag, but less room to liquidation. Longer terms give the market time to breathe.
+              </p>
             </div>
-            <p className="max-w-md text-lg text-[var(--ink-soft)]">
-              Higher LTV means more SOL per bag, but less room before liquidation. Longer terms give the market time to breathe.
-            </p>
-          </div>
+          </Reveal>
 
           <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
-            {TIERS.map((tier) => (
-              <div
-                key={tier.name}
-                className={`rounded-3xl border p-8 transition ${
-                  tier.highlight
-                    ? "border-[var(--ink)] bg-[var(--bg)] shadow-[0_20px_60px_-30px_rgba(10,10,10,0.25)]"
-                    : "border-[var(--hairline)] bg-[var(--bg)] hover:border-[var(--ink)]"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="text-2xl font-semibold tracking-tight">{tier.name}</div>
+            {TIERS.map((tier, i) => (
+              <Reveal key={tier.name} delay={i * 100}>
+                <div
+                  className={`relative flex h-full flex-col rounded-3xl border p-8 transition ${
+                    tier.highlight
+                      ? "border-[var(--ink)] bg-[var(--bg-elevated)] shadow-[0_30px_80px_-30px_rgba(30,22,0,0.3)]"
+                      : "border-[var(--hairline)] bg-[var(--bg-elevated)] hover:border-[var(--ink)] hover:shadow-md"
+                  }`}
+                >
                   {tier.highlight && (
-                    <span className="rounded-full bg-[var(--accent)] px-2.5 py-1 text-xs font-semibold text-[var(--ink)]">
+                    <span className="absolute -top-3 left-8 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink)] shadow-sm">
                       Most SOL
                     </span>
                   )}
-                </div>
-                <div className="mt-8 flex items-baseline gap-2">
-                  <div className="text-6xl font-semibold tracking-[-0.04em]">{tier.ltv}</div>
-                  <div className="text-sm text-[var(--ink-soft)]">LTV</div>
-                </div>
-                <div className="mt-2 text-sm text-[var(--ink-soft)]">
-                  {tier.days} · {tier.fee} flat fee
-                </div>
-                <div className="mt-6 border-t border-[var(--hairline)] pt-6">
-                  <div className="text-xs uppercase tracking-[0.18em] text-[var(--ink-soft)]">
-                    Best for
+                  <div className="flex items-center justify-between">
+                    <div className="font-display text-3xl font-medium tracking-[-0.02em]">{tier.name}</div>
                   </div>
-                  <div className="mt-1 text-base font-medium">{tier.best}</div>
+                  <div className="mt-8 flex items-baseline gap-2">
+                    <div className="font-display tabular text-7xl font-medium tracking-[-0.04em]">{tier.ltv}</div>
+                    <div className="text-sm text-[var(--ink-soft)]">LTV</div>
+                  </div>
+                  <div className="mt-2 text-sm text-[var(--ink-soft)]">
+                    {tier.days} · {tier.fee} flat fee
+                  </div>
+                  <div className="mt-8 border-t border-[var(--hairline)] pt-6">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)]">
+                      Best for
+                    </div>
+                    <div className="mt-1.5 text-base font-medium">{tier.best}</div>
+                  </div>
+                  <ul className="mt-6 space-y-2.5">
+                    {tier.points.map((p) => (
+                      <li key={p} className="flex items-start gap-2.5 text-sm text-[var(--ink-soft)]">
+                        <span aria-hidden className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-[var(--ink)]" />
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="mt-6 space-y-2.5">
-                  {tier.points.map((p) => (
-                    <li key={p} className="flex items-start gap-2.5 text-sm text-[var(--ink-soft)]">
-                      <span aria-hidden className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-[var(--ink)]" />
-                      {p}
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              </Reveal>
             ))}
           </div>
 
-          <div className="mt-10 flex flex-col items-start gap-3 rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 md:flex-row md:items-center md:justify-between">
-            <div className="text-sm text-[var(--ink-soft)]">
-              <span className="font-semibold text-[var(--ink)]">Every tier:</span>{" "}
-              non-custodial, partial-repay anytime, extend for 1.5%, top-up collateral anytime.
+          <Reveal>
+            <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:flex-row md:items-center md:justify-between md:p-8">
+              <div className="text-sm leading-relaxed text-[var(--ink-soft)]">
+                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend for 1.5%, and live health alerts.
+              </div>
+              <a href={TELEGRAM_URL} className="btn-dark text-sm">
+                Get a quote →
+              </a>
             </div>
-            <a href={TELEGRAM_URL} className="btn-ghost text-sm">
-              Get a quote →
-            </a>
-          </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* Proof */}
-      <section className="border-b border-[var(--hairline)]">
-        <div className="mx-auto grid max-w-6xl grid-cols-3 divide-x divide-[var(--hairline)]">
-          {[
-            { v: "<10s", l: "Funded" },
-            { v: "1.5%", l: "Flat fee" },
-            { v: "30%", l: "Max LTV" },
-          ].map((s) => (
-            <div key={s.l} className="px-6 py-14 md:px-10 md:py-20 text-center">
-              <div className="text-5xl md:text-7xl font-semibold tracking-[-0.04em]">{s.v}</div>
-              <div className="mt-3 text-sm uppercase tracking-[0.18em] text-[var(--ink-soft)]">{s.l}</div>
-            </div>
+      {/* FAQ */}
+      <section id="faq" className="mx-auto max-w-6xl px-6 py-28 md:py-40">
+        <Reveal>
+          <div className="chip mb-5">Questions</div>
+          <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-6xl">
+            What you&apos;ll want to know.
+          </h2>
+        </Reveal>
+
+        <div className="mt-16 grid grid-cols-1 gap-x-16 gap-y-10 md:grid-cols-2">
+          {FAQ.map((item, i) => (
+            <Reveal key={item.q} delay={(i % 2) * 80}>
+              <div>
+                <div className="flex items-start gap-3">
+                  <span className="font-mono text-sm text-[var(--accent-deep)]">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <div className="text-xl font-semibold tracking-tight">{item.q}</div>
+                </div>
+                <div className="mt-3 pl-9 text-base leading-relaxed text-[var(--ink-soft)]">
+                  {item.a}
+                </div>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* Closing CTA */}
-      <section className="mx-auto max-w-6xl px-6 py-32 md:py-48 text-center">
-        <Mark size={72} className="mx-auto mb-10 hop" />
-        <h2 className="mx-auto max-w-4xl text-6xl tracking-[-0.04em] font-semibold md:text-8xl">
-          Your bag&apos;s worth
-          <br />
-          <span className="bg-[var(--accent)] px-4 py-1 rounded-2xl">more liquid.</span>
-        </h2>
-        <div className="mt-14 flex flex-col items-center justify-center gap-4 md:flex-row">
-          <a href={TELEGRAM_URL} className="btn-accent text-lg">
-            Open @magpie_bot
-            <span aria-hidden>→</span>
-          </a>
-          <Link href="/dashboard" className="btn-ghost text-lg">
-            View dashboard
-          </Link>
+      <section className="relative overflow-hidden border-t border-[var(--hairline)] bg-[var(--ink)] text-[var(--bg-elevated)]">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[var(--accent)]/20 blur-3xl drift" />
+          <div className="absolute -left-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--accent-deep)]/15 blur-3xl drift" />
+        </div>
+        <div className="relative mx-auto max-w-6xl px-6 py-28 text-center md:py-40">
+          <Mark size={80} className="mx-auto mb-10 hop" />
+          <h2 className="font-display mx-auto max-w-4xl text-6xl font-medium tracking-[-0.04em] text-white md:text-8xl">
+            Your bag&apos;s worth
+            <br />
+            <span className="italic text-[var(--accent)]">more liquid.</span>
+          </h2>
+          <p className="mx-auto mt-6 max-w-lg text-lg text-white/70">
+            Stop selling the bottom. Stop missing entries. Borrow against what you hold.
+          </p>
+          <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
+            <a href={TELEGRAM_URL} className="btn-accent text-lg">
+              Open @magpie_bot
+              <span aria-hidden>→</span>
+            </a>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+            >
+              View dashboard
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--hairline)]">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-10 md:flex-row md:items-center">
-          <Wordmark size={22} />
-          <div className="flex items-center gap-8 text-sm text-[var(--ink-soft)]">
-            <a href={TELEGRAM_URL} className="transition hover:text-[var(--ink)]">Telegram</a>
-            <Link href="/dashboard" className="transition hover:text-[var(--ink)]">Dashboard</Link>
-            <a href="#" className="transition hover:text-[var(--ink)]">X</a>
-            <a href="#" className="transition hover:text-[var(--ink)]">Docs</a>
+      <footer className="border-t border-[var(--hairline)] bg-[var(--bg)]">
+        <div className="mx-auto max-w-6xl px-6 py-14">
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
+            <div>
+              <Wordmark size={24} />
+              <p className="mt-4 max-w-[220px] text-sm leading-relaxed text-[var(--ink-soft)]">
+                Borrow SOL against your memecoin bags, in a Telegram chat.
+              </p>
+            </div>
+            <FooterCol title="Product">
+              <FooterLink href="#how">How it works</FooterLink>
+              <FooterLink href="#tiers">Tiers</FooterLink>
+              <FooterLink href="/dashboard">Dashboard</FooterLink>
+              <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
+            </FooterCol>
+            <FooterCol title="Company">
+              <FooterLink href="#faq">FAQ</FooterLink>
+              <FooterLink href="#">Docs</FooterLink>
+              <FooterLink href="#">Security</FooterLink>
+              <FooterLink href="#">Contact</FooterLink>
+            </FooterCol>
+            <FooterCol title="Social">
+              <FooterLink href="#">X</FooterLink>
+              <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
+              <FooterLink href="#">Discord</FooterLink>
+              <FooterLink href="#">GitHub</FooterLink>
+            </FooterCol>
           </div>
-          <div className="text-xs text-[var(--ink-soft)]">© {new Date().getFullYear()} Magpie</div>
+          <div className="mt-14 flex flex-col items-start justify-between gap-4 border-t border-[var(--hairline)] pt-6 md:flex-row md:items-center">
+            <div className="text-xs text-[var(--ink-soft)]">
+              © {new Date().getFullYear()} Magpie · Built on Solana
+            </div>
+            <div className="text-xs text-[var(--ink-faint)]">
+              Not financial advice. Loans carry liquidation risk.
+            </div>
+          </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+function EcoLogo({ label }: { label: string }) {
+  return (
+    <div className="font-display text-lg font-medium tracking-[-0.01em] text-[var(--ink-soft)] opacity-70 transition hover:opacity-100">
+      {label}
+    </div>
+  );
+}
+
+function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">
+        {title}
+      </div>
+      <div className="mt-4 flex flex-col gap-2">{children}</div>
+    </div>
+  );
+}
+
+function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <a href={href} className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--ink)]">
+      {children}
+    </a>
   );
 }
