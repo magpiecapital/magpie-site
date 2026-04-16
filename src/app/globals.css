@@ -1,40 +1,48 @@
 @import "tailwindcss";
 
 :root {
-  /* Palette — dark, ivory, single gold accent. No other colors. */
-  --ink: #0a0a0b;
-  --ink-soft: #111113;
-  --hairline: #1d1d20;
-  --stone: #7a7874;
-  --paper: #f5f1e6;
-  --paper-dim: #c4bfb0;
-  --gold: #d4a852;
-  --gold-bright: #e8c674;
+  /* Warm, friendly palette. Accent = butter amber (money-coded, easy on eyes). */
+  --bg: #ffffff;
+  --ink: #0a0a0a;
+  --ink-soft: #6b6b6b;
+  --ink-faint: #a8a8a3;
+  --hairline: #ece9dd;
+  --surface: #faf8ef;
+  --surface-strong: #f4f0dd;
+  --accent: #f7c948;         /* butter amber */
+  --accent-hover: #ffd96a;
+  --accent-dim: #fef5d6;
+  --accent-ink: #0a0a0a;
+  --good: #2fae75;
+  --warn: #e07b3a;
+  --bad: #d84747;
 }
 
 @theme inline {
-  --color-background: var(--ink);
-  --color-foreground: var(--paper);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-bg: var(--bg);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
   --color-hairline: var(--hairline);
-  --color-stone: var(--stone);
-  --color-paper: var(--paper);
-  --color-paper-dim: var(--paper-dim);
-  --color-gold: var(--gold);
-  --color-gold-bright: var(--gold-bright);
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+  --color-good: var(--good);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
   --font-sans: var(--font-inter);
-  --font-display: var(--font-instrument);
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 * { box-sizing: border-box; }
-
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--ink);
-  color: var(--paper);
+  background: var(--bg);
+  color: var(--ink);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
@@ -42,27 +50,84 @@ body {
   letter-spacing: -0.011em;
 }
 
-::selection {
-  background: var(--gold-bright);
-  color: var(--ink);
-}
+::selection { background: var(--accent); color: var(--ink); }
 
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: var(--ink); }
-::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 4px; }
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--hairline); border-radius: 5px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-soft); }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-.fade-up { animation: fadeUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.fade-up { animation: fadeUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .fade-up-1 { animation-delay: 0.08s; }
 .fade-up-2 { animation-delay: 0.16s; }
 .fade-up-3 { animation-delay: 0.24s; }
 
 @keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
 }
-.pulse-dot { animation: pulse-dot 2.2s ease-in-out infinite; }
+.pulse-dot { animation: pulse-dot 1.8s ease-in-out infinite; }
+
+@keyframes hop {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-5px) rotate(-1.5deg); }
+}
+.hop { animation: hop 2.6s ease-in-out infinite; }
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.marquee { animation: marquee 42s linear infinite; }
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.9rem 1.6rem;
+  font-weight: 600;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.btn-accent:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px -12px rgba(247, 201, 72, 0.7);
+}
+.btn-accent:active { transform: translateY(0); }
+
+.btn-ghost {
+  border-radius: 999px;
+  padding: 0.9rem 1.6rem;
+  font-weight: 600;
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+  background: var(--bg);
+  transition: border 0.15s ease, background 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.btn-ghost:hover {
+  border-color: var(--ink);
+  background: var(--surface);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
