@@ -15,19 +15,56 @@ const fraunces = Fraunces({
   axes: ["opsz", "SOFT"],
 });
 
+const SITE_URL = "https://magpie.capital";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Magpie — Borrow SOL against your bags.",
   description:
     "Memecoin-collateralized SOL lending on Telegram. Pledge your bag, get SOL, repay in days.",
+  applicationName: "Magpie",
+  keywords: [
+    "Solana lending",
+    "memecoin lending",
+    "SOL loan",
+    "memecoin collateral",
+    "Telegram bot",
+    "DeFi",
+    "non-custodial",
+  ],
+  authors: [{ name: "Magpie" }],
+  alternates: {
+    canonical: "/",
+  },
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
   openGraph: {
-    title: "Magpie",
-    description: "Borrow SOL against your bags.",
+    title: "Magpie — Borrow SOL against your bags.",
+    description:
+      "Memecoin-collateralized SOL lending on Telegram. Pledge your bag, get SOL, repay in days.",
+    url: SITE_URL,
+    siteName: "Magpie",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "Magpie",
     description: "Borrow SOL against your bags.",
+    site: "@magpie",
+    creator: "@magpie",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
