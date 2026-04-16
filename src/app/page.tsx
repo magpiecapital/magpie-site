@@ -3,12 +3,12 @@ import { Mark, Wordmark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { PhoneMock } from "@/components/PhoneMock";
 
-const TELEGRAM_URL = "https://t.me/magpie_bot";
+const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
 const STEPS = [
   {
     n: "01",
-    t: "Open @magpie_bot",
+    t: "Open @magpie_capital_bot",
     d: "Start a chat. Verify your wallet. No seed phrase — keys stay yours, exportable anytime.",
   },
   {
@@ -417,7 +417,7 @@ export default function Home() {
           </p>
           <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
             <a href={TELEGRAM_URL} className="btn-accent text-lg">
-              Open @magpie_bot
+              Open @magpie_capital_bot
               <span aria-hidden>→</span>
             </a>
             <Link
