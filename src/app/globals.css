@@ -57,7 +57,12 @@
 html { scroll-behavior: smooth; }
 
 body {
-  background: var(--bg);
+  background:
+    /* Soft silver sheen — two large faint spotlights */
+    radial-gradient(ellipse 900px 600px at 15% 10%, rgba(186, 189, 196, 0.18), transparent 70%),
+    radial-gradient(ellipse 800px 600px at 85% 70%, rgba(176, 180, 188, 0.14), transparent 70%),
+    radial-gradient(ellipse 1000px 700px at 50% 120%, rgba(196, 200, 208, 0.12), transparent 70%),
+    var(--bg);
   color: var(--ink);
   font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
   min-height: 100vh;
@@ -76,6 +81,25 @@ body::before {
   opacity: 0.035;
   mix-blend-mode: multiply;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' /%3E%3C/svg%3E");
+}
+
+/* Scattered silver coins + sparkles — magpie's hoard */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.45;
+  background-image: url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='1200' viewBox='0 0 1200 1200'%3E%3Cdefs%3E%3CradialGradient id='s' cx='35%25' cy='35%25'%3E%3Cstop offset='0' stop-color='%23ffffff' stop-opacity='0.9'/%3E%3Cstop offset='0.5' stop-color='%23c4c6cc' stop-opacity='0.55'/%3E%3Cstop offset='1' stop-color='%23888c94' stop-opacity='0.25'/%3E%3C/radialGradient%3E%3C/defs%3E%3Cg fill='url(%23s)'%3E%3Ccircle cx='80' cy='140' r='4'/%3E%3Ccircle cx='340' cy='80' r='6'/%3E%3Ccircle cx='620' cy='200' r='3'/%3E%3Ccircle cx='900' cy='100' r='5'/%3E%3Ccircle cx='1100' cy='260' r='4'/%3E%3Ccircle cx='180' cy='420' r='7'/%3E%3Ccircle cx='480' cy='380' r='3'/%3E%3Ccircle cx='760' cy='460' r='5'/%3E%3Ccircle cx='1020' cy='540' r='4'/%3E%3Ccircle cx='60' cy='680' r='6'/%3E%3Ccircle cx='380' cy='620' r='4'/%3E%3Ccircle cx='660' cy='740' r='3'/%3E%3Ccircle cx='920' cy='780' r='6'/%3E%3Ccircle cx='140' cy='900' r='5'/%3E%3Ccircle cx='440' cy='960' r='3'/%3E%3Ccircle cx='740' cy='1020' r='7'/%3E%3Ccircle cx='1060' cy='940' r='4'/%3E%3Ccircle cx='260' cy='1100' r='5'/%3E%3Ccircle cx='560' cy='1160' r='4'/%3E%3Ccircle cx='840' cy='1120' r='3'/%3E%3C/g%3E%3Cg fill='%23a8acb4' opacity='0.35'%3E%3Cpath d='M250 280 L253 288 L261 291 L253 294 L250 302 L247 294 L239 291 L247 288 Z'/%3E%3Cpath d='M720 340 L722 346 L728 348 L722 350 L720 356 L718 350 L712 348 L718 346 Z'/%3E%3Cpath d='M160 560 L162 566 L168 568 L162 570 L160 576 L158 570 L152 568 L158 566 Z'/%3E%3Cpath d='M880 640 L883 648 L891 651 L883 654 L880 662 L877 654 L869 651 L877 648 Z'/%3E%3Cpath d='M420 820 L422 826 L428 828 L422 830 L420 836 L418 830 L412 828 L418 826 Z'/%3E%3Cpath d='M990 880 L992 886 L998 888 L992 890 L990 896 L988 890 L982 888 L988 886 Z'/%3E%3Cpath d='M320 1040 L322 1046 L328 1048 L322 1050 L320 1056 L318 1050 L312 1048 L318 1046 Z'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 1200px 1200px;
+  background-repeat: repeat;
+  animation: drift-bg 60s ease-in-out infinite alternate;
+}
+
+@keyframes drift-bg {
+  from { background-position: 0 0; }
+  to   { background-position: 40px -30px; }
 }
 
 .font-display {
