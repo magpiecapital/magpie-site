@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Mark, Wordmark } from "@/components/Logo";
 
-const TELEGRAM_URL = "https://t.me/magpie_bot";
+const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
 type Loan = {
   id: string;
@@ -253,7 +253,7 @@ export default function DashboardPage() {
               Deposit, repay, top-up, and extend are signed and broadcast from the bot. Dashboard is a read-only preview.
             </p>
             <a href={TELEGRAM_URL} className="btn-accent mt-10 text-base">
-              Open @magpie_bot
+              Open @magpie_capital_bot
               <span aria-hidden>→</span>
             </a>
           </div>
