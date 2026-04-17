@@ -288,7 +288,7 @@ function CreditGauge({ score, maxScore = 850 }: { score: number; maxScore?: numb
         />
       </svg>
       <div className="absolute top-8 flex flex-col items-center">
-        <span className="font-display text-4xl font-bold tracking-tight tabular">{animatedScore}</span>
+        <span className="font-display text-4xl font-bold tracking-tight">{animatedScore}</span>
         <span
           className="mt-0.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
           style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}
@@ -321,7 +321,7 @@ function FactorBar({ label, value }: { label: string; value: number }) {
           }}
         />
       </div>
-      <span className="w-7 text-right font-mono text-[10px] tabular text-[var(--ink-soft)]">{value}</span>
+      <span className="w-7 text-right text-[10px] font-medium text-[var(--ink-soft)]">{value}</span>
     </div>
   );
 }
@@ -438,10 +438,10 @@ export default function DashboardPage() {
   const animatedPoints = useAnimatedCounter(mounted ? MOCK_POINTS.total : 0);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)", color: "var(--ink)" }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: "#f0ede2", color: "var(--ink)" }}>
       {/* ─── SIDEBAR ─── */}
       <aside
-        className={`hidden md:flex flex-col shrink-0 border-r border-[var(--hairline)] bg-[var(--bg-elevated)] transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-56"}`}
+        className={`hidden md:flex flex-col shrink-0 border-r border-[var(--hairline)] bg-[#f7f5ec] transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-56"}`}
       >
         {/* Logo */}
         <div className="flex items-center gap-3 border-b border-[var(--hairline)] px-4 py-4">
@@ -514,7 +514,7 @@ export default function DashboardPage() {
       {/* ─── MAIN AREA ─── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* ─── TOP BAR ─── */}
-        <header className="flex items-center justify-between border-b border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3 md:px-6">
+        <header className="flex items-center justify-between border-b border-[var(--hairline)] bg-[#f7f5ec] px-4 py-3 md:px-6">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 md:hidden">
             <Link href="/"><Mark size={22} /></Link>
@@ -527,7 +527,7 @@ export default function DashboardPage() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--accent)]" />
               </span>
-              <span className="font-mono text-xs text-[var(--ink-soft)]">{MOCK_WALLET}</span>
+              <span className="text-xs text-[var(--ink-soft)] tracking-wide">{MOCK_WALLET}</span>
               <button onClick={handleCopy} className="flex h-5 w-5 items-center justify-center rounded transition hover:bg-[var(--hairline)]" title="Copy">
                 {copied ? (
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -537,9 +537,9 @@ export default function DashboardPage() {
               </button>
             </div>
             <div className="h-4 w-px bg-[var(--hairline)]" />
-            <span className="font-mono text-xs text-[var(--ink-soft)]">
-              {MOCK_SOL_BALANCE.toFixed(2)} SOL
-              <span className="text-[var(--ink-faint)]"> (${Math.round(solUsd).toLocaleString()})</span>
+            <span className="text-xs text-[var(--ink-soft)]">
+              <span className="font-semibold text-[var(--ink)]">{MOCK_SOL_BALANCE.toFixed(2)} SOL</span>
+              <span className="text-[var(--ink-faint)]"> &middot; ${Math.round(solUsd).toLocaleString()}</span>
             </span>
           </div>
 
@@ -583,7 +583,7 @@ export default function DashboardPage() {
                   className={`rounded-2xl border p-4 ${kpi.accent ? "border-[var(--accent)]/25 bg-[var(--accent-dim)]/40" : "border-[var(--hairline)] bg-[var(--bg-elevated)]"}`}
                 >
                   <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">{kpi.label}</div>
-                  <div className={`mt-1.5 font-display text-xl font-semibold tracking-tight tabular ${kpi.accent ? "text-[var(--accent-deep)]" : ""}`}>{kpi.value}</div>
+                  <div className={`mt-1.5 font-display text-[22px] font-semibold tracking-tight ${kpi.accent ? "text-[var(--accent-deep)]" : ""}`}>{kpi.value}</div>
                   <div className="mt-0.5 text-[11px] text-[var(--ink-faint)]">{kpi.sub}</div>
                 </div>
               ))}
@@ -619,7 +619,7 @@ export default function DashboardPage() {
                                     <span className="text-sm font-semibold">{loan.token}</span>
                                     <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-soft)]">{loan.tier}</span>
                                   </div>
-                                  <div className="font-mono text-[10px] text-[var(--ink-faint)]">{loan.id}</div>
+                                  <div className="text-[10px] text-[var(--ink-faint)]">{loan.id}</div>
                                 </div>
                               </div>
                               <div
@@ -645,7 +645,7 @@ export default function DashboardPage() {
                             <div className="mt-4">
                               <div className="flex items-center justify-between text-[10px] mb-1">
                                 <span className="text-[var(--ink-faint)]">Health</span>
-                                <span className="font-mono font-semibold tabular" style={{ color: healthColor(loan.health) }}>{loan.health}%</span>
+                                <span className="font-semibold" style={{ color: healthColor(loan.health) }}>{loan.health}%</span>
                               </div>
                               <div className="h-1.5 overflow-hidden rounded-full bg-[var(--hairline)]">
                                 <div
@@ -666,7 +666,7 @@ export default function DashboardPage() {
                                 {loan.startDate} &rarr; {loan.dueDate}
                               </div>
                               <div className="text-[11px]">
-                                <span className="font-mono font-semibold tabular" style={{ color: loan.daysLeft <= 2 ? "var(--warn)" : "var(--ink-soft)" }}>{loan.daysLeft.toFixed(1)}d left</span>
+                                <span className="font-semibold" style={{ color: loan.daysLeft <= 2 ? "var(--warn)" : "var(--ink-soft)" }}>{loan.daysLeft.toFixed(1)}d left</span>
                               </div>
                             </div>
 
@@ -714,10 +714,10 @@ export default function DashboardPage() {
                                   </div>
                                 </div>
                               </td>
-                              <td className="hidden sm:table-cell px-4 py-3 text-right font-mono text-xs tabular text-[var(--ink-soft)]">{h.amount}</td>
-                              <td className="px-4 py-3 text-right font-mono text-xs tabular font-medium">${h.usd.toLocaleString()}</td>
+                              <td className="hidden sm:table-cell px-4 py-3 text-right text-xs text-[var(--ink-soft)]">{h.amount}</td>
+                              <td className="px-4 py-3 text-right text-[13px] font-semibold">${h.usd.toLocaleString()}</td>
                               <td className="px-4 py-3 text-right">
-                                <span className="font-mono text-xs font-semibold tabular" style={{ color: h.change24h >= 0 ? "var(--accent-deep)" : "var(--bad)" }}>
+                                <span className="text-xs font-semibold" style={{ color: h.change24h >= 0 ? "var(--accent-deep)" : "var(--bad)" }}>
                                   {h.change24h >= 0 ? "+" : ""}{h.change24h}%
                                 </span>
                               </td>
@@ -765,12 +765,12 @@ export default function DashboardPage() {
                                 )}
                               </td>
                               <td className="px-4 py-3 font-medium text-[13px]">{loan.token}</td>
-                              <td className="px-4 py-3 text-right font-mono text-xs tabular">{loan.borrowed} SOL</td>
+                              <td className="px-4 py-3 text-right text-[13px] font-medium">{loan.borrowed} SOL</td>
                               <td className="hidden sm:table-cell px-4 py-3">
                                 <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-soft)]">{loan.tier}</span>
                               </td>
                               <td className="hidden sm:table-cell px-4 py-3 text-[12px] text-[var(--ink-faint)]">{loan.date}</td>
-                              <td className="px-4 py-3 text-right font-mono text-xs font-semibold tabular" style={{ color: loan.pointsEarned === 0 ? "var(--bad)" : "var(--accent-deep)" }}>
+                              <td className="px-4 py-3 text-right text-xs font-semibold" style={{ color: loan.pointsEarned === 0 ? "var(--bad)" : "var(--accent-deep)" }}>
                                 {loan.pointsEarned === 0 ? "0" : `+${loan.pointsEarned.toLocaleString()}`}
                               </td>
                             </tr>
@@ -799,7 +799,7 @@ export default function DashboardPage() {
                       <div className="mt-3 w-full">
                         <div className="flex items-center justify-between text-[10px] mb-1">
                           <span className="text-[var(--ink-faint)]">Next: Platinum</span>
-                          <span className="font-mono tabular text-[var(--ink-soft)]">{MOCK_CREDIT.score}/{MOCK_CREDIT.nextTier}</span>
+                          <span className="text-[var(--ink-soft)] font-medium">{MOCK_CREDIT.score}/{MOCK_CREDIT.nextTier}</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-[var(--hairline)] overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${(MOCK_CREDIT.score / MOCK_CREDIT.nextTier) * 100}%`, background: "var(--accent)" }} />
@@ -825,7 +825,7 @@ export default function DashboardPage() {
                   <div id="section-points" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5">
                     <SectionHeader title="Points" compact />
                     <div className="flex items-end gap-3">
-                      <div className="font-display text-3xl font-bold tabular tracking-tight">{animatedPoints.toLocaleString()}</div>
+                      <div className="font-display text-3xl font-bold tracking-tight">{animatedPoints.toLocaleString()}</div>
                       <div className="mb-1 flex items-center gap-1.5">
                         <span className="rounded-md px-1.5 py-0.5 text-[10px] font-bold" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>#{MOCK_POINTS.rank}</span>
                       </div>
@@ -835,7 +835,7 @@ export default function DashboardPage() {
                         <span className="font-semibold text-[var(--accent-deep)]">{MOCK_POINTS.streak}</span> day streak
                       </div>
                       <div>
-                        <span className="font-mono font-semibold text-[var(--accent-deep)]">+{MOCK_POINTS.thisWeek.toLocaleString()}</span> this week
+                        <span className="font-semibold text-[var(--accent-deep)]">+{MOCK_POINTS.thisWeek.toLocaleString()}</span> this week
                       </div>
                     </div>
                     {/* Recent */}
@@ -846,7 +846,7 @@ export default function DashboardPage() {
                             <div className="text-xs">{e.reason}</div>
                             <div className="text-[10px] text-[var(--ink-faint)]">{e.date}</div>
                           </div>
-                          <span className="font-mono text-xs font-semibold tabular" style={{ color: e.amount === 0 ? "var(--bad)" : "var(--accent-deep)" }}>
+                          <span className="text-xs font-semibold" style={{ color: e.amount === 0 ? "var(--bad)" : "var(--accent-deep)" }}>
                             {e.amount === 0 ? "0" : `+${e.amount.toLocaleString()}`}
                           </span>
                         </div>
@@ -879,7 +879,7 @@ export default function DashboardPage() {
                             <div className="mt-0.5 text-[10px] text-[var(--ink-faint)]">{item.time}</div>
                           </div>
                           {item.points && (
-                            <span className="shrink-0 font-mono text-[10px] font-semibold tabular text-[var(--accent-deep)]">{item.points}</span>
+                            <span className="shrink-0 text-[10px] font-semibold text-[var(--accent-deep)]">{item.points}</span>
                           )}
                         </div>
                       ))}
@@ -969,7 +969,7 @@ function Metric({ label, value, danger }: { label: string; value: string; danger
   return (
     <div>
       <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">{label}</div>
-      <div className={`mt-0.5 font-mono text-xs tabular font-medium ${danger ? "text-[var(--bad)]" : ""}`}>{value}</div>
+      <div className={`mt-0.5 text-[13px] font-semibold ${danger ? "text-[var(--bad)]" : ""}`}>{value}</div>
     </div>
   );
 }
