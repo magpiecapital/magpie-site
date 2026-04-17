@@ -513,7 +513,7 @@ export default function Home() {
             <FooterCol title="Social">
               <FooterLink href={X_URL}>X</FooterLink>
               <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
-              <FooterLink href="#">Discord</FooterLink>
+
               <FooterLink href="#">GitHub</FooterLink>
             </FooterCol>
           </div>
