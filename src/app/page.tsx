@@ -261,8 +261,8 @@ export default function Home() {
         </Reveal>
       </section>
 
-      {/* Credit system callout */}
-      <section className="mx-auto max-w-6xl px-6 pb-8">
+      {/* Credit + Points callout */}
+      <section className="mx-auto max-w-6xl px-6 pb-8 space-y-5">
         <Reveal>
           <Link
             href="/credit"
@@ -279,6 +279,26 @@ export default function Home() {
             </div>
             <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
               Learn more
+              <span aria-hidden className="transition group-hover:translate-x-1">→</span>
+            </div>
+          </Link>
+        </Reveal>
+        <Reveal delay={80}>
+          <Link
+            href="/points"
+            className="group flex flex-col gap-6 rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg md:flex-row md:items-center md:justify-between md:p-10"
+          >
+            <div>
+              <div className="chip mb-3">Rewards</div>
+              <h3 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
+                Earn points on every loan
+              </h3>
+              <p className="mt-2 max-w-lg text-base text-[var(--ink-soft)] leading-relaxed">
+                Bigger loans, riskier tiers, early repayments, and streaks all multiply your rewards. Accumulate now — redemptions coming soon.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
+              See how it works
               <span aria-hidden className="transition group-hover:translate-x-1">→</span>
             </div>
           </Link>
@@ -524,6 +544,7 @@ export default function Home() {
               <FooterLink href="/tokens">Approved Tokens</FooterLink>
               <FooterLink href="/calculate">Loan Calculator</FooterLink>
               <FooterLink href="/credit">Credit System</FooterLink>
+              <FooterLink href="/points">Points</FooterLink>
               <FooterLink href="/stats">Protocol Stats</FooterLink>
               <FooterLink href="/demo">Demo</FooterLink>
               <FooterLink href="/dashboard">Dashboard</FooterLink>

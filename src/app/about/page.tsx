@@ -26,6 +26,10 @@ const FEATURES = [
     body: "The first DeFi credit score for memecoin lending. Build reputation. Unlock better rates.",
   },
   {
+    title: "Points & Rewards",
+    body: "Earn points on every successful loan. Bigger loans, riskier tiers, and repayment streaks multiply your rewards.",
+  },
+  {
     title: "Sub-10-Second Funding",
     body: "Deposit confirms, SOL arrives. The entire flow takes less time than reading this card.",
   },
