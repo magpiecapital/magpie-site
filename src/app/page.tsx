@@ -551,6 +551,8 @@ export default function Home() {
             </FooterCol>
             <FooterCol title="Resources">
               <FooterLink href="/docs">Documentation</FooterLink>
+              <FooterLink href="/whitepaper">Whitepaper</FooterLink>
+              <FooterLink href="/security">Security</FooterLink>
               <FooterLink href="/changelog">Changelog</FooterLink>
               <FooterLink href="/about">About</FooterLink>
               <FooterLink href="#faq">FAQ</FooterLink>

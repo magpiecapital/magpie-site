@@ -23,6 +23,40 @@ const ENTRIES: Entry[] = [
   {
     date: "April 17, 2026",
     tag: "Feature",
+    title: "Public REST API (v1)",
+    bullets: [
+      "GET /api/v1/stats — Protocol-level statistics",
+      "GET /api/v1/tokens — All 64 tokens with live DexScreener pricing",
+      "GET /api/v1/health — Protocol health overview",
+      "GET /api/v1/calculate — Loan calculator with real-time pricing",
+      "60-second caching, structured JSON responses, versioned endpoints",
+    ],
+  },
+  {
+    date: "April 17, 2026",
+    tag: "Feature",
+    title: "Whitepaper & Security Page",
+    bullets: [
+      "Magpie Protocol Litepaper v1.0 at /whitepaper",
+      "Full security audit report and transparency page at /security",
+      "Bug bounty program and responsible disclosure policy",
+      "10/10 security checklist with architecture diagrams",
+    ],
+  },
+  {
+    date: "April 17, 2026",
+    tag: "Security",
+    title: "60-Second Quote Expiry & Slippage Guard",
+    bullets: [
+      "Loan quotes now expire after 60 seconds to protect against price fluctuations",
+      "2% maximum slippage tolerance between quote and execution",
+      "Price re-verified at confirmation time — freshest price always used",
+      "Stale sessions auto-cleaned from memory",
+    ],
+  },
+  {
+    date: "April 17, 2026",
+    tag: "Feature",
     title: "Magpie Points System",
     bullets: [
       "Earn points on every successful loan repayment",
