@@ -141,8 +141,8 @@ export default function Home() {
             <a href="#faq" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               FAQ
             </a>
-            <Link href="/tokens" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Tokens
+            <Link href="/tokens" className="hidden text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)] md:inline">
+              Approved Tokens
             </Link>
             <Link href="/demo" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               Demo
