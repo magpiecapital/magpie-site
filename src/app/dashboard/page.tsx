@@ -469,6 +469,144 @@ function CustomizePanel({
   );
 }
 
+/* ───────────────────────── MOBILE MENU ───────────────────────── */
+
+function MobileMenu({
+  open,
+  onClose,
+  theme,
+  onToggleTheme,
+  wallet,
+  solBalance,
+  solUsd,
+  onCopy,
+  copied,
+  onScrollTo,
+}: {
+  open: boolean;
+  onClose: () => void;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
+  wallet: string;
+  solBalance: number;
+  solUsd: number;
+  onCopy: () => void;
+  copied: boolean;
+  onScrollTo: (key: string) => void;
+}) {
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-[80] transition-opacity duration-300 md:hidden"
+        style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none" }}
+        onClick={onClose}
+      />
+      {/* Drawer */}
+      <div
+        className="fixed left-0 top-0 z-[90] h-full w-[280px] transition-transform duration-300 ease-out md:hidden flex flex-col"
+        style={{ transform: open ? "translateX(0)" : "translateX(-100%)", background: "var(--d-bg-panel)" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-[var(--d-border)] px-5 py-4">
+          <Wordmark size={22} />
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          </button>
+        </div>
+
+        {/* Wallet info */}
+        <div className="border-b border-[var(--d-border)] px-5 py-4">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--d-accent)] opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--d-accent)]" />
+            </span>
+            <span className="text-xs text-[var(--d-ink-soft)] tracking-wide">{wallet}</span>
+            <button onClick={onCopy} className="flex h-5 w-5 items-center justify-center rounded text-[var(--d-ink-faint)]">
+              {copied ? (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-accent)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+              ) : (
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+              )}
+            </button>
+          </div>
+          <div className="mt-2 text-lg font-semibold">{solBalance.toFixed(2)} SOL</div>
+          <div className="text-xs text-[var(--d-ink-faint)]">${Math.round(solUsd).toLocaleString()}</div>
+        </div>
+
+        {/* Dashboard sections */}
+        <div className="flex-1 overflow-y-auto px-3 py-3">
+          <div className="px-2 pb-2 text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)]">Dashboard</div>
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => onScrollTo(item.key)}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
+            >
+              <span className="text-[var(--d-ink-faint)]">{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+
+          <div className="mt-4 mb-2 h-px bg-[var(--d-border)]" />
+          <div className="px-2 pb-2 text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)]">Pages</div>
+          {[
+            { label: "Home", href: "/" },
+            { label: "Approved Tokens", href: "/tokens" },
+            { label: "Loan Calculator", href: "/calculate" },
+            { label: "Credit Score", href: "/credit" },
+            { label: "Points & Rewards", href: "/points" },
+            { label: "Protocol Stats", href: "/stats" },
+            { label: "Documentation", href: "/docs" },
+            { label: "About", href: "/about" },
+            { label: "Changelog", href: "/changelog" },
+            { label: "Security", href: "/security" },
+            { label: "Whitepaper", href: "/whitepaper" },
+          ].map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={onClose}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Bottom actions */}
+        <div className="border-t border-[var(--d-border)] px-4 py-4 flex flex-col gap-2">
+          {/* Theme toggle */}
+          <button
+            onClick={onToggleTheme}
+            className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)]"
+          >
+            <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+            {theme === "dark" ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
+          </button>
+          {/* Launch bot */}
+          <a
+            href={TELEGRAM_URL}
+            className="flex items-center justify-center gap-2 rounded-xl bg-[var(--d-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" /></svg>
+            Open Telegram Bot
+          </a>
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ───────────────────────── MAIN PAGE ───────────────────────── */
 
 export default function DashboardPage() {
@@ -479,6 +617,7 @@ export default function DashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeNav, setActiveNav] = useState<string>("overview");
   const [theme, setTheme] = useState<ThemeMode>("dark");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -613,8 +752,17 @@ export default function DashboardPage() {
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* ─── TOP BAR ─── */}
         <header className="flex items-center justify-between border-b border-[var(--d-border)] bg-[var(--d-bg-panel)] px-4 py-3 md:px-6">
-          {/* Mobile logo */}
+          {/* Mobile: hamburger + logo */}
           <div className="flex items-center gap-3 md:hidden">
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)]"
+              aria-label="Open menu"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
             <Link href="/"><Mark size={22} /></Link>
           </div>
 
@@ -674,6 +822,20 @@ export default function DashboardPage() {
             </a>
           </div>
         </header>
+
+        {/* ─── MOBILE MENU ─── */}
+        <MobileMenu
+          open={mobileMenuOpen}
+          onClose={() => setMobileMenuOpen(false)}
+          theme={theme}
+          onToggleTheme={toggleTheme}
+          wallet={MOCK_WALLET}
+          solBalance={MOCK_SOL_BALANCE}
+          solUsd={solUsd}
+          onCopy={handleCopy}
+          copied={copied}
+          onScrollTo={(key: string) => { scrollTo(key); setMobileMenuOpen(false); }}
+        />
 
         {/* ─── CUSTOMIZE PANEL ─── */}
         <CustomizePanel open={customizeOpen} onClose={() => setCustomizeOpen(false)} prefs={prefs} onToggle={toggleSection} />
