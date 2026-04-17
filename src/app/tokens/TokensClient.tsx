@@ -281,12 +281,12 @@ export default function TokensClient() {
             <Wordmark size={28} />
           </Link>
           <nav className="flex items-center gap-6">
-            <Link
-              href="/tokens"
-              className="text-sm font-semibold text-[var(--ink)] transition"
+            <a
+              href="#submit-token"
+              className="text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
             >
-              Tokens
-            </Link>
+              Submit Token
+            </a>
             <Link
               href="/demo"
               className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline"
