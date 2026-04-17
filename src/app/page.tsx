@@ -132,6 +132,9 @@ export default function Home() {
             <a href="#faq" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               FAQ
             </a>
+            <Link href="/demo" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
+              Demo
+            </Link>
             <Link href="/dashboard" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               Dashboard
             </Link>
@@ -261,6 +264,11 @@ export default function Home() {
           </Reveal>
           <Reveal className="order-1 md:order-2" delay={150}>
             <PhoneMock />
+            <div className="mt-6 text-center">
+              <Link href="/demo" className="text-sm font-medium text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline">
+                Watch the full interactive demo →
+              </Link>
+            </div>
           </Reveal>
         </div>
       </section>
@@ -442,6 +450,7 @@ export default function Home() {
             </div>
             <FooterCol title="Product">
               <FooterLink href="#how">How it works</FooterLink>
+              <FooterLink href="/demo">Demo</FooterLink>
               <FooterLink href="#tiers">Tiers</FooterLink>
               <FooterLink href="/dashboard">Dashboard</FooterLink>
               <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
