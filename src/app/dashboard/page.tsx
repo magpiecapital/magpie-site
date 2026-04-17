@@ -6,6 +6,64 @@ import { Mark, Wordmark } from "@/components/Logo";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
+const THEME_KEY = "magpie-dashboard-theme";
+
+/* ───────────────────────── THEME TOKENS ───────────────────────── */
+
+const THEMES = {
+  light: {
+    "--d-bg": "#e8e4d8",
+    "--d-bg-panel": "#f2efe4",
+    "--d-bg-card": "#ffffff",
+    "--d-ink": "#0a0a0a",
+    "--d-ink-soft": "#5c5a52",
+    "--d-ink-faint": "#a8a49a",
+    "--d-border": "#e0dace",
+    "--d-border-strong": "#d1cab4",
+    "--d-surface": "#f0ebda",
+    "--d-surface-hover": "#e8e2d0",
+    "--d-accent": "#f7c948",
+    "--d-accent-dim": "#fdf2c7",
+    "--d-accent-deep": "#c99a2c",
+    "--d-accent-ink": "#1a1500",
+    "--d-accent-hover": "#ffd668",
+    "--d-warn": "#c96a3d",
+    "--d-bad": "#b83a3a",
+    "--d-table-alt": "rgba(240,235,218,0.5)",
+    "--d-health-warn-bg": "var(--d-health-warn-bg)",
+    "--d-health-bad-bg": "var(--d-health-bad-bg)",
+    "--d-cta-bg": "#0a0a0a",
+    "--d-cta-text": "#f2efe4",
+    "--d-cta-muted": "rgba(242,239,228,0.6)",
+  },
+  dark: {
+    "--d-bg": "#0f1114",
+    "--d-bg-panel": "#181a1f",
+    "--d-bg-card": "#1e2028",
+    "--d-ink": "#e8e6e1",
+    "--d-ink-soft": "#9a978f",
+    "--d-ink-faint": "#5c5a55",
+    "--d-border": "#2a2c33",
+    "--d-border-strong": "#3a3c44",
+    "--d-surface": "#252730",
+    "--d-surface-hover": "#2e303a",
+    "--d-accent": "#f7c948",
+    "--d-accent-dim": "rgba(247,201,72,0.12)",
+    "--d-accent-deep": "#f7c948",
+    "--d-accent-ink": "#1a1500",
+    "--d-accent-hover": "#ffd668",
+    "--d-warn": "#e8944d",
+    "--d-bad": "#e05555",
+    "--d-table-alt": "rgba(255,255,255,0.02)",
+    "--d-health-warn-bg": "rgba(232,148,77,0.12)",
+    "--d-health-bad-bg": "rgba(224,85,85,0.12)",
+    "--d-cta-bg": "#252730",
+    "--d-cta-text": "#e8e6e1",
+    "--d-cta-muted": "rgba(232,230,225,0.4)",
+  },
+} as const;
+
+type ThemeMode = keyof typeof THEMES;
 
 /* ───────────────────────── MOCK DATA ───────────────────────── */
 
@@ -198,9 +256,9 @@ const NAV_ITEMS: NavItem[] = [
 /* ───────────────────────── HELPERS ───────────────────────── */
 
 function healthColor(h: number): string {
-  if (h >= 75) return "var(--accent)";
-  if (h >= 50) return "var(--warn)";
-  return "var(--bad)";
+  if (h >= 75) return "var(--d-accent)";
+  if (h >= 50) return "var(--d-warn)";
+  return "var(--d-bad)";
 }
 
 function healthLabel(h: number): string {
@@ -230,7 +288,7 @@ function TokenIcon({ mint, symbol, size = 28 }: { mint: string; symbol: string; 
     return (
       <div
         className="flex shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-        style={{ width: size, height: size, background: "var(--accent-dim)", color: "var(--accent-deep)" }}
+        style={{ width: size, height: size, background: "var(--d-accent-dim)", color: "var(--d-accent-deep)" }}
       >
         {symbol[0]}
       </div>
@@ -301,12 +359,12 @@ function CreditGauge({ score, maxScore = 850 }: { score: number; maxScore?: numb
   return (
     <div className="relative flex flex-col items-center">
       <svg viewBox="0 0 200 120" className="w-40 h-auto">
-        <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="var(--hairline)" strokeWidth="14" strokeLinecap="round" />
+        <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="var(--d-border)" strokeWidth="14" strokeLinecap="round" />
         <path
           ref={pathRef}
           d="M 20 110 A 80 80 0 0 1 180 110"
           fill="none"
-          stroke="var(--accent)"
+          stroke="var(--d-accent)"
           strokeWidth="14"
           strokeLinecap="round"
           style={{
@@ -320,7 +378,7 @@ function CreditGauge({ score, maxScore = 850 }: { score: number; maxScore?: numb
         <span className="font-display text-4xl font-bold tracking-tight">{animatedScore}</span>
         <span
           className="mt-0.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-          style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}
+          style={{ background: "var(--d-accent-dim)", color: "var(--d-accent-deep)" }}
         >
           {MOCK_CREDIT.tier}
         </span>
@@ -340,17 +398,17 @@ function FactorBar({ label, value }: { label: string; value: number }) {
 
   return (
     <div className="flex items-center gap-2.5">
-      <span className="w-24 shrink-0 text-[11px] text-[var(--ink-soft)]">{label}</span>
+      <span className="w-24 shrink-0 text-[11px] text-[var(--d-ink-soft)]">{label}</span>
       <div className="flex-1 h-1.5 rounded-full bg-[var(--hairline)] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-1000 ease-out"
           style={{
             width: `${width}%`,
-            background: value >= 80 ? "var(--accent)" : value >= 60 ? "var(--warn)" : "var(--bad)",
+            background: value >= 80 ? "var(--d-accent)" : value >= 60 ? "var(--d-warn)" : "var(--d-bad)",
           }}
         />
       </div>
-      <span className="w-7 text-right text-[10px] font-medium text-[var(--ink-soft)]">{value}</span>
+      <span className="w-7 text-right text-[10px] font-medium text-[var(--d-ink-soft)]">{value}</span>
     </div>
   );
 }
@@ -379,28 +437,28 @@ function CustomizePanel({
         className="fixed right-0 top-0 z-[70] h-full w-full max-w-xs transition-transform duration-300 ease-out"
         style={{ transform: open ? "translateX(0)" : "translateX(100%)" }}
       >
-        <div className="h-full border-l border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 flex flex-col">
+        <div className="h-full border-l border-[var(--d-border)] p-6 flex flex-col" style={{ background: "var(--d-bg-panel)" }}>
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-display text-lg font-medium">Customize</h3>
-            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-[var(--surface)]">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-[var(--d-surface-hover)]">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--d-ink-soft)" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
-          <p className="text-xs text-[var(--ink-soft)] mb-5">Toggle sections on or off. Saved locally.</p>
+          <p className="text-xs text-[var(--d-ink-soft)] mb-5">Toggle sections on or off. Saved locally.</p>
           <div className="flex flex-col gap-0.5">
             {(Object.keys(SECTION_LABELS) as SectionKey[]).map((key) => (
-              <button key={key} onClick={() => onToggle(key)} className="flex items-center justify-between rounded-xl px-3 py-3 transition hover:bg-[var(--surface)]">
+              <button key={key} onClick={() => onToggle(key)} className="flex items-center justify-between rounded-xl px-3 py-3 transition hover:bg-[var(--d-surface-hover)]">
                 <span className="text-sm">{SECTION_LABELS[key]}</span>
-                <div className="relative h-5 w-9 rounded-full transition-colors duration-200" style={{ background: prefs[key] ? "var(--accent)" : "var(--hairline-strong)" }}>
+                <div className="relative h-5 w-9 rounded-full transition-colors duration-200" style={{ background: prefs[key] ? "var(--d-accent)" : "var(--d-border-strong)" }}>
                   <div className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200" style={{ transform: prefs[key] ? "translateX(18px)" : "translateX(2px)" }} />
                 </div>
               </button>
             ))}
           </div>
-          <div className="mt-auto pt-4 border-t border-[var(--hairline)]">
+          <div className="mt-auto pt-4 border-t border-[var(--d-border)]">
             <button
               onClick={() => { (Object.keys(SECTION_LABELS) as SectionKey[]).forEach((k) => { if (!prefs[k]) onToggle(k); }); }}
-              className="w-full rounded-xl border border-[var(--hairline-strong)] px-3 py-2 text-xs font-medium transition hover:border-[var(--ink)] hover:bg-[var(--surface)]"
+              className="w-full rounded-xl border border-[var(--d-border-strong)] px-3 py-2 text-xs font-medium transition hover:border-[var(--ink)] hover:bg-[var(--d-surface-hover)]"
             >
               Show all
             </button>
@@ -420,6 +478,7 @@ export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeNav, setActiveNav] = useState<string>("overview");
+  const [theme, setTheme] = useState<ThemeMode>("dark");
 
   useEffect(() => {
     setMounted(true);
@@ -427,8 +486,18 @@ export default function DashboardPage() {
       try {
         const stored = localStorage.getItem(PREFS_KEY);
         if (stored) setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(stored) });
+        const storedTheme = localStorage.getItem(THEME_KEY);
+        if (storedTheme === "light" || storedTheme === "dark") setTheme(storedTheme);
       } catch { /* ignore */ }
     }
+  }, []);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => {
+      const next = prev === "light" ? "dark" : "light";
+      if (typeof window !== "undefined") localStorage.setItem(THEME_KEY, next);
+      return next;
+    });
   }, []);
 
   const toggleSection = useCallback((key: SectionKey) => {
@@ -467,13 +536,13 @@ export default function DashboardPage() {
   const animatedPoints = useAnimatedCounter(mounted ? MOCK_POINTS.total : 0);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#e8e4d8", color: "var(--ink)" }}>
+    <div className="flex h-screen overflow-hidden transition-colors duration-300" style={{ ...THEMES[theme] as React.CSSProperties, background: "var(--d-bg)", color: "var(--d-ink)" }}>
       {/* ─── SIDEBAR ─── */}
       <aside
-        className={`hidden md:flex flex-col shrink-0 border-r border-[var(--hairline)] bg-[#f2efe4] transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-56"}`}
+        className={`hidden md:flex flex-col shrink-0 border-r border-[var(--d-border)] bg-[var(--d-bg-panel)] transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-56"}`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 border-b border-[var(--hairline)] px-4 py-4">
+        <div className="flex items-center gap-3 border-b border-[var(--d-border)] px-4 py-4">
           <Link href="/">
             {sidebarCollapsed ? <Mark size={24} /> : <Wordmark size={24} />}
           </Link>
@@ -490,12 +559,12 @@ export default function DashboardPage() {
                   onClick={() => scrollTo(item.key)}
                   className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
                     isActive
-                      ? "bg-[var(--accent-dim)] text-[var(--accent-deep)]"
-                      : "text-[var(--ink-soft)] hover:bg-[var(--surface)] hover:text-[var(--ink)]"
+                      ? "bg-[var(--d-accent-dim)] text-[var(--d-accent-deep)]"
+                      : "text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
                   }`}
                   title={sidebarCollapsed ? item.label : undefined}
                 >
-                  <span className={`shrink-0 ${isActive ? "text-[var(--accent-deep)]" : "text-[var(--ink-faint)] group-hover:text-[var(--ink-soft)]"}`}>
+                  <span className={`shrink-0 ${isActive ? "text-[var(--d-accent-deep)]" : "text-[var(--d-ink-faint)] group-hover:text-[var(--d-ink-soft)]"}`}>
                     {item.icon}
                   </span>
                   {!sidebarCollapsed && <span>{item.label}</span>}
@@ -506,7 +575,7 @@ export default function DashboardPage() {
 
           {!sidebarCollapsed && (
             <div className="mt-6 px-3">
-              <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] mb-2">Links</div>
+              <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] mb-2">Links</div>
               <div className="flex flex-col gap-0.5">
                 {[
                   { label: "Tokens", href: "/tokens" },
@@ -517,7 +586,7 @@ export default function DashboardPage() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="rounded-lg px-3 py-2 text-[13px] text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--ink)]"
+                    className="rounded-lg px-3 py-2 text-[13px] text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
                   >
                     {link.label}
                   </Link>
@@ -528,10 +597,10 @@ export default function DashboardPage() {
         </nav>
 
         {/* Collapse toggle */}
-        <div className="border-t border-[var(--hairline)] px-2 py-2">
+        <div className="border-t border-[var(--d-border)] px-2 py-2">
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="flex w-full items-center justify-center rounded-xl py-2 text-[var(--ink-faint)] transition hover:bg-[var(--surface)] hover:text-[var(--ink-soft)]"
+            className="flex w-full items-center justify-center rounded-xl py-2 text-[var(--d-ink-faint)] transition hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink-soft)]"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: sidebarCollapsed ? "rotate(180deg)" : "none", transition: "transform 0.3s" }}>
               <polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" />
@@ -543,7 +612,7 @@ export default function DashboardPage() {
       {/* ─── MAIN AREA ─── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* ─── TOP BAR ─── */}
-        <header className="flex items-center justify-between border-b border-[var(--hairline)] bg-[#f2efe4] px-4 py-3 md:px-6">
+        <header className="flex items-center justify-between border-b border-[var(--d-border)] bg-[var(--d-bg-panel)] px-4 py-3 md:px-6">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 md:hidden">
             <Link href="/"><Mark size={22} /></Link>
@@ -551,39 +620,55 @@ export default function DashboardPage() {
 
           {/* Left: wallet */}
           <div className="hidden md:flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-xl bg-[var(--surface)] px-3 py-1.5">
+            <div className="flex items-center gap-2 rounded-xl bg-[var(--d-surface)] px-3 py-1.5">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--accent)]" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--d-accent)] opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--d-accent)]" />
               </span>
-              <span className="text-xs text-[var(--ink-soft)] tracking-wide">{MOCK_WALLET}</span>
+              <span className="text-xs text-[var(--d-ink-soft)] tracking-wide">{MOCK_WALLET}</span>
               <button onClick={handleCopy} className="flex h-5 w-5 items-center justify-center rounded transition hover:bg-[var(--hairline)]" title="Copy">
                 {copied ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-accent)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                 ) : (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-ink-faint)" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
                 )}
               </button>
             </div>
             <div className="h-4 w-px bg-[var(--hairline)]" />
-            <span className="text-xs text-[var(--ink-soft)]">
-              <span className="font-semibold text-[var(--ink)]">{MOCK_SOL_BALANCE.toFixed(2)} SOL</span>
-              <span className="text-[var(--ink-faint)]"> &middot; ${Math.round(solUsd).toLocaleString()}</span>
+            <span className="text-xs text-[var(--d-ink-soft)]">
+              <span className="font-semibold text-[var(--d-ink)]">{MOCK_SOL_BALANCE.toFixed(2)} SOL</span>
+              <span className="text-[var(--d-ink-faint)]"> &middot; ${Math.round(solUsd).toLocaleString()}</span>
             </span>
           </div>
 
           {/* Right: actions */}
           <div className="flex items-center gap-2">
+            {/* Theme toggle */}
+            <button
+              onClick={toggleTheme}
+              className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--d-border)] text-[var(--d-ink-soft)] transition hover:border-[var(--d-border-strong)] hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              {theme === "dark" ? (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+              ) : (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              )}
+            </button>
             <button
               onClick={() => setCustomizeOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] px-3 py-1.5 text-xs text-[var(--ink-soft)] transition hover:border-[var(--hairline-strong)] hover:bg-[var(--surface)]"
+              className="flex items-center gap-1.5 rounded-xl border border-[var(--d-border)] px-3 py-1.5 text-xs text-[var(--d-ink-soft)] transition hover:border-[var(--d-border-strong)] hover:bg-[var(--d-surface-hover)]"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
               <span className="hidden sm:inline">Customize</span>
             </button>
-            <a href={TELEGRAM_URL} className="flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-ink)] transition hover:bg-[var(--accent-hover)]">
+            <a href={TELEGRAM_URL} className="flex items-center gap-1.5 rounded-xl bg-[var(--d-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" /></svg>
               <span className="hidden sm:inline">Open Bot</span>
             </a>
@@ -609,11 +694,11 @@ export default function DashboardPage() {
               ].map((kpi) => (
                 <div
                   key={kpi.label}
-                  className={`rounded-2xl border p-4 ${kpi.accent ? "border-[var(--accent)]/25 bg-[var(--accent-dim)]/40" : "border-[var(--hairline)] bg-[var(--bg-elevated)]"}`}
+                  className={`rounded-2xl border p-4 ${kpi.accent ? "border-[var(--d-accent)]/25 bg-[var(--d-accent-dim)]/40" : "border-[var(--d-border)] bg-[var(--d-bg-card)]"}`}
                 >
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">{kpi.label}</div>
-                  <div className={`mt-1.5 font-display text-[22px] font-semibold tracking-tight ${kpi.accent ? "text-[var(--accent-deep)]" : ""}`}>{kpi.value}</div>
-                  <div className="mt-0.5 text-[11px] text-[var(--ink-faint)]">{kpi.sub}</div>
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)]">{kpi.label}</div>
+                  <div className={`mt-1.5 font-display text-[22px] font-semibold tracking-tight ${kpi.accent ? "text-[var(--d-accent-deep)]" : ""}`}>{kpi.value}</div>
+                  <div className="mt-0.5 text-[11px] text-[var(--d-ink-faint)]">{kpi.sub}</div>
                 </div>
               ))}
             </div>
@@ -629,32 +714,32 @@ export default function DashboardPage() {
                   <div id="section-activeLoans">
                     <SectionHeader title="Active Loans" count={MOCK_ACTIVE_LOANS.length} />
                     {MOCK_ACTIVE_LOANS.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-[var(--hairline-strong)] bg-[var(--surface)]/50 p-10 text-center">
-                        <div className="text-sm text-[var(--ink-soft)]">No active loans</div>
+                      <div className="rounded-2xl border border-dashed border-[var(--d-border-strong)] bg-[var(--d-surface)]/50 p-10 text-center">
+                        <div className="text-sm text-[var(--d-ink-soft)]">No active loans</div>
                         <a href={TELEGRAM_URL} className="mt-3 inline-block text-sm font-medium text-[var(--accent)]">Start borrowing &rarr;</a>
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                         {MOCK_ACTIVE_LOANS.map((loan) => (
-                          <div key={loan.id} className="group rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 transition hover:border-[var(--hairline-strong)] hover:shadow-sm">
+                          <div key={loan.id} className="group rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5 transition hover:border-[var(--d-border-strong)] hover:shadow-sm">
                             {/* Top row */}
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2.5">
-                                <div className="flex h-9 w-9 items-center justify-center rounded-lg font-mono text-xs font-bold" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg font-mono text-xs font-bold" style={{ background: "var(--d-accent-dim)", color: "var(--d-accent-deep)" }}>
                                   {loan.token}
                                 </div>
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="text-sm font-semibold">{loan.token}</span>
-                                    <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-soft)]">{loan.tier}</span>
+                                    <span className="rounded-md bg-[var(--d-surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--d-ink-soft)]">{loan.tier}</span>
                                   </div>
-                                  <div className="text-[10px] text-[var(--ink-faint)]">{loan.id}</div>
+                                  <div className="text-[10px] text-[var(--d-ink-faint)]">{loan.id}</div>
                                 </div>
                               </div>
                               <div
                                 className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
                                 style={{
-                                  background: loan.health >= 75 ? "var(--accent-dim)" : loan.health >= 50 ? "rgba(201,106,61,0.12)" : "rgba(184,58,58,0.12)",
+                                  background: loan.health >= 75 ? "var(--d-accent-dim)" : loan.health >= 50 ? "var(--d-health-warn-bg)" : "var(--d-health-bad-bg)",
                                   color: healthColor(loan.health),
                                 }}
                               >
@@ -673,7 +758,7 @@ export default function DashboardPage() {
                             {/* Health bar */}
                             <div className="mt-4">
                               <div className="flex items-center justify-between text-[10px] mb-1">
-                                <span className="text-[var(--ink-faint)]">Health</span>
+                                <span className="text-[var(--d-ink-faint)]">Health</span>
                                 <span className="font-semibold" style={{ color: healthColor(loan.health) }}>{loan.health}%</span>
                               </div>
                               <div className="h-1.5 overflow-hidden rounded-full bg-[var(--hairline)]">
@@ -681,7 +766,7 @@ export default function DashboardPage() {
                                   className="h-full rounded-full transition-all duration-700"
                                   style={{
                                     width: `${loan.health}%`,
-                                    background: `linear-gradient(90deg, var(--bad), var(--warn), var(--accent))`,
+                                    background: `linear-gradient(90deg, var(--d-bad), var(--d-warn), var(--d-accent))`,
                                     backgroundSize: "200% 100%",
                                     backgroundPosition: `${100 - loan.health}% 0`,
                                   }}
@@ -691,18 +776,18 @@ export default function DashboardPage() {
 
                             {/* Footer */}
                             <div className="mt-3 flex items-center justify-between">
-                              <div className="text-[11px] text-[var(--ink-faint)]">
+                              <div className="text-[11px] text-[var(--d-ink-faint)]">
                                 {loan.startDate} &rarr; {loan.dueDate}
                               </div>
                               <div className="text-[11px]">
-                                <span className="font-semibold" style={{ color: loan.daysLeft <= 2 ? "var(--warn)" : "var(--ink-soft)" }}>{loan.daysLeft.toFixed(1)}d left</span>
+                                <span className="font-semibold" style={{ color: loan.daysLeft <= 2 ? "var(--d-warn)" : "var(--d-ink-soft)" }}>{loan.daysLeft.toFixed(1)}d left</span>
                               </div>
                             </div>
 
                             {/* Quick actions */}
                             <div className="mt-3 flex gap-1.5">
                               {["Repay", "Top-up", "Extend"].map((label) => (
-                                <a key={label} href={TELEGRAM_URL} className="flex-1 rounded-lg border border-[var(--hairline)] py-1.5 text-center text-[10px] font-semibold text-[var(--ink-soft)] transition hover:border-[var(--accent)] hover:bg-[var(--accent-dim)] hover:text-[var(--accent-deep)]">
+                                <a key={label} href={TELEGRAM_URL} className="flex-1 rounded-lg border border-[var(--d-border)] py-1.5 text-center text-[10px] font-semibold text-[var(--d-ink-soft)] transition hover:border-[var(--d-accent)] hover:bg-[var(--d-accent-dim)] hover:text-[var(--d-accent)]">
                                   {label}
                                 </a>
                               ))}
@@ -718,43 +803,43 @@ export default function DashboardPage() {
                 {prefs.holdings && (
                   <div id="section-holdings">
                     <SectionHeader title="Holdings" count={MOCK_HOLDINGS.length} />
-                    <div className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)]">
+                    <div className="overflow-hidden rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)]">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-[var(--hairline)] bg-[var(--surface)]/60">
-                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Token</th>
-                            <th className="hidden sm:table-cell px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Amount</th>
-                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Value</th>
-                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">24h</th>
-                            <th className="hidden md:table-cell px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Action</th>
+                          <tr className="border-b border-[var(--d-border)] bg-[var(--d-surface)]/60">
+                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Token</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Amount</th>
+                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Value</th>
+                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">24h</th>
+                            <th className="hidden md:table-cell px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Action</th>
                           </tr>
                         </thead>
                         <tbody>
                           {MOCK_HOLDINGS.map((h, i) => (
-                            <tr key={h.symbol} className={`border-b border-[var(--hairline)] last:border-0 transition hover:bg-[var(--surface)]/40 ${i % 2 === 1 ? "bg-[var(--surface)]/20" : ""}`}>
+                            <tr key={h.symbol} className={`border-b border-[var(--d-border)] last:border-0 transition hover:bg-[var(--d-surface-hover)]/40 ${i % 2 === 1 ? "bg-[var(--d-surface)]/20" : ""}`}>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2.5">
                                   <TokenIcon mint={h.mint} symbol={h.symbol} size={28} />
                                   <div>
                                     <div className="font-medium text-[13px]">{h.symbol}</div>
-                                    <div className="text-[10px] text-[var(--ink-faint)]">{h.name}</div>
+                                    <div className="text-[10px] text-[var(--d-ink-faint)]">{h.name}</div>
                                   </div>
                                 </div>
                               </td>
-                              <td className="hidden sm:table-cell px-4 py-3 text-right text-xs text-[var(--ink-soft)]">{h.amount}</td>
+                              <td className="hidden sm:table-cell px-4 py-3 text-right text-xs text-[var(--d-ink-soft)]">{h.amount}</td>
                               <td className="px-4 py-3 text-right text-[13px] font-semibold">${h.usd.toLocaleString()}</td>
                               <td className="px-4 py-3 text-right">
-                                <span className="text-xs font-semibold" style={{ color: h.change24h >= 0 ? "var(--accent-deep)" : "var(--bad)" }}>
+                                <span className="text-xs font-semibold" style={{ color: h.change24h >= 0 ? "var(--d-accent-deep)" : "var(--d-bad)" }}>
                                   {h.change24h >= 0 ? "+" : ""}{h.change24h}%
                                 </span>
                               </td>
                               <td className="hidden md:table-cell px-4 py-3 text-right">
                                 {h.eligible ? (
-                                  <a href={TELEGRAM_URL} className="rounded-lg border border-[var(--hairline)] px-2.5 py-1 text-[10px] font-semibold text-[var(--ink-soft)] transition hover:border-[var(--accent)] hover:text-[var(--accent-deep)]">
+                                  <a href={TELEGRAM_URL} className="rounded-lg border border-[var(--d-border)] px-2.5 py-1 text-[10px] font-semibold text-[var(--d-ink-soft)] transition hover:border-[var(--d-accent)] hover:text-[var(--d-accent)]">
                                     Pledge
                                   </a>
                                 ) : (
-                                  <span className="text-[10px] text-[var(--ink-faint)]">N/A</span>
+                                  <span className="text-[10px] text-[var(--d-ink-faint)]">N/A</span>
                                 )}
                               </td>
                             </tr>
@@ -769,35 +854,35 @@ export default function DashboardPage() {
                 {prefs.loanHistory && (
                   <div id="section-loanHistory">
                     <SectionHeader title="Loan History" count={MOCK_PAST_LOANS.length} />
-                    <div className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)]">
+                    <div className="overflow-hidden rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)]">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-[var(--hairline)] bg-[var(--surface)]/60">
-                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium w-8"></th>
-                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Token</th>
-                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Borrowed</th>
-                            <th className="hidden sm:table-cell px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Tier</th>
-                            <th className="hidden sm:table-cell px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Date</th>
-                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Points</th>
+                          <tr className="border-b border-[var(--d-border)] bg-[var(--d-surface)]/60">
+                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium w-8"></th>
+                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Token</th>
+                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Borrowed</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Tier</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Date</th>
+                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Points</th>
                           </tr>
                         </thead>
                         <tbody>
                           {MOCK_PAST_LOANS.map((loan, i) => (
-                            <tr key={loan.id} className={`border-b border-[var(--hairline)] last:border-0 transition hover:bg-[var(--surface)]/40 ${i % 2 === 1 ? "bg-[var(--surface)]/20" : ""}`}>
+                            <tr key={loan.id} className={`border-b border-[var(--d-border)] last:border-0 transition hover:bg-[var(--d-surface-hover)]/40 ${i % 2 === 1 ? "bg-[var(--d-surface)]/20" : ""}`}>
                               <td className="px-4 py-3">
                                 {loan.status === "repaid" ? (
-                                  <span className="flex h-5 w-5 items-center justify-center rounded-full text-[10px]" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>{"\u2713"}</span>
+                                  <span className="flex h-5 w-5 items-center justify-center rounded-full text-[10px]" style={{ background: "var(--d-accent-dim)", color: "var(--d-accent-deep)" }}>{"\u2713"}</span>
                                 ) : (
-                                  <span className="flex h-5 w-5 items-center justify-center rounded-full text-[10px]" style={{ background: "rgba(184,58,58,0.1)", color: "var(--bad)" }}>{"\u2717"}</span>
+                                  <span className="flex h-5 w-5 items-center justify-center rounded-full text-[10px]" style={{ background: "var(--d-health-bad-bg)", color: "var(--d-bad)" }}>{"\u2717"}</span>
                                 )}
                               </td>
                               <td className="px-4 py-3 font-medium text-[13px]">{loan.token}</td>
                               <td className="px-4 py-3 text-right text-[13px] font-medium">{loan.borrowed} SOL</td>
                               <td className="hidden sm:table-cell px-4 py-3">
-                                <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-soft)]">{loan.tier}</span>
+                                <span className="rounded-md bg-[var(--d-surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--d-ink-soft)]">{loan.tier}</span>
                               </td>
-                              <td className="hidden sm:table-cell px-4 py-3 text-[12px] text-[var(--ink-faint)]">{loan.date}</td>
-                              <td className="px-4 py-3 text-right text-xs font-semibold" style={{ color: loan.pointsEarned === 0 ? "var(--bad)" : "var(--accent-deep)" }}>
+                              <td className="hidden sm:table-cell px-4 py-3 text-[12px] text-[var(--d-ink-faint)]">{loan.date}</td>
+                              <td className="px-4 py-3 text-right text-xs font-semibold" style={{ color: loan.pointsEarned === 0 ? "var(--d-bad)" : "var(--d-accent-deep)" }}>
                                 {loan.pointsEarned === 0 ? "0" : `+${loan.pointsEarned.toLocaleString()}`}
                               </td>
                             </tr>
@@ -814,22 +899,22 @@ export default function DashboardPage() {
 
                 {/* CREDIT SCORE CARD */}
                 {prefs.credit && (
-                  <div id="section-credit" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5">
+                  <div id="section-credit" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
                     <SectionHeader title="Credit Score" compact />
                     <div className="flex flex-col items-center">
                       <CreditGauge score={MOCK_CREDIT.score} />
                       <div className="mt-2 flex items-center gap-1.5">
-                        <span className="text-xs font-semibold" style={{ color: "var(--accent-deep)" }}>+{MOCK_CREDIT.change}</span>
-                        <span className="text-[11px] text-[var(--ink-faint)]">this month</span>
+                        <span className="text-xs font-semibold" style={{ color: "var(--d-accent-deep)" }}>+{MOCK_CREDIT.change}</span>
+                        <span className="text-[11px] text-[var(--d-ink-faint)]">this month</span>
                       </div>
                       {/* Next tier */}
                       <div className="mt-3 w-full">
                         <div className="flex items-center justify-between text-[10px] mb-1">
-                          <span className="text-[var(--ink-faint)]">Next: Platinum</span>
-                          <span className="text-[var(--ink-soft)] font-medium">{MOCK_CREDIT.score}/{MOCK_CREDIT.nextTier}</span>
+                          <span className="text-[var(--d-ink-faint)]">Next: Platinum</span>
+                          <span className="text-[var(--d-ink-soft)] font-medium">{MOCK_CREDIT.score}/{MOCK_CREDIT.nextTier}</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-[var(--hairline)] overflow-hidden">
-                          <div className="h-full rounded-full" style={{ width: `${(MOCK_CREDIT.score / MOCK_CREDIT.nextTier) * 100}%`, background: "var(--accent)" }} />
+                          <div className="h-full rounded-full" style={{ width: `${(MOCK_CREDIT.score / MOCK_CREDIT.nextTier) * 100}%`, background: "var(--d-accent)" }} />
                         </div>
                       </div>
                     </div>
@@ -841,7 +926,7 @@ export default function DashboardPage() {
                       <FactorBar label="Diversity" value={MOCK_CREDIT.factors.diversity} />
                       <FactorBar label="Liquidations" value={MOCK_CREDIT.factors.liquidations} />
                     </div>
-                    <Link href="/credit" className="mt-4 block text-center text-xs font-medium text-[var(--accent-deep)] hover:underline underline-offset-4">
+                    <Link href="/credit" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
                       Full credit report &rarr;
                     </Link>
                   </div>
@@ -849,37 +934,37 @@ export default function DashboardPage() {
 
                 {/* POINTS CARD */}
                 {prefs.points && (
-                  <div id="section-points" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5">
+                  <div id="section-points" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
                     <SectionHeader title="Points" compact />
                     <div className="flex items-end gap-3">
                       <div className="font-display text-3xl font-bold tracking-tight">{animatedPoints.toLocaleString()}</div>
                       <div className="mb-1 flex items-center gap-1.5">
-                        <span className="rounded-md px-1.5 py-0.5 text-[10px] font-bold" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>#{MOCK_POINTS.rank}</span>
+                        <span className="rounded-md px-1.5 py-0.5 text-[10px] font-bold" style={{ background: "var(--d-accent-dim)", color: "var(--d-accent-deep)" }}>#{MOCK_POINTS.rank}</span>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center gap-4 text-xs text-[var(--ink-soft)]">
+                    <div className="mt-3 flex items-center gap-4 text-xs text-[var(--d-ink-soft)]">
                       <div className="flex items-center gap-1">
-                        <span className="font-semibold text-[var(--accent-deep)]">{MOCK_POINTS.streak}</span> day streak
+                        <span className="font-semibold text-[var(--d-accent-deep)]">{MOCK_POINTS.streak}</span> day streak
                       </div>
                       <div>
-                        <span className="font-semibold text-[var(--accent-deep)]">+{MOCK_POINTS.thisWeek.toLocaleString()}</span> this week
+                        <span className="font-semibold text-[var(--d-accent-deep)]">+{MOCK_POINTS.thisWeek.toLocaleString()}</span> this week
                       </div>
                     </div>
                     {/* Recent */}
                     <div className="mt-4 flex flex-col">
                       {MOCK_POINTS.recentEarnings.slice(0, 4).map((e, i) => (
-                        <div key={i} className="flex items-center justify-between border-t border-[var(--hairline)] py-2.5 first:border-0">
+                        <div key={i} className="flex items-center justify-between border-t border-[var(--d-border)] py-2.5 first:border-0">
                           <div>
                             <div className="text-xs">{e.reason}</div>
-                            <div className="text-[10px] text-[var(--ink-faint)]">{e.date}</div>
+                            <div className="text-[10px] text-[var(--d-ink-faint)]">{e.date}</div>
                           </div>
-                          <span className="text-xs font-semibold" style={{ color: e.amount === 0 ? "var(--bad)" : "var(--accent-deep)" }}>
+                          <span className="text-xs font-semibold" style={{ color: e.amount === 0 ? "var(--d-bad)" : "var(--d-accent-deep)" }}>
                             {e.amount === 0 ? "0" : `+${e.amount.toLocaleString()}`}
                           </span>
                         </div>
                       ))}
                     </div>
-                    <Link href="/points" className="mt-3 block text-center text-xs font-medium text-[var(--accent-deep)] hover:underline underline-offset-4">
+                    <Link href="/points" className="mt-3 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
                       Points calculator &rarr;
                     </Link>
                   </div>
@@ -887,26 +972,26 @@ export default function DashboardPage() {
 
                 {/* ACTIVITY FEED */}
                 {prefs.activity && (
-                  <div id="section-activity" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5">
+                  <div id="section-activity" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
                     <SectionHeader title="Activity" compact />
                     <div className="flex flex-col">
                       {MOCK_ACTIVITY.map((item, i) => (
-                        <div key={i} className="flex items-start gap-3 border-t border-[var(--hairline)] py-3 first:border-0 first:pt-0">
+                        <div key={i} className="flex items-start gap-3 border-t border-[var(--d-border)] py-3 first:border-0 first:pt-0">
                           <div
                             className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs mt-0.5"
                             style={{
-                              background: item.type === "health" ? "rgba(201,106,61,0.1)" : "var(--accent-dim)",
-                              color: item.type === "health" ? "var(--warn)" : "var(--accent-deep)",
+                              background: item.type === "health" ? "var(--d-health-warn-bg)" : "var(--d-accent-dim)",
+                              color: item.type === "health" ? "var(--d-warn)" : "var(--d-accent-deep)",
                             }}
                           >
                             {activityIcon(item.type)}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-xs leading-snug">{item.text}</div>
-                            <div className="mt-0.5 text-[10px] text-[var(--ink-faint)]">{item.time}</div>
+                            <div className="mt-0.5 text-[10px] text-[var(--d-ink-faint)]">{item.time}</div>
                           </div>
                           {item.points && (
-                            <span className="shrink-0 text-[10px] font-semibold text-[var(--accent-deep)]">{item.points}</span>
+                            <span className="shrink-0 text-[10px] font-semibold text-[var(--d-accent-deep)]">{item.points}</span>
                           )}
                         </div>
                       ))}
@@ -916,7 +1001,7 @@ export default function DashboardPage() {
 
                 {/* QUICK ACTIONS */}
                 {prefs.quickActions && (
-                  <div id="section-quickActions" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5">
+                  <div id="section-quickActions" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
                     <SectionHeader title="Quick Actions" compact />
                     <div className="grid grid-cols-2 gap-2">
                       {[
@@ -928,8 +1013,8 @@ export default function DashboardPage() {
                         { label: "Protocol Stats", icon: "\u2630", href: "/stats", external: false },
                       ].map((action) => {
                         const inner = (
-                          <div className="flex items-center gap-2 rounded-xl border border-[var(--hairline)] px-3 py-2.5 text-xs font-medium transition hover:border-[var(--accent)] hover:bg-[var(--accent-dim)] hover:text-[var(--accent-deep)] cursor-pointer">
-                            <span className="flex h-6 w-6 items-center justify-center rounded-md text-xs" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>{action.icon}</span>
+                          <div className="flex items-center gap-2 rounded-xl border border-[var(--d-border)] px-3 py-2.5 text-xs font-medium transition hover:border-[var(--d-accent)] hover:bg-[var(--d-accent-dim)] hover:text-[var(--d-accent)] cursor-pointer">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-md text-xs" style={{ background: "var(--d-accent-dim)", color: "var(--d-accent-deep)" }}>{action.icon}</span>
                             {action.label}
                           </div>
                         );
@@ -946,17 +1031,17 @@ export default function DashboardPage() {
             </div>
 
             {/* ─── FOOTER CTA ─── */}
-            <div className="relative mt-8 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--ink)] p-8 text-center md:p-10">
-              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[var(--accent)]/15 blur-3xl" />
-              <div className="pointer-events-none absolute -left-12 -bottom-12 h-40 w-40 rounded-full bg-[var(--accent-deep)]/15 blur-3xl" />
+            <div className="relative mt-8 overflow-hidden rounded-2xl border border-[var(--d-border)] p-8 text-center md:p-10" style={{ background: "var(--d-cta-bg)" }}>
+              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[var(--d-accent)]/15 blur-3xl" />
+              <div className="pointer-events-none absolute -left-12 -bottom-12 h-40 w-40 rounded-full bg-[var(--d-accent-deep)]/15 blur-3xl" />
               <div className="relative">
-                <h3 className="font-display text-xl font-medium tracking-tight text-[var(--bg)] md:text-2xl">
-                  All actions happen in <span className="italic text-[var(--accent)]">Telegram</span>
+                <h3 className="font-display text-xl font-medium tracking-tight md:text-2xl" style={{ color: "var(--d-cta-text)" }}>
+                  All actions happen in <span className="italic" style={{ color: "var(--d-accent)" }}>Telegram</span>
                 </h3>
-                <p className="mx-auto mt-2 max-w-md text-sm text-[var(--bg)]/60">
+                <p className="mx-auto mt-2 max-w-md text-sm" style={{ color: "var(--d-cta-muted)" }}>
                   Deposit, borrow, repay, and extend from the bot. This dashboard is read-only.
                 </p>
-                <a href={TELEGRAM_URL} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--accent-ink)] transition hover:bg-[var(--accent-hover)]">
+                <a href={TELEGRAM_URL} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--d-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]">
                   Open @magpie_capital_bot
                   <span aria-hidden>&rarr;</span>
                 </a>
@@ -964,12 +1049,12 @@ export default function DashboardPage() {
             </div>
 
             {/* Mini footer */}
-            <div className="mt-6 flex items-center justify-between text-[11px] text-[var(--ink-faint)] pb-4">
+            <div className="mt-6 flex items-center justify-between text-[11px] text-[var(--d-ink-faint)] pb-4">
               <span>&copy; {new Date().getFullYear()} Magpie</span>
               <div className="flex gap-4">
-                <Link href="/" className="hover:text-[var(--ink-soft)]">Home</Link>
-                <Link href="/docs" className="hover:text-[var(--ink-soft)]">Docs</Link>
-                <a href={TELEGRAM_URL} className="hover:text-[var(--ink-soft)]">Telegram</a>
+                <Link href="/" className="hover:text-[var(--d-ink-soft)]">Home</Link>
+                <Link href="/docs" className="hover:text-[var(--d-ink-soft)]">Docs</Link>
+                <a href={TELEGRAM_URL} className="hover:text-[var(--d-ink-soft)]">Telegram</a>
               </div>
             </div>
           </div>
@@ -986,7 +1071,7 @@ function SectionHeader({ title, count, compact }: { title: string; count?: numbe
     <div className={`flex items-center gap-2 ${compact ? "mb-4" : "mb-3"}`}>
       <h2 className={`font-display font-medium tracking-tight ${compact ? "text-sm" : "text-base"}`}>{title}</h2>
       {count !== undefined && (
-        <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 font-mono text-[10px] font-medium text-[var(--ink-soft)]">{count}</span>
+        <span className="rounded-md bg-[var(--d-surface)] px-1.5 py-0.5 font-mono text-[10px] font-medium text-[var(--d-ink-soft)]">{count}</span>
       )}
     </div>
   );
@@ -995,7 +1080,7 @@ function SectionHeader({ title, count, compact }: { title: string; count?: numbe
 function Metric({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
   return (
     <div>
-      <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">{label}</div>
+      <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)]">{label}</div>
       <div className={`mt-0.5 text-[13px] font-semibold ${danger ? "text-[var(--bad)]" : ""}`}>{value}</div>
     </div>
   );
