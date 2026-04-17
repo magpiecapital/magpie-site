@@ -80,12 +80,20 @@ const PILLARS = [
 
 const FAQ = [
   {
+    q: "What is LTV and how does it work?",
+    a: "LTV stands for Loan-to-Value — it's the percentage of your collateral's dollar value that you receive as a SOL loan. For example, if you deposit $1,000 worth of WIF at 30% LTV, you receive $300 in SOL. Lower LTV means you borrow less but have more safety margin before liquidation. Higher LTV gives you more SOL upfront but leaves less room for price drops.",
+  },
+  {
     q: "What tokens can I pledge?",
-    a: "Any Solana SPL memecoin with sufficient on-chain liquidity and oracle coverage. The bot shows eligible bags from your wallet automatically.",
+    a: "We accept 50+ Solana memecoins including WIF, BONK, Fartcoin, Moo Deng, GOAT, and many more. Check our Approved Tokens page for the full list with live prices and market data. Don't see your bag? You can request a new listing directly from that page.",
   },
   {
     q: "What happens if the price drops?",
-    a: "You get a health alert at 90% and 24 hours before due. You can top-up more collateral, partial-repay, or extend — all in the chat. Miss all of that and only the pledged bag is liquidated to cover the loan.",
+    a: "Your loan has a health ratio that tracks your collateral's value against what you owe. You get alerts at 90% health and 24 hours before the due date. You can top-up more collateral, partial-repay, or extend — all in the chat. If health drops below 1.1x (meaning your collateral is worth only 10% more than your debt), the position is liquidated on-chain.",
+  },
+  {
+    q: "How is my loan amount calculated?",
+    a: "Magpie uses real-time oracle prices (via Jupiter) to value your collateral in SOL. Your payout = collateral value × LTV tier percentage, minus the 1.5% origination fee. For example: 10,000 WIF at $0.50 each = $5,000 collateral. At 30% LTV that's $1,500 in SOL, minus the 1.5% fee.",
   },
   {
     q: "How fast is this really?",
@@ -183,7 +191,7 @@ export default function Home() {
             {[
               { v: "<10s", l: "Funded" },
               { v: "1.5%", l: "Flat fee" },
-              { v: "30%", l: "Max LTV" },
+              { v: "30%", l: "Max LTV ratio" },
             ].map((s) => (
               <div key={s.l} className="px-4 py-5 text-center md:px-6">
                 <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl">{s.v}</div>
@@ -347,9 +355,12 @@ export default function Home() {
                   <span className="italic text-[var(--ink-soft)]">Pick your payout.</span>
                 </h2>
               </div>
-              <p className="max-w-md text-lg leading-relaxed text-[var(--ink-soft)]">
-                Higher LTV means more SOL per bag, but less room to liquidation. Longer terms give the market time to breathe.
-              </p>
+              <div className="max-w-md text-lg leading-relaxed text-[var(--ink-soft)]">
+                <p>LTV (Loan-to-Value) is the percentage of your collateral&apos;s value you receive as SOL. Higher LTV = more SOL, but less room before liquidation.</p>
+                <p className="mt-3 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-4 py-3 text-sm">
+                  <span className="font-semibold text-[var(--ink)]">Example:</span> $1,000 of WIF at 30% LTV = <span className="font-semibold text-[var(--ink)]">$300 in SOL</span>, minus 1.5% fee.
+                </p>
+              </div>
             </div>
           </Reveal>
 
