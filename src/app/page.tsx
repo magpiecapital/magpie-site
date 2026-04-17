@@ -4,6 +4,7 @@ import { Reveal } from "@/components/Reveal";
 import { PhoneMock } from "@/components/PhoneMock";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
+const X_URL = "https://x.com/MagpieLending";
 
 const STEPS = [
   {
@@ -462,7 +463,7 @@ export default function Home() {
               <FooterLink href="#">Contact</FooterLink>
             </FooterCol>
             <FooterCol title="Social">
-              <FooterLink href="#">X</FooterLink>
+              <FooterLink href={X_URL}>X</FooterLink>
               <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
               <FooterLink href="#">Discord</FooterLink>
               <FooterLink href="#">GitHub</FooterLink>

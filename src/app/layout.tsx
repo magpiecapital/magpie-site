@@ -53,8 +53,8 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Magpie",
     description: "Borrow SOL against your bags.",
-    site: "@magpie",
-    creator: "@magpie",
+    site: "@MagpieLending",
+    creator: "@MagpieLending",
   },
   robots: {
     index: true,

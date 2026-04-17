@@ -435,6 +435,9 @@ export default function DemoPage() {
             <a href={TELEGRAM_URL} className="transition hover:text-[var(--ink)]">
               Telegram
             </a>
+            <a href="https://x.com/MagpieLending" target="_blank" rel="noopener noreferrer" className="transition hover:text-[var(--ink)]">
+              X
+            </a>
           </div>
           <div className="text-xs text-[var(--ink-soft)]">
             © {new Date().getFullYear()} Magpie
