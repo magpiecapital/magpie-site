@@ -133,6 +133,9 @@ export default function Home() {
             <a href="#faq" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               FAQ
             </a>
+            <Link href="/tokens" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
+              Tokens
+            </Link>
             <Link href="/demo" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               Demo
             </Link>
@@ -452,6 +455,7 @@ export default function Home() {
             <FooterCol title="Product">
               <FooterLink href="#how">How it works</FooterLink>
               <FooterLink href="/demo">Demo</FooterLink>
+              <FooterLink href="/tokens">Approved Tokens</FooterLink>
               <FooterLink href="#tiers">Tiers</FooterLink>
               <FooterLink href="/dashboard">Dashboard</FooterLink>
               <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
