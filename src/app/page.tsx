@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Mark, Wordmark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { PhoneMock } from "@/components/PhoneMock";
+import { MobileNav } from "@/components/MobileNav";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const X_URL = "https://x.com/MagpieLending";
@@ -130,7 +131,10 @@ export default function Home() {
       {/* Nav */}
       <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Wordmark size={28} />
+          <div className="flex items-center gap-3">
+            <MobileNav />
+            <Wordmark size={28} />
+          </div>
           <nav className="flex items-center gap-6">
             <a href="#how" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
               How it works

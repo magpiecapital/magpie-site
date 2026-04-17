@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { Wordmark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
+import { MobileNav } from "@/components/MobileNav";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -446,9 +447,10 @@ export default function CreditClient() {
       {/* Nav */}
       <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/">
-            <Wordmark size={28} />
-          </Link>
+          <div className="flex items-center gap-3">
+            <MobileNav />
+            <Link href="/"><Wordmark size={28} /></Link>
+          </div>
           <nav className="flex items-center gap-8">
             <Link href="/calculate" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               Calculator

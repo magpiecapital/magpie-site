@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Mark, Wordmark } from "@/components/Logo";
+import { MobileNav } from "@/components/MobileNav";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const X_URL = "https://x.com/MagpieLending";
@@ -277,9 +278,12 @@ export default function TokensClient() {
       {/* ── Nav ── */}
       <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-          <Link href="/" className="flex items-center gap-2">
-            <Wordmark size={28} />
-          </Link>
+          <div className="flex items-center gap-3">
+            <MobileNav />
+            <Link href="/" className="flex items-center gap-2">
+              <Wordmark size={28} />
+            </Link>
+          </div>
           <nav className="flex items-center gap-6">
             <a
               href="#submit-token"
