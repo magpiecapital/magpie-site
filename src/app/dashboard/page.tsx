@@ -93,12 +93,12 @@ const MOCK_HOLDINGS = [
 ];
 
 const MOCK_ACTIVITY = [
-  { type: "repay", text: "Repaid 2.5 SOL \u2014 WIF collateral returned", time: "2h ago", points: "+2,100 pts" },
-  { type: "health", text: "WIF loan #0xa1b2 health at 78%", time: "4h ago" },
+  { type: "repay", text: "Repaid 2.5 SOL — WIF collateral returned", time: "2h ago", points: "+2,100 pts" },
+  { type: "health", text: "WIF loan health at 78%", time: "4h ago" },
   { type: "deposit", text: "12,000 FARTCOIN deposited", time: "1d ago" },
   { type: "borrow", text: "Borrowed 1.1 SOL against 40M BONK", time: "3d ago" },
   { type: "credit", text: "Credit score increased to 720 (+15)", time: "5d ago" },
-  { type: "extend", text: "Extended WIF loan #0xe5f6 by 2 days", time: "1w ago" },
+  { type: "extend", text: "Extended WIF loan by 2 days", time: "1w ago" },
 ];
 
 /* ───────────────────────── TYPES ───────────────────────── */
@@ -134,6 +134,67 @@ const DEFAULT_PREFS: SectionPrefs = {
   quickActions: true,
 };
 
+/* ───────────────────────── SIDEBAR NAV ITEMS ───────────────────────── */
+
+type NavItem = { key: SectionKey; label: string; icon: React.ReactNode } | { key: "overview"; label: string; icon: React.ReactNode };
+
+const NAV_ITEMS: NavItem[] = [
+  {
+    key: "overview",
+    label: "Overview",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" />
+      </svg>
+    ),
+  },
+  {
+    key: "activeLoans",
+    label: "Loans",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    ),
+  },
+  {
+    key: "credit",
+    label: "Credit",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 20V10" /><path d="M18 20V4" /><path d="M6 20v-4" />
+      </svg>
+    ),
+  },
+  {
+    key: "points",
+    label: "Points",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    ),
+  },
+  {
+    key: "holdings",
+    label: "Holdings",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+      </svg>
+    ),
+  },
+  {
+    key: "activity",
+    label: "Activity",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+    ),
+  },
+];
+
 /* ───────────────────────── HELPERS ───────────────────────── */
 
 function healthColor(h: number): string {
@@ -168,18 +229,13 @@ function useAnimatedCounter(target: number, duration = 1200): number {
 
   useEffect(() => {
     const start = performance.now();
-    const from = 0;
-
     function tick(now: number) {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(Math.round(from + (target - from) * eased));
-      if (progress < 1) {
-        rafRef.current = requestAnimationFrame(tick);
-      }
+      setValue(Math.round(target * eased));
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
     }
-
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   }, [target, duration]);
@@ -187,7 +243,7 @@ function useAnimatedCounter(target: number, duration = 1200): number {
   return value;
 }
 
-/* ───────────────────────── CREDIT GAUGE ───────────────────────── */
+/* ───────────────────────── CREDIT GAUGE (compact) ───────────────────────── */
 
 function CreditGauge({ score, maxScore = 850 }: { score: number; maxScore?: number }) {
   const [animatedScore, setAnimatedScore] = useState(0);
@@ -195,17 +251,14 @@ function CreditGauge({ score, maxScore = 850 }: { score: number; maxScore?: numb
   const pathRef = useRef<SVGPathElement>(null);
 
   useEffect(() => {
-    if (pathRef.current) {
-      setPathLength(pathRef.current.getTotalLength());
-    }
+    if (pathRef.current) setPathLength(pathRef.current.getTotalLength());
   }, []);
 
   useEffect(() => {
     const start = performance.now();
-    const duration = 1500;
     function tick(now: number) {
       const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
+      const progress = Math.min(elapsed / 1500, 1);
       const eased = 1 - Math.pow(1 - progress, 3);
       setAnimatedScore(Math.round(score * eased));
       if (progress < 1) requestAnimationFrame(tick);
@@ -218,22 +271,14 @@ function CreditGauge({ score, maxScore = 850 }: { score: number; maxScore?: numb
 
   return (
     <div className="relative flex flex-col items-center">
-      <svg viewBox="0 0 200 130" className="w-56 h-auto">
-        {/* Background arc */}
-        <path
-          d="M 20 120 A 80 80 0 0 1 180 120"
-          fill="none"
-          stroke="var(--hairline)"
-          strokeWidth="12"
-          strokeLinecap="round"
-        />
-        {/* Animated arc */}
+      <svg viewBox="0 0 200 120" className="w-40 h-auto">
+        <path d="M 20 110 A 80 80 0 0 1 180 110" fill="none" stroke="var(--hairline)" strokeWidth="14" strokeLinecap="round" />
         <path
           ref={pathRef}
-          d="M 20 120 A 80 80 0 0 1 180 120"
+          d="M 20 110 A 80 80 0 0 1 180 110"
           fill="none"
           stroke="var(--accent)"
-          strokeWidth="12"
+          strokeWidth="14"
           strokeLinecap="round"
           style={{
             strokeDasharray: pathLength || 260,
@@ -242,11 +287,11 @@ function CreditGauge({ score, maxScore = 850 }: { score: number; maxScore?: numb
           }}
         />
       </svg>
-      <div className="absolute top-12 flex flex-col items-center">
-        <span className="font-display text-5xl font-bold tracking-tight tabular">{animatedScore}</span>
+      <div className="absolute top-8 flex flex-col items-center">
+        <span className="font-display text-4xl font-bold tracking-tight tabular">{animatedScore}</span>
         <span
-          className="mt-1 rounded-full px-3 py-0.5 text-xs font-bold uppercase tracking-wider"
-          style={{ background: "var(--accent-dim)", color: "var(--accent)" }}
+          className="mt-0.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+          style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}
         >
           {MOCK_CREDIT.tier}
         </span>
@@ -265,9 +310,9 @@ function FactorBar({ label, value }: { label: string; value: number }) {
   }, [value]);
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-32 shrink-0 text-xs text-[var(--ink-soft)]">{label}</span>
-      <div className="flex-1 h-2 rounded-full bg-[var(--hairline)] overflow-hidden">
+    <div className="flex items-center gap-2.5">
+      <span className="w-24 shrink-0 text-[11px] text-[var(--ink-soft)]">{label}</span>
+      <div className="flex-1 h-1.5 rounded-full bg-[var(--hairline)] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-1000 ease-out"
           style={{
@@ -276,51 +321,8 @@ function FactorBar({ label, value }: { label: string; value: number }) {
           }}
         />
       </div>
-      <span className="w-8 text-right font-mono text-xs tabular">{value}%</span>
+      <span className="w-7 text-right font-mono text-[10px] tabular text-[var(--ink-soft)]">{value}</span>
     </div>
-  );
-}
-
-/* ───────────────────────── SECTION WRAPPER ───────────────────────── */
-
-function Section({
-  id,
-  title,
-  visible,
-  onToggle,
-  children,
-}: {
-  id: SectionKey;
-  title: string;
-  visible: boolean;
-  onToggle: (id: SectionKey) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <section
-      className="transition-all duration-500 ease-out overflow-hidden"
-      style={{
-        maxHeight: visible ? "3000px" : "0px",
-        opacity: visible ? 1 : 0,
-        marginTop: visible ? "3rem" : "0px",
-      }}
-    >
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="font-display text-2xl font-medium tracking-[-0.03em] md:text-3xl">{title}</h2>
-        <button
-          onClick={() => onToggle(id)}
-          className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--ink)]"
-          title="Hide section"
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-          Hide
-        </button>
-      </div>
-      {children}
-    </section>
   );
 }
 
@@ -339,75 +341,39 @@ function CustomizePanel({
 }) {
   return (
     <>
-      {/* Backdrop */}
       <div
         className="fixed inset-0 z-[60] transition-opacity duration-300"
-        style={{
-          background: "rgba(0,0,0,0.6)",
-          backdropFilter: "blur(4px)",
-          opacity: open ? 1 : 0,
-          pointerEvents: open ? "auto" : "none",
-        }}
+        style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none" }}
         onClick={onClose}
       />
-      {/* Panel */}
       <div
-        className="fixed right-0 top-0 z-[70] h-full w-full max-w-sm transition-transform duration-300 ease-out"
-        style={{
-          transform: open ? "translateX(0)" : "translateX(100%)",
-        }}
+        className="fixed right-0 top-0 z-[70] h-full w-full max-w-xs transition-transform duration-300 ease-out"
+        style={{ transform: open ? "translateX(0)" : "translateX(100%)" }}
       >
-        <div
-          className="h-full border-l border-[var(--hairline)] p-8 flex flex-col"
-          style={{
-            background: "rgba(24,23,20,0.92)",
-            backdropFilter: "blur(24px) saturate(1.4)",
-          }}
-        >
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="font-display text-xl font-medium">Customize Dashboard</h3>
-            <button
-              onClick={onClose}
-              className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-[var(--surface)]"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
+        <div className="h-full border-l border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 flex flex-col">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-display text-lg font-medium">Customize</h3>
+            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-[var(--surface)]">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
-          <p className="text-sm text-[var(--ink-soft)] mb-6">Toggle dashboard sections on or off. Preferences are saved locally.</p>
-          <div className="flex flex-col gap-1">
+          <p className="text-xs text-[var(--ink-soft)] mb-5">Toggle sections on or off. Saved locally.</p>
+          <div className="flex flex-col gap-0.5">
             {(Object.keys(SECTION_LABELS) as SectionKey[]).map((key) => (
-              <button
-                key={key}
-                onClick={() => onToggle(key)}
-                className="flex items-center justify-between rounded-xl px-4 py-3.5 transition hover:bg-[var(--surface)]"
-              >
-                <span className="text-sm font-medium">{SECTION_LABELS[key]}</span>
-                {/* Toggle switch */}
-                <div
-                  className="relative h-6 w-11 rounded-full transition-colors duration-200"
-                  style={{ background: prefs[key] ? "var(--accent)" : "var(--hairline-strong)" }}
-                >
-                  <div
-                    className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200"
-                    style={{ transform: prefs[key] ? "translateX(22px)" : "translateX(2px)" }}
-                  />
+              <button key={key} onClick={() => onToggle(key)} className="flex items-center justify-between rounded-xl px-3 py-3 transition hover:bg-[var(--surface)]">
+                <span className="text-sm">{SECTION_LABELS[key]}</span>
+                <div className="relative h-5 w-9 rounded-full transition-colors duration-200" style={{ background: prefs[key] ? "var(--accent)" : "var(--hairline-strong)" }}>
+                  <div className="absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200" style={{ transform: prefs[key] ? "translateX(18px)" : "translateX(2px)" }} />
                 </div>
               </button>
             ))}
           </div>
-          <div className="mt-auto pt-6 border-t border-[var(--hairline)]">
+          <div className="mt-auto pt-4 border-t border-[var(--hairline)]">
             <button
-              onClick={() => {
-                (Object.keys(SECTION_LABELS) as SectionKey[]).forEach((k) => {
-                  if (!prefs[k]) onToggle(k);
-                });
-              }}
-              className="w-full rounded-full border border-[var(--hairline-strong)] px-4 py-2.5 text-sm font-medium transition hover:border-[var(--ink)] hover:bg-[var(--surface)]"
+              onClick={() => { (Object.keys(SECTION_LABELS) as SectionKey[]).forEach((k) => { if (!prefs[k]) onToggle(k); }); }}
+              className="w-full rounded-xl border border-[var(--hairline-strong)] px-3 py-2 text-xs font-medium transition hover:border-[var(--ink)] hover:bg-[var(--surface)]"
             >
-              Show all sections
+              Show all
             </button>
           </div>
         </div>
@@ -423,28 +389,23 @@ export default function DashboardPage() {
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [prefs, setPrefs] = useState<SectionPrefs>(DEFAULT_PREFS);
   const [mounted, setMounted] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [activeNav, setActiveNav] = useState<string>("overview");
 
-  // Load prefs from localStorage
   useEffect(() => {
     setMounted(true);
     if (typeof window !== "undefined") {
       try {
         const stored = localStorage.getItem(PREFS_KEY);
-        if (stored) {
-          setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(stored) });
-        }
-      } catch {
-        // ignore
-      }
+        if (stored) setPrefs({ ...DEFAULT_PREFS, ...JSON.parse(stored) });
+      } catch { /* ignore */ }
     }
   }, []);
 
   const toggleSection = useCallback((key: SectionKey) => {
     setPrefs((prev) => {
       const next = { ...prev, [key]: !prev[key] };
-      if (typeof window !== "undefined") {
-        localStorage.setItem(PREFS_KEY, JSON.stringify(next));
-      }
+      if (typeof window !== "undefined") localStorage.setItem(PREFS_KEY, JSON.stringify(next));
       return next;
     });
   }, []);
@@ -456,7 +417,17 @@ export default function DashboardPage() {
     });
   }, []);
 
-  // Computed values
+  const scrollTo = useCallback((key: string) => {
+    setActiveNav(key);
+    if (key === "overview") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    const el = document.getElementById(`section-${key}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  // Computed
   const totalBorrowed = MOCK_ACTIVE_LOANS.reduce((s, l) => s + l.borrowed, 0);
   const totalOwed = MOCK_ACTIVE_LOANS.reduce((s, l) => s + l.owed, 0);
   const totalCollateralUsd = MOCK_ACTIVE_LOANS.reduce((s, l) => s + l.collateralUsd, 0);
@@ -467,519 +438,538 @@ export default function DashboardPage() {
   const animatedPoints = useAnimatedCounter(mounted ? MOCK_POINTS.total : 0);
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg)", color: "var(--ink)" }}>
-      {/* ─── NAV ─── */}
-      <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <div className="flex h-screen overflow-hidden" style={{ background: "var(--bg)", color: "var(--ink)" }}>
+      {/* ─── SIDEBAR ─── */}
+      <aside
+        className={`hidden md:flex flex-col shrink-0 border-r border-[var(--hairline)] bg-[var(--bg-elevated)] transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-56"}`}
+      >
+        {/* Logo */}
+        <div className="flex items-center gap-3 border-b border-[var(--hairline)] px-4 py-4">
           <Link href="/">
-            <Wordmark size={28} />
+            {sidebarCollapsed ? <Mark size={24} /> : <Wordmark size={24} />}
           </Link>
-          <nav className="flex items-center gap-6">
-            <Link href="/tokens" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">Tokens</Link>
-            <Link href="/calculate" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">Calculator</Link>
-            <Link href="/credit" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">Credit</Link>
-            <Link href="/points" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">Points</Link>
-            <Link href="/stats" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">Stats</Link>
-            <a href={TELEGRAM_URL} className="btn-accent text-sm">Launch</a>
-          </nav>
         </div>
-      </header>
 
-      {/* ─── CUSTOMIZE PANEL ─── */}
-      <CustomizePanel open={customizeOpen} onClose={() => setCustomizeOpen(false)} prefs={prefs} onToggle={toggleSection} />
+        {/* Nav items */}
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
+          <div className="flex flex-col gap-0.5">
+            {NAV_ITEMS.map((item) => {
+              const isActive = activeNav === item.key;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => scrollTo(item.key)}
+                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150 ${
+                    isActive
+                      ? "bg-[var(--accent-dim)] text-[var(--accent-deep)]"
+                      : "text-[var(--ink-soft)] hover:bg-[var(--surface)] hover:text-[var(--ink)]"
+                  }`}
+                  title={sidebarCollapsed ? item.label : undefined}
+                >
+                  <span className={`shrink-0 ${isActive ? "text-[var(--accent-deep)]" : "text-[var(--ink-faint)] group-hover:text-[var(--ink-soft)]"}`}>
+                    {item.icon}
+                  </span>
+                  {!sidebarCollapsed && <span>{item.label}</span>}
+                </button>
+              );
+            })}
+          </div>
 
-      <main className="mx-auto max-w-7xl px-6 py-10 md:py-14">
-        {/* ─── HERO AREA ─── */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="chip">Dashboard</div>
-            <div className="flex items-center gap-2">
+          {!sidebarCollapsed && (
+            <div className="mt-6 px-3">
+              <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] mb-2">Links</div>
+              <div className="flex flex-col gap-0.5">
+                {[
+                  { label: "Tokens", href: "/tokens" },
+                  { label: "Calculator", href: "/calculate" },
+                  { label: "Docs", href: "/docs" },
+                  { label: "Stats", href: "/stats" },
+                ].map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="rounded-lg px-3 py-2 text-[13px] text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--ink)]"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </nav>
+
+        {/* Collapse toggle */}
+        <div className="border-t border-[var(--hairline)] px-2 py-2">
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="flex w-full items-center justify-center rounded-xl py-2 text-[var(--ink-faint)] transition hover:bg-[var(--surface)] hover:text-[var(--ink-soft)]"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: sidebarCollapsed ? "rotate(180deg)" : "none", transition: "transform 0.3s" }}>
+              <polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" />
+            </svg>
+          </button>
+        </div>
+      </aside>
+
+      {/* ─── MAIN AREA ─── */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* ─── TOP BAR ─── */}
+        <header className="flex items-center justify-between border-b border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3 md:px-6">
+          {/* Mobile logo */}
+          <div className="flex items-center gap-3 md:hidden">
+            <Link href="/"><Mark size={22} /></Link>
+          </div>
+
+          {/* Left: wallet */}
+          <div className="hidden md:flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-xl bg-[var(--surface)] px-3 py-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--accent)] opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--accent)]" />
               </span>
-              <span className="font-mono text-sm text-[var(--ink-soft)]">{MOCK_WALLET}</span>
-              <button
-                onClick={handleCopy}
-                className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-[var(--surface)]"
-                title="Copy address"
-              >
+              <span className="font-mono text-xs text-[var(--ink-soft)]">{MOCK_WALLET}</span>
+              <button onClick={handleCopy} className="flex h-5 w-5 items-center justify-center rounded transition hover:bg-[var(--hairline)]" title="Copy">
                 {copied ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                 ) : (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
                 )}
               </button>
             </div>
+            <div className="h-4 w-px bg-[var(--hairline)]" />
+            <span className="font-mono text-xs text-[var(--ink-soft)]">
+              {MOCK_SOL_BALANCE.toFixed(2)} SOL
+              <span className="text-[var(--ink-faint)]"> (${Math.round(solUsd).toLocaleString()})</span>
+            </span>
           </div>
-          <button
-            onClick={() => setCustomizeOpen(true)}
-            className="flex items-center gap-2 self-start rounded-full border border-[var(--hairline-strong)] px-4 py-2 text-sm font-medium text-[var(--ink-soft)] transition hover:border-[var(--ink)] hover:bg-[var(--surface)] hover:text-[var(--ink)]"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-            Customize
-          </button>
-        </div>
 
-        {/* ─── SUMMARY ROW (always visible) ─── */}
-        <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-          <SummaryCard label="SOL Balance" value={`${MOCK_SOL_BALANCE.toFixed(2)}`} sub={`$${Math.round(solUsd).toLocaleString()}`} />
-          <SummaryCard label="Active Loans" value={`${MOCK_ACTIVE_LOANS.length}`} sub="In progress" />
-          <SummaryCard label="Total Borrowed" value={`${totalBorrowed.toFixed(2)} SOL`} sub={`$${Math.round(totalBorrowed * MOCK_SOL_PRICE_USD).toLocaleString()}`} />
-          <SummaryCard label="Total Owed" value={`${totalOwed.toFixed(2)} SOL`} sub={`$${Math.round(totalOwed * MOCK_SOL_PRICE_USD).toLocaleString()}`} />
-          <SummaryCard label="Collateral Locked" value={`$${totalCollateralUsd.toLocaleString()}`} sub={`${MOCK_ACTIVE_LOANS.length} positions`} highlight />
-          <SummaryCard label="Net Worth" value={`$${Math.round(netWorth).toLocaleString()}`} sub="SOL + Holdings - Owed" highlight />
-        </div>
-
-        {/* ─── CREDIT SCORE SECTION ─── */}
-        <Section id="credit" title="Credit Score" visible={prefs.credit} onToggle={toggleSection}>
-          <div className="rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-8">
-            <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-              {/* Left: gauge */}
-              <div className="flex flex-col items-center justify-center">
-                <CreditGauge score={MOCK_CREDIT.score} />
-                <div className="mt-4 flex items-center gap-2">
-                  <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>+{MOCK_CREDIT.change}</span>
-                  <span className="text-sm text-[var(--ink-soft)]">from last month</span>
-                </div>
-                {/* Next tier progress */}
-                <div className="mt-4 w-full max-w-xs">
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-[var(--ink-soft)]">Next: Platinum at {MOCK_CREDIT.nextTier}</span>
-                    <span className="font-mono tabular">{MOCK_CREDIT.score}/{MOCK_CREDIT.nextTier}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-[var(--hairline)] overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-1000"
-                      style={{
-                        width: `${(MOCK_CREDIT.score / MOCK_CREDIT.nextTier) * 100}%`,
-                        background: "var(--accent)",
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-              {/* Right: factors */}
-              <div className="flex flex-col gap-4">
-                <h4 className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)] mb-1">Score Factors</h4>
-                <FactorBar label="Repayment History" value={MOCK_CREDIT.factors.repaymentHistory} />
-                <FactorBar label="Loan Volume" value={MOCK_CREDIT.factors.loanVolume} />
-                <FactorBar label="Account Age" value={MOCK_CREDIT.factors.accountAge} />
-                <FactorBar label="Diversity" value={MOCK_CREDIT.factors.diversity} />
-                <FactorBar label="Liquidations" value={MOCK_CREDIT.factors.liquidations} />
-                <Link
-                  href="/credit"
-                  className="mt-2 self-start text-sm font-medium text-[var(--accent)] underline-offset-4 hover:underline"
-                >
-                  View full credit report &rarr;
-                </Link>
-              </div>
-            </div>
+          {/* Right: actions */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCustomizeOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-[var(--hairline)] px-3 py-1.5 text-xs text-[var(--ink-soft)] transition hover:border-[var(--hairline-strong)] hover:bg-[var(--surface)]"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+              </svg>
+              <span className="hidden sm:inline">Customize</span>
+            </button>
+            <a href={TELEGRAM_URL} className="flex items-center gap-1.5 rounded-xl bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-ink)] transition hover:bg-[var(--accent-hover)]">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" /></svg>
+              <span className="hidden sm:inline">Open Bot</span>
+            </a>
           </div>
-        </Section>
+        </header>
 
-        {/* ─── POINTS & REWARDS SECTION ─── */}
-        <Section id="points" title="Points & Rewards" visible={prefs.points} onToggle={toggleSection}>
-          <div className="rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-8">
-            {/* Stats row */}
-            <div className="flex flex-wrap items-center gap-6 mb-6">
-              <div>
-                <div className="font-display text-4xl font-bold tabular tracking-tight">{animatedPoints.toLocaleString()}</div>
-                <div className="text-xs text-[var(--ink-soft)] mt-0.5">Total points</div>
-              </div>
-              <div className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-bold" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>
-                #{MOCK_POINTS.rank}
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-2xl">{MOCK_POINTS.streak}</span>
-                <span className="text-sm text-[var(--ink-soft)]">day streak</span>
-              </div>
-              <div>
-                <span className="font-mono text-sm font-semibold tabular" style={{ color: "var(--accent)" }}>+{MOCK_POINTS.thisWeek.toLocaleString()}</span>
-                <span className="text-sm text-[var(--ink-soft)] ml-1">this week</span>
-              </div>
-            </div>
-            {/* Recent earnings table */}
-            <div className="overflow-hidden rounded-2xl border border-[var(--hairline)]">
-              <div className="hidden md:grid grid-cols-12 gap-4 bg-[var(--surface)] px-5 py-3 text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)]">
-                <div className="col-span-2">Date</div>
-                <div className="col-span-7">Reason</div>
-                <div className="col-span-3 text-right">Points</div>
-              </div>
-              {MOCK_POINTS.recentEarnings.map((e, i) => (
+        {/* ─── CUSTOMIZE PANEL ─── */}
+        <CustomizePanel open={customizeOpen} onClose={() => setCustomizeOpen(false)} prefs={prefs} onToggle={toggleSection} />
+
+        {/* ─── SCROLLABLE CONTENT ─── */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-6 md:py-8">
+
+            {/* ─── KPI CARDS ROW ─── */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {[
+                { label: "SOL Balance", value: MOCK_SOL_BALANCE.toFixed(2), sub: `$${Math.round(solUsd).toLocaleString()}`, accent: false },
+                { label: "Net Worth", value: `$${Math.round(netWorth).toLocaleString()}`, sub: "All assets - debt", accent: true },
+                { label: "Active Loans", value: `${MOCK_ACTIVE_LOANS.length}`, sub: `${totalBorrowed.toFixed(2)} SOL borrowed`, accent: false },
+                { label: "Total Owed", value: `${totalOwed.toFixed(2)} SOL`, sub: `$${Math.round(totalOwed * MOCK_SOL_PRICE_USD).toLocaleString()}`, accent: false },
+                { label: "Collateral Locked", value: `$${totalCollateralUsd.toLocaleString()}`, sub: `${MOCK_ACTIVE_LOANS.length} positions`, accent: false },
+                { label: "Credit Score", value: `${MOCK_CREDIT.score}`, sub: `${MOCK_CREDIT.tier} tier`, accent: true },
+              ].map((kpi) => (
                 <div
-                  key={i}
-                  className="grid grid-cols-12 items-center gap-4 border-t border-[var(--hairline)] px-5 py-3.5 text-sm"
-                  style={{ background: i % 2 === 0 ? "transparent" : "var(--surface)" }}
+                  key={kpi.label}
+                  className={`rounded-2xl border p-4 ${kpi.accent ? "border-[var(--accent)]/25 bg-[var(--accent-dim)]/40" : "border-[var(--hairline)] bg-[var(--bg-elevated)]"}`}
                 >
-                  <div className="col-span-4 md:col-span-2 font-mono text-xs text-[var(--ink-soft)]">{e.date}</div>
-                  <div className="col-span-8 md:col-span-7 text-[var(--ink-soft)]">{e.reason}</div>
-                  <div
-                    className="col-span-12 md:col-span-3 text-right font-mono font-semibold tabular"
-                    style={{ color: e.amount === 0 ? "var(--bad)" : "var(--accent)" }}
-                  >
-                    {e.amount === 0 ? "0" : `+${e.amount.toLocaleString()}`}
-                  </div>
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">{kpi.label}</div>
+                  <div className={`mt-1.5 font-display text-xl font-semibold tracking-tight tabular ${kpi.accent ? "text-[var(--accent-deep)]" : ""}`}>{kpi.value}</div>
+                  <div className="mt-0.5 text-[11px] text-[var(--ink-faint)]">{kpi.sub}</div>
                 </div>
               ))}
             </div>
-            <Link href="/points" className="mt-4 inline-block text-sm font-medium text-[var(--accent)] underline-offset-4 hover:underline">
-              Points calculator &rarr;
-            </Link>
-          </div>
-        </Section>
 
-        {/* ─── ACTIVE LOANS SECTION ─── */}
-        <Section id="activeLoans" title="Active Loans" visible={prefs.activeLoans} onToggle={toggleSection}>
-          {MOCK_ACTIVE_LOANS.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-[var(--hairline-strong)] bg-[var(--surface)] p-14 text-center">
-              <Mark size={48} className="mx-auto mb-5" />
-              <div className="text-lg font-semibold">No active loans</div>
-              <div className="mt-2 text-sm text-[var(--ink-soft)]">Pledge a bag in Telegram to get started.</div>
-              <a href={TELEGRAM_URL} className="btn-accent mt-6 inline-block text-sm">Launch on Telegram &rarr;</a>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              {MOCK_ACTIVE_LOANS.map((loan) => (
-                <div
-                  key={loan.id}
-                  className="group relative overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--accent)]/40 hover:shadow-lg md:p-8"
-                >
-                  {/* Header */}
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full font-mono text-sm font-bold" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>
-                        {loan.token}
+            {/* ─── MAIN GRID: 2-column on desktop ─── */}
+            <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
+
+              {/* ─── LEFT COLUMN (8/12) ─── */}
+              <div className="xl:col-span-8 flex flex-col gap-6">
+
+                {/* ACTIVE LOANS */}
+                {prefs.activeLoans && (
+                  <div id="section-activeLoans">
+                    <SectionHeader title="Active Loans" count={MOCK_ACTIVE_LOANS.length} />
+                    {MOCK_ACTIVE_LOANS.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-[var(--hairline-strong)] bg-[var(--surface)]/50 p-10 text-center">
+                        <div className="text-sm text-[var(--ink-soft)]">No active loans</div>
+                        <a href={TELEGRAM_URL} className="mt-3 inline-block text-sm font-medium text-[var(--accent)]">Start borrowing &rarr;</a>
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-display text-xl font-medium">{loan.token}</span>
-                          <span className="chip">{loan.tier}</span>
-                        </div>
-                        <div className="font-mono text-xs text-[var(--ink-faint)]">{loan.id}</div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                        {MOCK_ACTIVE_LOANS.map((loan) => (
+                          <div key={loan.id} className="group rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 transition hover:border-[var(--hairline-strong)] hover:shadow-sm">
+                            {/* Top row */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-lg font-mono text-xs font-bold" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>
+                                  {loan.token}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold">{loan.token}</span>
+                                    <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-soft)]">{loan.tier}</span>
+                                  </div>
+                                  <div className="font-mono text-[10px] text-[var(--ink-faint)]">{loan.id}</div>
+                                </div>
+                              </div>
+                              <div
+                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold uppercase tracking-wider"
+                                style={{
+                                  background: loan.health >= 75 ? "var(--accent-dim)" : loan.health >= 50 ? "rgba(201,106,61,0.12)" : "rgba(184,58,58,0.12)",
+                                  color: healthColor(loan.health),
+                                }}
+                              >
+                                <span className="h-1.5 w-1.5 rounded-full" style={{ background: healthColor(loan.health) }} />
+                                {healthLabel(loan.health)}
+                              </div>
+                            </div>
+
+                            {/* Metrics */}
+                            <div className="mt-4 grid grid-cols-3 gap-3">
+                              <Metric label="Borrowed" value={`${loan.borrowed} SOL`} />
+                              <Metric label="Owed" value={`${loan.owed} SOL`} />
+                              <Metric label="Liq. Price" value={loan.liqPrice} danger />
+                            </div>
+
+                            {/* Health bar */}
+                            <div className="mt-4">
+                              <div className="flex items-center justify-between text-[10px] mb-1">
+                                <span className="text-[var(--ink-faint)]">Health</span>
+                                <span className="font-mono font-semibold tabular" style={{ color: healthColor(loan.health) }}>{loan.health}%</span>
+                              </div>
+                              <div className="h-1.5 overflow-hidden rounded-full bg-[var(--hairline)]">
+                                <div
+                                  className="h-full rounded-full transition-all duration-700"
+                                  style={{
+                                    width: `${loan.health}%`,
+                                    background: `linear-gradient(90deg, var(--bad), var(--warn), var(--accent))`,
+                                    backgroundSize: "200% 100%",
+                                    backgroundPosition: `${100 - loan.health}% 0`,
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="mt-3 flex items-center justify-between">
+                              <div className="text-[11px] text-[var(--ink-faint)]">
+                                {loan.startDate} &rarr; {loan.dueDate}
+                              </div>
+                              <div className="text-[11px]">
+                                <span className="font-mono font-semibold tabular" style={{ color: loan.daysLeft <= 2 ? "var(--warn)" : "var(--ink-soft)" }}>{loan.daysLeft.toFixed(1)}d left</span>
+                              </div>
+                            </div>
+
+                            {/* Quick actions */}
+                            <div className="mt-3 flex gap-1.5">
+                              {["Repay", "Top-up", "Extend"].map((label) => (
+                                <a key={label} href={TELEGRAM_URL} className="flex-1 rounded-lg border border-[var(--hairline)] py-1.5 text-center text-[10px] font-semibold text-[var(--ink-soft)] transition hover:border-[var(--accent)] hover:bg-[var(--accent-dim)] hover:text-[var(--accent-deep)]">
+                                  {label}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    </div>
-                    <div
-                      className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
-                      style={{ background: healthColor(loan.health), color: "#fff" }}
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                      {healthLabel(loan.health)}
+                    )}
+                  </div>
+                )}
+
+                {/* HOLDINGS TABLE */}
+                {prefs.holdings && (
+                  <div id="section-holdings">
+                    <SectionHeader title="Holdings" count={MOCK_HOLDINGS.length} />
+                    <div className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)]">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-[var(--hairline)] bg-[var(--surface)]/60">
+                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Token</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Amount</th>
+                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Value</th>
+                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">24h</th>
+                            <th className="hidden md:table-cell px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Action</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {MOCK_HOLDINGS.map((h, i) => (
+                            <tr key={h.symbol} className={`border-b border-[var(--hairline)] last:border-0 transition hover:bg-[var(--surface)]/40 ${i % 2 === 1 ? "bg-[var(--surface)]/20" : ""}`}>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2.5">
+                                  <div className="flex h-7 w-7 items-center justify-center rounded-lg font-mono text-[10px] font-bold" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>
+                                    {h.symbol.slice(0, 2)}
+                                  </div>
+                                  <div>
+                                    <div className="font-medium text-[13px]">{h.symbol}</div>
+                                    <div className="text-[10px] text-[var(--ink-faint)]">{h.name}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="hidden sm:table-cell px-4 py-3 text-right font-mono text-xs tabular text-[var(--ink-soft)]">{h.amount}</td>
+                              <td className="px-4 py-3 text-right font-mono text-xs tabular font-medium">${h.usd.toLocaleString()}</td>
+                              <td className="px-4 py-3 text-right">
+                                <span className="font-mono text-xs font-semibold tabular" style={{ color: h.change24h >= 0 ? "var(--accent-deep)" : "var(--bad)" }}>
+                                  {h.change24h >= 0 ? "+" : ""}{h.change24h}%
+                                </span>
+                              </td>
+                              <td className="hidden md:table-cell px-4 py-3 text-right">
+                                {h.eligible ? (
+                                  <a href={TELEGRAM_URL} className="rounded-lg border border-[var(--hairline)] px-2.5 py-1 text-[10px] font-semibold text-[var(--ink-soft)] transition hover:border-[var(--accent)] hover:text-[var(--accent-deep)]">
+                                    Pledge
+                                  </a>
+                                ) : (
+                                  <span className="text-[10px] text-[var(--ink-faint)]">N/A</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
+                )}
 
-                  {/* Stats grid */}
-                  <div className="mt-6 grid grid-cols-3 gap-4">
-                    <div>
-                      <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)]">Collateral</div>
-                      <div className="mt-1 font-mono text-sm tabular">{loan.collateralAmount} {loan.token}</div>
-                      <div className="text-xs text-[var(--ink-soft)]">${loan.collateralUsd.toLocaleString()}</div>
+                {/* LOAN HISTORY */}
+                {prefs.loanHistory && (
+                  <div id="section-loanHistory">
+                    <SectionHeader title="Loan History" count={MOCK_PAST_LOANS.length} />
+                    <div className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)]">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-[var(--hairline)] bg-[var(--surface)]/60">
+                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium w-8"></th>
+                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Token</th>
+                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Borrowed</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Tier</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Date</th>
+                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] font-medium">Points</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {MOCK_PAST_LOANS.map((loan, i) => (
+                            <tr key={loan.id} className={`border-b border-[var(--hairline)] last:border-0 transition hover:bg-[var(--surface)]/40 ${i % 2 === 1 ? "bg-[var(--surface)]/20" : ""}`}>
+                              <td className="px-4 py-3">
+                                {loan.status === "repaid" ? (
+                                  <span className="flex h-5 w-5 items-center justify-center rounded-full text-[10px]" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>{"\u2713"}</span>
+                                ) : (
+                                  <span className="flex h-5 w-5 items-center justify-center rounded-full text-[10px]" style={{ background: "rgba(184,58,58,0.1)", color: "var(--bad)" }}>{"\u2717"}</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-3 font-medium text-[13px]">{loan.token}</td>
+                              <td className="px-4 py-3 text-right font-mono text-xs tabular">{loan.borrowed} SOL</td>
+                              <td className="hidden sm:table-cell px-4 py-3">
+                                <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--ink-soft)]">{loan.tier}</span>
+                              </td>
+                              <td className="hidden sm:table-cell px-4 py-3 text-[12px] text-[var(--ink-faint)]">{loan.date}</td>
+                              <td className="px-4 py-3 text-right font-mono text-xs font-semibold tabular" style={{ color: loan.pointsEarned === 0 ? "var(--bad)" : "var(--accent-deep)" }}>
+                                {loan.pointsEarned === 0 ? "0" : `+${loan.pointsEarned.toLocaleString()}`}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
-                    <div>
-                      <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)]">Borrowed</div>
-                      <div className="mt-1 font-mono text-sm tabular">{loan.borrowed} SOL</div>
-                      <div className="text-xs text-[var(--ink-soft)]">Owed {loan.owed} SOL</div>
-                    </div>
-                    <div>
-                      <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)]">Liq. Price</div>
-                      <div className="mt-1 font-mono text-sm tabular" style={{ color: "var(--bad)" }}>{loan.liqPrice}</div>
-                      <div className="text-xs text-[var(--ink-soft)]">LTV {loan.ltv}%</div>
-                    </div>
-                  </div>
-
-                  {/* Health bar */}
-                  <div className="mt-6">
-                    <div className="flex items-center justify-between text-xs mb-1.5">
-                      <span className="text-[var(--ink-soft)]">Health</span>
-                      <span className="font-mono font-semibold tabular">{loan.health}%</span>
-                    </div>
-                    <div className="h-2.5 overflow-hidden rounded-full bg-[var(--hairline)]">
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${loan.health}%`,
-                          background: `linear-gradient(90deg, var(--bad), var(--warn), var(--accent))`,
-                          backgroundSize: "200% 100%",
-                          backgroundPosition: `${100 - loan.health}% 0`,
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Dates */}
-                  <div className="mt-4 flex items-center justify-between text-sm">
-                    <div className="text-[var(--ink-soft)]">
-                      {loan.startDate} &rarr; <span className="font-semibold text-[var(--ink)]">{loan.dueDate}</span>
-                    </div>
-                    <div>
-                      Due in <span className="font-mono font-semibold tabular" style={{ color: loan.daysLeft <= 2 ? "var(--warn)" : "var(--ink)" }}>{loan.daysLeft.toFixed(1)}d</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="mt-6 grid grid-cols-2 gap-2 md:grid-cols-4">
-                    {["Repay", "Top-up", "Partial", "Extend"].map((label) => (
-                      <a
-                        key={label}
-                        href={TELEGRAM_URL}
-                        className="rounded-full border border-[var(--hairline-strong)] bg-[var(--bg)] px-3 py-2 text-center text-xs font-semibold transition hover:border-[var(--accent)] hover:bg-[var(--accent-dim)] hover:text-[var(--accent)]"
-                      >
-                        {label}
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </Section>
-
-        {/* ─── LOAN HISTORY SECTION ─── */}
-        <Section id="loanHistory" title="Loan History" visible={prefs.loanHistory} onToggle={toggleSection}>
-          <div className="overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm">
-            <div className="hidden md:grid grid-cols-12 gap-4 border-b border-[var(--hairline)] bg-[var(--surface)] px-6 py-4 text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)]">
-              <div className="col-span-1">Status</div>
-              <div className="col-span-2">Loan ID</div>
-              <div className="col-span-2">Token</div>
-              <div className="col-span-2">Borrowed</div>
-              <div className="col-span-1">Tier</div>
-              <div className="col-span-2">Date</div>
-              <div className="col-span-2 text-right">Points</div>
-            </div>
-            {MOCK_PAST_LOANS.map((loan, i) => (
-              <div
-                key={loan.id}
-                className="grid grid-cols-12 items-center gap-4 border-b border-[var(--hairline)] px-6 py-4 text-sm transition last:border-0 hover:bg-[var(--surface)]/50"
-                style={{ background: i % 2 === 0 ? "transparent" : "rgba(31,28,24,0.3)" }}
-              >
-                <div className="col-span-2 md:col-span-1">
-                  {loan.status === "repaid" ? (
-                    <span style={{ color: "var(--accent)" }} title="Repaid">{"\u2713"}</span>
-                  ) : (
-                    <span style={{ color: "var(--bad)" }} title="Liquidated">{"\u2717"}</span>
-                  )}
-                </div>
-                <div className="col-span-4 md:col-span-2 font-mono text-xs text-[var(--ink-soft)]">{loan.id}</div>
-                <div className="col-span-6 md:col-span-2 font-semibold">{loan.token}</div>
-                <div className="col-span-4 md:col-span-2 font-mono tabular">{loan.borrowed} SOL</div>
-                <div className="col-span-4 md:col-span-1">
-                  <span className="chip text-[10px]">{loan.tier}</span>
-                </div>
-                <div className="col-span-4 md:col-span-2 text-[var(--ink-soft)]">{loan.date}</div>
-                <div
-                  className="col-span-12 md:col-span-2 text-right font-mono font-semibold tabular"
-                  style={{ color: loan.pointsEarned === 0 ? "var(--bad)" : "var(--accent)" }}
-                >
-                  {loan.pointsEarned === 0 ? "0 pts" : `+${loan.pointsEarned.toLocaleString()} pts`}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* ─── HOLDINGS SECTION ─── */}
-        <Section id="holdings" title="Holdings" visible={prefs.holdings} onToggle={toggleSection}>
-          <div className="overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm">
-            <div className="hidden md:grid grid-cols-12 gap-4 border-b border-[var(--hairline)] bg-[var(--surface)] px-6 py-4 text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)]">
-              <div className="col-span-3">Token</div>
-              <div className="col-span-2">Amount</div>
-              <div className="col-span-2">Value</div>
-              <div className="col-span-2">24h</div>
-              <div className="col-span-1">Status</div>
-              <div className="col-span-2 text-right">Action</div>
-            </div>
-            {MOCK_HOLDINGS.map((h) => (
-              <div
-                key={h.symbol}
-                className="grid grid-cols-12 items-center gap-4 border-b border-[var(--hairline)] px-6 py-5 transition last:border-0 hover:bg-[var(--surface)]/50"
-              >
-                <div className="col-span-12 md:col-span-3">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full ring-1 ring-[var(--accent)]/30 font-mono text-xs font-bold" style={{ background: "var(--accent-dim)", color: "var(--ink)" }}>
-                      {h.symbol.slice(0, 3)}
-                    </div>
-                    <div>
-                      <div className="font-semibold">{h.symbol}</div>
-                      <div className="text-xs text-[var(--ink-soft)]">{h.name}</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-span-4 md:col-span-2 font-mono text-sm tabular">{h.amount}</div>
-                <div className="col-span-4 md:col-span-2 font-mono text-sm tabular">${h.usd.toLocaleString()}</div>
-                <div className="col-span-4 md:col-span-2">
-                  <span
-                    className="font-mono text-sm font-semibold tabular"
-                    style={{ color: h.change24h >= 0 ? "var(--accent-deep)" : "var(--bad)" }}
-                  >
-                    {h.change24h >= 0 ? "+" : ""}{h.change24h}%
-                  </span>
-                </div>
-                <div className="col-span-6 md:col-span-1">
-                  {h.eligible ? (
-                    <span className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider" style={{ background: "var(--accent-dim)", color: "var(--accent)" }}>
-                      Eligible
-                    </span>
-                  ) : (
-                    <span className="text-[10px] uppercase tracking-wider text-[var(--ink-faint)]">N/A</span>
-                  )}
-                </div>
-                <div className="col-span-6 md:col-span-2 text-right">
-                  {h.eligible ? (
-                    <a href={TELEGRAM_URL} className="btn-ghost text-xs">Pledge &rarr;</a>
-                  ) : (
-                    <span className="text-xs text-[var(--ink-faint)]">Not eligible</span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* ─── ACTIVITY FEED SECTION ─── */}
-        <Section id="activity" title="Activity Feed" visible={prefs.activity} onToggle={toggleSection}>
-          <div className="overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)]">
-            {MOCK_ACTIVITY.map((item, i) => (
-              <div
-                key={i}
-                className="flex items-start gap-4 border-b border-[var(--hairline)] px-6 py-4 last:border-0 transition hover:bg-[var(--surface)]/50"
-                style={{ background: i % 2 === 0 ? "transparent" : "rgba(31,28,24,0.3)" }}
-              >
-                <div
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm"
-                  style={{
-                    background: item.type === "health" ? "rgba(196,128,58,0.15)" : "var(--accent-dim)",
-                    color: item.type === "health" ? "var(--warn)" : "var(--accent)",
-                  }}
-                >
-                  {activityIcon(item.type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm">{item.text}</div>
-                  <div className="mt-0.5 text-xs text-[var(--ink-faint)]">{item.time}</div>
-                </div>
-                {item.points && (
-                  <div className="shrink-0 font-mono text-sm font-semibold tabular" style={{ color: "var(--accent)" }}>
-                    {item.points}
                   </div>
                 )}
               </div>
-            ))}
-          </div>
-        </Section>
 
-        {/* ─── QUICK ACTIONS SECTION ─── */}
-        <Section id="quickActions" title="Quick Actions" visible={prefs.quickActions} onToggle={toggleSection}>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
-            <QuickAction label="New Loan" icon={"\u2B06"} href={TELEGRAM_URL} external />
-            <QuickAction label="Check Prices" icon={"\u2606"} href="/tokens" />
-            <QuickAction label="Calculate Loan" icon={"\u2261"} href="/calculate" />
-            <QuickAction label="View Credit" icon={"\u2605"} href="/credit" />
-            <QuickAction label="Earn Points" icon={"\u2726"} href="/points" />
-            <QuickAction label="Protocol Stats" icon={"\u2630"} href="/stats" />
-          </div>
-        </Section>
+              {/* ─── RIGHT COLUMN (4/12) ─── */}
+              <div className="xl:col-span-4 flex flex-col gap-6">
 
-        {/* ─── FOOTER CTA ─── */}
-        <section className="relative mt-16 overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--ink)] p-10 text-center md:p-16">
-          <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-[var(--accent)]/20 blur-3xl" />
-          <div className="pointer-events-none absolute -left-16 -bottom-16 h-52 w-52 rounded-full bg-[var(--accent-deep)]/20 blur-3xl" />
-          <div className="relative">
-            <Mark size={56} className="mx-auto mb-6" />
-            <h3 className="font-display text-3xl font-medium tracking-[-0.03em] text-[var(--bg)] md:text-5xl">
-              All actions happen in <span className="italic text-[var(--accent)]">Telegram</span>
-            </h3>
-            <p className="mx-auto mt-4 max-w-lg text-[var(--bg)]/70">
-              Deposit, repay, top-up, and extend are signed and broadcast from the bot. Dashboard is a read-only preview.
-            </p>
-            <a href={TELEGRAM_URL} className="btn-accent mt-10 inline-block text-base">
-              Open @magpie_capital_bot
-              <span aria-hidden> &rarr;</span>
-            </a>
-          </div>
-        </section>
-      </main>
+                {/* CREDIT SCORE CARD */}
+                {prefs.credit && (
+                  <div id="section-credit" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5">
+                    <SectionHeader title="Credit Score" compact />
+                    <div className="flex flex-col items-center">
+                      <CreditGauge score={MOCK_CREDIT.score} />
+                      <div className="mt-2 flex items-center gap-1.5">
+                        <span className="text-xs font-semibold" style={{ color: "var(--accent-deep)" }}>+{MOCK_CREDIT.change}</span>
+                        <span className="text-[11px] text-[var(--ink-faint)]">this month</span>
+                      </div>
+                      {/* Next tier */}
+                      <div className="mt-3 w-full">
+                        <div className="flex items-center justify-between text-[10px] mb-1">
+                          <span className="text-[var(--ink-faint)]">Next: Platinum</span>
+                          <span className="font-mono tabular text-[var(--ink-soft)]">{MOCK_CREDIT.score}/{MOCK_CREDIT.nextTier}</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-[var(--hairline)] overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${(MOCK_CREDIT.score / MOCK_CREDIT.nextTier) * 100}%`, background: "var(--accent)" }} />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Factors */}
+                    <div className="mt-5 flex flex-col gap-2.5">
+                      <FactorBar label="Repayment" value={MOCK_CREDIT.factors.repaymentHistory} />
+                      <FactorBar label="Volume" value={MOCK_CREDIT.factors.loanVolume} />
+                      <FactorBar label="Account Age" value={MOCK_CREDIT.factors.accountAge} />
+                      <FactorBar label="Diversity" value={MOCK_CREDIT.factors.diversity} />
+                      <FactorBar label="Liquidations" value={MOCK_CREDIT.factors.liquidations} />
+                    </div>
+                    <Link href="/credit" className="mt-4 block text-center text-xs font-medium text-[var(--accent-deep)] hover:underline underline-offset-4">
+                      Full credit report &rarr;
+                    </Link>
+                  </div>
+                )}
 
-      {/* ─── FOOTER ─── */}
-      <footer className="mt-20 border-t border-[var(--hairline)]">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-6 py-10 md:flex-row md:items-center">
-          <Wordmark size={22} />
-          <div className="flex flex-wrap items-center gap-6 text-sm text-[var(--ink-soft)]">
-            <Link href="/tokens" className="transition hover:text-[var(--ink)]">Tokens</Link>
-            <Link href="/calculate" className="transition hover:text-[var(--ink)]">Calculator</Link>
-            <Link href="/credit" className="transition hover:text-[var(--ink)]">Credit</Link>
-            <Link href="/points" className="transition hover:text-[var(--ink)]">Points</Link>
-            <Link href="/stats" className="transition hover:text-[var(--ink)]">Stats</Link>
-            <a href={TELEGRAM_URL} className="transition hover:text-[var(--ink)]">Telegram</a>
-            <Link href="/" className="transition hover:text-[var(--ink)]">Home</Link>
+                {/* POINTS CARD */}
+                {prefs.points && (
+                  <div id="section-points" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5">
+                    <SectionHeader title="Points" compact />
+                    <div className="flex items-end gap-3">
+                      <div className="font-display text-3xl font-bold tabular tracking-tight">{animatedPoints.toLocaleString()}</div>
+                      <div className="mb-1 flex items-center gap-1.5">
+                        <span className="rounded-md px-1.5 py-0.5 text-[10px] font-bold" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>#{MOCK_POINTS.rank}</span>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-4 text-xs text-[var(--ink-soft)]">
+                      <div className="flex items-center gap-1">
+                        <span className="font-semibold text-[var(--accent-deep)]">{MOCK_POINTS.streak}</span> day streak
+                      </div>
+                      <div>
+                        <span className="font-mono font-semibold text-[var(--accent-deep)]">+{MOCK_POINTS.thisWeek.toLocaleString()}</span> this week
+                      </div>
+                    </div>
+                    {/* Recent */}
+                    <div className="mt-4 flex flex-col">
+                      {MOCK_POINTS.recentEarnings.slice(0, 4).map((e, i) => (
+                        <div key={i} className="flex items-center justify-between border-t border-[var(--hairline)] py-2.5 first:border-0">
+                          <div>
+                            <div className="text-xs">{e.reason}</div>
+                            <div className="text-[10px] text-[var(--ink-faint)]">{e.date}</div>
+                          </div>
+                          <span className="font-mono text-xs font-semibold tabular" style={{ color: e.amount === 0 ? "var(--bad)" : "var(--accent-deep)" }}>
+                            {e.amount === 0 ? "0" : `+${e.amount.toLocaleString()}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <Link href="/points" className="mt-3 block text-center text-xs font-medium text-[var(--accent-deep)] hover:underline underline-offset-4">
+                      Points calculator &rarr;
+                    </Link>
+                  </div>
+                )}
+
+                {/* ACTIVITY FEED */}
+                {prefs.activity && (
+                  <div id="section-activity" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5">
+                    <SectionHeader title="Activity" compact />
+                    <div className="flex flex-col">
+                      {MOCK_ACTIVITY.map((item, i) => (
+                        <div key={i} className="flex items-start gap-3 border-t border-[var(--hairline)] py-3 first:border-0 first:pt-0">
+                          <div
+                            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs mt-0.5"
+                            style={{
+                              background: item.type === "health" ? "rgba(201,106,61,0.1)" : "var(--accent-dim)",
+                              color: item.type === "health" ? "var(--warn)" : "var(--accent-deep)",
+                            }}
+                          >
+                            {activityIcon(item.type)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs leading-snug">{item.text}</div>
+                            <div className="mt-0.5 text-[10px] text-[var(--ink-faint)]">{item.time}</div>
+                          </div>
+                          {item.points && (
+                            <span className="shrink-0 font-mono text-[10px] font-semibold tabular text-[var(--accent-deep)]">{item.points}</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* QUICK ACTIONS */}
+                {prefs.quickActions && (
+                  <div id="section-quickActions" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5">
+                    <SectionHeader title="Quick Actions" compact />
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { label: "New Loan", icon: "\u2B06", href: TELEGRAM_URL, external: true },
+                        { label: "Check Prices", icon: "\u2606", href: "/tokens", external: false },
+                        { label: "Calculate", icon: "\u2261", href: "/calculate", external: false },
+                        { label: "View Credit", icon: "\u2605", href: "/credit", external: false },
+                        { label: "Earn Points", icon: "\u2726", href: "/points", external: false },
+                        { label: "Protocol Stats", icon: "\u2630", href: "/stats", external: false },
+                      ].map((action) => {
+                        const inner = (
+                          <div className="flex items-center gap-2 rounded-xl border border-[var(--hairline)] px-3 py-2.5 text-xs font-medium transition hover:border-[var(--accent)] hover:bg-[var(--accent-dim)] hover:text-[var(--accent-deep)] cursor-pointer">
+                            <span className="flex h-6 w-6 items-center justify-center rounded-md text-xs" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>{action.icon}</span>
+                            {action.label}
+                          </div>
+                        );
+                        return action.external ? (
+                          <a key={action.label} href={action.href} target="_blank" rel="noopener noreferrer">{inner}</a>
+                        ) : (
+                          <Link key={action.label} href={action.href}>{inner}</Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ─── FOOTER CTA ─── */}
+            <div className="relative mt-8 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--ink)] p-8 text-center md:p-10">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-[var(--accent)]/15 blur-3xl" />
+              <div className="pointer-events-none absolute -left-12 -bottom-12 h-40 w-40 rounded-full bg-[var(--accent-deep)]/15 blur-3xl" />
+              <div className="relative">
+                <h3 className="font-display text-xl font-medium tracking-tight text-[var(--bg)] md:text-2xl">
+                  All actions happen in <span className="italic text-[var(--accent)]">Telegram</span>
+                </h3>
+                <p className="mx-auto mt-2 max-w-md text-sm text-[var(--bg)]/60">
+                  Deposit, borrow, repay, and extend from the bot. This dashboard is read-only.
+                </p>
+                <a href={TELEGRAM_URL} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--accent)] px-5 py-2.5 text-sm font-semibold text-[var(--accent-ink)] transition hover:bg-[var(--accent-hover)]">
+                  Open @magpie_capital_bot
+                  <span aria-hidden>&rarr;</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Mini footer */}
+            <div className="mt-6 flex items-center justify-between text-[11px] text-[var(--ink-faint)] pb-4">
+              <span>&copy; {new Date().getFullYear()} Magpie</span>
+              <div className="flex gap-4">
+                <Link href="/" className="hover:text-[var(--ink-soft)]">Home</Link>
+                <Link href="/docs" className="hover:text-[var(--ink-soft)]">Docs</Link>
+                <a href={TELEGRAM_URL} className="hover:text-[var(--ink-soft)]">Telegram</a>
+              </div>
+            </div>
           </div>
-          <div className="text-xs text-[var(--ink-soft)]">&copy; {new Date().getFullYear()} Magpie</div>
-        </div>
-      </footer>
+        </main>
+      </div>
     </div>
   );
 }
 
 /* ───────────────────────── SUB-COMPONENTS ───────────────────────── */
 
-function SummaryCard({
-  label,
-  value,
-  sub,
-  highlight = false,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-  highlight?: boolean;
-}) {
+function SectionHeader({ title, count, compact }: { title: string; count?: number; compact?: boolean }) {
   return (
-    <div
-      className={`rounded-2xl border p-5 transition ${
-        highlight
-          ? "border-[var(--accent)]/20 bg-[var(--bg-elevated)] shadow-md"
-          : "border-[var(--hairline)] bg-[var(--bg-elevated)] hover:border-[var(--hairline-strong)] hover:shadow-sm"
-      }`}
-    >
-      <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)]">{label}</div>
-      <div className="font-display tabular mt-2 text-2xl font-medium tracking-[-0.03em]">{value}</div>
-      <div className="mt-0.5 text-xs text-[var(--ink-soft)]">{sub}</div>
+    <div className={`flex items-center gap-2 ${compact ? "mb-4" : "mb-3"}`}>
+      <h2 className={`font-display font-medium tracking-tight ${compact ? "text-sm" : "text-base"}`}>{title}</h2>
+      {count !== undefined && (
+        <span className="rounded-md bg-[var(--surface)] px-1.5 py-0.5 font-mono text-[10px] font-medium text-[var(--ink-soft)]">{count}</span>
+      )}
     </div>
   );
 }
 
-function QuickAction({
-  label,
-  icon,
-  href,
-  external = false,
-}: {
-  label: string;
-  icon: string;
-  href: string;
-  external?: boolean;
-}) {
-  const inner = (
-    <div className="flex flex-col items-center gap-2 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-6 text-center transition hover:-translate-y-0.5 hover:border-[var(--accent)]/40 hover:shadow-md cursor-pointer">
-      <div
-        className="flex h-10 w-10 items-center justify-center rounded-full text-lg"
-        style={{ background: "var(--accent-dim)", color: "var(--accent)" }}
-      >
-        {icon}
-      </div>
-      <span className="text-sm font-medium">{label}</span>
+function Metric({ label, value, danger }: { label: string; value: string; danger?: boolean }) {
+  return (
+    <div>
+      <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">{label}</div>
+      <div className={`mt-0.5 font-mono text-xs tabular font-medium ${danger ? "text-[var(--bad)]" : ""}`}>{value}</div>
     </div>
   );
-
-  if (external) {
-    return <a href={href} target="_blank" rel="noopener noreferrer">{inner}</a>;
-  }
-  return <Link href={href}>{inner}</Link>;
 }
