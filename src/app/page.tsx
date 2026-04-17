@@ -144,8 +144,8 @@ export default function Home() {
             <Link href="/credit" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               Credit
             </Link>
-            <Link href="/stats" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
-              Stats
+            <Link href="/dashboard" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
+              Dashboard
             </Link>
             <Link href="/docs" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
               Docs
@@ -545,9 +545,8 @@ export default function Home() {
               <FooterLink href="/calculate">Loan Calculator</FooterLink>
               <FooterLink href="/credit">Credit System</FooterLink>
               <FooterLink href="/points">Points</FooterLink>
-              <FooterLink href="/stats">Protocol Stats</FooterLink>
-              <FooterLink href="/demo">Demo</FooterLink>
               <FooterLink href="/dashboard">Dashboard</FooterLink>
+              <FooterLink href="/demo">Demo</FooterLink>
             </FooterCol>
             <FooterCol title="Resources">
               <FooterLink href="/docs">Documentation</FooterLink>
