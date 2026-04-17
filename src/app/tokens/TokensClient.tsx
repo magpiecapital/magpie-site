@@ -321,6 +321,17 @@ export default function TokensClient() {
             of them to your wallet, pick a tier, and borrow SOL instantly.
             Real-time data powered by DexScreener.
           </p>
+          <div className="mt-6">
+            <a
+              href="#submit-token"
+              className="btn-accent inline-flex items-center gap-2 text-sm"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Submit a Token
+            </a>
+          </div>
 
           {/* Stats cards */}
           {!loading && (
@@ -578,7 +589,7 @@ export default function TokensClient() {
       </section>
 
       {/* ── Request Section ── */}
-      <section className="border-t border-[var(--hairline)]">
+      <section id="submit-token" className="border-t border-[var(--hairline)] scroll-mt-20">
         <div className="mx-auto max-w-7xl px-6 py-16 md:py-20">
           <div className="mx-auto max-w-2xl">
             <h2 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
