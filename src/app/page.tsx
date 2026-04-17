@@ -85,7 +85,7 @@ const FAQ = [
   },
   {
     q: "What tokens can I pledge?",
-    a: "We accept 50+ Solana memecoins including WIF, BONK, Fartcoin, Moo Deng, GOAT, and many more. Check our Approved Tokens page for the full list with live prices and market data. Don't see your bag? You can request a new listing directly from that page.",
+    a: "We accept 64+ Solana memecoins including WIF, BONK, Fartcoin, Moo Deng, GOAT, and many more. Check our Approved Tokens page for the full list with live prices and market data. Don't see your bag? You can request a new listing directly from that page.",
   },
   {
     q: "What happens if the price drops?",
@@ -131,24 +131,24 @@ export default function Home() {
       <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Wordmark size={28} />
-          <nav className="flex items-center gap-8">
-            <a href="#how" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
+          <nav className="flex items-center gap-6">
+            <a href="#how" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
               How it works
             </a>
-            <a href="#tiers" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Tiers
-            </a>
-            <a href="#faq" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              FAQ
-            </a>
             <Link href="/tokens" className="hidden text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)] md:inline">
-              Approved Tokens
+              Tokens
             </Link>
-            <Link href="/demo" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Demo
+            <Link href="/calculate" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
+              Calculator
             </Link>
-            <Link href="/dashboard" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Dashboard
+            <Link href="/credit" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
+              Credit
+            </Link>
+            <Link href="/stats" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
+              Stats
+            </Link>
+            <Link href="/docs" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
+              Docs
             </Link>
             <a href={TELEGRAM_URL} className="btn-accent text-sm">Launch</a>
           </nav>
@@ -179,11 +179,11 @@ export default function Home() {
               Launch on Telegram
               <span aria-hidden>→</span>
             </a>
-            <a href="#how" className="btn-ghost text-base">
-              How it works
-            </a>
+            <Link href="/calculate" className="btn-ghost text-base">
+              Loan calculator
+            </Link>
             <Link href="/tokens" className="btn-ghost text-base">
-              Browse 50+ tokens
+              Browse 64+ tokens
             </Link>
           </div>
 
@@ -247,7 +247,7 @@ export default function Home() {
             <div>
               <div className="chip mb-3">Accepted collateral</div>
               <h3 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
-                50+ approved tokens
+                64+ approved tokens
               </h3>
               <p className="mt-2 max-w-lg text-base text-[var(--ink-soft)] leading-relaxed">
                 From WIF and BONK to Fartcoin and Moo Deng — browse the full list with live prices, market caps, and 24h performance. Don&apos;t see your bag? Request a new listing.
@@ -255,6 +255,30 @@ export default function Home() {
             </div>
             <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
               View all tokens
+              <span aria-hidden className="transition group-hover:translate-x-1">→</span>
+            </div>
+          </Link>
+        </Reveal>
+      </section>
+
+      {/* Credit system callout */}
+      <section className="mx-auto max-w-6xl px-6 pb-8">
+        <Reveal>
+          <Link
+            href="/credit"
+            className="group flex flex-col gap-6 rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg md:flex-row md:items-center md:justify-between md:p-10"
+          >
+            <div>
+              <div className="chip mb-3">New</div>
+              <h3 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
+                Build your DeFi credit score
+              </h3>
+              <p className="mt-2 max-w-lg text-base text-[var(--ink-soft)] leading-relaxed">
+                The first on-chain credit system for memecoin lending. Repay on time, level up, and unlock better LTV rates, lower fees, and longer terms.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
+              Learn more
               <span aria-hidden className="transition group-hover:translate-x-1">→</span>
             </div>
           </Link>
@@ -411,7 +435,7 @@ export default function Home() {
           <Reveal>
             <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:flex-row md:items-center md:justify-between md:p-8">
               <div className="text-sm leading-relaxed text-[var(--ink-soft)]">
-                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend for 1.5%, and live health alerts. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">50+ approved tokens</Link>.
+                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend for 1.5%, and live health alerts. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">64+ approved tokens</Link>.
               </div>
               <a href={TELEGRAM_URL} className="btn-dark text-sm">
                 Get a quote →
@@ -477,10 +501,10 @@ export default function Home() {
               Browse approved tokens
             </Link>
             <Link
-              href="/dashboard"
+              href="/credit"
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
             >
-              View dashboard
+              Build your credit
             </Link>
           </div>
         </div>
@@ -497,24 +521,23 @@ export default function Home() {
               </p>
             </div>
             <FooterCol title="Product">
-              <FooterLink href="#how">How it works</FooterLink>
-              <FooterLink href="/demo">Demo</FooterLink>
               <FooterLink href="/tokens">Approved Tokens</FooterLink>
-              <FooterLink href="#tiers">Tiers</FooterLink>
+              <FooterLink href="/calculate">Loan Calculator</FooterLink>
+              <FooterLink href="/credit">Credit System</FooterLink>
+              <FooterLink href="/stats">Protocol Stats</FooterLink>
+              <FooterLink href="/demo">Demo</FooterLink>
               <FooterLink href="/dashboard">Dashboard</FooterLink>
-              <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
             </FooterCol>
-            <FooterCol title="Company">
+            <FooterCol title="Resources">
+              <FooterLink href="/docs">Documentation</FooterLink>
+              <FooterLink href="/changelog">Changelog</FooterLink>
+              <FooterLink href="/about">About</FooterLink>
               <FooterLink href="#faq">FAQ</FooterLink>
-              <FooterLink href="#">Docs</FooterLink>
-              <FooterLink href="#">Security</FooterLink>
-              <FooterLink href="#">Contact</FooterLink>
             </FooterCol>
-            <FooterCol title="Social">
-              <FooterLink href={X_URL}>X</FooterLink>
+            <FooterCol title="Community">
+              <FooterLink href={X_URL}>X / Twitter</FooterLink>
               <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
-
-              <FooterLink href="#">GitHub</FooterLink>
+              <FooterLink href="https://github.com/magpiecapital">GitHub</FooterLink>
             </FooterCol>
           </div>
           <div className="mt-14 flex flex-col items-start justify-between gap-4 border-t border-[var(--hairline)] pt-6 md:flex-row md:items-center">
