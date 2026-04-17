@@ -174,6 +174,9 @@ export default function Home() {
             <a href="#how" className="btn-ghost text-base">
               How it works
             </a>
+            <Link href="/tokens" className="btn-ghost text-base">
+              Browse 50+ tokens
+            </Link>
           </div>
 
           <div className="fade-up fade-up-4 mt-16 grid max-w-3xl grid-cols-3 gap-0 divide-x divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm">
@@ -224,6 +227,30 @@ export default function Home() {
             </span>
           ))}
         </div>
+      </section>
+
+      {/* Approved tokens callout */}
+      <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
+        <Reveal>
+          <Link
+            href="/tokens"
+            className="group flex flex-col gap-6 rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg md:flex-row md:items-center md:justify-between md:p-10"
+          >
+            <div>
+              <div className="chip mb-3">Accepted collateral</div>
+              <h3 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
+                50+ approved tokens
+              </h3>
+              <p className="mt-2 max-w-lg text-base text-[var(--ink-soft)] leading-relaxed">
+                From WIF and BONK to Fartcoin and Moo Deng — browse the full list with live prices, market caps, and 24h performance. Don&apos;t see your bag? Request a new listing.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
+              View all tokens
+              <span aria-hidden className="transition group-hover:translate-x-1">→</span>
+            </div>
+          </Link>
+        </Reveal>
       </section>
 
       {/* How it works */}
@@ -373,7 +400,7 @@ export default function Home() {
           <Reveal>
             <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:flex-row md:items-center md:justify-between md:p-8">
               <div className="text-sm leading-relaxed text-[var(--ink-soft)]">
-                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend for 1.5%, and live health alerts.
+                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend for 1.5%, and live health alerts. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">50+ approved tokens</Link>.
               </div>
               <a href={TELEGRAM_URL} className="btn-dark text-sm">
                 Get a quote →
@@ -432,6 +459,12 @@ export default function Home() {
               Open @magpie_capital_bot
               <span aria-hidden>→</span>
             </a>
+            <Link
+              href="/tokens"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+            >
+              Browse approved tokens
+            </Link>
             <Link
               href="/dashboard"
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
