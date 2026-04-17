@@ -85,11 +85,11 @@ const MOCK_PAST_LOANS = [
 ];
 
 const MOCK_HOLDINGS = [
-  { symbol: "WIF", name: "dogwifhat", amount: "14,200", usd: 3120, change24h: -2.3, eligible: true },
-  { symbol: "BONK", name: "Bonk", amount: "82.1M", usd: 1840, change24h: 5.1, eligible: true },
-  { symbol: "POPCAT", name: "Popcat", amount: "3,400", usd: 980, change24h: -0.8, eligible: true },
-  { symbol: "FARTCOIN", name: "Fartcoin", amount: "12,000", usd: 650, change24h: 12.4, eligible: true },
-  { symbol: "MEW", name: "cat in a dogs world", amount: "210,000", usd: 420, change24h: -1.2, eligible: false },
+  { symbol: "WIF", name: "dogwifhat", mint: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm", amount: "14,200", usd: 3120, change24h: -2.3, eligible: true },
+  { symbol: "BONK", name: "Bonk", mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263", amount: "82.1M", usd: 1840, change24h: 5.1, eligible: true },
+  { symbol: "POPCAT", name: "Popcat", mint: "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr", amount: "3,400", usd: 980, change24h: -0.8, eligible: true },
+  { symbol: "FARTCOIN", name: "Fartcoin", mint: "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump", amount: "12,000", usd: 650, change24h: 12.4, eligible: true },
+  { symbol: "MEW", name: "cat in a dogs world", mint: "MEW1gQWJ3nEXg2qgERiKu7FAFj79PHvQVREQUzScPP5", amount: "210,000", usd: 420, change24h: -1.2, eligible: false },
 ];
 
 const MOCK_ACTIVITY = [
@@ -219,6 +219,35 @@ function activityIcon(type: string): string {
     case "extend": return "\u21BB";
     default: return "\u2022";
   }
+}
+
+/* ───────────────────────── TOKEN ICON ───────────────────────── */
+
+function TokenIcon({ mint, symbol, size = 28 }: { mint: string; symbol: string; size?: number }) {
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div
+        className="flex shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
+        style={{ width: size, height: size, background: "var(--accent-dim)", color: "var(--accent-deep)" }}
+      >
+        {symbol[0]}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={`https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`}
+      alt={symbol}
+      width={size}
+      height={size}
+      className="shrink-0 rounded-full"
+      style={{ width: size, height: size }}
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 /* ───────────────────────── ANIMATED COUNTER ───────────────────────── */
@@ -438,10 +467,10 @@ export default function DashboardPage() {
   const animatedPoints = useAnimatedCounter(mounted ? MOCK_POINTS.total : 0);
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: "#f0ede2", color: "var(--ink)" }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: "#e8e4d8", color: "var(--ink)" }}>
       {/* ─── SIDEBAR ─── */}
       <aside
-        className={`hidden md:flex flex-col shrink-0 border-r border-[var(--hairline)] bg-[#f7f5ec] transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-56"}`}
+        className={`hidden md:flex flex-col shrink-0 border-r border-[var(--hairline)] bg-[#f2efe4] transition-all duration-300 ${sidebarCollapsed ? "w-16" : "w-56"}`}
       >
         {/* Logo */}
         <div className="flex items-center gap-3 border-b border-[var(--hairline)] px-4 py-4">
@@ -514,7 +543,7 @@ export default function DashboardPage() {
       {/* ─── MAIN AREA ─── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* ─── TOP BAR ─── */}
-        <header className="flex items-center justify-between border-b border-[var(--hairline)] bg-[#f7f5ec] px-4 py-3 md:px-6">
+        <header className="flex items-center justify-between border-b border-[var(--hairline)] bg-[#f2efe4] px-4 py-3 md:px-6">
           {/* Mobile logo */}
           <div className="flex items-center gap-3 md:hidden">
             <Link href="/"><Mark size={22} /></Link>
@@ -705,9 +734,7 @@ export default function DashboardPage() {
                             <tr key={h.symbol} className={`border-b border-[var(--hairline)] last:border-0 transition hover:bg-[var(--surface)]/40 ${i % 2 === 1 ? "bg-[var(--surface)]/20" : ""}`}>
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2.5">
-                                  <div className="flex h-7 w-7 items-center justify-center rounded-lg font-mono text-[10px] font-bold" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)" }}>
-                                    {h.symbol.slice(0, 2)}
-                                  </div>
+                                  <TokenIcon mint={h.mint} symbol={h.symbol} size={28} />
                                   <div>
                                     <div className="font-medium text-[13px]">{h.symbol}</div>
                                     <div className="text-[10px] text-[var(--ink-faint)]">{h.name}</div>
