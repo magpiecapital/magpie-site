@@ -60,7 +60,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--hairline)] px-5 py-4">
-          <Wordmark size={22} />
+          <Link href="/" onClick={onClose}><Wordmark size={22} /></Link>
           <button
             onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--ink-soft)] transition hover:bg-[var(--surface)]"
