@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Wordmark } from "@/components/Logo";
 
@@ -20,49 +21,48 @@ const NAV_LINKS = [
   { label: "Whitepaper", href: "/whitepaper" },
 ];
 
-export function MobileNav() {
-  const [open, setOpen] = useState(false);
+function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  // Lock body scroll when open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [open]);
 
   return (
     <>
-      {/* Hamburger button */}
-      <button
-        onClick={() => setOpen(true)}
-        className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--ink-soft)] transition hover:bg-[var(--surface)] md:hidden"
-        aria-label="Open menu"
-      >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-      </button>
-
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-[80] transition-opacity duration-300 md:hidden"
+        className="fixed inset-0 transition-opacity duration-300"
         style={{
+          zIndex: 9998,
           background: "rgba(0,0,0,0.5)",
           backdropFilter: "blur(4px)",
+          WebkitBackdropFilter: "blur(4px)",
           opacity: open ? 1 : 0,
           pointerEvents: open ? "auto" : "none",
         }}
-        onClick={() => setOpen(false)}
+        onClick={onClose}
       />
 
       {/* Drawer */}
       <div
-        className="fixed left-0 top-0 z-[90] h-full w-[280px] transition-transform duration-300 ease-out md:hidden flex flex-col"
+        className="fixed left-0 top-0 h-full w-[280px] flex flex-col transition-transform duration-300 ease-out"
         style={{
+          zIndex: 9999,
           transform: open ? "translateX(0)" : "translateX(-100%)",
           background: "var(--bg-elevated)",
+          boxShadow: open ? "4px 0 24px rgba(0,0,0,0.2)" : "none",
         }}
       >
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--hairline)] px-5 py-4">
           <Wordmark size={22} />
           <button
-            onClick={() => setOpen(false)}
+            onClick={onClose}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--ink-soft)] transition hover:bg-[var(--surface)]"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -78,7 +78,7 @@ export function MobileNav() {
             <Link
               key={link.href}
               href={link.href}
-              onClick={() => setOpen(false)}
+              onClick={onClose}
               className="flex w-full items-center rounded-xl px-3 py-3 text-[15px] text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--ink)]"
             >
               {link.label}
@@ -99,6 +99,38 @@ export function MobileNav() {
           </a>
         </div>
       </div>
+    </>
+  );
+}
+
+export function MobileNav() {
+  const [open, setOpen] = useState(false);
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setPortalRoot(document.body);
+  }, []);
+
+  return (
+    <>
+      {/* Hamburger button */}
+      <button
+        onClick={() => setOpen(true)}
+        className="flex h-9 w-9 items-center justify-center rounded-xl text-[var(--ink-soft)] transition hover:bg-[var(--surface)] md:hidden"
+        aria-label="Open menu"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      {/* Portal the drawer to document.body so it escapes all stacking contexts */}
+      {portalRoot && createPortal(
+        <MobileDrawer open={open} onClose={() => setOpen(false)} />,
+        portalRoot,
+      )}
     </>
   );
 }
