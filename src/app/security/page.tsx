@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Mark, Wordmark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
-import { MobileNav } from "@/components/MobileNav";
+import { Header } from "@/components/Header";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -150,33 +150,7 @@ const FINDINGS = [
 export default function SecurityPage() {
   return (
     <div className="min-h-screen">
-      {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <MobileNav />
-            <Link href="/"><Wordmark size={28} /></Link>
-          </div>
-          <nav className="flex items-center gap-8">
-            <Link href="/tokens" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Tokens
-            </Link>
-            <Link href="/calculate" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Calculator
-            </Link>
-            <Link href="/credit" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Credit
-            </Link>
-            <Link href="/docs" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Docs
-            </Link>
-            <Link href="/stats" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Stats
-            </Link>
-            <a href={TELEGRAM_URL} className="btn-accent text-sm">Launch</a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero */}
       <section className="relative overflow-hidden">

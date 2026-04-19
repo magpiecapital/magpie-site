@@ -2,8 +2,7 @@ import Link from "next/link";
 import { Mark, Wordmark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { PhoneMock } from "@/components/PhoneMock";
-import { MobileNav } from "@/components/MobileNav";
-import { ConnectWallet } from "@/components/ConnectWallet";
+import { Header } from "@/components/Header";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const X_URL = "https://x.com/MagpieLending";
@@ -129,43 +128,7 @@ const MARQUEE = [
 export default function Home() {
   return (
     <div className="min-h-screen">
-      {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <MobileNav />
-            <Wordmark size={28} />
-          </div>
-          <nav className="flex items-center gap-6">
-            <Link href="/vault" className="hidden text-sm font-bold text-[var(--accent-deep)] transition hover:text-[var(--accent)] md:inline border-b-2 border-[var(--accent)] pb-0.5">
-              Agent Vault
-            </Link>
-            <a href="#how" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
-              How it works
-            </a>
-            <Link href="/tokens" className="hidden text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)] md:inline">
-              Tokens
-            </Link>
-            <Link href="/calculate" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Calculator
-            </Link>
-            <Link href="/credit" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Credit
-            </Link>
-            <Link href="/marketplace" className="hidden text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)] lg:inline">
-              Marketplace
-            </Link>
-            <Link href="/dashboard" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
-              Dashboard
-            </Link>
-            <Link href="/docs" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
-              Docs
-            </Link>
-            <ConnectWallet variant="ghost" className="hidden md:flex" />
-            <a href={TELEGRAM_URL} className="btn-accent text-sm">Launch</a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero */}
       <section className="relative overflow-hidden">
