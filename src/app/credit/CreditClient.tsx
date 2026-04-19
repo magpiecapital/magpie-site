@@ -474,8 +474,11 @@ export default function CreditClient() {
                 </a>
               </div>
             </div>
-            <div className="fade-up fade-up-3 flex justify-center">
+            <div className="fade-up fade-up-3 flex flex-col items-center justify-center">
               <CreditGauge score={720} />
+              <div className="mt-3 rounded-full border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">
+                Illustrative example
+              </div>
             </div>
           </div>
         </div>

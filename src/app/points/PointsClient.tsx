@@ -119,10 +119,6 @@ const FAQ = [
     q: "Can I transfer points?",
     a: "Not currently. Points are tied to your Magpie wallet.",
   },
-  {
-    q: "When can I redeem points?",
-    a: "Redemption details will be announced in the future. For now, focus on accumulating.",
-  },
 ];
 
 /* ------------------------------------------------------------------ */

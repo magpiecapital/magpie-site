@@ -6,8 +6,8 @@
 import { NextResponse } from "next/server";
 
 export async function GET() {
-  // Marketplace overview with mock/initial data
-  // In production, this proxies to the bot's marketplace service
+  // Marketplace overview — zeroed until the lending protocol is live.
+  // In production, this proxies to the bot's marketplace service.
   const data = {
     overview: {
       total_pools: 0,
