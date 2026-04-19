@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Wordmark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
+import { Header } from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "Agent Vault Protocol — Programmable Wallets for AI Agents on Solana",
@@ -144,34 +145,7 @@ const INSTRUCTIONS = [
 export default function VaultPage() {
   return (
     <div className="min-h-screen">
-      {/* ── Nav ── */}
-      <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/">
-            <Wordmark size={28} />
-          </Link>
-          <nav className="flex items-center gap-6">
-            <a href="#architecture" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Architecture
-            </a>
-            <a href="#security" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Security
-            </a>
-            <a href="#sdk" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              SDK
-            </a>
-            <a href="#api" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              API
-            </a>
-            <Link href="/docs" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
-              Docs
-            </Link>
-            <a href={GITHUB_URL} className="btn-accent text-sm">
-              GitHub <span aria-hidden>→</span>
-            </a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       {/* ── Hero ── */}
       <section className="relative overflow-hidden">

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mark, Wordmark } from "@/components/Logo";
-import { MobileNav } from "@/components/MobileNav";
+import { Wordmark } from "@/components/Logo";
+import { Header } from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "Documentation | Magpie",
@@ -62,30 +62,7 @@ const CREDIT_FACTORS = [
 export default function DocsPage() {
   return (
     <div className="min-h-screen">
-      {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <MobileNav />
-            <Link href="/"><Wordmark size={28} /></Link>
-          </div>
-          <nav className="flex items-center gap-8">
-            <Link href="/calculate" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Calculator
-            </Link>
-            <Link href="/tokens" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Tokens
-            </Link>
-            <Link href="/demo" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Demo
-            </Link>
-            <Link href="/dashboard" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
-              Dashboard
-            </Link>
-            <a href={TELEGRAM_URL} className="btn-accent text-sm">Launch</a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       {/* Mobile section tabs */}
       <div className="sticky top-[65px] z-40 overflow-x-auto border-b border-[var(--hairline)] bg-[var(--bg)]/90 backdrop-blur-md lg:hidden">

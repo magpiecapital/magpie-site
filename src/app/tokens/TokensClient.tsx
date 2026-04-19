@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Mark, Wordmark } from "@/components/Logo";
-import { MobileNav } from "@/components/MobileNav";
+import { Wordmark } from "@/components/Logo";
+import { Header } from "@/components/Header";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const X_URL = "https://x.com/MagpieLending";
@@ -276,39 +276,7 @@ export default function TokensClient() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       {/* ── Nav ── */}
-      <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-3">
-            <MobileNav />
-            <Link href="/" className="flex items-center gap-2">
-              <Wordmark size={28} />
-            </Link>
-          </div>
-          <nav className="flex items-center gap-6">
-            <a
-              href="#submit-token"
-              className="text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
-            >
-              Submit Token
-            </a>
-            <Link
-              href="/demo"
-              className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline"
-            >
-              Demo
-            </Link>
-            <Link
-              href="/dashboard"
-              className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline"
-            >
-              Dashboard
-            </Link>
-            <a href={TELEGRAM_URL} className="btn-accent text-sm">
-              Launch
-            </a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       {/* ── Hero ── */}
       <section className="border-b border-[var(--hairline)]">

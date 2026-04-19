@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Mark, Wordmark } from "@/components/Logo";
-import { MobileNav } from "@/components/MobileNav";
-import { ConnectWallet } from "@/components/ConnectWallet";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { Header } from "@/components/Header";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -78,7 +75,6 @@ const HOW_IT_WORKS_BORROWER = [
 ];
 
 export function MarketplaceClient() {
-  const { connected } = useWallet();
   const [stats, setStats] = useState<any>(null);
   const [tab, setTab] = useState<"lender" | "borrower">("lender");
 
@@ -92,26 +88,7 @@ export function MarketplaceClient() {
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-[var(--hairline)] bg-[var(--bg)]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-center gap-2">
-              <Mark size={26} />
-              <Wordmark size={20} className="hidden sm:block" />
-            </Link>
-            <nav className="hidden items-center gap-1 text-sm md:flex">
-              <Link href="/dashboard" className="rounded-lg px-3 py-1.5 text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--ink)]">Dashboard</Link>
-              <Link href="/marketplace" className="rounded-lg px-3 py-1.5 font-medium text-[var(--ink)]">Marketplace</Link>
-              <Link href="/tokens" className="rounded-lg px-3 py-1.5 text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--ink)]">Tokens</Link>
-              <Link href="/credit" className="rounded-lg px-3 py-1.5 text-[var(--ink-soft)] transition hover:bg-[var(--surface)] hover:text-[var(--ink)]">Credit</Link>
-            </nav>
-          </div>
-          <div className="flex items-center gap-3">
-            <ConnectWallet variant="accent" />
-            <MobileNav />
-          </div>
-        </div>
-      </header>
+      <Header />
 
       <main className="mx-auto max-w-7xl px-5 py-12">
         {/* Hero */}

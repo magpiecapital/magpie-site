@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
-import { MobileNav } from "@/components/MobileNav";
+import { Header } from "@/components/Header";
 
 export const metadata = {
   title: "Changelog | Magpie",
@@ -248,50 +248,7 @@ const TAG_STYLES: Record<Tag, { bg: string; text: string; dot: string; glow?: st
 export default function ChangelogPage() {
   return (
     <div className="min-h-screen">
-      {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <MobileNav />
-            <Link href="/"><Wordmark size={28} /></Link>
-          </div>
-          <nav className="flex items-center gap-8">
-            <Link
-              href="/about"
-              className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline"
-            >
-              About
-            </Link>
-            <Link
-              href="/tokens"
-              className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline"
-            >
-              Tokens
-            </Link>
-            <Link
-              href="/credit"
-              className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline"
-            >
-              Credit
-            </Link>
-            <Link
-              href="/docs"
-              className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline"
-            >
-              Docs
-            </Link>
-            <Link
-              href="/stats"
-              className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline"
-            >
-              Stats
-            </Link>
-            <a href={TELEGRAM_URL} className="btn-accent text-sm">
-              Launch
-            </a>
-          </nav>
-        </div>
-      </header>
+      <Header />
 
       {/* Hero */}
       <section className="mx-auto max-w-3xl px-6 pt-24 pb-16 md:pt-32 md:pb-20">
