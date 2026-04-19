@@ -1,251 +1,266 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { Mark, Wordmark } from "@/components/Logo";
+import { Wordmark } from "@/components/Logo";
 import { Header } from "@/components/Header";
 
-const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
+/* ─── Fake keys (deterministic, never real) ─── */
+const OWNER_KEY = "7xKm4R...3pQz";
+const AGENT_KEY = "9fLn8W...8mWr";
+const VAULT_PDA = "4k2pYN...9mNz";
 
-/* ─── Types ─── */
-type Line = {
-  text: string;
-  bold?: boolean;
-  muted?: boolean;
-  mono?: boolean;
-  accent?: boolean;
-};
+function fakeSig() {
+  const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+  let s = "";
+  for (let i = 0; i < 8; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s.slice(0, 4) + "..." + s.slice(4);
+}
 
-type ChatButton = {
-  text: string;
-  accent: boolean;
-};
+/* ─── Security check layers ─── */
+const SECURITY_LAYERS = [
+  { id: 1, label: "Vault is active" },
+  { id: 2, label: "Session not expired" },
+  { id: 3, label: "Caller is assigned agent" },
+  { id: 4, label: "Amount ≤ per-tx limit" },
+  { id: 5, label: "Daily total ≤ daily cap" },
+  { id: 6, label: "Balance ≥ amount + rent" },
+];
 
-type Message = {
-  from: "user" | "bot";
-  text?: string;
-  lines?: Line[];
-  buttons?: ChatButton[];
-  highlight?: boolean;
-};
-
-type Step = {
+/* ─── Step definitions ─── */
+type StepDef = {
   id: string;
   label: string;
   caption: string;
-  messages: Message[];
+  instruction: string;
+  signer: "owner" | "agent";
 };
 
-/* ─── Flow steps ─── */
-const STEPS: Step[] = [
+const STEPS: StepDef[] = [
   {
-    id: "start",
-    label: "Open the bot",
-    caption: "Search @magpie_capital_bot on Telegram and tap Start.",
-    messages: [
-      {
-        from: "user",
-        text: "/start",
-      },
-      {
-        from: "bot",
-        lines: [
-          { bold: true, text: "Welcome to Magpie" },
-          { text: "Borrow SOL against your memecoin bags." },
-          { text: "" },
-          { text: "I've created a secure wallet for you." },
-          { muted: true, text: "You can export your keys anytime with /export" },
-        ],
-      },
-    ],
+    id: "create",
+    label: "Create vault",
+    caption: "Owner creates a vault PDA with spending policy: 0.5 SOL per-tx, 2.0 SOL daily, 24h session. Then deposits 5 SOL.",
+    instruction: "create_vault + deposit",
+    signer: "owner",
   },
   {
-    id: "deposit",
-    label: "Get your address",
-    caption: "Use /deposit to see where to send your tokens.",
-    messages: [
-      {
-        from: "user",
-        text: "/deposit",
-      },
-      {
-        from: "bot",
-        lines: [
-          { bold: true, text: "Your deposit address" },
-          { mono: true, accent: true, text: "5fh2K8...xP3q8Qz1" },
-          { text: "" },
-          { text: "Send any supported memecoin to this address." },
-          { muted: true, text: "I'll notify you when the deposit confirms." },
-        ],
-      },
-    ],
+    id: "spend-ok",
+    label: "Agent spends (success)",
+    caption: "Agent sends 0.3 SOL to a destination. All 6 security checks pass on-chain.",
+    instruction: "agent_spend",
+    signer: "agent",
   },
   {
-    id: "detected",
-    label: "Deposit detected",
-    caption: "Send tokens. Magpie watches on-chain and notifies you instantly.",
-    messages: [
-      {
-        from: "bot",
-        highlight: true,
-        lines: [
-          { bold: true, accent: true, text: "✓ Deposit detected" },
-          { text: "" },
-          {
-            text: "8,000 WIF",
-            bold: true,
-          },
-          { muted: true, text: "Worth ~$1,760 at current price" },
-          { text: "" },
-          { muted: true, text: "Confirmed in 8.4s · sig 4k2p...9mNz" },
-        ],
-      },
-    ],
+    id: "spend-fail",
+    label: "Agent exceeds limit (blocked)",
+    caption: "Agent tries 0.6 SOL — exceeds 0.5 per-tx limit. Transaction reverts at layer 4.",
+    instruction: "agent_spend",
+    signer: "agent",
   },
   {
-    id: "borrow",
-    label: "Get a quote",
-    caption: "Pick your tier. See exact payout, fee, and liquidation price before you commit.",
-    messages: [
-      {
-        from: "user",
-        text: "/borrow",
-      },
-      {
-        from: "bot",
-        lines: [
-          { bold: true, text: "Loan quote for 8,000 WIF" },
-          { text: "" },
-          { text: "Express · 30% LTV · 2 days" },
-          {
-            text: "You receive: 3.25 SOL",
-            bold: true,
-          },
-          { muted: true, text: "Fee: 0.05 SOL (1.5%)" },
-          { muted: true, text: "Repay: 3.30 SOL" },
-          { muted: true, text: "Liq. price: $0.156 per WIF" },
-        ],
-        buttons: [
-          { text: "✓ Confirm", accent: true },
-          { text: "Change tier", accent: false },
-        ],
-      },
-    ],
+    id: "revoke",
+    label: "Owner revokes access",
+    caption: "Owner calls revoke_agent. Agent immediately blocked at the very first check.",
+    instruction: "revoke_agent",
+    signer: "owner",
   },
   {
-    id: "funded",
-    label: "SOL received",
-    caption: "Confirm the loan. SOL hits your wallet in under 10 seconds.",
-    messages: [
-      {
-        from: "bot",
-        highlight: true,
-        lines: [
-          { bold: true, accent: true, text: "✓ Loan funded" },
-          { text: "" },
-          {
-            text: "3.25 SOL sent to your wallet",
-            bold: true,
-          },
-          { text: "" },
-          { muted: true, text: "Due: April 19, 2026 at 4:32 PM" },
-          { muted: true, text: "Repay anytime with /repay" },
-          { text: "" },
-          { muted: true, text: "Funded in 8.2s · sig 7xBm...2pKq" },
-        ],
-      },
-    ],
-  },
-  {
-    id: "manage",
-    label: "Manage your loan",
-    caption: "Top-up, partial-repay, extend, or repay in full. All from the chat.",
-    messages: [
-      {
-        from: "user",
-        text: "/positions",
-      },
-      {
-        from: "bot",
-        lines: [
-          { bold: true, text: "Your active loans" },
-          { text: "" },
-          { text: "WIF · Express · 30% LTV" },
-          { text: "Borrowed: 3.25 SOL" },
-          { text: "Owed: 3.30 SOL" },
-          { text: "Health: ████████░░ 78%" },
-          { muted: true, text: "Due in 1.3 days" },
-        ],
-        buttons: [
-          { text: "Repay", accent: false },
-          { text: "Top-up", accent: false },
-          { text: "Extend", accent: false },
-          { text: "Partial", accent: false },
-        ],
-      },
-    ],
+    id: "summary",
+    label: "Summary",
+    caption: "Full transaction log. Every action enforced on-chain — no SDK or API can bypass it.",
+    instruction: "—",
+    signer: "owner",
   },
 ];
 
-const AUTO_ADVANCE_MS = 5000;
+type CheckStatus = "pending" | "checking" | "pass" | "fail" | "skipped";
 
+type TxLogEntry = {
+  instruction: string;
+  status: "success" | "error";
+  sig: string;
+  detail: string;
+  error?: string;
+  amount?: string;
+};
+
+/* ─── Page ─── */
 export default function DemoPage() {
   const [activeStep, setActiveStep] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [messageIndex, setMessageIndex] = useState(0);
+  const [phase, setPhase] = useState<"init" | "signing" | "checking" | "result">("init");
+  const [checks, setChecks] = useState<CheckStatus[]>(Array(6).fill("pending"));
+  const [txLog, setTxLog] = useState<TxLogEntry[]>([]);
+
+  // Vault simulation state
+  const [vault, setVault] = useState({
+    balance: 0,
+    spentToday: 0,
+    isActive: false,
+    txCount: 0,
+    spendLimit: 0.5,
+    dailyLimit: 2.0,
+    exists: false,
+  });
 
   const step = STEPS[activeStep];
-  const totalMessages = step.messages.length;
 
-  const goToStep = useCallback(
-    (idx: number) => {
-      setActiveStep(idx);
-      setMessageIndex(0);
-      setIsPaused(false);
-    },
-    [],
-  );
+  const goToStep = useCallback((idx: number) => {
+    setActiveStep(idx);
+    setPhase("init");
+    setChecks(Array(6).fill("pending"));
+    setIsPaused(false);
+  }, []);
 
-  // Reveal messages one at a time within a step
+  // Reset vault state when going backwards
   useEffect(() => {
-    if (messageIndex >= totalMessages - 1) return;
-    const t = setTimeout(
-      () => setMessageIndex((i) => Math.min(i + 1, totalMessages - 1)),
-      800,
-    );
-    return () => clearTimeout(t);
-  }, [messageIndex, totalMessages, activeStep]);
+    if (activeStep === 0) {
+      setVault({ balance: 0, spentToday: 0, isActive: false, txCount: 0, spendLimit: 0.5, dailyLimit: 2.0, exists: false });
+      setTxLog([]);
+    }
+  }, [activeStep]);
 
-  // Auto-advance steps
+  // Step animation timeline
   useEffect(() => {
-    if (isPaused) return;
-    if (messageIndex < totalMessages - 1) return;
+    if (activeStep === 4) {
+      setPhase("result");
+      return;
+    }
+
+    setPhase("init");
+    setChecks(Array(6).fill("pending"));
+
+    const t1 = setTimeout(() => setPhase("signing"), 600);
+
+    let checkTimers: ReturnType<typeof setTimeout>[] = [];
+
+    const t2 = setTimeout(() => {
+      if (activeStep === 0) {
+        // Create vault — no security checks, just result
+        setPhase("result");
+        setVault({ balance: 5.0, spentToday: 0, isActive: true, txCount: 0, spendLimit: 0.5, dailyLimit: 2.0, exists: true });
+        setTxLog((prev) => [
+          ...prev,
+          { instruction: "create_vault", status: "success", sig: fakeSig(), detail: "Vault created with policy", amount: "5.0 SOL deposited" },
+        ]);
+        return;
+      }
+
+      if (activeStep === 3) {
+        // Revoke — no security checks
+        setPhase("result");
+        setVault((v) => ({ ...v, isActive: false }));
+        setTxLog((prev) => [
+          ...prev,
+          { instruction: "revoke_agent", status: "success", sig: fakeSig(), detail: "Agent access revoked" },
+        ]);
+        return;
+      }
+
+      // Security check cascade for spend steps
+      setPhase("checking");
+
+      const failAt = activeStep === 1 ? -1 : activeStep === 2 ? 3 : 0; // fail index (0-based), -1 = all pass
+      const isRevoked = activeStep === 3;
+
+      for (let i = 0; i < 6; i++) {
+        const delay = i * 350;
+
+        checkTimers.push(
+          setTimeout(() => {
+            setChecks((prev) => {
+              const next = [...prev];
+              next[i] = "checking";
+              return next;
+            });
+          }, delay)
+        );
+
+        checkTimers.push(
+          setTimeout(() => {
+            setChecks((prev) => {
+              const next = [...prev];
+              if (failAt >= 0 && i === failAt) {
+                next[i] = "fail";
+                // Mark remaining as skipped
+                for (let j = i + 1; j < 6; j++) next[j] = "skipped";
+              } else if (failAt >= 0 && i > failAt) {
+                next[i] = "skipped";
+              } else {
+                next[i] = "pass";
+              }
+              return next;
+            });
+          }, delay + 250)
+        );
+      }
+
+      // Show result after all checks
+      const totalCheckTime = 6 * 350 + 400;
+      checkTimers.push(
+        setTimeout(() => {
+          setPhase("result");
+          if (failAt === -1) {
+            // Success spend
+            setVault((v) => ({
+              ...v,
+              balance: Math.max(0, v.balance - 0.3),
+              spentToday: v.spentToday + 0.3,
+              txCount: v.txCount + 1,
+            }));
+            setTxLog((prev) => [
+              ...prev,
+              { instruction: "agent_spend", status: "success", sig: fakeSig(), detail: "0.3 SOL sent to destination", amount: "0.3 SOL" },
+            ]);
+          } else {
+            // Failed spend
+            const errorName = failAt === 3 ? "ExceedsTransactionLimit" : "VaultInactive";
+            setTxLog((prev) => [
+              ...prev,
+              { instruction: "agent_spend", status: "error", sig: fakeSig(), detail: "Transaction reverted", error: errorName },
+            ]);
+          }
+        }, totalCheckTime)
+      );
+    }, 1400);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      checkTimers.forEach(clearTimeout);
+    };
+  }, [activeStep]);
+
+  // Auto-advance
+  useEffect(() => {
+    if (isPaused || phase !== "result") return;
+    const delay = activeStep === 4 ? 8000 : 5000;
     const t = setTimeout(() => {
       const next = (activeStep + 1) % STEPS.length;
       goToStep(next);
-    }, AUTO_ADVANCE_MS);
+    }, delay);
     return () => clearTimeout(t);
-  }, [activeStep, isPaused, messageIndex, totalMessages, goToStep]);
+  }, [activeStep, isPaused, phase, goToStep]);
 
   return (
     <div className="min-h-screen">
       <Header />
 
       <main className="mx-auto max-w-6xl px-6 py-14 md:py-20">
-        {/* Header */}
+        {/* Hero */}
         <div className="text-center">
-          <div className="chip mx-auto mb-5">How it works</div>
+          <div className="chip mx-auto mb-5">Interactive Demo</div>
           <h1 className="font-display text-5xl font-medium tracking-[-0.04em] md:text-7xl">
-            From zero to <span className="italic text-[var(--accent-deep)]">funded</span>
+            See the protocol <span className="italic text-[var(--accent-deep)]">in action</span>
           </h1>
           <p className="mx-auto mt-5 max-w-lg text-lg leading-relaxed text-[var(--ink-soft)]">
-            Watch the full loan flow, step by step. Everything happens inside a
-            Telegram chat.
+            Watch the full vault lifecycle — create, spend, enforce, revoke. No wallet needed.
           </p>
         </div>
 
         {/* Main demo area */}
-        <div className="mt-16 grid grid-cols-1 items-start gap-12 md:grid-cols-2 md:gap-20">
+        <div className="mt-16 grid grid-cols-1 items-start gap-12 md:grid-cols-2 md:gap-16">
           {/* Left: step list */}
           <div className="order-2 md:order-1">
             <div className="flex flex-col gap-1">
@@ -315,65 +330,150 @@ export default function DemoPage() {
             </div>
           </div>
 
-          {/* Right: phone mockup */}
+          {/* Right: Vault Console */}
           <div className="order-1 md:order-2 md:sticky md:top-28">
-            <div className="phone-frame mx-auto w-full max-w-[360px]">
-              <div className="phone-screen aspect-[9/19.5] w-full flex flex-col">
-                {/* TG Header */}
-                <div className="flex items-center gap-3 border-b border-white/5 bg-[#17212b] px-4 py-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)]">
-                    <Mark size={26} />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-[13px] font-semibold text-white">Magpie</div>
-                    <div className="text-[10px] text-white/50">bot · online</div>
-                  </div>
-                </div>
+            <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0e1621] shadow-lg">
+              {/* Console header */}
+              <div className="flex items-center justify-between border-b border-white/5 bg-[#17212b] px-5 py-3">
+                <span className="font-mono text-[11px] font-semibold text-white/80">Agent Vault Protocol</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-white/40">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#22c55e]" />
+                  Devnet
+                </span>
+              </div>
 
-                {/* Chat body */}
-                <div className="flex-1 flex flex-col gap-3 overflow-hidden bg-[#0e1621] px-3 py-4 text-[12px] leading-relaxed">
-                  {step.messages.map((msg, mi) => (
-                    <div
-                      key={`${activeStep}-${mi}`}
-                      className={`transition-all duration-500 ${
-                        mi <= messageIndex
-                          ? "opacity-100 translate-y-0"
-                          : "opacity-0 translate-y-4"
-                      }`}
-                    >
-                      {msg.from === "user" && msg.text ? (
-                        <UserBubble text={msg.text} />
-                      ) : msg.lines ? (
-                        <BotBubble
-                          lines={msg.lines}
-                          buttons={msg.buttons}
-                          highlight={msg.highlight}
-                        />
-                      ) : null}
+              {/* Vault state card */}
+              <div className="border-b border-white/5 px-5 py-4">
+                <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Vault State</div>
+                {vault.exists ? (
+                  <div className="space-y-1 font-mono text-[11px] leading-relaxed">
+                    <Row label="Owner" value={OWNER_KEY} />
+                    <Row label="Agent" value={AGENT_KEY} />
+                    <Row label="PDA" value={VAULT_PDA} />
+                    <Row label="Balance" value={`◎ ${vault.balance.toFixed(3)} SOL`} accent />
+                    <Row label="Spent" value={`◎ ${vault.spentToday.toFixed(3)} / ${vault.dailyLimit.toFixed(1)} daily`} />
+                    <Row label="Per-tx" value={`◎ ${vault.spendLimit.toFixed(1)} max`} />
+                    <Row label="Session" value="23h 59m remaining" />
+                    <div className="flex justify-between">
+                      <span className="text-white/40">Status</span>
+                      <span className={`font-semibold ${vault.isActive ? "text-[#22c55e]" : "text-[#ef4444]"}`}>
+                        {vault.isActive ? "● ACTIVE" : "● REVOKED"}
+                      </span>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ) : (
+                  <div className="py-6 text-center font-mono text-[11px] text-white/20">
+                    No vault created yet
+                  </div>
+                )}
+              </div>
 
-                {/* Input bar */}
-                <div className="flex items-center gap-2 border-t border-white/5 bg-[#17212b] px-3 py-2.5">
-                  <div className="flex-1 rounded-full bg-[#242f3d] px-3 py-2 text-[11px] text-white/30">
-                    Message...
+              {/* Security checks (only for spend steps) */}
+              {(activeStep === 1 || activeStep === 2) && phase !== "init" && (
+                <div className="border-b border-white/5 px-5 py-4">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Security Checks</span>
+                    <span className="font-mono text-[10px] text-[var(--accent)]">agent_spend()</span>
                   </div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)]">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="black"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                    >
-                      <path d="M22 2L11 13" />
-                      <path d="M22 2L15 22L11 13L2 9L22 2Z" />
-                    </svg>
+                  <div className="space-y-1.5">
+                    {SECURITY_LAYERS.map((layer, i) => (
+                      <div
+                        key={layer.id}
+                        className={`flex items-center gap-2.5 font-mono text-[11px] transition-all duration-300 ${
+                          checks[i] === "pass" ? "text-[#22c55e]"
+                          : checks[i] === "fail" ? "text-[#ef4444] vault-shake"
+                          : checks[i] === "checking" ? "text-[var(--accent)]"
+                          : checks[i] === "skipped" ? "text-white/15"
+                          : "text-white/25"
+                        }`}
+                      >
+                        <span className="w-4 text-center">
+                          {checks[i] === "pass" ? "✓" : checks[i] === "fail" ? "✗" : checks[i] === "checking" ? "◌" : checks[i] === "skipped" ? "·" : "·"}
+                        </span>
+                        <span>{layer.id}. {layer.label}</span>
+                        {checks[i] === "fail" && activeStep === 2 && i === 3 && (
+                          <span className="ml-auto text-[10px] text-[#ef4444]">0.6 &gt; 0.5 SOL</span>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
+              )}
+
+              {/* Transaction result */}
+              <div className="px-5 py-4">
+                {phase === "init" && (
+                  <div className="py-3 text-center font-mono text-[11px] text-white/20">
+                    Waiting...
+                  </div>
+                )}
+                {phase === "signing" && (
+                  <div className="flex items-center justify-center gap-2 py-3">
+                    <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[var(--accent)]" />
+                    <span className="font-mono text-[11px] text-[var(--accent)]">Signing transaction...</span>
+                  </div>
+                )}
+                {phase === "checking" && (
+                  <div className="flex items-center justify-center gap-2 py-3">
+                    <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-[var(--accent)]" />
+                    <span className="font-mono text-[11px] text-[var(--accent)]">Verifying on-chain...</span>
+                  </div>
+                )}
+                {phase === "result" && activeStep < 4 && txLog.length > 0 && (
+                  <div className="space-y-1">
+                    {(() => {
+                      const last = txLog[txLog.length - 1];
+                      return (
+                        <>
+                          <div className={`font-mono text-[12px] font-bold ${last.status === "success" ? "text-[#22c55e]" : "text-[#ef4444]"}`}>
+                            {last.status === "success" ? "✓ CONFIRMED" : "✗ REVERTED"}
+                          </div>
+                          <div className="font-mono text-[11px] text-white/50">
+                            {last.detail}
+                          </div>
+                          {last.error && (
+                            <div className="mt-1 rounded bg-[#ef4444]/10 px-2 py-1 font-mono text-[11px] text-[#ef4444]">
+                              Error: {last.error}
+                            </div>
+                          )}
+                          {last.amount && (
+                            <div className="font-mono text-[11px] text-[var(--accent)]">{last.amount}</div>
+                          )}
+                          <div className="font-mono text-[10px] text-white/25">
+                            sig: {last.sig}
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Summary step: full tx log */}
+                {activeStep === 4 && (
+                  <div className="space-y-3">
+                    <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Transaction Log</div>
+                    {txLog.map((tx, i) => (
+                      <div key={i} className="border-l-2 pl-3" style={{ borderColor: tx.status === "success" ? "#22c55e" : "#ef4444" }}>
+                        <div className="flex items-center gap-2">
+                          <span className={`font-mono text-[11px] font-semibold ${tx.status === "success" ? "text-[#22c55e]" : "text-[#ef4444]"}`}>
+                            {tx.status === "success" ? "✓" : "✗"}
+                          </span>
+                          <span className="font-mono text-[11px] text-white/70">{tx.instruction}</span>
+                        </div>
+                        <div className="font-mono text-[10px] text-white/40">{tx.detail}</div>
+                        {tx.error && <div className="font-mono text-[10px] text-[#ef4444]">{tx.error}</div>}
+                        {tx.amount && <div className="font-mono text-[10px] text-[var(--accent)]">{tx.amount}</div>}
+                      </div>
+                    ))}
+                    {txLog.length > 0 && (
+                      <div className="mt-4 rounded-lg bg-white/5 p-3 text-center">
+                        <div className="font-mono text-[11px] text-white/50">
+                          {txLog.filter((t) => t.status === "success").length} confirmed · {txLog.filter((t) => t.status === "error").length} reverted · All enforced on-chain
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -384,16 +484,19 @@ export default function DemoPage() {
           <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-[var(--accent)]/20 blur-3xl" />
           <div className="relative">
             <h2 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-5xl">
-              Ready to try it <span className="italic text-[var(--accent)]">yourself</span>?
+              Ready to <span className="italic text-[var(--accent)]">build</span>?
             </h2>
             <p className="mx-auto mt-4 max-w-md text-white/70">
-              The whole flow takes under 30 seconds. Open the bot, pledge your
-              bag, get SOL.
+              17 instructions. SOL + SPL tokens. CPI composable. 53 tests passing.
             </p>
-            <a href={TELEGRAM_URL} className="btn-accent mt-10 text-lg">
-              Open @magpie_capital_bot
-              <span aria-hidden>→</span>
-            </a>
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <Link href="/vault" className="btn-accent text-lg">
+                Explore the protocol <span aria-hidden>→</span>
+              </Link>
+              <a href="https://github.com/magpiecapital/magpie-bot" target="_blank" rel="noopener noreferrer" className="btn-ghost text-lg !text-white !border-white/20 hover:!border-white/50">
+                View on GitHub <span aria-hidden>���</span>
+              </a>
+            </div>
           </div>
         </div>
       </main>
@@ -403,21 +506,9 @@ export default function DemoPage() {
         <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-10 md:flex-row md:items-center">
           <Wordmark size={22} />
           <div className="flex items-center gap-8 text-sm text-[var(--ink-soft)]">
-            <Link href="/" className="transition hover:text-[var(--ink)]">
-              Home
-            </Link>
-            <Link href="/dashboard" className="transition hover:text-[var(--ink)]">
-              Dashboard
-            </Link>
-            <a href={TELEGRAM_URL} className="transition hover:text-[var(--ink)]">
-              Telegram
-            </a>
-            <a href="https://x.com/MagpieLending" target="_blank" rel="noopener noreferrer" className="transition hover:text-[var(--ink)]">
-              X
-            </a>
-          </div>
-          <div className="text-xs text-[var(--ink-soft)]">
-            © {new Date().getFullYear()} Magpie
+            <Link href="/" className="transition hover:text-[var(--ink)]">Home</Link>
+            <Link href="/vault" className="transition hover:text-[var(--ink)]">Vault</Link>
+            <Link href="/docs" className="transition hover:text-[var(--ink)]">Docs</Link>
           </div>
         </div>
       </footer>
@@ -425,67 +516,11 @@ export default function DemoPage() {
   );
 }
 
-function BotBubble({
-  lines,
-  buttons,
-  highlight,
-}: {
-  lines: Line[];
-  buttons?: ChatButton[];
-  highlight?: boolean;
-}) {
+function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="max-w-[85%]">
-      <div
-        className={`rounded-2xl rounded-bl-md px-3 py-2.5 ${
-          highlight
-            ? "bg-[var(--accent)]/10 ring-1 ring-[var(--accent)]/30"
-            : "bg-[#182533]"
-        }`}
-      >
-        {lines.map((line, i) =>
-          line.text === "" ? (
-            <div key={i} className="h-2" />
-          ) : (
-            <div
-              key={i}
-              className={`${line.bold ? "font-semibold" : ""} ${
-                line.muted ? "text-white/45 text-[10px]" : "text-white/85"
-              } ${line.mono ? "font-mono text-[11px] rounded bg-black/30 px-1.5 py-1 mt-1 break-all" : ""} ${
-                line.accent ? "text-[var(--accent)]" : ""
-              }`}
-            >
-              {line.text}
-            </div>
-          ),
-        )}
-      </div>
-      {buttons && buttons.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {buttons.map((btn) => (
-            <div
-              key={btn.text}
-              className={`rounded-lg px-3 py-1.5 text-[11px] font-semibold ${
-                btn.accent
-                  ? "bg-[var(--accent)] text-black"
-                  : "bg-white/10 text-white"
-              }`}
-            >
-              {btn.text}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function UserBubble({ text }: { text: string }) {
-  return (
-    <div className="ml-auto max-w-[78%]">
-      <div className="rounded-2xl rounded-br-md bg-[#2b5278] px-3 py-2 text-white">
-        {text}
-      </div>
+    <div className="flex justify-between">
+      <span className="text-white/40">{label}</span>
+      <span className={accent ? "text-[var(--accent)] font-semibold" : "text-white/70"}>{value}</span>
     </div>
   );
 }
