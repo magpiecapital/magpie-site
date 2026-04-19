@@ -3,6 +3,7 @@ import { Mark, Wordmark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { PhoneMock } from "@/components/PhoneMock";
 import { MobileNav } from "@/components/MobileNav";
+import { ConnectWallet } from "@/components/ConnectWallet";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const X_URL = "https://x.com/MagpieLending";
@@ -148,12 +149,16 @@ export default function Home() {
             <Link href="/credit" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               Credit
             </Link>
+            <Link href="/marketplace" className="hidden text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)] lg:inline">
+              Marketplace
+            </Link>
             <Link href="/dashboard" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
               Dashboard
             </Link>
             <Link href="/docs" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
               Docs
             </Link>
+            <ConnectWallet variant="ghost" className="hidden md:flex" />
             <a href={TELEGRAM_URL} className="btn-accent text-sm">Launch</a>
           </nav>
         </div>

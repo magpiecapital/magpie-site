@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Mark, Wordmark } from "@/components/Logo";
+import { ConnectWallet } from "@/components/ConnectWallet";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -619,6 +621,43 @@ export default function DashboardPage() {
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // ── Wallet integration ──
+  const { publicKey, connected } = useWallet();
+  const [liveCredit, setLiveCredit] = useState<any>(null);
+  const [liveRisk, setLiveRisk] = useState<Record<string, any>>({});
+
+  const walletDisplay = connected && publicKey
+    ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
+    : MOCK_WALLET;
+
+  const walletFull = connected && publicKey ? publicKey.toBase58() : "";
+
+  // Fetch live credit score when wallet connected
+  useEffect(() => {
+    if (!connected || !publicKey) { setLiveCredit(null); return; }
+    fetch(`/api/v1/credit?wallet=${publicKey.toBase58()}`)
+      .then(r => r.json())
+      .then(d => { if (d.ok) setLiveCredit(d.data); })
+      .catch(() => {});
+  }, [connected, publicKey]);
+
+  // Fetch risk data for holdings
+  useEffect(() => {
+    const mints = MOCK_HOLDINGS.map(h => h.mint);
+    Promise.all(
+      mints.map(mint =>
+        fetch(`/api/v1/risk?mint=${mint}`)
+          .then(r => r.json())
+          .then(d => d.ok ? { mint, ...d.data } : null)
+          .catch(() => null)
+      )
+    ).then(results => {
+      const map: Record<string, any> = {};
+      for (const r of results) if (r) map[r.mint] = r;
+      setLiveRisk(map);
+    });
+  }, []);
+
   useEffect(() => {
     setMounted(true);
     if (typeof window !== "undefined") {
@@ -648,11 +687,12 @@ export default function DashboardPage() {
   }, []);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText("5fh2K8xP3q8Qz1").then(() => {
+    const addr = walletFull || "5fh2K8xP3q8Qz1";
+    navigator.clipboard.writeText(addr).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, []);
+  }, [walletFull]);
 
   const scrollTo = useCallback((key: string) => {
     setActiveNav(key);
@@ -773,7 +813,7 @@ export default function DashboardPage() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--d-accent)] opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--d-accent)]" />
               </span>
-              <span className="text-xs text-[var(--d-ink-soft)] tracking-wide">{MOCK_WALLET}</span>
+              <span className="text-xs text-[var(--d-ink-soft)] tracking-wide">{walletDisplay}</span>
               <button onClick={handleCopy} className="flex h-5 w-5 items-center justify-center rounded transition hover:bg-[var(--hairline)]" title="Copy">
                 {copied ? (
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-accent)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
@@ -791,6 +831,8 @@ export default function DashboardPage() {
 
           {/* Right: actions */}
           <div className="flex items-center gap-2">
+            {/* Wallet connect */}
+            <ConnectWallet variant="ghost" className="hidden sm:flex text-xs" />
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
@@ -852,7 +894,7 @@ export default function DashboardPage() {
                 { label: "Active Loans", value: `${MOCK_ACTIVE_LOANS.length}`, sub: `${totalBorrowed.toFixed(2)} SOL borrowed`, accent: false },
                 { label: "Total Owed", value: `${totalOwed.toFixed(2)} SOL`, sub: `$${Math.round(totalOwed * MOCK_SOL_PRICE_USD).toLocaleString()}`, accent: false },
                 { label: "Collateral Locked", value: `$${totalCollateralUsd.toLocaleString()}`, sub: `${MOCK_ACTIVE_LOANS.length} positions`, accent: false },
-                { label: "Credit Score", value: `${MOCK_CREDIT.score}`, sub: `${MOCK_CREDIT.tier} tier`, accent: true },
+                { label: "Credit Score", value: `${liveCredit?.score ?? MOCK_CREDIT.score}`, sub: `${liveCredit?.tier ? liveCredit.tier.charAt(0).toUpperCase() + liveCredit.tier.slice(1) : MOCK_CREDIT.tier} tier`, accent: true },
               ].map((kpi) => (
                 <div
                   key={kpi.label}
@@ -1064,7 +1106,7 @@ export default function DashboardPage() {
                   <div id="section-credit" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
                     <SectionHeader title="Credit Score" compact />
                     <div className="flex flex-col items-center">
-                      <CreditGauge score={MOCK_CREDIT.score} />
+                      <CreditGauge score={liveCredit?.score ?? MOCK_CREDIT.score} />
                       <div className="mt-2 flex items-center gap-1.5">
                         <span className="text-xs font-semibold" style={{ color: "var(--d-accent-deep)" }}>+{MOCK_CREDIT.change}</span>
                         <span className="text-[11px] text-[var(--d-ink-faint)]">this month</span>
