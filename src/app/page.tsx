@@ -149,6 +149,9 @@ export default function Home() {
             <Link href="/credit" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               Credit
             </Link>
+            <Link href="/vault" className="hidden text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)] lg:inline">
+              Vault
+            </Link>
             <Link href="/marketplace" className="hidden text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)] lg:inline">
               Marketplace
             </Link>
@@ -264,6 +267,30 @@ export default function Home() {
             </div>
             <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
               View all tokens
+              <span aria-hidden className="transition group-hover:translate-x-1">→</span>
+            </div>
+          </Link>
+        </Reveal>
+      </section>
+
+      {/* Agent Vault Protocol callout */}
+      <section className="mx-auto max-w-6xl px-6 pb-8">
+        <Reveal>
+          <Link
+            href="/vault"
+            className="group flex flex-col gap-6 rounded-3xl border border-[var(--accent)] bg-gradient-to-br from-[var(--bg-elevated)] to-[var(--surface)] p-8 transition hover:shadow-lg md:flex-row md:items-center md:justify-between md:p-10"
+          >
+            <div>
+              <div className="chip mb-3">Protocol</div>
+              <h3 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
+                Agent Vault Protocol
+              </h3>
+              <p className="mt-2 max-w-lg text-base text-[var(--ink-soft)] leading-relaxed">
+                Programmable wallets for AI agents on Solana. Create vaults with spending policies, session keys, and daily limits — let agents transact autonomously within bounds you control.
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
+              Explore the protocol
               <span aria-hidden className="transition group-hover:translate-x-1">→</span>
             </div>
           </Link>
@@ -554,6 +581,7 @@ export default function Home() {
               <FooterLink href="/calculate">Loan Calculator</FooterLink>
               <FooterLink href="/credit">Credit System</FooterLink>
               <FooterLink href="/points">Points</FooterLink>
+              <FooterLink href="/vault">Agent Vault</FooterLink>
               <FooterLink href="/dashboard">Dashboard</FooterLink>
               <FooterLink href="/demo">Demo</FooterLink>
             </FooterCol>
