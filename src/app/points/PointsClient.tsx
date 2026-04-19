@@ -101,25 +101,6 @@ const MULTIPLIER_CARDS = [
   },
 ];
 
-const LEADERBOARD = [
-  { rank: 1, wallet: "7xBm...2pKq", points: 284500, loans: 47, streak: 12 },
-  { rank: 2, wallet: "4k2p...9mNz", points: 198200, loans: 34, streak: 8 },
-  { rank: 3, wallet: "9fLm...3jKr", points: 156800, loans: 29, streak: 6 },
-  { rank: 4, wallet: "2hNp...7wQx", points: 134100, loans: 25, streak: 5 },
-  { rank: 5, wallet: "8kRt...1vBz", points: 112400, loans: 22, streak: 4 },
-  { rank: 6, wallet: "3mWq...6nYp", points: 98700, loans: 19, streak: 7 },
-  { rank: 7, wallet: "5pJk...4rHm", points: 87300, loans: 17, streak: 3 },
-  { rank: 8, wallet: "1nBx...8tKw", points: 76500, loans: 15, streak: 5 },
-  { rank: 9, wallet: "6wRm...2pLq", points: 65200, loans: 13, streak: 2 },
-  { rank: 10, wallet: "4jHn...9kBr", points: 54800, loans: 11, streak: 4 },
-];
-
-const COMING_SOON = [
-  { title: "Fee Discounts", desc: "Redeem points for reduced origination fees", icon: "%" },
-  { title: "Exclusive Tokens", desc: "Early access to newly approved collateral", icon: "\u272A" },
-  { title: "Merch & NFTs", desc: "Physical and digital rewards", icon: "\u25C7" },
-  { title: "Governance Weight", desc: "Points may influence future protocol decisions", icon: "\u2691" },
-];
 
 const FAQ = [
   {
@@ -140,7 +121,7 @@ const FAQ = [
   },
   {
     q: "When can I redeem points?",
-    a: "Redemption features are coming soon. Accumulate now.",
+    a: "Redemption details will be announced in the future. For now, focus on accumulating.",
   },
 ];
 
@@ -189,7 +170,7 @@ function AnimatedCounter({ target, duration = 1200, className = "" }: { target: 
 /* ------------------------------------------------------------------ */
 
 function HeroPointsTicker() {
-  const [pts, setPts] = useState(14320);
+  const [pts, setPts] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -216,6 +197,7 @@ function HeroPointsTicker() {
           {pts.toLocaleString()}
         </div>
         <div className="text-sm text-[var(--ink-faint)]">pts</div>
+        <div className="mt-2 text-[11px] tracking-wide text-[var(--ink-faint)]/60">Illustrative example</div>
       </div>
     </div>
   );
@@ -509,70 +491,16 @@ function ToggleSwitch({
 /* ------------------------------------------------------------------ */
 
 function Leaderboard() {
-  const rankColors: Record<number, string> = {
-    1: "#f7c948",    // gold
-    2: "#a8acb4",    // silver
-    3: "#cd7f32",    // bronze
-  };
-
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[640px] border-collapse">
-        <thead>
-          <tr>
-            {["Rank", "Wallet", "Points", "Loans", "Streak"].map((h) => (
-              <th
-                key={h}
-                className="border-b border-[var(--hairline-strong)] pb-4 text-left text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]"
-              >
-                {h}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {LEADERBOARD.map((row) => {
-            const color = rankColors[row.rank];
-            return (
-              <tr key={row.rank} className="group">
-                <td className="border-b border-[var(--hairline)] py-4 group-last:border-0">
-                  <span
-                    className="inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
-                    style={{
-                      backgroundColor: color ? `${color}20` : "var(--surface)",
-                      color: color || "var(--ink-soft)",
-                      border: color ? `1px solid ${color}40` : undefined,
-                    }}
-                  >
-                    {row.rank}
-                  </span>
-                </td>
-                <td className="border-b border-[var(--hairline)] py-4 font-mono text-sm text-[var(--ink)] group-last:border-0">
-                  {row.wallet}
-                </td>
-                <td className="border-b border-[var(--hairline)] py-4 group-last:border-0">
-                  <span className="tabular font-semibold" style={{ color: color || "var(--ink)" }}>
-                    {row.points.toLocaleString()}
-                  </span>
-                </td>
-                <td className="tabular border-b border-[var(--hairline)] py-4 text-sm text-[var(--ink-soft)] group-last:border-0">
-                  {row.loans}
-                </td>
-                <td className="border-b border-[var(--hairline)] py-4 group-last:border-0">
-                  <span className="tabular text-sm font-semibold text-[var(--ink)]">
-                    {row.streak}
-                  </span>
-                  <span className="ml-0.5" role="img" aria-label="fire">
-                    {"\uD83D\uDD25"}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <p className="mt-4 text-center text-sm text-[var(--ink-faint)]">
-        Leaderboard updates in real-time. Check your rank with <code className="font-mono text-[var(--accent-deep)]">/points</code> in the bot.
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--surface)] text-2xl text-[var(--ink-faint)]">
+        {"\u2691"}
+      </div>
+      <p className="mt-6 max-w-md text-base leading-relaxed text-[var(--ink-soft)]">
+        Leaderboard will populate as users earn points. Start earning by repaying loans on time.
+      </p>
+      <p className="mt-4 text-sm text-[var(--ink-faint)]">
+        Check your points with <code className="font-mono text-[var(--accent-deep)]">/points</code> in the bot.
       </p>
     </div>
   );
@@ -604,7 +532,7 @@ export default function PointsClient() {
                 <span className="italic text-[var(--accent-deep)]">Every Loan.</span>
               </h1>
               <p className="fade-up fade-up-2 mt-8 max-w-lg text-lg text-[var(--ink-soft)] leading-relaxed">
-                Every successful repayment earns you Magpie Points. Bigger loans, riskier tiers, and repayment streaks multiply your rewards. Accumulate now &mdash; redemptions coming soon.
+                Every successful repayment earns you Magpie Points. Bigger loans, riskier tiers, and repayment streaks multiply your rewards. Accumulate now &mdash; every loan counts.
               </p>
               <div className="fade-up fade-up-3 mt-10 flex flex-wrap items-center gap-4">
                 <a href={TELEGRAM_URL} className="btn-accent text-base">
@@ -766,43 +694,6 @@ export default function PointsClient() {
 
         <div className="mt-16 rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-8">
           <Leaderboard />
-        </div>
-      </section>
-
-      {/* Coming Soon */}
-      <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
-        <div className="mx-auto max-w-6xl px-6 py-28 md:py-36">
-          <Reveal>
-            <div className="chip mb-5">Redemptions</div>
-            <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-6xl">
-              Coming soon.
-            </h2>
-            <p className="mt-6 max-w-xl text-lg text-[var(--ink-soft)] leading-relaxed">
-              Points will unlock real value. Here is what is on the roadmap.
-            </p>
-          </Reveal>
-
-          <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {COMING_SOON.map((card, i) => (
-              <Reveal key={card.title} delay={i * 100}>
-                <div className="group relative flex h-full flex-col items-center rounded-3xl border border-[var(--hairline)] bg-[var(--surface)]/50 p-7 text-center opacity-70 transition hover:opacity-90">
-                  {/* Lock overlay */}
-                  <div className="absolute right-4 top-4 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-                    Coming Soon
-                  </div>
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--surface)] text-2xl text-[var(--ink-faint)]">
-                    {card.icon}
-                  </div>
-                  <div className="mt-5 text-lg font-semibold tracking-tight text-[var(--ink-soft)]">
-                    {card.title}
-                  </div>
-                  <div className="mt-2 text-sm leading-relaxed text-[var(--ink-faint)]">
-                    {card.desc}
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
         </div>
       </section>
 
