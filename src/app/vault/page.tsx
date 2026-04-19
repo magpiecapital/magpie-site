@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 };
 
 const PROGRAM_ID = "J9R83EHNJtrzwcS9PxJ9yyLs4SrWAsgQ6Laf6zNBeF8t";
-const GITHUB_URL = "https://github.com/magpiecapital";
+const GITHUB_URL = "https://github.com/magpiecapital/magpie-bot";
 const DOCS_URL = "/docs";
 
 /* ─── Data ─── */
@@ -108,16 +108,47 @@ const sig = await agent.spend(
   0.05 * LAMPORTS_PER_SOL,  // 0.05 SOL payment
 );`;
 
-const CPI_CODE = `// Any Solana program can read vault state via CPI
-let vault_info = ctx.accounts.vault.to_account_info();
-let vault: Vault = Vault::try_from(&vault_info)?;
+const TOKEN_OWNER_CODE = `import { AgentVaultOwner } from "@magpiecapital/agent-vault-sdk";
 
-// Check if agent is authorized and within budget
-require!(vault.is_active, VaultError::VaultInactive);
-require!(
-  vault.daily_remaining() > amount,
-  VaultError::ExceedsDailyLimit
+const vault = new AgentVaultOwner(connection, ownerKeypair);
+
+// USDC vault — $100/tx limit, $500/day
+const address = await vault.createTokenVault(agentPubkey, USDC_MINT, {
+  spendLimit: 100_000_000,  // 100 USDC (6 decimals)
+  dailyLimit: 500_000_000,  // 500 USDC
+  sessionDuration: 7 * 86400,
+});
+
+// Fund the vault with USDC
+await vault.depositToken(address, USDC_MINT, 500_000_000);`;
+
+const TOKEN_AGENT_CODE = `import { AgentVaultAgent } from "@magpiecapital/agent-vault-sdk";
+
+const agent = new AgentVaultAgent(connection, agentKeypair);
+
+// Agent pays for API calls in USDC
+const sig = await agent.spendToken(
+  vaultAddress,
+  apiProviderAta,
+  5_000_000,  // 5 USDC
 );`;
+
+const CPI_CODE = `// Any Solana program can trigger agent spending via CPI
+use agent_vault::cpi::accounts::AgentSpend;
+use agent_vault::cpi::agent_spend;
+
+pub fn execute_task_and_pay(ctx: Context<ExecuteTask>, amount: u64) -> Result<()> {
+    let cpi_ctx = CpiContext::new(
+        ctx.accounts.vault_program.to_account_info(),
+        AgentSpend {
+            vault: ctx.accounts.vault.to_account_info(),
+            agent: ctx.accounts.agent.to_account_info(),
+            destination: ctx.accounts.destination.to_account_info(),
+        },
+    );
+    agent_spend(cpi_ctx, amount)?;
+    Ok(())
+}`;
 
 const ENDPOINTS = [
   { method: "GET", path: "/api/v1/vault/derive?owner=...&agent=...", desc: "Derive vault PDA address" },
@@ -128,16 +159,27 @@ const ENDPOINTS = [
   { method: "POST", path: "/api/v1/vault/revoke", desc: "Owner revokes agent access" },
 ];
 
-const INSTRUCTIONS = [
+const SOL_INSTRUCTIONS = [
   "create_vault",
   "deposit",
   "agent_spend",
-  "owner_withdraw",
   "update_policy",
-  "revoke_agent",
-  "reactivate_agent",
   "extend_session",
+  "revoke_agent",
+  "set_agent",
+  "owner_withdraw",
   "close_vault",
+];
+
+const TOKEN_INSTRUCTIONS = [
+  "create_token_vault",
+  "deposit_token",
+  "agent_spend_token",
+  "update_token_policy",
+  "extend_token_session",
+  "revoke_token_agent",
+  "owner_withdraw_token",
+  "close_token_vault",
 ];
 
 /* ─── Page ─── */
@@ -153,7 +195,7 @@ export default function VaultPage() {
         <div className="mx-auto max-w-6xl px-6 pt-20 pb-24 md:pt-32 md:pb-36">
           <div className="fade-up mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
             <span className="live-dot" />
-            <span className="text-[var(--ink)]">Live on Solana mainnet</span>
+            <span className="text-[var(--ink)]">Built for Solana</span>
           </div>
 
           <h1 className="fade-up fade-up-1 font-display max-w-5xl text-[clamp(2.8rem,8vw,7.5rem)] leading-[0.92] tracking-[-0.04em] font-medium">
@@ -163,8 +205,8 @@ export default function VaultPage() {
           </h1>
 
           <p className="fade-up fade-up-2 mt-8 max-w-2xl text-xl text-[var(--ink-soft)] leading-relaxed md:text-2xl">
-            Programmable wallets for AI agents on Solana — on-chain spending policies,
-            session keys, and audit trails.
+            Programmable multi-asset wallets for AI agents on Solana — on-chain spending policies
+            for SOL and any SPL token, session keys, CPI composability, and full audit trails.
           </p>
 
           <div className="fade-up fade-up-3 mt-10 flex flex-wrap items-center gap-4">
@@ -181,11 +223,12 @@ export default function VaultPage() {
           </div>
 
           {/* Stats bar */}
-          <div className="fade-up fade-up-4 mt-16 grid max-w-4xl grid-cols-3 gap-0 divide-x divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm">
+          <div className="fade-up fade-up-4 mt-16 grid max-w-5xl grid-cols-2 gap-0 divide-x divide-[var(--hairline)] md:grid-cols-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm">
             {[
-              { v: "9", l: "Instructions" },
-              { v: "138B", l: "Account size" },
-              { v: "238K", l: "Binary" },
+              { v: "17", l: "Instructions" },
+              { v: "SOL + SPL", l: "Multi-asset" },
+              { v: "6-layer", l: "Security" },
+              { v: "CPI", l: "Composable" },
             ].map((s) => (
               <div key={s.l} className="px-4 py-5 text-center md:px-8">
                 <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-5xl">{s.v}</div>
@@ -213,7 +256,7 @@ export default function VaultPage() {
             $2.75M in prizes
           </span>
           <span className="hidden text-sm text-[var(--accent-ink)]/70 md:inline">
-            Solana
+            53/53 tests passing
           </span>
         </div>
       </section>
@@ -255,7 +298,7 @@ export default function VaultPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-base font-bold text-[var(--accent-ink)]">2</div>
                 <h3 className="mt-5 text-xl font-semibold tracking-tight">Vault PDA</h3>
                 <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">
-                  Program-derived account seeded by <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">[&quot;vault&quot;, owner, agent]</code>. Holds SOL, enforces policy, tracks spend history.
+                  Program-derived account seeded by <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">[&quot;vault&quot;, owner, agent]</code>. Holds SOL or any SPL token, enforces policy, tracks spend history.
                 </p>
                 <div className="mt-4 rounded-lg bg-[var(--surface)] px-3 py-2 font-mono text-xs text-[var(--accent-deep)]">
                   138 bytes on-chain
@@ -282,9 +325,21 @@ export default function VaultPage() {
           {/* Instructions list */}
           <Reveal delay={200}>
             <div className="mt-16 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 md:p-10">
-              <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">9 Program Instructions</h3>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {INSTRUCTIONS.map((ix) => (
+              <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">17 Program Instructions</h3>
+              <div className="mt-3 text-xs font-medium uppercase tracking-[0.12em] text-[var(--accent-deep)]">SOL Vaults (9)</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {SOL_INSTRUCTIONS.map((ix) => (
+                  <code
+                    key={ix}
+                    className="rounded-lg border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 font-mono text-sm font-medium text-[var(--ink)] transition hover:border-[var(--accent)]"
+                  >
+                    {ix}
+                  </code>
+                ))}
+              </div>
+              <div className="mt-5 text-xs font-medium uppercase tracking-[0.12em] text-[var(--accent-deep)]">SPL Token Vaults (8)</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {TOKEN_INSTRUCTIONS.map((ix) => (
                   <code
                     key={ix}
                     className="rounded-lg border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 font-mono text-sm font-medium text-[var(--ink)] transition hover:border-[var(--accent)]"
@@ -296,6 +351,51 @@ export default function VaultPage() {
             </div>
           </Reveal>
         </div>
+      </section>
+
+      {/* ── Multi-Asset Vaults ── */}
+      <section id="multi-asset" className="mx-auto max-w-6xl px-6 py-24 md:py-36">
+        <Reveal>
+          <div className="chip mb-5">Multi-Asset</div>
+          <h2 className="font-display max-w-4xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+            SOL or any SPL token.
+            <br />
+            <span className="italic text-[var(--ink-soft)]">Same enforcement.</span>
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
+            Create USDC vaults, BONK vaults, or any SPL token vault. The same 6-layer policy engine enforces
+            per-transaction limits, daily budgets, and session keys — regardless of the asset.
+          </p>
+        </Reveal>
+
+        <Reveal delay={80}>
+          <div className="mt-14 grid grid-cols-1 gap-4 md:grid-cols-3">
+            {[
+              { token: "USDC", desc: "Stablecoin payments for API calls, subscriptions, and service fees", color: "bg-blue-500/15 text-blue-400" },
+              { token: "BONK", desc: "Community token rewards, tipping, and meme-powered agent interactions", color: "bg-orange-500/15 text-orange-400" },
+              { token: "Any SPL", desc: "Any token mint on Solana — same vault, same policies, same security", color: "bg-[var(--accent)]/15 text-[var(--accent-deep)]" },
+            ].map((t) => (
+              <div key={t.token} className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-7">
+                <div className={`inline-block rounded-full px-3 py-1 text-xs font-bold ${t.color}`}>{t.token}</div>
+                <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">{t.desc}</p>
+              </div>
+            ))}
+          </div>
+        </Reveal>
+
+        <Reveal delay={160}>
+          <pre className="mt-10 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 text-sm leading-relaxed">
+            <code>{`// USDC vault — $100/tx limit, $500/day
+await vault.createTokenVault(agentPubkey, USDC_MINT, {
+  spendLimit: 100_000_000,  // 100 USDC (6 decimals)
+  dailyLimit: 500_000_000,  // 500 USDC
+  sessionDuration: 7 * 86400,
+});
+
+// Agent pays for API calls in USDC
+await agent.spendToken(vaultAddress, apiProviderAta, 5_000_000);`}</code>
+          </pre>
+        </Reveal>
       </section>
 
       {/* ── Security Model ── */}
@@ -347,26 +447,67 @@ export default function VaultPage() {
             </p>
           </Reveal>
 
-          <div className="mt-16 grid grid-cols-1 gap-10 lg:grid-cols-2">
+          {/* SOL Vault SDK */}
+          <div className="mt-16">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent-deep)]">SOL Vaults</h3>
+            <div className="mt-4 grid grid-cols-1 gap-10 lg:grid-cols-2">
+              <Reveal delay={80}>
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">Owner Side</h3>
+                  <pre className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
+                    <code>{OWNER_CODE}</code>
+                  </pre>
+                </div>
+              </Reveal>
+              <Reveal delay={160}>
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">Agent Side</h3>
+                  <pre className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
+                    <code>{AGENT_CODE}</code>
+                  </pre>
+                </div>
+              </Reveal>
+            </div>
+          </div>
+
+          {/* Token Vault SDK */}
+          <div className="mt-20">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--accent-deep)]">SPL Token Vaults</h3>
+            <div className="mt-4 grid grid-cols-1 gap-10 lg:grid-cols-2">
+              <Reveal delay={80}>
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">Owner Side — Token</h3>
+                  <pre className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
+                    <code>{TOKEN_OWNER_CODE}</code>
+                  </pre>
+                </div>
+              </Reveal>
+              <Reveal delay={160}>
+                <div>
+                  <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">Agent Side — Token</h3>
+                  <pre className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
+                    <code>{TOKEN_AGENT_CODE}</code>
+                  </pre>
+                </div>
+              </Reveal>
+            </div>
+          </div>
+
+          {/* CPI Composability */}
+          <div className="mt-20">
             <Reveal delay={80}>
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">Owner Side</h3>
-                <pre className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
-                  <code>{OWNER_CODE}</code>
-                </pre>
-              </div>
-            </Reveal>
-            <Reveal delay={160}>
-              <div>
-                <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">Agent Side</h3>
-                <pre className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
-                  <code>{AGENT_CODE}</code>
-                </pre>
-                <h3 className="mt-10 text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">CPI Integration (Rust)</h3>
-                <pre className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
-                  <code>{CPI_CODE}</code>
-                </pre>
-              </div>
+              <div className="chip mb-5">CPI Composability</div>
+              <h3 className="font-display text-3xl font-medium tracking-[-0.02em] md:text-4xl">
+                Any program can call Agent Vault.
+              </h3>
+              <p className="mt-3 max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed">
+                Other Solana programs invoke vault spending via Cross-Program Invocation. Build autonomous
+                task-and-pay pipelines, DAO-triggered disbursements, or any composable workflow — all enforced
+                by the same on-chain policy engine.
+              </p>
+              <pre className="mt-6 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
+                <code>{CPI_CODE}</code>
+              </pre>
             </Reveal>
           </div>
         </div>
