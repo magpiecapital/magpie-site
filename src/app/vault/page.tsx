@@ -1,49 +1,60 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Wordmark } from "@/components/Logo";
+import { Reveal } from "@/components/Reveal";
 
 export const metadata: Metadata = {
-  title: "Agent Vault Protocol — Magpie Capital",
+  title: "Agent Vault Protocol — Programmable Wallets for AI Agents on Solana",
   description:
-    "Programmable wallets for AI agents on Solana. On-chain spending policies, session keys, daily limits, and full audit trails.",
+    "On-chain spending policies, session keys, daily budgets, and full audit trails. Give AI agents financial rails with the guardrails your users demand.",
+  openGraph: {
+    title: "Agent Vault Protocol",
+    description:
+      "Programmable wallets for AI agents on Solana. On-chain spending policies, session keys, and audit trails.",
+  },
 };
 
 const PROGRAM_ID = "J9R83EHNJtrzwcS9PxJ9yyLs4SrWAsgQ6Laf6zNBeF8t";
+const GITHUB_URL = "https://github.com/magpiecapital";
+const DOCS_URL = "/docs";
 
-const FEATURES = [
+/* ─── Data ─── */
+
+const SECURITY_LAYERS = [
   {
+    n: "01",
     title: "Per-Transaction Limits",
-    description:
-      "Set the maximum an agent can spend in a single transaction. The program enforces this on-chain — no amount of SDK manipulation can bypass it.",
+    body: "Set the maximum an agent can spend in a single transaction. Enforced on-chain — no amount of SDK manipulation can bypass it.",
     code: "spend_limit: 0.1 SOL",
   },
   {
+    n: "02",
     title: "Daily Budget Caps",
-    description:
-      "Rolling 24-hour spending windows prevent runaway agents. Once the daily cap is hit, all spend attempts revert until the window resets.",
+    body: "Rolling 24-hour spending windows prevent runaway agents. Once the cap is hit, all spend attempts revert until the window resets.",
     code: "daily_limit: 1.0 SOL",
   },
   {
+    n: "03",
     title: "Session Keys",
-    description:
-      "Grant time-limited authority to an agent keypair. Sessions auto-expire — no need to remember to revoke. Owner can extend or revoke instantly.",
+    body: "Grant time-limited authority to an agent keypair. Sessions auto-expire. Owner can extend or revoke instantly.",
     code: "session: 7 days",
   },
   {
+    n: "04",
     title: "Instant Revocation",
-    description:
-      "One transaction flips is_active to false. The agent's next spend attempt fails immediately. No grace period, no race condition.",
+    body: "One transaction flips is_active to false. The agent's next spend attempt fails immediately. No grace period, no race condition.",
     code: "revoke_agent()",
   },
   {
+    n: "05",
     title: "Full Audit Trail",
-    description:
-      "Every deposit, spend, policy change, and revocation emits an on-chain event. Indexers, dashboards, and compliance tools can subscribe in real-time.",
+    body: "Every deposit, spend, policy change, and revocation emits an on-chain event. Indexers and compliance tools subscribe in real-time.",
     code: "emit!(AgentSpent { ... })",
   },
   {
+    n: "06",
     title: "Rent-Safe Accounting",
-    description:
-      "The program never lets an agent drain the vault below the rent-exempt minimum. Your account data is safe even if the agent spends to the last lamport.",
+    body: "The program never lets an agent drain the vault below the rent-exempt minimum. Account data is safe even at the last lamport.",
     code: "available = balance - rent",
   },
 ];
@@ -51,19 +62,23 @@ const FEATURES = [
 const USECASES = [
   {
     title: "AI Trading Agents",
-    description: "Give your trading bot a vault with a $50/day budget. It executes autonomously while you sleep — if it hits the cap, it stops.",
+    body: "Give your trading bot a vault with a $50/day budget. It executes autonomously while you sleep — if it hits the cap, it stops.",
+    tag: "DeFi",
   },
   {
     title: "API Payment Rails",
-    description: "AI agents that consume paid APIs (LLMs, data feeds, compute) can pay from their vault. x402-compatible for HTTP 402 flows.",
+    body: "Agents that consume paid APIs (LLMs, data feeds, compute) pay from their vault. x402-compatible for HTTP 402 payment flows.",
+    tag: "Payments",
   },
   {
     title: "Multi-Agent Systems",
-    description: "Run a fleet of specialized agents — each with its own vault, its own budget, its own session. One owner wallet controls them all.",
+    body: "Run a fleet of specialized agents — each with its own vault, its own budget, its own session. One owner wallet controls them all.",
+    tag: "Infrastructure",
   },
   {
     title: "Autonomous DAOs",
-    description: "DAO-controlled vaults fund autonomous operations. The DAO sets policy via governance; agents execute within bounds.",
+    body: "DAO-controlled vaults fund autonomous operations. The DAO sets policy via governance; agents execute within bounds.",
+    tag: "Governance",
   },
 ];
 
@@ -98,232 +113,443 @@ let vault: Vault = Vault::try_from(&vault_info)?;
 
 // Check if agent is authorized and within budget
 require!(vault.is_active, VaultError::VaultInactive);
-require!(vault.daily_remaining() > amount, VaultError::ExceedsDailyLimit);`;
+require!(
+  vault.daily_remaining() > amount,
+  VaultError::ExceedsDailyLimit
+);`;
+
+const ENDPOINTS = [
+  { method: "GET", path: "/api/v1/vault/derive?owner=...&agent=...", desc: "Derive vault PDA address" },
+  { method: "GET", path: "/api/v1/vault/info?address=...", desc: "Full vault state, balance, and policy" },
+  { method: "POST", path: "/api/v1/vault/spend", desc: "Agent spends from vault (signed)" },
+  { method: "POST", path: "/api/v1/vault/create", desc: "Owner creates a new vault" },
+  { method: "POST", path: "/api/v1/vault/deposit", desc: "Fund an existing vault" },
+  { method: "POST", path: "/api/v1/vault/revoke", desc: "Owner revokes agent access" },
+];
+
+const INSTRUCTIONS = [
+  "create_vault",
+  "deposit",
+  "agent_spend",
+  "owner_withdraw",
+  "update_policy",
+  "revoke_agent",
+  "reactivate_agent",
+  "extend_session",
+  "close_vault",
+];
+
+/* ─── Page ─── */
 
 export default function VaultPage() {
   return (
     <div className="min-h-screen">
-      {/* Nav */}
+      {/* ── Nav ── */}
       <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/" className="font-display text-lg font-semibold tracking-tight">
-            Magpie
+          <Link href="/">
+            <Wordmark size={28} />
           </Link>
           <nav className="flex items-center gap-6">
-            <Link href="/docs" className="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]">Docs</Link>
-            <Link href="/dashboard" className="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]">Dashboard</Link>
-            <a
-              href="https://github.com/magpiecapital"
-              className="text-sm text-[var(--ink-soft)] hover:text-[var(--ink)]"
-            >
-              GitHub
+            <a href="#architecture" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
+              Architecture
+            </a>
+            <a href="#security" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
+              Security
+            </a>
+            <a href="#sdk" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
+              SDK
+            </a>
+            <a href="#api" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
+              API
+            </a>
+            <Link href="/docs" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
+              Docs
+            </Link>
+            <a href={GITHUB_URL} className="btn-accent text-sm">
+              GitHub <span aria-hidden>→</span>
             </a>
           </nav>
         </div>
       </header>
 
-      {/* Hero */}
+      {/* ── Hero ── */}
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
-        <div className="mx-auto max-w-6xl px-6 pt-20 pb-20 md:pt-28 md:pb-28">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
+        <div className="mx-auto max-w-6xl px-6 pt-20 pb-24 md:pt-32 md:pb-36">
+          <div className="fade-up mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
             <span className="live-dot" />
-            <span>Solana Program</span>
+            <span className="text-[var(--ink)]">Live on Solana mainnet</span>
           </div>
 
-          <h1 className="font-display mt-6 max-w-4xl text-[clamp(2.5rem,7vw,6rem)] leading-[0.95] tracking-[-0.04em] font-medium">
+          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-[clamp(2.8rem,8vw,7.5rem)] leading-[0.92] tracking-[-0.04em] font-medium">
             Agent Vault
             <br />
             <span className="italic text-[var(--ink-soft)]">Protocol</span>
           </h1>
 
-          <p className="mt-6 max-w-2xl text-xl text-[var(--ink-soft)] leading-relaxed">
-            Programmable wallets for AI agents on Solana. Create vaults with
-            on-chain spending policies, session keys, and daily budgets.
-            Agents transact autonomously — within bounds you control.
+          <p className="fade-up fade-up-2 mt-8 max-w-2xl text-xl text-[var(--ink-soft)] leading-relaxed md:text-2xl">
+            Programmable wallets for AI agents on Solana — on-chain spending policies,
+            session keys, and audit trails.
           </p>
 
-          <div className="mt-8 flex flex-wrap gap-4">
-            <a href="https://github.com/magpiecapital/magpie-bot" className="btn-accent text-sm">
-              View Source
+          <div className="fade-up fade-up-3 mt-10 flex flex-wrap items-center gap-4">
+            <a href={GITHUB_URL} className="btn-accent text-base">
+              View on GitHub
+              <span aria-hidden>→</span>
             </a>
-            <Link href="/docs" className="btn-ghost text-sm">
+            <Link href={DOCS_URL} className="btn-ghost text-base">
               Read the Docs
             </Link>
+            <a href="#sdk" className="btn-ghost text-base">
+              SDK quickstart
+            </a>
           </div>
 
-          <div className="mt-12 grid max-w-3xl grid-cols-3 gap-0 divide-x divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm">
+          {/* Stats bar */}
+          <div className="fade-up fade-up-4 mt-16 grid max-w-4xl grid-cols-3 gap-0 divide-x divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm">
             {[
               { v: "9", l: "Instructions" },
               { v: "138B", l: "Account size" },
               { v: "238K", l: "Binary" },
             ].map((s) => (
-              <div key={s.l} className="px-4 py-5 text-center md:px-6">
-                <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl">{s.v}</div>
+              <div key={s.l} className="px-4 py-5 text-center md:px-8">
+                <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-5xl">{s.v}</div>
                 <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">{s.l}</div>
               </div>
             ))}
           </div>
 
-          <div className="mt-6 font-mono text-xs text-[var(--ink-faint)]">
-            Program ID: {PROGRAM_ID}
+          <div className="fade-up mt-6 flex items-center gap-3">
+            <span className="text-[10px] uppercase tracking-[0.2em] text-[var(--ink-faint)]">Program ID</span>
+            <code className="rounded-lg border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3 py-1.5 font-mono text-xs text-[var(--ink-soft)] select-all">
+              {PROGRAM_ID}
+            </code>
           </div>
         </div>
       </section>
 
-      {/* Architecture */}
-      <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-6 py-20 md:py-28">
-          <div className="chip mb-5">Architecture</div>
-          <h2 className="font-display max-w-3xl text-4xl font-medium tracking-[-0.03em] md:text-5xl">
-            How it works
-          </h2>
-
-          <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
-            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold">1</div>
-              <h3 className="mt-4 text-lg font-semibold">Owner Creates Vault</h3>
-              <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">
-                Human owner calls <code className="text-xs bg-[var(--surface)] px-1 py-0.5 rounded">create_vault</code> with an agent pubkey, spending limits, and session duration. A PDA is created: <code className="text-xs bg-[var(--surface)] px-1 py-0.5 rounded">[&quot;vault&quot;, owner, agent]</code>.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold">2</div>
-              <h3 className="mt-4 text-lg font-semibold">Fund the Vault</h3>
-              <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">
-                Anyone deposits SOL into the vault. The program tracks <code className="text-xs bg-[var(--surface)] px-1 py-0.5 rounded">total_received</code> and emits a <code className="text-xs bg-[var(--surface)] px-1 py-0.5 rounded">Deposited</code> event.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold">3</div>
-              <h3 className="mt-4 text-lg font-semibold">Agent Spends</h3>
-              <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">
-                Agent signs a <code className="text-xs bg-[var(--surface)] px-1 py-0.5 rounded">agent_spend</code> transaction. The program enforces 6 checks before transferring lamports. If any fail, the transaction reverts.
-              </p>
-            </div>
-          </div>
+      {/* ── Colosseum Hackathon Banner ── */}
+      <section className="border-y border-[var(--hairline)] bg-[var(--accent)]">
+        <div className="mx-auto flex max-w-6xl items-center justify-center gap-6 px-6 py-5">
+          <span className="text-sm font-semibold text-[var(--accent-ink)] md:text-base">
+            Built for the Colosseum Frontier Hackathon
+          </span>
+          <span className="hidden text-sm text-[var(--accent-ink)]/70 md:inline">
+            $2.75M in prizes
+          </span>
+          <span className="hidden text-sm text-[var(--accent-ink)]/70 md:inline">
+            Solana
+          </span>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="mx-auto max-w-6xl px-6 py-20 md:py-28">
-        <div className="chip mb-5">Security model</div>
-        <h2 className="font-display max-w-3xl text-4xl font-medium tracking-[-0.03em] md:text-5xl">
-          Six layers of enforcement
-        </h2>
+      {/* ── Architecture ── */}
+      <section id="architecture" className="border-b border-[var(--hairline)] bg-[var(--surface)]">
+        <div className="mx-auto max-w-6xl px-6 py-24 md:py-32">
+          <Reveal>
+            <div className="chip mb-5">Architecture</div>
+            <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-6xl">
+              Owner. Vault. <span className="italic text-[var(--ink-soft)]">Agent.</span>
+            </h2>
+            <p className="mt-4 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
+              A three-party model that separates <strong className="text-[var(--ink)]">control</strong> from <strong className="text-[var(--ink)]">execution</strong>. The owner defines policy. The vault enforces it. The agent operates within it.
+            </p>
+          </Reveal>
 
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6">
-              <h3 className="text-lg font-semibold tracking-tight">{f.title}</h3>
-              <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">{f.description}</p>
-              <code className="mt-3 inline-block rounded bg-[var(--surface)] px-2 py-1 text-xs font-medium text-[var(--accent-deep)]">
-                {f.code}
-              </code>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* SDK */}
-      <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-6 py-20 md:py-28">
-          <div className="chip mb-5">SDK</div>
-          <h2 className="font-display max-w-3xl text-4xl font-medium tracking-[-0.03em] md:text-5xl">
-            5 lines to integrate
-          </h2>
-          <p className="mt-4 max-w-2xl text-lg text-[var(--ink-soft)]">
-            <code className="rounded bg-[var(--bg)] px-2 py-0.5 text-sm">@magpiecapital/agent-vault-sdk</code> — TypeScript SDK for both owners and agents.
-          </p>
-
-          <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-2">
-            <div>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">Owner Side</h3>
-              <pre className="mt-3 overflow-x-auto rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-5 text-sm leading-relaxed">
-                <code>{OWNER_CODE}</code>
-              </pre>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">Agent Side</h3>
-              <pre className="mt-3 overflow-x-auto rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-5 text-sm leading-relaxed">
-                <code>{AGENT_CODE}</code>
-              </pre>
-              <h3 className="mt-8 text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">CPI Integration</h3>
-              <pre className="mt-3 overflow-x-auto rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-5 text-sm leading-relaxed">
-                <code>{CPI_CODE}</code>
-              </pre>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Use Cases */}
-      <section className="mx-auto max-w-6xl px-6 py-20 md:py-28">
-        <div className="chip mb-5">Use cases</div>
-        <h2 className="font-display max-w-3xl text-4xl font-medium tracking-[-0.03em] md:text-5xl">
-          Built for the agent economy
-        </h2>
-
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2">
-          {USECASES.map((u) => (
-            <div key={u.title} className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6">
-              <h3 className="text-lg font-semibold tracking-tight">{u.title}</h3>
-              <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">{u.description}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* API */}
-      <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
-        <div className="mx-auto max-w-6xl px-6 py-20 md:py-28">
-          <div className="chip mb-5">API</div>
-          <h2 className="font-display max-w-3xl text-4xl font-medium tracking-[-0.03em] md:text-5xl">
-            REST API for agents
-          </h2>
-          <p className="mt-4 max-w-2xl text-lg text-[var(--ink-soft)]">
-            AI agents interact with their vaults over HTTP. No Solana SDK needed on the agent side.
-          </p>
-
-          <div className="mt-10 space-y-4">
-            {[
-              { method: "GET", path: "/api/v1/vault/derive?owner=...&agent=...", desc: "Derive vault PDA address" },
-              { method: "GET", path: "/api/v1/vault/info?address=...", desc: "Full vault state, balance, policy" },
-              { method: "POST", path: "/api/v1/vault/spend", desc: "Agent spends from vault" },
-            ].map((ep) => (
-              <div key={ep.path} className="flex items-start gap-4 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-4">
-                <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-bold ${ep.method === "POST" ? "bg-blue-500/20 text-blue-400" : "bg-green-500/20 text-green-400"}`}>
-                  {ep.method}
-                </span>
-                <div>
-                  <code className="text-sm font-medium">{ep.path}</code>
-                  <p className="mt-1 text-xs text-[var(--ink-soft)]">{ep.desc}</p>
+          {/* Architecture flow diagram */}
+          <Reveal delay={100}>
+            <div className="mt-16 grid grid-cols-1 gap-0 md:grid-cols-3">
+              {/* Owner */}
+              <div className="relative rounded-t-3xl md:rounded-l-3xl md:rounded-tr-none border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 md:p-10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-base font-bold text-[var(--accent-ink)]">1</div>
+                <h3 className="mt-5 text-xl font-semibold tracking-tight">Owner</h3>
+                <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">
+                  Human or multisig. Calls <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">create_vault</code> with an agent pubkey, spending limits, and session duration.
+                </p>
+                <div className="mt-4 rounded-lg bg-[var(--surface)] px-3 py-2 font-mono text-xs text-[var(--accent-deep)]">
+                  owner.sign(create_vault_ix)
                 </div>
+                {/* Arrow */}
+                <div className="absolute -bottom-5 left-1/2 z-10 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--bg-elevated)] text-sm font-bold text-[var(--ink-soft)] md:-right-5 md:bottom-auto md:left-auto md:top-1/2 md:-translate-y-1/2 md:translate-x-0">
+                  →
+                </div>
+              </div>
+
+              {/* Vault PDA */}
+              <div className="relative border-x-0 md:border-x border-y md:border-y-0 border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 md:p-10 md:border-t md:border-b">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-base font-bold text-[var(--accent-ink)]">2</div>
+                <h3 className="mt-5 text-xl font-semibold tracking-tight">Vault PDA</h3>
+                <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">
+                  Program-derived account seeded by <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">[&quot;vault&quot;, owner, agent]</code>. Holds SOL, enforces policy, tracks spend history.
+                </p>
+                <div className="mt-4 rounded-lg bg-[var(--surface)] px-3 py-2 font-mono text-xs text-[var(--accent-deep)]">
+                  138 bytes on-chain
+                </div>
+                <div className="absolute -bottom-5 left-1/2 z-10 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--bg-elevated)] text-sm font-bold text-[var(--ink-soft)] md:-right-5 md:bottom-auto md:left-auto md:top-1/2 md:-translate-y-1/2 md:translate-x-0">
+                  →
+                </div>
+              </div>
+
+              {/* Agent */}
+              <div className="rounded-b-3xl md:rounded-r-3xl md:rounded-bl-none border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 md:p-10">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent)] text-base font-bold text-[var(--accent-ink)]">3</div>
+                <h3 className="mt-5 text-xl font-semibold tracking-tight">Agent</h3>
+                <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">
+                  AI agent signs <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">agent_spend</code> transactions. The program enforces 6 checks before transferring lamports. Any failure = revert.
+                </p>
+                <div className="mt-4 rounded-lg bg-[var(--surface)] px-3 py-2 font-mono text-xs text-[var(--accent-deep)]">
+                  agent.spend(vault, dest, amt)
+                </div>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* Instructions list */}
+          <Reveal delay={200}>
+            <div className="mt-16 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 md:p-10">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">9 Program Instructions</h3>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {INSTRUCTIONS.map((ix) => (
+                  <code
+                    key={ix}
+                    className="rounded-lg border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 font-mono text-sm font-medium text-[var(--ink)] transition hover:border-[var(--accent)]"
+                  >
+                    {ix}
+                  </code>
+                ))}
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── Security Model ── */}
+      <section id="security" className="mx-auto max-w-6xl px-6 py-24 md:py-36">
+        <Reveal>
+          <div className="chip mb-5">Security model</div>
+          <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+            Six layers of
+            <br />
+            <span className="italic text-[var(--ink-soft)]">on-chain enforcement.</span>
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
+            Every spend must pass all six checks. A single failure reverts the entire transaction. No off-chain escape hatches.
+          </p>
+        </Reveal>
+
+        <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--hairline)] md:grid-cols-2 lg:grid-cols-3">
+          {SECURITY_LAYERS.map((layer, i) => (
+            <Reveal key={layer.title} delay={i * 60}>
+              <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-8 md:p-9">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-[var(--accent-ink)]">
+                    {layer.n}
+                  </div>
+                  <h3 className="text-lg font-semibold tracking-tight">{layer.title}</h3>
+                </div>
+                <p className="text-sm leading-relaxed text-[var(--ink-soft)]">{layer.body}</p>
+                <code className="mt-auto inline-block self-start rounded-lg bg-[var(--surface)] px-2.5 py-1 text-xs font-medium text-[var(--accent-deep)]">
+                  {layer.code}
+                </code>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ── SDK ── */}
+      <section id="sdk" className="border-y border-[var(--hairline)] bg-[var(--surface)]">
+        <div className="mx-auto max-w-6xl px-6 py-24 md:py-36">
+          <Reveal>
+            <div className="chip mb-5">SDK</div>
+            <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+              Five lines to
+              <br />
+              <span className="italic text-[var(--ink-soft)]">integrate.</span>
+            </h2>
+            <p className="mt-4 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
+              <code className="rounded-lg bg-[var(--bg)] px-2.5 py-1 text-sm font-medium">@magpiecapital/agent-vault-sdk</code> — TypeScript SDK for both owners and agents.
+            </p>
+          </Reveal>
+
+          <div className="mt-16 grid grid-cols-1 gap-10 lg:grid-cols-2">
+            <Reveal delay={80}>
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">Owner Side</h3>
+                <pre className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
+                  <code>{OWNER_CODE}</code>
+                </pre>
+              </div>
+            </Reveal>
+            <Reveal delay={160}>
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">Agent Side</h3>
+                <pre className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
+                  <code>{AGENT_CODE}</code>
+                </pre>
+                <h3 className="mt-10 text-sm font-semibold uppercase tracking-[0.15em] text-[var(--ink-faint)]">CPI Integration (Rust)</h3>
+                <pre className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 text-sm leading-relaxed">
+                  <code>{CPI_CODE}</code>
+                </pre>
+              </div>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Use Cases ── */}
+      <section className="mx-auto max-w-6xl px-6 py-24 md:py-36">
+        <Reveal>
+          <div className="chip mb-5">Use cases</div>
+          <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+            Built for the
+            <br />
+            <span className="italic text-[var(--ink-soft)]">agent economy.</span>
+          </h2>
+        </Reveal>
+
+        <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-2">
+          {USECASES.map((u, i) => (
+            <Reveal key={u.title} delay={i * 80}>
+              <div className="group flex h-full flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-md md:p-10">
+                <div className="chip mb-4 self-start">{u.tag}</div>
+                <h3 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">{u.title}</h3>
+                <p className="mt-3 text-base leading-relaxed text-[var(--ink-soft)]">{u.body}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ── REST API ── */}
+      <section id="api" className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
+        <div className="mx-auto max-w-6xl px-6 py-24 md:py-36">
+          <Reveal>
+            <div className="chip mb-5">REST API</div>
+            <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+              HTTP for
+              <br />
+              <span className="italic text-[var(--ink-soft)]">agents.</span>
+            </h2>
+            <p className="mt-4 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
+              AI agents interact with their vaults over HTTP. No Solana SDK required on the agent side — just REST calls.
+            </p>
+          </Reveal>
+
+          <Reveal delay={100}>
+            <div className="mt-14 space-y-3">
+              {ENDPOINTS.map((ep) => (
+                <div
+                  key={ep.path}
+                  className="flex items-start gap-4 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-5 transition hover:border-[var(--hairline-strong)]"
+                >
+                  <span
+                    className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-bold ${
+                      ep.method === "POST"
+                        ? "bg-[var(--accent)]/20 text-[var(--accent-deep)]"
+                        : "bg-[var(--surface-strong)] text-[var(--ink-soft)]"
+                    }`}
+                  >
+                    {ep.method}
+                  </span>
+                  <div>
+                    <code className="text-sm font-medium text-[var(--ink)]">{ep.path}</code>
+                    <p className="mt-1 text-xs text-[var(--ink-soft)]">{ep.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ── Built With ── */}
+      <section className="border-b border-[var(--hairline)] bg-[var(--surface)]">
+        <div className="mx-auto flex max-w-6xl flex-col items-center gap-8 px-6 py-14 md:flex-row md:justify-between">
+          <div className="text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]">
+            Built with
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-10 md:gap-16">
+            {["Solana", "Anchor", "TypeScript", "Rust"].map((tech) => (
+              <div
+                key={tech}
+                className="font-display text-xl font-medium tracking-[-0.01em] text-[var(--ink-soft)] opacity-70 transition hover:opacity-100"
+              >
+                {tech}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="bg-[var(--ink)] text-white">
-        <div className="mx-auto max-w-6xl px-6 py-20 text-center md:py-28">
-          <h2 className="font-display text-4xl font-medium tracking-[-0.03em] md:text-6xl">
-            Build on Agent Vault
-          </h2>
-          <p className="mx-auto mt-4 max-w-lg text-lg text-white/60">
-            Give your AI agents the financial rails they need — with the guardrails your users demand.
-          </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-            <a href="https://github.com/magpiecapital/magpie-bot" className="btn-accent text-base">
-              View on GitHub
-            </a>
-            <Link href="/docs" className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-3 text-base font-semibold backdrop-blur hover:bg-white/10">
-              Documentation
-            </Link>
-          </div>
+      {/* ── CTA ── */}
+      <section className="relative overflow-hidden bg-[var(--ink)] text-white">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[var(--accent)]/20 blur-3xl drift" />
+          <div className="absolute -left-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--accent-deep)]/15 blur-3xl drift" />
+        </div>
+        <div className="relative mx-auto max-w-6xl px-6 py-28 text-center md:py-40">
+          <Reveal>
+            <h2 className="font-display mx-auto max-w-4xl text-5xl font-medium tracking-[-0.04em] text-white md:text-8xl">
+              Give agents
+              <br />
+              <span className="italic text-[var(--accent)]">financial rails.</span>
+            </h2>
+            <p className="mx-auto mt-6 max-w-xl text-lg text-white/60 leading-relaxed">
+              On-chain spending policies. Session keys. Audit trails. The guardrails the agent economy needs — live on Solana mainnet.
+            </p>
+          </Reveal>
+          <Reveal delay={100}>
+            <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
+              <a href={GITHUB_URL} className="btn-accent text-lg">
+                View on GitHub
+                <span aria-hidden>→</span>
+              </a>
+              <Link
+                href={DOCS_URL}
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+              >
+                Documentation
+              </Link>
+              <a
+                href={`https://explorer.solana.com/address/${PROGRAM_ID}`}
+                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+              >
+                Explorer
+              </a>
+            </div>
+          </Reveal>
+          <Reveal delay={200}>
+            <div className="mt-10 font-mono text-xs text-white/30">
+              {PROGRAM_ID}
+            </div>
+          </Reveal>
         </div>
       </section>
+
+      {/* ── Footer ── */}
+      <footer className="border-t border-[var(--hairline)] bg-[var(--bg)]">
+        <div className="mx-auto max-w-6xl px-6 py-14">
+          <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
+            <div>
+              <Wordmark size={24} />
+              <p className="mt-3 max-w-sm text-sm text-[var(--ink-soft)]">
+                Agent Vault Protocol — programmable wallets for AI agents on Solana.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-6">
+              <Link href="/" className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--ink)]">Home</Link>
+              <Link href="/docs" className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--ink)]">Docs</Link>
+              <a href={GITHUB_URL} className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--ink)]">GitHub</a>
+              <a href="https://x.com/MagpieLending" className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--ink)]">X / Twitter</a>
+            </div>
+          </div>
+          <div className="mt-10 border-t border-[var(--hairline)] pt-6 text-xs text-[var(--ink-faint)]">
+            Built on Solana
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -137,6 +137,9 @@ export default function Home() {
             <Wordmark size={28} />
           </div>
           <nav className="flex items-center gap-6">
+            <Link href="/vault" className="hidden text-sm font-bold text-[var(--accent-deep)] transition hover:text-[var(--accent)] md:inline border-b-2 border-[var(--accent)] pb-0.5">
+              Agent Vault
+            </Link>
             <a href="#how" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] lg:inline">
               How it works
             </a>
@@ -148,9 +151,6 @@ export default function Home() {
             </Link>
             <Link href="/credit" className="hidden text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] md:inline">
               Credit
-            </Link>
-            <Link href="/vault" className="hidden text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)] lg:inline">
-              Vault
             </Link>
             <Link href="/marketplace" className="hidden text-sm font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)] lg:inline">
               Marketplace
