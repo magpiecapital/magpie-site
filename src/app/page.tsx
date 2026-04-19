@@ -293,7 +293,7 @@ export default function Home() {
                 Earn points on every loan
               </h3>
               <p className="mt-2 max-w-lg text-base text-[var(--ink-soft)] leading-relaxed">
-                Bigger loans, riskier tiers, early repayments, and streaks all multiply your rewards. Accumulate now — redemptions coming soon.
+                Bigger loans, riskier tiers, early repayments, and streaks all multiply your rewards. Every loan counts.
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">

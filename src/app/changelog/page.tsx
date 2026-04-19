@@ -64,8 +64,8 @@ const ENTRIES: Entry[] = [
       "Base formula: Loan SOL \u00d7 100, multiplied by tier, timing, and streak bonuses",
       "Express tier earns 1.5\u00d7, Quick 1.25\u00d7, Standard 1.0\u00d7",
       "Early repayment +25%, on-time +10%, streak bonuses up to +50%",
-      "Interactive points calculator and mock leaderboard at /points",
-      "Redemption features coming soon \u2014 accumulate now",
+      "Interactive points calculator and leaderboard at /points",
+      "Points accumulate with every loan — every repayment counts",
     ],
   },
   {

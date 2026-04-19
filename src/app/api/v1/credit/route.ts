@@ -6,8 +6,6 @@
  */
 import { NextResponse } from "next/server";
 
-const BOT_API_URL = process.env.MAGPIE_BOT_API_URL || "http://localhost:3001";
-
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const wallet = searchParams.get("wallet");
@@ -44,14 +42,20 @@ export async function GET(req: Request) {
     );
   }
 
-  // For now, return the credit score schema with mock data.
-  // In production, this proxies to the bot's credit protocol API.
-  const mockScore = generateMockScore(wallet);
-
+  // No loan history exists yet — return empty score response.
+  // Once the lending protocol is live, this will proxy to the bot's credit engine.
   return NextResponse.json(
     {
       ok: true,
-      data: mockScore,
+      data: {
+        wallet,
+        score: null,
+        tier: null,
+        factors: null,
+        tier_benefits: null,
+        loans_scored: 0,
+        message: "No credit history found. Your score will be generated after your first loan.",
+      },
       protocol: "magpie-credit-v1",
       timestamp: new Date().toISOString(),
     },
@@ -61,35 +65,4 @@ export async function GET(req: Request) {
       },
     },
   );
-}
-
-function generateMockScore(wallet: string) {
-  // Deterministic mock based on wallet address for consistent demo
-  const hash = wallet.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-  const score = 300 + (hash % 550);
-  const tier =
-    score >= 750 ? "platinum" : score >= 650 ? "gold" : score >= 500 ? "silver" : "bronze";
-
-  const tierBenefits: Record<string, { maxLtv: number; feeRate: number; maxDays: number }> = {
-    bronze: { maxLtv: 30, feeRate: 0.015, maxDays: 7 },
-    silver: { maxLtv: 32, feeRate: 0.015, maxDays: 7 },
-    gold: { maxLtv: 35, feeRate: 0.0125, maxDays: 14 },
-    platinum: { maxLtv: 38, feeRate: 0.01, maxDays: 30 },
-  };
-
-  return {
-    wallet,
-    score,
-    tier,
-    factors: {
-      repayment_history: Math.min(100, 20 + (hash % 80)),
-      loan_volume: Math.min(100, 10 + ((hash * 3) % 70)),
-      account_age: Math.min(100, 5 + ((hash * 7) % 60)),
-      collateral_diversity: Math.min(100, 15 + ((hash * 11) % 55)),
-      liquidation_ratio: Math.min(100, 40 + ((hash * 13) % 60)),
-      protocol_engagement: Math.min(100, 10 + ((hash * 17) % 50)),
-    },
-    tier_benefits: tierBenefits[tier],
-    loans_scored: (hash % 30) + 1,
-  };
 }

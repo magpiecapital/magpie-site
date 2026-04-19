@@ -419,12 +419,11 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 </code>
               </Callout>
 
-              <H3>Redemption framework (future)</H3>
+              <H3>Points utility</H3>
               <BulletList items={[
-                "Fee discounts on future loans",
-                "Exclusive access to new features and higher tiers",
-                "Governance weight in protocol decisions",
-                "Details to be announced as the protocol matures",
+                "Points accumulate with every successful loan repayment",
+                "Higher point balances signal active, reliable borrowers",
+                "Utility details will evolve as the protocol matures",
               ]} />
             </Section>
           </Reveal>
