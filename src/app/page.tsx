@@ -200,6 +200,20 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Elevator pitch */}
+      <section className="mx-auto max-w-5xl px-6 py-24 md:py-32">
+        <Reveal>
+          <p className="font-display text-2xl font-medium leading-relaxed tracking-[-0.02em] text-[var(--ink)] md:text-4xl md:leading-[1.4]">
+            We built vaults on Solana that let AI agents spend your crypto
+            {" — "}but only within limits you set, enforced on-chain. We&apos;re using it to power
+            {" "}
+            <span className="italic text-[var(--accent-deep)]">instant memecoin-backed loans</span>
+            {" "}through a Telegram bot, and every repayment builds your on-chain credit score.
+            {" "}Better score, better rates. The whole thing runs in a chat window.
+          </p>
+        </Reveal>
+      </section>
+
       {/* Marquee */}
       <section className="overflow-hidden border-b border-[var(--hairline)] bg-[var(--accent)]">
         <div className="flex marquee whitespace-nowrap py-5 text-[var(--ink)] font-semibold tracking-tight">
