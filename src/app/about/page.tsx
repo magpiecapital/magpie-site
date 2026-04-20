@@ -5,7 +5,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
-const X_URL = "https://x.com/MagpieLending";
 const GITHUB_URL = "https://github.com/magpiecapital";
 
 export const metadata = {
@@ -338,12 +337,12 @@ export default function AboutPage() {
               <span aria-hidden>→</span>
             </a>
             <a
-              href={X_URL}
+              href={GITHUB_URL}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
             >
-              Follow on X
+              View on GitHub
             </a>
           </div>
         </div>

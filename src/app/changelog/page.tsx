@@ -188,7 +188,7 @@ const ENTRIES: Entry[] = [
     bullets: [
       "Rebranded from BagBank to Magpie across all surfaces",
       "Updated Telegram bot messages, commands, and responses",
-      "Added X/Twitter account: @MagpieLending",
+      "Updated social links and branding",
       "Updated all meta tags and OG data",
     ],
   },

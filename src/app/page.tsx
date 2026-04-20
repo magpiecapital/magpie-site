@@ -6,7 +6,6 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
-const X_URL = "https://x.com/MagpieLending";
 
 const STEPS = [
   {
