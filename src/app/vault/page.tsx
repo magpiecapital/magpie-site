@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Wordmark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Agent Vault Protocol — Programmable Wallets for AI Agents on Solana",
@@ -644,27 +644,7 @@ await agent.spendToken(vaultAddress, apiProviderAta, 5_000_000);`}</code>
       </section>
 
       {/* ── Footer ── */}
-      <footer className="border-t border-[var(--hairline)] bg-[var(--bg)]">
-        <div className="mx-auto max-w-6xl px-6 py-14">
-          <div className="flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
-            <div>
-              <Wordmark size={24} />
-              <p className="mt-3 max-w-sm text-sm text-[var(--ink-soft)]">
-                Agent Vault Protocol — programmable wallets for AI agents on Solana.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-6">
-              <Link href="/" className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--ink)]">Home</Link>
-              <Link href="/docs" className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--ink)]">Docs</Link>
-              <a href={GITHUB_URL} className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--ink)]">GitHub</a>
-              <a href="https://x.com/MagpieLending" className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--ink)]">X / Twitter</a>
-            </div>
-          </div>
-          <div className="mt-10 border-t border-[var(--hairline)] pt-6 text-xs text-[var(--ink-faint)]">
-            Built on Solana
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

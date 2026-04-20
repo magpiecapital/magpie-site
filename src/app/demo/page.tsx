@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { Wordmark } from "@/components/Logo";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 /* ─── Fake keys (deterministic, never real) ─── */
 const OWNER_KEY = "7xKm4R...3pQz";
@@ -338,7 +338,7 @@ export default function DemoPage() {
                 <span className="font-mono text-[11px] font-semibold text-white/80">Agent Vault Protocol</span>
                 <span className="flex items-center gap-1.5 text-[10px] text-white/40">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#22c55e]" />
-                  Devnet
+                  Simulation
                 </span>
               </div>
 
@@ -501,17 +501,7 @@ export default function DemoPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-20 border-t border-[var(--hairline)]">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-6 px-6 py-10 md:flex-row md:items-center">
-          <Wordmark size={22} />
-          <div className="flex items-center gap-8 text-sm text-[var(--ink-soft)]">
-            <Link href="/" className="transition hover:text-[var(--ink)]">Home</Link>
-            <Link href="/vault" className="transition hover:text-[var(--ink)]">Vault</Link>
-            <Link href="/docs" className="transition hover:text-[var(--ink)]">Docs</Link>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

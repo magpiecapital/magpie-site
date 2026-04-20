@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Mark, Wordmark } from "@/components/Logo";
+import { Mark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Whitepaper | Magpie",
@@ -89,13 +90,12 @@ export default function WhitepaperPage() {
               ))}
             </div>
             <div className="mt-8 border-t border-[var(--hairline)] pt-6">
-              <a
-                href="#"
+              <Link
+                href="/docs"
                 className="flex items-center gap-2 text-[13px] font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download PDF
-              </a>
+                Technical Docs &rarr;
+              </Link>
             </div>
           </nav>
         </aside>
@@ -119,10 +119,6 @@ export default function WhitepaperPage() {
               Memecoin-Collateralized Lending on Solana
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#" className="btn-ghost text-sm">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download PDF
-              </a>
               <Link href="/docs" className="btn-ghost text-sm">
                 Technical Docs &rarr;
               </Link>
@@ -562,45 +558,7 @@ First Loan      = 500 flat bonus`}</CodeBlock>
         </main>
       </div>
 
-      {/* Footer */}
-      <footer className="mt-20 border-t border-[var(--hairline)] bg-[var(--bg)]">
-        <div className="mx-auto max-w-6xl px-6 py-14">
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
-            <div>
-              <Wordmark size={24} />
-              <p className="mt-4 max-w-[220px] text-sm leading-relaxed text-[var(--ink-soft)]">
-                Borrow SOL against your memecoin bags, in a Telegram chat.
-              </p>
-            </div>
-            <FooterCol title="Product">
-              <FooterLink href="/calculate">Calculator</FooterLink>
-              <FooterLink href="/demo">Demo</FooterLink>
-              <FooterLink href="/tokens">Approved Tokens</FooterLink>
-              <FooterLink href="/dashboard">Dashboard</FooterLink>
-              <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
-            </FooterCol>
-            <FooterCol title="Company">
-              <FooterLink href="/docs">Docs</FooterLink>
-              <FooterLink href="/whitepaper">Litepaper</FooterLink>
-              <FooterLink href="/security">Security</FooterLink>
-              <FooterLink href="/about">About</FooterLink>
-            </FooterCol>
-            <FooterCol title="Social">
-              <FooterLink href="https://x.com/MagpieLending">X</FooterLink>
-              <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
-              <FooterLink href="#">GitHub</FooterLink>
-            </FooterCol>
-          </div>
-          <div className="mt-14 flex flex-col items-start justify-between gap-4 border-t border-[var(--hairline)] pt-6 md:flex-row md:items-center">
-            <div className="text-xs text-[var(--ink-soft)]">
-              &copy; {new Date().getFullYear()} Magpie &middot; Built on Solana
-            </div>
-            <div className="text-xs text-[var(--ink-faint)]">
-              Not financial advice. Loans carry liquidation risk.
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
@@ -738,21 +696,3 @@ function StepList({ steps }: { steps: { n: string; title: string; body: string }
   );
 }
 
-function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">
-        {title}
-      </div>
-      <div className="mt-4 flex flex-col gap-2">{children}</div>
-    </div>
-  );
-}
-
-function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
-  return (
-    <a href={href} className="text-sm text-[var(--ink-soft)] transition hover:text-[var(--ink)]">
-      {children}
-    </a>
-  );
-}

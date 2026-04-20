@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -803,19 +804,7 @@ export default function CreditClient() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-[var(--hairline)] bg-[var(--bg)]">
-        <div className="mx-auto max-w-6xl px-6 py-14">
-          <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-            <div className="text-xs text-[var(--ink-soft)]">
-              © {new Date().getFullYear()} Magpie · Built on Solana
-            </div>
-            <div className="text-xs text-[var(--ink-faint)]">
-              Credit scores are on-chain and non-transferable. Not financial advice.
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

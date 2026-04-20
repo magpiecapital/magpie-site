@@ -1,15 +1,12 @@
-import Link from "next/link";
-import { Wordmark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 export const metadata = {
   title: "Changelog | Magpie",
   description:
     "What's new at Magpie. Protocol updates, new features, and improvements.",
 };
-
-const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
 type Tag = "Feature" | "Improvement" | "Security" | "Launch";
 
@@ -322,34 +319,7 @@ export default function ChangelogPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--hairline)] bg-[var(--bg)]">
-        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-4 px-6 py-10 md:flex-row md:items-center">
-          <Wordmark size={22} />
-          <div className="flex flex-wrap items-center gap-6 text-sm text-[var(--ink-soft)]">
-            <Link href="/" className="transition hover:text-[var(--ink)]">
-              Home
-            </Link>
-            <Link href="/tokens" className="transition hover:text-[var(--ink)]">
-              Tokens
-            </Link>
-            <Link href="/docs" className="transition hover:text-[var(--ink)]">
-              Docs
-            </Link>
-            <Link href="/stats" className="transition hover:text-[var(--ink)]">
-              Stats
-            </Link>
-            <a
-              href={TELEGRAM_URL}
-              className="transition hover:text-[var(--ink)]"
-            >
-              Telegram
-            </a>
-          </div>
-          <div className="text-xs text-[var(--ink-faint)]">
-            &copy; {new Date().getFullYear()} Magpie &middot; Built on Solana
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

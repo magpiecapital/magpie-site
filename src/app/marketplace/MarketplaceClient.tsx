@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -262,10 +263,7 @@ export function MarketplaceClient() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-20 border-t border-[var(--hairline)] py-8 text-center text-xs text-[var(--ink-faint)]">
-        Magpie Capital &middot; Built on Solana
-      </footer>
+      <Footer />
     </div>
   );
 }

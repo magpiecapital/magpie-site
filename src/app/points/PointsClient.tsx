@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Mark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -752,18 +753,7 @@ export default function PointsClient() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-[var(--hairline)] bg-[var(--bg)]">
-        <div className="mx-auto max-w-6xl px-6 py-14">
-          <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
-            <div className="text-xs text-[var(--ink-soft)]">
-              &copy; {new Date().getFullYear()} Magpie &middot; Built on Solana
-            </div>
-            <div className="text-xs text-[var(--ink-faint)]">
-              Points are non-transferable and subject to change. Not financial advice.
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

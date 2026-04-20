@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Wordmark } from "@/components/Logo";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
-const X_URL = "https://x.com/MagpieLending";
 
 /* ─── Token Registry ─── */
 const REGISTRY: { symbol: string; name: string; mint: string }[] = [
@@ -603,43 +602,7 @@ export default function TokensClient() {
         </div>
       </section>
 
-      {/* ── Footer ── */}
-      <footer className="border-t border-[var(--hairline)]">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 px-6 py-10 md:flex-row md:items-center">
-          <Wordmark size={22} />
-          <div className="flex items-center gap-8 text-sm text-[var(--ink-soft)]">
-            <Link href="/" className="transition hover:text-[var(--ink)]">
-              Home
-            </Link>
-            <Link href="/demo" className="transition hover:text-[var(--ink)]">
-              Demo
-            </Link>
-            <Link
-              href="/dashboard"
-              className="transition hover:text-[var(--ink)]"
-            >
-              Dashboard
-            </Link>
-            <a
-              href={TELEGRAM_URL}
-              className="transition hover:text-[var(--ink)]"
-            >
-              Telegram
-            </a>
-            <a
-              href={X_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="transition hover:text-[var(--ink)]"
-            >
-              X
-            </a>
-          </div>
-          <div className="text-xs text-[var(--ink-soft)]">
-            &copy; {new Date().getFullYear()} Magpie
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
