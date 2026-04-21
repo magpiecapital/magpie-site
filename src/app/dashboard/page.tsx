@@ -699,6 +699,21 @@ export default function DashboardPage() {
     ? liveCredit.tier.charAt(0).toUpperCase() + liveCredit.tier.slice(1)
     : "Unranked";
 
+  /* ─── LOADING: Wait for wallet provider to mount ─── */
+  if (!mounted) {
+    return (
+      <div
+        className="flex h-screen items-center justify-center transition-colors duration-300"
+        style={{ ...THEMES[theme] as React.CSSProperties, background: "var(--d-bg)", color: "var(--d-ink)" }}
+      >
+        <div className="flex flex-col items-center gap-4">
+          <Mark size={48} className="animate-pulse" />
+          <div className="text-sm text-[var(--d-ink-soft)]">Loading dashboard...</div>
+        </div>
+      </div>
+    );
+  }
+
   /* ─── WALLET NOT CONNECTED: Show connect prompt ─── */
   if (!connected || !publicKey) {
     return (

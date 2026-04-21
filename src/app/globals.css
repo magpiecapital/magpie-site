@@ -1,4 +1,16 @@
 @import "tailwindcss";
+@import "@solana/wallet-adapter-react-ui/styles.css";
+
+/* Ensure wallet modal is always visible above everything */
+.wallet-adapter-modal-wrapper {
+  z-index: 9999 !important;
+}
+.wallet-adapter-modal {
+  z-index: 9999 !important;
+}
+.wallet-adapter-modal-overlay {
+  z-index: 9998 !important;
+}
 
 :root {
   /* Warm editorial palette — zero green. */

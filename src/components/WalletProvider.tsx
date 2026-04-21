@@ -12,7 +12,6 @@ import {
   CoinbaseWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 
-import "@solana/wallet-adapter-react-ui/styles.css";
 
 const RPC_ENDPOINT = "https://api.mainnet-beta.solana.com";
 
