@@ -35,7 +35,7 @@ const TIERS = [
     name: "Express",
     days: "2 days",
     ltv: "30%",
-    fee: "1.5%",
+    fee: "3%",
     best: "Degens catching a pump",
     points: ["Highest LTV available", "Fastest turnaround", "Short-term conviction"],
     highlight: true,
@@ -44,7 +44,7 @@ const TIERS = [
     name: "Quick",
     days: "3 days",
     ltv: "25%",
-    fee: "1.5%",
+    fee: "2%",
     best: "Weekend trades",
     points: ["Balanced risk profile", "Room for volatility", "Most popular"],
     highlight: false,
@@ -67,7 +67,7 @@ const PILLARS = [
   },
   {
     title: "Transparent pricing",
-    body: "One flat 1.5% origination fee. No hidden rate curves, no dynamic APR, no variable haircuts.",
+    body: "Simple tiered fees: 3% Express, 2% Quick, 1.5% Standard. No hidden rate curves, no dynamic APR, no variable haircuts.",
   },
   {
     title: "Liquidation-safe",
@@ -94,7 +94,7 @@ const FAQ = [
   },
   {
     q: "How is my loan amount calculated?",
-    a: "Magpie uses real-time oracle prices (via Jupiter) to value your collateral in SOL. Your payout = collateral value × LTV tier percentage, minus the 1.5% origination fee. For example: 10,000 WIF at $0.50 each = $5,000 collateral. At 30% LTV that's $1,500 in SOL, minus the 1.5% fee.",
+    a: "Magpie uses real-time oracle prices (via Jupiter) to value your collateral in SOL. Your payout = collateral value × LTV tier percentage, minus the origination fee (3% Express, 2% Quick, 1.5% Standard). For example: 10,000 WIF at $0.50 each = $5,000 collateral. At 30% LTV (Express) that's $1,500 in SOL, minus the 3% fee.",
   },
   {
     q: "How fast is this really?",
@@ -117,7 +117,7 @@ const FAQ = [
 const MARQUEE = [
   "No credit check",
   "Non-custodial",
-  "1.5% flat fee",
+  "1.5–3% tiered fee",
   "Repay anytime",
   "Top-up anytime",
   "Live health alerts",
@@ -491,7 +491,7 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
               <div className="max-w-md text-lg leading-relaxed text-[var(--ink-soft)]">
                 <p>LTV (Loan-to-Value) is the percentage of your collateral&apos;s value you receive as SOL. Higher LTV = more SOL, but less room before liquidation.</p>
                 <p className="mt-3 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-4 py-3 text-sm">
-                  <span className="font-semibold text-[var(--ink)]">Example:</span> $1,000 of WIF at 30% LTV = <span className="font-semibold text-[var(--ink)]">$300 in SOL</span>, minus 1.5% fee.
+                  <span className="font-semibold text-[var(--ink)]">Example:</span> $1,000 of WIF at 30% LTV (Express) = <span className="font-semibold text-[var(--ink)]">$300 in SOL</span>, minus 3% fee.
                 </p>
               </div>
             </div>
@@ -520,7 +520,7 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
                     <div className="text-sm text-[var(--ink-soft)]">LTV</div>
                   </div>
                   <div className="mt-2 text-sm text-[var(--ink-soft)]">
-                    {tier.days} · {tier.fee} flat fee
+                    {tier.days} · {tier.fee} fee
                   </div>
                   <div className="mt-8 border-t border-[var(--hairline)] pt-6">
                     <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)]">
@@ -544,7 +544,7 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
           <Reveal>
             <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:flex-row md:items-center md:justify-between md:p-8">
               <div className="text-sm leading-relaxed text-[var(--ink-soft)]">
-                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend for 1.5%, and live health alerts. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">64+ approved tokens</Link>.
+                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend at your tier&apos;s fee rate, and live health alerts. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">64+ approved tokens</Link>.
               </div>
               <a href={TELEGRAM_URL} className="btn-dark text-sm">
                 Get a quote →

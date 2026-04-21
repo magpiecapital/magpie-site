@@ -39,7 +39,7 @@ const FEATURES = [
 const STATS = [
   { value: "64+", label: "Approved Tokens" },
   { value: "<10s", label: "Average Funding Time" },
-  { value: "1.5%", label: "Flat Fee" },
+  { value: "1.5–3%", label: "Tiered Fee" },
   { value: "3", label: "Lending Tiers" },
   { value: "850", label: "Max Credit Score" },
   { value: "24/7", label: "Live on Solana" },

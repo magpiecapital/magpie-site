@@ -9,8 +9,6 @@ import { Footer } from "@/components/Footer";
 /* ─── Constants ─── */
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const SOL_MINT = "So11111111111111111111111111111111111111112";
-const FEE_RATE = 0.015;
-
 /* ─── Token Registry (64 approved tokens) ─── */
 const REGISTRY: { symbol: string; name: string; mint: string }[] = [
   { symbol: "FARTCOIN", name: "Fartcoin", mint: "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump" },
@@ -81,9 +79,9 @@ const REGISTRY: { symbol: string; name: string; mint: string }[] = [
 
 /* ─── Tier definitions ─── */
 const TIERS = [
-  { name: "Express", ltv: 0.3, days: 2, highlight: true, label: "Most SOL" },
-  { name: "Quick", ltv: 0.25, days: 3, highlight: false, label: "Popular" },
-  { name: "Standard", ltv: 0.2, days: 7, highlight: false, label: "Safest" },
+  { name: "Express", ltv: 0.3, days: 2, fee: 0.03, highlight: true, label: "Most SOL" },
+  { name: "Quick", ltv: 0.25, days: 3, fee: 0.02, highlight: false, label: "Popular" },
+  { name: "Standard", ltv: 0.2, days: 7, fee: 0.015, highlight: false, label: "Safest" },
 ];
 
 /* ─── Helpers ─── */
@@ -190,7 +188,7 @@ export default function CalculatorClient() {
       return { ...tier, loanUsd: 0, loanSol: 0, feeUsd: 0, feeSol: 0, repayUsd: 0, repaySol: 0, liqPrice: 0, health: 0 };
     }
     const loanUsd = collateralValueUsd * tier.ltv;
-    const feeUsd = loanUsd * FEE_RATE;
+    const feeUsd = loanUsd * tier.fee;
     const payoutUsd = loanUsd - feeUsd;
     const loanSol = payoutUsd / solPrice;
     const feeSol = feeUsd / solPrice;
@@ -413,7 +411,7 @@ export default function CalculatorClient() {
                     accent
                   />
                   <ResultRow
-                    label={`Fee (${(FEE_RATE * 100).toFixed(1)}%)`}
+                    label={`Fee (${(tier.fee * 100).toFixed(tier.fee === 0.015 ? 1 : 0)}%)`}
                     value={fmtUsd(tier.feeUsd)}
                   />
                   <ResultRow
@@ -535,7 +533,7 @@ export default function CalculatorClient() {
                 {[
                   { icon: "01", title: "Top up collateral", desc: "Send more tokens to improve your health ratio" },
                   { icon: "02", title: "Partial repay", desc: "Pay back some SOL to reduce your debt" },
-                  { icon: "03", title: "Extend the loan", desc: "Pay 1.5% to get more time (resets the due date)" },
+                  { icon: "03", title: "Extend the loan", desc: "Pay the tier fee (1.5–3%) to get more time (resets the due date)" },
                   { icon: "04", title: "Repay in full", desc: "Return the SOL + fee to reclaim your entire bag" },
                 ].map((opt) => (
                   <div key={opt.icon} className="flex gap-4">

@@ -175,7 +175,7 @@ export default function WhitepaperPage() {
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[
                   { label: "Three risk tiers", detail: "Express (30% LTV, 2d), Quick (25% LTV, 3d), Standard (20% LTV, 7d)" },
-                  { label: "Flat 1.5% origination fee", detail: "No hidden rates, no dynamic APR, no variable haircuts" },
+                  { label: "Tiered origination fees (1.5–3%)", detail: "Express 3%, Quick 2%, Standard 1.5%. No hidden rates, no dynamic APR" },
                   { label: "Non-custodial wallet model", detail: "Exportable keys — import into Phantom, Solflare, any Solana wallet" },
                   { label: "On-chain program (Anchor)", detail: "Deterministic loan execution, collateral custody, and liquidation" },
                   { label: "Credit system", detail: "Build reputation across loans, unlock better LTV and reduced fees" },
@@ -251,15 +251,15 @@ export default function WhitepaperPage() {
                 { n: "1", title: "Wallet creation", body: "User opens the bot and sends /start. A fresh Ed25519 keypair is generated, encrypted with AES-256-GCM, and stored. The wallet is non-custodial and exportable at any time." },
                 { n: "2", title: "Collateral deposit", body: "User receives a unique deposit address scoped to the loan. Memecoin collateral is sent to this address. A background watcher confirms receipt on-chain within 8-12 seconds." },
                 { n: "3", title: "Price oracle & LTV calculation", body: "Jupiter Price API v2 values the collateral in SOL. The user selects a tier (Express, Quick, or Standard), and the protocol calculates the maximum loan amount." },
-                { n: "4", title: "SOL disbursement", body: "SOL is sent to the user's wallet minus the 1.5% origination fee. The loan PDA is created on-chain with all parameters immutably recorded." },
-                { n: "5", title: "Active management", body: "While active, the user can: top-up collateral, partial-repay to reduce principal, extend the term (1.5% fee), or repay in full to reclaim collateral." },
+                { n: "4", title: "SOL disbursement", body: "SOL is sent to the user's wallet minus the origination fee (3% Express, 2% Quick, 1.5% Standard). The loan PDA is created on-chain with all parameters immutably recorded." },
+                { n: "5", title: "Active management", body: "While active, the user can: top-up collateral, partial-repay to reduce principal, extend the term (fee matches loan tier), or repay in full to reclaim collateral." },
                 { n: "6", title: "Health monitoring", body: "Continuous repricing of collateral. Alerts fire at 90% health and 24 hours before the due date. Users receive Telegram messages with current health ratio." },
                 { n: "7", title: "Resolution", body: "The loan ends one of two ways: the user repays in full (collateral returned) or health drops below 1.1x and on-chain liquidation executes automatically." },
               ]} />
 
               <H3>Core formulas</H3>
               <CodeBlock>{`Loan Amount   = Collateral Value (SOL) x LTV%
-Fee           = Loan Amount x 1.5%
+Fee           = Loan Amount x Tier Fee (Express 3%, Quick 2%, Standard 1.5%)
 Net Payout    = Loan Amount - Fee
 Health Ratio  = Collateral Value / Loan Amount
 
@@ -381,7 +381,7 @@ Liquidation triggers when Health < 1.1`}</CodeBlock>
               <H3>Benefits of higher credit</H3>
               <BulletList items={[
                 "Improved LTV ratios — borrow more against the same collateral",
-                "Reduced origination fees — from 1.5% down to 1.0% at Platinum",
+                "Reduced origination fees — from 1.5–3% down to 1.0–2.5% at Platinum",
                 "Extended loan terms available at higher tiers",
                 "Priority support and early access to new features",
               ]} />

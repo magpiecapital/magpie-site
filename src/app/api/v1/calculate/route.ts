@@ -2,12 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 /* ─── Constants ─── */
 const SOL_MINT = "So11111111111111111111111111111111111111112";
-const FEE_RATE = 0.015;
-
-const TIERS: Record<string, { ltv: number; days: number }> = {
-  express: { ltv: 0.3, days: 2 },
-  quick: { ltv: 0.25, days: 3 },
-  standard: { ltv: 0.2, days: 7 },
+const TIERS: Record<string, { ltv: number; days: number; fee: number }> = {
+  express: { ltv: 0.3, days: 2, fee: 0.03 },
+  quick: { ltv: 0.25, days: 3, fee: 0.02 },
+  standard: { ltv: 0.2, days: 7, fee: 0.015 },
 };
 
 /* ─── Token Registry (64 approved tokens) ─── */
@@ -127,7 +125,7 @@ async function fetchPrices(
 /* ─── Build loan calculation for a single tier ─── */
 function calcTier(
   tierName: string,
-  tier: { ltv: number; days: number },
+  tier: { ltv: number; days: number; fee: number },
   amount: number,
   tokenPriceUsd: number,
   solPriceUsd: number,
@@ -135,7 +133,7 @@ function calcTier(
   const collateralValueUsd = amount * tokenPriceUsd;
   const collateralValueSol = collateralValueUsd / solPriceUsd;
   const grossSol = (collateralValueUsd * tier.ltv) / solPriceUsd;
-  const fee = grossSol * FEE_RATE;
+  const fee = grossSol * tier.fee;
   const netSol = grossSol - fee;
   const repayAmount = grossSol;
   const liquidationPrice = (1.1 * grossSol * solPriceUsd) / amount;

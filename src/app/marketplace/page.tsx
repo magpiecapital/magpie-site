@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { MarketplaceClient } from "./MarketplaceClient";
 
 export const metadata: Metadata = {
-  title: "P2P Marketplace — Magpie",
+  title: "Lending — Magpie",
   description:
-    "Earn yield by lending SOL in risk-adjusted tranches. Senior, mezzanine, and junior pools with automatic borrower matching.",
+    "Borrow SOL instantly against your memecoins. Three loan tiers, 64+ approved tokens, and funds in under 30 seconds — all through Telegram.",
 };
 
 export default function MarketplacePage() {

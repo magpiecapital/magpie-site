@@ -34,7 +34,7 @@ export function PhoneMock() {
             <div className="mt-1 text-white/80">
               Get <span className="font-mono text-white">3.25 SOL</span> · 30% LTV · 2d
             </div>
-            <div className="mt-1 text-white/50">Fee 1.5% · repay 3.30 SOL</div>
+            <div className="mt-1 text-white/50">Fee 3% · repay 3.35 SOL</div>
           </BotMsg>
 
           <BotMsg>

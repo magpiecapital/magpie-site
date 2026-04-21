@@ -23,10 +23,10 @@ export async function GET(req: Request) {
           },
           score_range: "300 (min) – 850 (max)",
           tiers: {
-            bronze: "300-499 → 30% max LTV, 1.5% fee",
-            silver: "500-649 → 32% max LTV, 1.5% fee",
-            gold: "650-749 → 35% max LTV, 1.25% fee",
-            platinum: "750-850 → 38% max LTV, 1.0% fee",
+            bronze: "300-499 → 30% max LTV, 1.5–3% fee (tier-dependent)",
+            silver: "500-649 → 32% max LTV, 1.5–3% fee (tier-dependent)",
+            gold: "650-749 → 35% max LTV, 1.25–2.75% fee",
+            platinum: "750-850 → 38% max LTV, 1.0–2.5% fee",
           },
           factors: [
             "repayment_history (35%)",

@@ -7,7 +7,6 @@ import { Footer } from "@/components/Footer";
 import { PhoneMock } from "@/components/PhoneMock";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
-const FEE_RATE = 0.015;
 
 /* ───────────────────────── LOAN TIERS ───────────────────────── */
 
@@ -16,6 +15,7 @@ const TIERS = [
     name: "Express",
     ltv: 0.3,
     days: 2,
+    fee: 0.03,
     tag: "Most SOL",
     desc: "Maximum borrowing power. Best for short-term plays where you need the most capital.",
   },
@@ -23,6 +23,7 @@ const TIERS = [
     name: "Quick",
     ltv: 0.25,
     days: 3,
+    fee: 0.02,
     tag: "Popular",
     desc: "Balanced option. More time to repay with a comfortable loan-to-value ratio.",
   },
@@ -30,6 +31,7 @@ const TIERS = [
     name: "Standard",
     ltv: 0.2,
     days: 7,
+    fee: 0.015,
     tag: "Safest",
     desc: "Lowest LTV means more room before liquidation. A full week to repay.",
   },
@@ -38,10 +40,10 @@ const TIERS = [
 /* ───────────────────────── CREDIT TIERS ───────────────────────── */
 
 const CREDIT_TIERS = [
-  { name: "Bronze", range: "300–499", ltv: "20–30%", fee: "1.5%", term: "7 days" },
-  { name: "Silver", range: "500–649", ltv: "22–32%", fee: "1.5%", term: "7 days" },
-  { name: "Gold", range: "650–749", ltv: "25–35%", fee: "1.25%", term: "14 days" },
-  { name: "Platinum", range: "750–850", ltv: "28–38%", fee: "1.0%", term: "30 days" },
+  { name: "Bronze", range: "300–499", ltv: "20–30%", fee: "1.5–3%", term: "7 days" },
+  { name: "Silver", range: "500–649", ltv: "22–32%", fee: "1.5–3%", term: "7 days" },
+  { name: "Gold", range: "650–749", ltv: "25–35%", fee: "1.25–2.75%", term: "14 days" },
+  { name: "Platinum", range: "750–850", ltv: "28–38%", fee: "1.0–2.5%", term: "30 days" },
 ];
 
 /* ───────────────────────── HOW TO BORROW ───────────────────────── */
@@ -68,7 +70,7 @@ const STEPS = [
   {
     num: "4",
     title: "Receive SOL instantly",
-    desc: "Confirm the transaction in your wallet. SOL is deposited to your wallet in seconds. A 1.5% origination fee is deducted upfront.",
+    desc: "Confirm the transaction in your wallet. SOL is deposited to your wallet in seconds. An origination fee (1.5–3% depending on tier) is deducted upfront.",
     cmd: null,
   },
   {
@@ -87,7 +89,7 @@ function LoanCalculator() {
 
   const tier = TIERS[selectedTier];
   const loanAmount = collateralValue * tier.ltv;
-  const fee = loanAmount * FEE_RATE;
+  const fee = loanAmount * tier.fee;
   const payout = loanAmount - fee;
   const liquidationPrice = (1.1 * loanAmount) / collateralValue;
 
@@ -154,7 +156,7 @@ function LoanCalculator() {
       </div>
 
       <div className="mt-4 flex items-center justify-between rounded-xl bg-[var(--surface)] px-4 py-3 text-sm">
-        <span className="text-[var(--ink-soft)]">Origination fee ({(FEE_RATE * 100).toFixed(1)}%)</span>
+        <span className="text-[var(--ink-soft)]">Origination fee ({(tier.fee * 100).toFixed(0)}%)</span>
         <span className="font-medium text-[var(--ink)]">${fee.toFixed(2)}</span>
       </div>
       <div className="mt-2 flex items-center justify-between rounded-xl bg-[var(--surface)] px-4 py-3 text-sm">
@@ -218,7 +220,7 @@ export function MarketplaceClient() {
         <div className="mt-14 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             { label: "Approved tokens", value: "64+" },
-            { label: "Origination fee", value: "1.5%" },
+            { label: "Origination fee", value: "1.5–3%" },
             { label: "Max LTV", value: "30%" },
             { label: "Fastest loan", value: "~30s" },
           ].map((s) => (
@@ -262,7 +264,7 @@ export function MarketplaceClient() {
                     <div className="text-xs text-[var(--ink-faint)]">days</div>
                   </div>
                   <div className="border-l border-[var(--hairline)] pl-4">
-                    <div className="font-display text-3xl font-bold text-[var(--ink)]">1.5%</div>
+                    <div className="font-display text-3xl font-bold text-[var(--ink)]">{(t.fee * 100).toFixed(t.fee === 0.015 ? 1 : 0)}%</div>
                     <div className="text-xs text-[var(--ink-faint)]">fee</div>
                   </div>
                 </div>
@@ -290,7 +292,7 @@ export function MarketplaceClient() {
             <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
               If the value of your collateral falls below <strong>1.1x</strong> the loan amount (the health ratio),
               your position is at risk of liquidation. You can avoid this by topping up collateral, making a partial
-              repayment, or extending your loan (1.5% fee per extension). The lower your LTV tier, the more buffer
+              repayment, or extending your loan (fee per extension matches your tier rate). The lower your LTV tier, the more buffer
               you have before liquidation.
             </p>
           </div>

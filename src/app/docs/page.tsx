@@ -47,7 +47,7 @@ const CREDIT_TIERS = [
     name: "Platinum",
     range: "750 - 850",
     color: "var(--accent-deep)",
-    benefits: ["+8% LTV bonus", "1% origination fee", "Custom terms & early access"],
+    benefits: ["+8% LTV bonus", "Lowest fees (1.0–2.5%)", "Custom terms & early access"],
   },
 ];
 
@@ -137,7 +137,7 @@ export default function DocsPage() {
             </Callout>
             <P>
               The protocol is designed around three principles: speed (loans fund in under
-              10 seconds), simplicity (one flat fee, three tiers, no hidden mechanics), and
+              10 seconds), simplicity (tiered fees, three loan tiers, no hidden mechanics), and
               safety (non-custodial, loan-scoped collateral, on-chain liquidation).
             </P>
           </Section>
@@ -210,12 +210,12 @@ export default function DocsPage() {
                 {
                   n: "4",
                   title: "SOL disbursement",
-                  body: "SOL is sent to the user's wallet minus the 1.5% origination fee. The loan PDA is created on-chain with all parameters locked in.",
+                  body: "SOL is sent to the user's wallet minus the origination fee (3% Express, 2% Quick, 1.5% Standard). The loan PDA is created on-chain with all parameters locked in.",
                 },
                 {
                   n: "5",
                   title: "Active management",
-                  body: "While the loan is active, the user can: top-up collateral to improve health, partial-repay to reduce principal, extend the term (1.5% fee), or repay in full to reclaim collateral.",
+                  body: "While the loan is active, the user can: top-up collateral to improve health, partial-repay to reduce principal, extend the term (fee matches loan tier), or repay in full to reclaim collateral.",
                 },
                 {
                   n: "6",
@@ -281,8 +281,8 @@ export default function DocsPage() {
             <Table
               headers={["Action", "Fee", "Notes"]}
               rows={[
-                ["Loan origination", "1.5% flat", "Deducted from SOL disbursement"],
-                ["Loan extension", "1.5% flat", "Per extension, resets the due date"],
+                ["Loan origination", "1.5–3% (tier-dependent)", "Express 3%, Quick 2%, Standard 1.5%"],
+                ["Loan extension", "Matches loan tier fee", "Per extension, resets the due date"],
                 ["Partial repay", "None", "Reduces principal proportionally"],
                 ["Full repay", "None", "Collateral returned in full"],
                 ["Top-up collateral", "None", "Improves health ratio"],
@@ -292,8 +292,8 @@ export default function DocsPage() {
 
             <Callout>
               <strong>Example:</strong> A 30% LTV loan on $1,000 of collateral disburses $300
-              in SOL. The 1.5% fee is $4.50, so the user receives $295.50 in SOL. Extending
-              once costs another $4.50.
+              in SOL. At Standard tier (1.5%), the fee is $4.50, so the user receives $295.50 in SOL.
+              At Express tier (3%), the fee would be $9.00, netting $291.00. Extending once costs the same tier fee.
             </Callout>
           </Section>
 
