@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { PhoneMock } from "@/components/PhoneMock";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const FEE_RATE = 0.015;
@@ -317,29 +318,40 @@ export function MarketplaceClient() {
             The entire process happens in Telegram. Five steps, under a minute.
           </p>
 
-          <div className="relative mt-10">
-            {/* Vertical line */}
-            <div className="absolute left-5 top-0 hidden h-full w-px bg-[var(--hairline)] sm:block" />
+          <div className="mt-10 grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
+            {/* Left: steps */}
+            <div className="relative">
+              <div className="absolute left-5 top-0 hidden h-full w-px bg-[var(--hairline)] sm:block" />
 
-            <div className="flex flex-col gap-6 sm:gap-0">
-              {STEPS.map((step, i) => (
-                <div key={step.num} className="relative flex gap-4 sm:gap-6 sm:pb-10">
-                  {/* Step circle */}
-                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-[var(--accent-ink,#0a0a0a)]">
-                    {step.num}
+              <div className="flex flex-col gap-6 sm:gap-0">
+                {STEPS.map((step) => (
+                  <div key={step.num} className="relative flex gap-4 sm:gap-6 sm:pb-10">
+                    <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-[var(--accent-ink,#0a0a0a)]">
+                      {step.num}
+                    </div>
+                    <div className="flex-1 pb-2">
+                      <h3 className="font-semibold text-[var(--ink)]">{step.title}</h3>
+                      <p className="mt-1 text-sm leading-relaxed text-[var(--ink-soft)]">{step.desc}</p>
+                      {step.cmd && (
+                        <code className="mt-2 inline-block rounded-lg bg-[var(--surface)] px-3 py-1.5 text-xs font-mono text-[var(--accent-deep)]">
+                          {step.cmd}
+                        </code>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 pb-2">
-                    <h3 className="font-semibold text-[var(--ink)]">{step.title}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-[var(--ink-soft)]">{step.desc}</p>
-                    {step.cmd && (
-                      <code className="mt-2 inline-block rounded-lg bg-[var(--surface)] px-3 py-1.5 text-xs font-mono text-[var(--accent-deep)]">
-                        {step.cmd}
-                      </code>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+
+            {/* Right: Telegram phone mockup */}
+            <div className="hidden lg:block lg:sticky lg:top-28">
+              <PhoneMock />
+            </div>
+          </div>
+
+          {/* Mobile: show phone mockup below steps */}
+          <div className="mt-10 lg:hidden">
+            <PhoneMock />
           </div>
         </section>
 
