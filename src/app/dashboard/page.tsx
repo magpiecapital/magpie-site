@@ -3,10 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { Mark, Wordmark } from "@/components/Logo";
-import { ConnectWallet } from "@/components/ConnectWallet";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
@@ -565,7 +563,7 @@ export default function DashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // ── Wallet integration ──
-  const { publicKey, connected } = useWallet();
+  const { publicKey, connected, wallets, select, connect, connecting, disconnect } = useWallet();
   const { connection } = useConnection();
   const [liveCredit, setLiveCredit] = useState<any>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
@@ -717,12 +715,15 @@ export default function DashboardPage() {
 
   /* ─── WALLET NOT CONNECTED: Show connect prompt ─── */
   if (!connected || !publicKey) {
+    const installedWallets = wallets.filter((w) => w.readyState === "Installed");
+    const otherWallets = wallets.filter((w) => w.readyState !== "Installed");
+
     return (
       <div
         className="flex h-screen items-center justify-center transition-colors duration-300"
         style={{ ...THEMES[theme] as React.CSSProperties, background: "var(--d-bg)", color: "var(--d-ink)" }}
       >
-        <div className="flex flex-col items-center gap-6 text-center px-6">
+        <div className="flex flex-col items-center gap-6 text-center px-6 w-full max-w-sm">
           <Link href="/">
             <Wordmark size={32} />
           </Link>
@@ -732,8 +733,62 @@ export default function DashboardPage() {
               Connect a Solana wallet to view your dashboard, balances, and credit score.
             </p>
           </div>
-          <WalletMultiButton />
-          <div className="mt-4 flex items-center gap-4">
+
+          {/* Direct wallet buttons — no modal needed */}
+          <div className="w-full flex flex-col gap-2">
+            {installedWallets.length > 0 && (
+              <>
+                <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--d-ink-faint)] mb-1">Detected wallets</div>
+                {installedWallets.map((wallet) => (
+                  <button
+                    key={wallet.adapter.name}
+                    onClick={() => { select(wallet.adapter.name); setTimeout(() => connect().catch(() => {}), 100); }}
+                    disabled={connecting}
+                    className="flex w-full items-center gap-3 rounded-xl border border-[var(--d-border)] px-4 py-3 text-sm font-medium transition hover:border-[var(--d-accent)] hover:bg-[var(--d-surface-hover)]"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={wallet.adapter.icon} alt={wallet.adapter.name} width={28} height={28} className="rounded-md" />
+                    <span className="flex-1 text-left">{wallet.adapter.name}</span>
+                    <span className="text-xs text-[var(--d-accent-deep)]">
+                      {connecting ? "Connecting..." : "Connect"}
+                    </span>
+                  </button>
+                ))}
+              </>
+            )}
+            {installedWallets.length === 0 && (
+              <div className="rounded-xl border border-dashed border-[var(--d-border-strong)] bg-[var(--d-surface)] p-6 text-sm text-[var(--d-ink-soft)]">
+                No wallet detected. Install{" "}
+                <a href="https://phantom.app" target="_blank" rel="noopener noreferrer" className="text-[var(--d-accent-deep)] underline underline-offset-2">Phantom</a>{" "}
+                or{" "}
+                <a href="https://solflare.com" target="_blank" rel="noopener noreferrer" className="text-[var(--d-accent-deep)] underline underline-offset-2">Solflare</a>{" "}
+                to continue.
+              </div>
+            )}
+            {otherWallets.length > 0 && installedWallets.length > 0 && (
+              <details className="mt-2">
+                <summary className="cursor-pointer text-[10px] uppercase tracking-[0.12em] text-[var(--d-ink-faint)] hover:text-[var(--d-ink-soft)]">
+                  More wallets
+                </summary>
+                <div className="mt-2 flex flex-col gap-2">
+                  {otherWallets.map((wallet) => (
+                    <button
+                      key={wallet.adapter.name}
+                      onClick={() => { select(wallet.adapter.name); }}
+                      className="flex w-full items-center gap-3 rounded-xl border border-[var(--d-border)] px-4 py-3 text-sm font-medium transition hover:border-[var(--d-accent)] hover:bg-[var(--d-surface-hover)] opacity-60 hover:opacity-100"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={wallet.adapter.icon} alt={wallet.adapter.name} width={28} height={28} className="rounded-md" />
+                      <span className="flex-1 text-left">{wallet.adapter.name}</span>
+                      <span className="text-xs text-[var(--d-ink-soft)]">Install</span>
+                    </button>
+                  ))}
+                </div>
+              </details>
+            )}
+          </div>
+
+          <div className="mt-2 flex items-center gap-4">
             <button
               onClick={toggleTheme}
               className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--d-border)] text-[var(--d-ink-soft)] transition hover:border-[var(--d-border-strong)] hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
@@ -875,8 +930,13 @@ export default function DashboardPage() {
 
           {/* Right: actions */}
           <div className="flex items-center gap-2">
-            {/* Wallet connect */}
-            <ConnectWallet variant="ghost" className="hidden sm:flex text-xs" />
+            {/* Wallet disconnect */}
+            <button
+              onClick={() => disconnect()}
+              className="hidden sm:flex items-center gap-1.5 rounded-xl border border-[var(--d-border)] px-3 py-1.5 text-xs text-[var(--d-ink-soft)] transition hover:border-[var(--d-border-strong)] hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
+            >
+              {walletDisplay}
+            </button>
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
