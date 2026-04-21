@@ -6,6 +6,7 @@ import { Mark, Wordmark } from "@/components/Logo";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
@@ -731,7 +732,7 @@ export default function DashboardPage() {
               Connect a Solana wallet to view your dashboard, balances, and credit score.
             </p>
           </div>
-          <ConnectWallet />
+          <WalletMultiButton />
           <div className="mt-4 flex items-center gap-4">
             <button
               onClick={toggleTheme}

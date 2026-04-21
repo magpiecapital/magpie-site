@@ -12,6 +12,9 @@ import {
   CoinbaseWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 
+// Import wallet adapter styles here (inside dynamic ssr:false component)
+// so they load on the client without conflicting with Tailwind 4's CSS layers
+import "@solana/wallet-adapter-react-ui/styles.css";
 
 const RPC_ENDPOINT = "https://api.mainnet-beta.solana.com";
 
