@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, Fraunces } from "next/font/google";
 import { ClientProviders } from "@/components/ClientProviders";
 import "./globals.css";
@@ -86,6 +87,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
+      <head>
+        {/* Buffer polyfill — MUST load before any Solana JS. Synchronous script. */}
+        <Script src="/buffer-polyfill.js" strategy="beforeInteractive" />
+      </head>
       <body>
         <ClientProviders>{children}</ClientProviders>
       </body>
