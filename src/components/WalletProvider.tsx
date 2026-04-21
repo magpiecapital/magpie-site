@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import {
   ConnectionProvider,
   WalletProvider as SolanaWalletProvider,
@@ -11,12 +11,15 @@ import {
   SolflareWalletAdapter,
   CoinbaseWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
+import type { WalletError } from "@solana/wallet-adapter-base";
 
-// Import wallet adapter styles here (inside dynamic ssr:false component)
-// so they load on the client without conflicting with Tailwind 4's CSS layers
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-const RPC_ENDPOINT = "https://api.mainnet-beta.solana.com";
+// Use Solana's public mainnet RPC with commitment config
+// The public endpoint rate-limits aggressively — if you have a Helius/QuickNode
+// key, set NEXT_PUBLIC_RPC_URL in your environment for reliability.
+const RPC_ENDPOINT =
+  process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com";
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const wallets = useMemo(
@@ -28,9 +31,16 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     [],
   );
 
+  const onError = useCallback((error: WalletError) => {
+    console.warn("[wallet]", error.name, error.message);
+  }, []);
+
   return (
-    <ConnectionProvider endpoint={RPC_ENDPOINT}>
-      <SolanaWalletProvider wallets={wallets} autoConnect>
+    <ConnectionProvider
+      endpoint={RPC_ENDPOINT}
+      config={{ commitment: "confirmed" }}
+    >
+      <SolanaWalletProvider wallets={wallets} onError={onError}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </SolanaWalletProvider>
     </ConnectionProvider>
