@@ -563,7 +563,7 @@ export default function DashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // ── Wallet integration ──
-  const { publicKey, connected, wallets, select, connect, connecting, disconnect } = useWallet();
+  const { publicKey, connected, wallets, select, connecting, disconnect } = useWallet();
   const { connection } = useConnection();
   const [liveCredit, setLiveCredit] = useState<any>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
@@ -742,7 +742,7 @@ export default function DashboardPage() {
                 {installedWallets.map((wallet) => (
                   <button
                     key={wallet.adapter.name}
-                    onClick={() => { select(wallet.adapter.name); setTimeout(() => connect().catch(() => {}), 100); }}
+                    onClick={() => select(wallet.adapter.name)}
                     disabled={connecting}
                     className="flex w-full items-center gap-3 rounded-xl border border-[var(--d-border)] px-4 py-3 text-sm font-medium transition hover:border-[var(--d-accent)] hover:bg-[var(--d-surface-hover)]"
                   >

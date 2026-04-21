@@ -40,7 +40,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       endpoint={RPC_ENDPOINT}
       config={{ commitment: "confirmed" }}
     >
-      <SolanaWalletProvider wallets={wallets} onError={onError}>
+      <SolanaWalletProvider wallets={wallets} onError={onError} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
       </SolanaWalletProvider>
     </ConnectionProvider>
