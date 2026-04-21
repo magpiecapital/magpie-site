@@ -8,21 +8,36 @@ import { ConnectWallet } from "@/components/ConnectWallet";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
-const NAV_LINKS = [
-  { label: "Home", href: "/", icon: "⌂" },
-  { label: "How it works", href: "/#how", icon: "?" },
-  { label: "Tokens", href: "/tokens", icon: "◈" },
-  { label: "Calculator", href: "/calculate", icon: "⊞" },
-  { label: "Credit", href: "/credit", icon: "★" },
-  { label: "Vault", href: "/vault", icon: "⬡" },
-  { label: "Marketplace", href: "/marketplace", icon: "⇄" },
-  { label: "Dashboard", href: "/dashboard", icon: "▦" },
-  { label: "Points & Rewards", href: "/points", icon: "◆" },
-  { label: "Docs", href: "/docs", icon: "▤" },
-  { label: "About", href: "/about", icon: "○" },
-  { label: "Changelog", href: "/changelog", icon: "↻" },
-  { label: "Security", href: "/security", icon: "⛨" },
-  { label: "Whitepaper", href: "/whitepaper", icon: "▧" },
+const NAV_SECTIONS = [
+  {
+    heading: "Core",
+    links: [
+      { label: "Home", href: "/", icon: "⌂" },
+      { label: "Agent Vault Protocol", href: "/vault", icon: "⬡" },
+      { label: "Lending", href: "/marketplace", icon: "⇄" },
+      { label: "Approved Tokens", href: "/tokens", icon: "◈" },
+      { label: "Dashboard", href: "/dashboard", icon: "▦" },
+    ],
+  },
+  {
+    heading: "Tools",
+    links: [
+      { label: "Loan Calculator", href: "/calculate", icon: "⊞" },
+      { label: "Credit Score", href: "/credit", icon: "★" },
+      { label: "Points & Rewards", href: "/points", icon: "◆" },
+      { label: "Protocol Stats", href: "/stats", icon: "◎" },
+    ],
+  },
+  {
+    heading: "Resources",
+    links: [
+      { label: "Documentation", href: "/docs", icon: "▤" },
+      { label: "Whitepaper", href: "/whitepaper", icon: "▧" },
+      { label: "About", href: "/about", icon: "○" },
+      { label: "Security", href: "/security", icon: "⛨" },
+      { label: "Changelog", href: "/changelog", icon: "↻" },
+    ],
+  },
 ];
 
 function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -82,19 +97,26 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
         </div>
 
         {/* Links */}
-        <nav className="flex-1 overflow-y-auto px-3 py-3">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={onClose}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-3.5 text-[15px] text-[var(--ink-soft)] transition active:bg-[var(--surface)] hover:bg-[var(--surface)] hover:text-[var(--ink)]"
-            >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--surface)] text-xs text-[var(--ink-faint)]">
-                {link.icon}
-              </span>
-              {link.label}
-            </Link>
+        <nav className="flex-1 overflow-y-auto px-3 py-2">
+          {NAV_SECTIONS.map((section) => (
+            <div key={section.heading}>
+              <div className="px-3 pt-4 pb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                {section.heading}
+              </div>
+              {section.links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={onClose}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[15px] text-[var(--ink-soft)] transition active:bg-[var(--surface)] hover:bg-[var(--surface)] hover:text-[var(--ink)]"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--surface)] text-xs text-[var(--ink-faint)]">
+                    {link.icon}
+                  </span>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
           ))}
         </nav>
 

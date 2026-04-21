@@ -8,12 +8,9 @@ import { ConnectWallet } from "@/components/ConnectWallet";
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
 const NAV_LINKS = [
-  { label: "How it works", href: "/#how" },
+  { label: "Protocol", href: "/vault" },
+  { label: "Lending", href: "/marketplace" },
   { label: "Tokens", href: "/tokens" },
-  { label: "Calculator", href: "/calculate" },
-  { label: "Credit", href: "/credit" },
-  { label: "Vault", href: "/vault" },
-  { label: "Marketplace", href: "/marketplace" },
   { label: "Dashboard", href: "/dashboard" },
   { label: "Docs", href: "/docs" },
 ];
