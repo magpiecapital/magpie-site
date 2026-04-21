@@ -125,6 +125,29 @@ const MARQUEE = [
   "Solana mainnet",
 ];
 
+const VAULT_FEATURES = [
+  {
+    title: "Spend limits",
+    desc: "Set a maximum amount the agent can spend per session. Enforced at the contract level — the agent physically cannot exceed it.",
+    icon: "⬡",
+  },
+  {
+    title: "Time-bound sessions",
+    desc: "Sessions expire automatically. No open-ended access. Owners can extend or revoke at any time.",
+    icon: "◷",
+  },
+  {
+    title: "Instant revocation",
+    desc: "One transaction to cut agent access. No waiting period, no multi-sig. Owner always has the final word.",
+    icon: "⛨",
+  },
+  {
+    title: "CPI composable",
+    desc: "Other Solana programs can call into vaults via CPI. Build lending, trading, payments — anything — on top of the primitive.",
+    icon: "⇄",
+  },
+];
+
 export default function Home() {
   return (
     <div className="min-h-screen">
@@ -136,37 +159,38 @@ export default function Home() {
         <div className="mx-auto max-w-6xl px-6 pt-20 pb-28 md:pt-28 md:pb-36">
           <div className="fade-up mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
             <span className="live-dot" />
-            <span className="text-[var(--ink)]">Live on Solana mainnet</span>
+            <span className="text-[var(--ink)]">Built on Solana</span>
           </div>
 
           <h1 className="fade-up fade-up-1 font-display max-w-5xl text-[clamp(3rem,9vw,8.5rem)] leading-[0.92] tracking-[-0.04em] font-medium">
-            Borrow SOL.
+            Programmable
             <br />
-            Keep your <span className="italic">bag</span>.
+            <span className="italic">vaults</span> for AI.
           </h1>
 
           <p className="fade-up fade-up-2 mt-8 max-w-xl text-xl text-[var(--ink-soft)] leading-relaxed">
-            Memecoin-collateralized lending, delivered in a Telegram chat. Pledge your bag, get SOL in seconds, repay on your schedule.
+            On-chain infrastructure that lets AI agents spend crypto within limits you set. First application: instant memecoin-backed loans, delivered in a Telegram chat.
           </p>
 
           <div className="fade-up fade-up-3 mt-10 flex flex-wrap items-center gap-4">
-            <a href={TELEGRAM_URL} className="btn-accent text-base">
-              Launch on Telegram
+            <Link href="/vault" className="btn-accent text-base">
+              Explore the protocol
               <span aria-hidden>→</span>
+            </Link>
+            <Link href="/demo" className="btn-ghost text-base">
+              Watch the demo
+            </Link>
+            <a href={TELEGRAM_URL} className="btn-ghost text-base">
+              Try the lending bot
             </a>
-            <Link href="/calculate" className="btn-ghost text-base">
-              Loan calculator
-            </Link>
-            <Link href="/tokens" className="btn-ghost text-base">
-              Browse 64+ tokens
-            </Link>
           </div>
 
-          <div className="fade-up fade-up-4 mt-16 grid max-w-3xl grid-cols-3 gap-0 divide-x divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm">
+          <div className="fade-up fade-up-4 mt-16 grid max-w-4xl grid-cols-2 gap-0 divide-x divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm sm:grid-cols-4">
             {[
-              { v: "<10s", l: "Funded" },
-              { v: "1.5%", l: "Flat fee" },
-              { v: "30%", l: "Max LTV ratio" },
+              { v: "17", l: "Instructions" },
+              { v: "53", l: "Tests passing" },
+              { v: "2", l: "Vault types" },
+              { v: "CPI", l: "Composable" },
             ].map((s) => (
               <div key={s.l} className="px-4 py-5 text-center md:px-6">
                 <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl">{s.v}</div>
@@ -226,96 +250,148 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Approved tokens callout */}
-      <section className="mx-auto max-w-6xl px-6 py-16 md:py-20">
-        <Reveal>
-          <Link
-            href="/tokens"
-            className="group flex flex-col gap-6 rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg md:flex-row md:items-center md:justify-between md:p-10"
-          >
-            <div>
-              <div className="chip mb-3">Accepted collateral</div>
-              <h3 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
-                64+ approved tokens
-              </h3>
-              <p className="mt-2 max-w-lg text-base text-[var(--ink-soft)] leading-relaxed">
-                From WIF and BONK to Fartcoin and Moo Deng — browse the full list with live prices, market caps, and 24h performance. Don&apos;t see your bag? Request a new listing.
-              </p>
+      {/* ══════════ THE PROTOCOL ══════════ */}
+      <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
+        <div className="mx-auto max-w-6xl px-6 py-28 md:py-36">
+          <Reveal>
+            <div className="chip mb-5">The protocol</div>
+            <h2 className="font-display max-w-4xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+              Agent Vault Protocol.
+              <br />
+              <span className="italic text-[var(--ink-soft)]">Trust with limits.</span>
+            </h2>
+            <p className="mt-6 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
+              An Anchor program on Solana that creates programmable wallets for AI agents.
+              Owners fund vaults, assign agents, set spend caps and session windows — and the contract enforces every constraint on-chain.
+              Agents can transact autonomously, but they can never exceed their bounds.
+            </p>
+          </Reveal>
+
+          <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--hairline)] md:grid-cols-2">
+            {VAULT_FEATURES.map((f, i) => (
+              <Reveal key={f.title} delay={i * 80}>
+                <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-8 md:p-10">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-lg text-[var(--accent-deep)]">
+                      {f.icon}
+                    </div>
+                    <div className="text-xl font-semibold tracking-tight">{f.title}</div>
+                  </div>
+                  <div className="text-base leading-relaxed text-[var(--ink-soft)]">
+                    {f.desc}
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+
+          {/* Protocol code snippet */}
+          <Reveal delay={200}>
+            <div className="mt-12 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[#0e1621]">
+              <div className="flex items-center justify-between border-b border-white/5 bg-[#17212b] px-5 py-3">
+                <span className="font-mono text-[11px] font-semibold text-white/80">vault-consumer.rs</span>
+                <span className="text-[10px] text-white/40">CPI integration example</span>
+              </div>
+              <pre className="overflow-x-auto p-5 font-mono text-[12px] leading-relaxed text-white/70">
+{`// Any Solana program can call agent_vault via CPI
+let cpi_ctx = CpiContext::new(
+    vault_program.to_account_info(),
+    AgentSpend {
+        vault: vault.to_account_info(),
+        agent: agent.to_account_info(),
+        recipient: recipient.to_account_info(),
+    },
+);
+// Contract enforces spend limit + session window
+agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
+              </pre>
             </div>
-            <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
-              View all tokens
-              <span aria-hidden className="transition group-hover:translate-x-1">→</span>
+          </Reveal>
+
+          <Reveal delay={250}>
+            <div className="mt-10 flex flex-wrap items-center gap-4">
+              <Link href="/vault" className="btn-accent text-base">
+                Full protocol deep-dive
+                <span aria-hidden>→</span>
+              </Link>
+              <Link href="/demo" className="btn-ghost text-base">
+                Interactive demo
+              </Link>
+              <a
+                href="https://github.com/magpiecapital/magpie-bot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn-ghost text-base"
+              >
+                View source on GitHub
+              </a>
             </div>
-          </Link>
-        </Reveal>
+          </Reveal>
+        </div>
       </section>
 
-      {/* Agent Vault Protocol callout */}
-      <section className="mx-auto max-w-6xl px-6 pb-8">
+      {/* ══════════ FIRST APPLICATION ══════════ */}
+      <section className="mx-auto max-w-6xl px-6 py-28 md:py-36">
         <Reveal>
-          <Link
-            href="/vault"
-            className="group flex flex-col gap-6 rounded-3xl border border-[var(--accent)] bg-gradient-to-br from-[var(--bg-elevated)] to-[var(--surface)] p-8 transition hover:shadow-lg md:flex-row md:items-center md:justify-between md:p-10"
-          >
-            <div>
-              <div className="chip mb-3">Protocol</div>
-              <h3 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
-                Agent Vault Protocol
-              </h3>
-              <p className="mt-2 max-w-lg text-base text-[var(--ink-soft)] leading-relaxed">
-                Programmable wallets for AI agents on Solana. Create vaults with spending policies, session keys, and daily limits — let agents transact autonomously within bounds you control.
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
-              Explore the protocol
-              <span aria-hidden className="transition group-hover:translate-x-1">→</span>
-            </div>
-          </Link>
+          <div className="chip mb-5">First application</div>
+          <h2 className="font-display max-w-4xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+            Borrow SOL.
+            <br />
+            <span className="italic text-[var(--ink-soft)]">Keep your bag.</span>
+          </h2>
+          <p className="mt-6 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
+            The first product built on the Agent Vault Protocol: memecoin-collateralized lending, delivered entirely through a Telegram bot.
+            Pledge your bag, get SOL in seconds, repay on your schedule.
+          </p>
         </Reveal>
-      </section>
 
-      {/* Credit + Points callout */}
-      <section className="mx-auto max-w-6xl px-6 pb-8 space-y-5">
-        <Reveal>
-          <Link
-            href="/credit"
-            className="group flex flex-col gap-6 rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg md:flex-row md:items-center md:justify-between md:p-10"
-          >
-            <div>
-              <div className="chip mb-3">New</div>
-              <h3 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
-                Build your DeFi credit score
-              </h3>
-              <p className="mt-2 max-w-lg text-base text-[var(--ink-soft)] leading-relaxed">
-                The first on-chain credit system for memecoin lending. Repay on time, level up, and unlock better LTV rates, lower fees, and longer terms.
+        <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
+          <Reveal delay={0}>
+            <Link
+              href="/tokens"
+              className="group flex h-full flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg"
+            >
+              <div className="chip mb-3">Collateral</div>
+              <h3 className="font-display text-2xl font-medium tracking-[-0.02em]">64+ tokens</h3>
+              <p className="mt-2 flex-1 text-sm text-[var(--ink-soft)] leading-relaxed">
+                WIF, BONK, Fartcoin, Moo Deng, and dozens more. Live prices, real-time risk assessment.
               </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
-              Learn more
-              <span aria-hidden className="transition group-hover:translate-x-1">→</span>
-            </div>
-          </Link>
-        </Reveal>
-        <Reveal delay={80}>
-          <Link
-            href="/points"
-            className="group flex flex-col gap-6 rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg md:flex-row md:items-center md:justify-between md:p-10"
-          >
-            <div>
+              <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[var(--accent-deep)] group-hover:text-[var(--accent)]">
+                Browse tokens <span aria-hidden className="transition group-hover:translate-x-1">→</span>
+              </div>
+            </Link>
+          </Reveal>
+          <Reveal delay={80}>
+            <Link
+              href="/credit"
+              className="group flex h-full flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg"
+            >
+              <div className="chip mb-3">Reputation</div>
+              <h3 className="font-display text-2xl font-medium tracking-[-0.02em]">On-chain credit</h3>
+              <p className="mt-2 flex-1 text-sm text-[var(--ink-soft)] leading-relaxed">
+                First DeFi credit system. Repay on time, level up (300–850), unlock better LTV and lower fees.
+              </p>
+              <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[var(--accent-deep)] group-hover:text-[var(--accent)]">
+                Credit system <span aria-hidden className="transition group-hover:translate-x-1">→</span>
+              </div>
+            </Link>
+          </Reveal>
+          <Reveal delay={160}>
+            <Link
+              href="/points"
+              className="group flex h-full flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg"
+            >
               <div className="chip mb-3">Rewards</div>
-              <h3 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
-                Earn points on every loan
-              </h3>
-              <p className="mt-2 max-w-lg text-base text-[var(--ink-soft)] leading-relaxed">
-                Bigger loans, riskier tiers, early repayments, and streaks all multiply your rewards. Every loan counts.
+              <h3 className="font-display text-2xl font-medium tracking-[-0.02em]">Points system</h3>
+              <p className="mt-2 flex-1 text-sm text-[var(--ink-soft)] leading-relaxed">
+                Earn points on every loan. Bigger loans, riskier tiers, early repayments, and streaks all multiply rewards.
               </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-2 text-lg font-semibold text-[var(--accent-deep)] transition group-hover:text-[var(--accent)]">
-              See how it works
-              <span aria-hidden className="transition group-hover:translate-x-1">→</span>
-            </div>
-          </Link>
-        </Reveal>
+              <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[var(--accent-deep)] group-hover:text-[var(--accent)]">
+                How it works <span aria-hidden className="transition group-hover:translate-x-1">→</span>
+              </div>
+            </Link>
+          </Reveal>
+        </div>
       </section>
 
       {/* How it works */}
@@ -515,29 +591,29 @@ export default function Home() {
         <div className="relative mx-auto max-w-6xl px-6 py-28 text-center md:py-40">
           <Mark size={80} className="mx-auto mb-10 hop" />
           <h2 className="font-display mx-auto max-w-4xl text-6xl font-medium tracking-[-0.04em] text-white md:text-8xl">
-            Your bag&apos;s worth
+            Build on the
             <br />
-            <span className="italic text-[var(--accent)]">more liquid.</span>
+            <span className="italic text-[var(--accent)]">vault primitive.</span>
           </h2>
           <p className="mx-auto mt-6 max-w-lg text-lg text-white/70">
-            Stop selling the bottom. Stop missing entries. Borrow against what you hold.
+            Infrastructure for the AI agent economy on Solana. Explore the protocol, try the lending bot, or build your own integration.
           </p>
           <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} className="btn-accent text-lg">
-              Open @magpie_capital_bot
+            <Link href="/vault" className="btn-accent text-lg">
+              Explore the protocol
               <span aria-hidden>→</span>
+            </Link>
+            <a
+              href={TELEGRAM_URL}
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+            >
+              Try the lending bot
             </a>
             <Link
-              href="/tokens"
+              href="/demo"
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
             >
-              Browse approved tokens
-            </Link>
-            <Link
-              href="/credit"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
-            >
-              Build your credit
+              Watch the demo
             </Link>
           </div>
         </div>

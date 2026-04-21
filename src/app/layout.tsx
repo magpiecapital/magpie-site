@@ -20,9 +20,9 @@ const SITE_URL = "https://magpie.capital";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Magpie — Borrow SOL against your bags.",
+  title: "Magpie — Programmable vaults for AI agents on Solana.",
   description:
-    "Memecoin-collateralized SOL lending on Telegram. Pledge your bag, get SOL, repay in days.",
+    "On-chain infrastructure for the AI agent economy. First app: instant memecoin-backed lending via Telegram.",
   applicationName: "Magpie",
   keywords: [
     "Solana lending",
@@ -45,9 +45,9 @@ export const metadata: Metadata = {
     apple: "/favicon.svg",
   },
   openGraph: {
-    title: "Magpie — Borrow SOL against your bags.",
+    title: "Magpie — Programmable vaults for AI agents on Solana.",
     description:
-      "Memecoin-collateralized SOL lending on Telegram. Pledge your bag, get SOL, repay in days.",
+      "On-chain infrastructure for the AI agent economy. First app: instant memecoin-backed lending via Telegram.",
     url: SITE_URL,
     siteName: "Magpie",
     type: "website",
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Magpie",
-    description: "Borrow SOL against your bags.",
+    description: "Programmable vaults for AI agents on Solana.",
     site: "@MagpieCapital",
     creator: "@MagpieCapital",
   },

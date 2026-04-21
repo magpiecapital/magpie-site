@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Magpie — Borrow SOL against your bags.";
+export const alt = "Magpie — Programmable vaults for AI agents on Solana.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -45,7 +45,7 @@ export default async function Image() {
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div
             style={{
-              fontSize: 128,
+              fontSize: 108,
               fontWeight: 500,
               letterSpacing: "-0.045em",
               lineHeight: 0.95,
@@ -53,20 +53,19 @@ export default async function Image() {
               flexDirection: "column",
             }}
           >
-            <div>Borrow SOL.</div>
+            <div>Programmable</div>
             <div>
-              Keep your{" "}
-              <span style={{ fontStyle: "italic", color: "#c99a2c" }}>bag</span>.
+              <span style={{ fontStyle: "italic", color: "#c99a2c" }}>vaults</span> for AI.
             </div>
           </div>
           <div
             style={{
-              fontSize: 28,
+              fontSize: 26,
               color: "#5c5a52",
               letterSpacing: "-0.01em",
             }}
           >
-            Memecoin-collateralized lending, delivered in Telegram.
+            On-chain infrastructure for AI agents on Solana. First app: memecoin-backed lending.
           </div>
         </div>
 
@@ -79,16 +78,19 @@ export default async function Image() {
             color: "#5c5a52",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div
-              style={{
-                width: 10,
-                height: 10,
-                borderRadius: 5,
-                background: "#f7c948",
-              }}
-            />
-            Live on Solana
+          <div style={{ display: "flex", alignItems: "center", gap: 32, fontSize: 18 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>17</div>
+              instructions
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>53</div>
+              tests passing
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>CPI</div>
+              composable
+            </div>
           </div>
           <div style={{ fontWeight: 600, color: "#0a0a0a" }}>magpie.capital</div>
         </div>
