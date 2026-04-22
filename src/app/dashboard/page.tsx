@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Mark, Wordmark } from "@/components/Logo";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
@@ -612,36 +612,43 @@ export default function DashboardPage() {
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey, connection]);
 
-  // Fetch real SPL token holdings
+  // Fetch real SPL token holdings (both TOKEN_PROGRAM_ID and TOKEN_2022)
   useEffect(() => {
     if (!connected || !publicKey) { setHoldings([]); return; }
     let cancelled = false;
     setHoldingsLoading(true);
-    connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID })
-      .then((result) => {
+
+    const parseAccounts = (result: { value: any[] }): TokenHolding[] =>
+      result.value
+        .map((account: any) => {
+          const info = account.account.data.parsed?.info;
+          if (!info) return null;
+          const mint = info.mint as string;
+          const tokenAmount = info.tokenAmount;
+          if (!tokenAmount || tokenAmount.uiAmount === 0) return null;
+          return {
+            symbol: mint.slice(0, 4).toUpperCase(),
+            name: mint,
+            mint,
+            amount: tokenAmount.amount as string,
+            decimals: tokenAmount.decimals as number,
+          };
+        })
+        .filter((t: TokenHolding | null): t is TokenHolding => t !== null);
+
+    Promise.all([
+      connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID }).catch(() => ({ value: [] })),
+      connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_2022_PROGRAM_ID }).catch(() => ({ value: [] })),
+    ])
+      .then(([splResult, token2022Result]) => {
         if (cancelled) return;
-        const tokens: TokenHolding[] = result.value
-          .map((account) => {
-            const info = account.account.data.parsed?.info;
-            if (!info) return null;
-            const mint = info.mint as string;
-            const tokenAmount = info.tokenAmount;
-            if (!tokenAmount || tokenAmount.uiAmount === 0) return null;
-            return {
-              symbol: mint.slice(0, 4).toUpperCase(),
-              name: mint,
-              mint,
-              amount: tokenAmount.amount as string,
-              decimals: tokenAmount.decimals as number,
-            };
-          })
-          .filter((t): t is TokenHolding => t !== null)
+        const allTokens = [...parseAccounts(splResult), ...parseAccounts(token2022Result)]
           .sort((a, b) => {
             const aNum = Number(a.amount) / Math.pow(10, a.decimals);
             const bNum = Number(b.amount) / Math.pow(10, b.decimals);
             return bNum - aNum;
           });
-        setHoldings(tokens);
+        setHoldings(allTokens);
         setHoldingsLoading(false);
       })
       .catch(() => {
