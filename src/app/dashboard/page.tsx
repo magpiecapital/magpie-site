@@ -10,7 +10,6 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
-const TELEGRAM_LOAN_URL = "https://t.me/magpie_capital_bot?start=loan";
 const PREFS_KEY = "magpie-dashboard-prefs";
 const THEME_KEY = "magpie-dashboard-theme";
 
