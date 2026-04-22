@@ -577,6 +577,8 @@ export default function DashboardPage() {
   const [activeNav, setActiveNav] = useState<string>("overview");
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedMint, setExpandedMint] = useState<string | null>(null);
+  const [loanPercent, setLoanPercent] = useState<Record<string, number>>({});
 
   // ── Wallet integration ──
   const { publicKey, connected, wallets, select, connecting, disconnect } = useWallet();
@@ -1105,57 +1107,173 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2">
                           <span className="flex h-5 w-5 items-center justify-center rounded-md text-[10px]" style={{ background: "var(--d-accent-dim)", color: "var(--d-accent-deep)" }}>&#x2713;</span>
                           <span className="text-xs font-medium text-[var(--d-accent-deep)]">
-                            {eligibleCollateral.length} token{eligibleCollateral.length !== 1 ? "s" : ""} eligible
+                            {eligibleCollateral.length} token{eligibleCollateral.length !== 1 ? "s" : ""} eligible &mdash; click to simulate a loan
                           </span>
                         </div>
                         <span className="text-xs text-[var(--d-ink-soft)]">
                           Total: <span className="font-semibold text-[var(--d-ink)]">${totalEligibleUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
                         </span>
                       </div>
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="border-b border-[var(--d-border)] bg-[var(--d-surface)]/60">
-                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Token</th>
-                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Balance</th>
-                            <th className="hidden sm:table-cell px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Price</th>
-                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Value</th>
-                            <th className="hidden md:table-cell px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Max Loan (20%)</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {eligibleCollateral.map((h, i) => {
-                            const uiAmount = Number(h.amount) / Math.pow(10, h.decimals);
-                            const maxLoan = h.valueUsd * 0.20;
-                            return (
-                              <tr key={h.mint} className={`border-b border-[var(--d-border)] last:border-0 transition hover:bg-[var(--d-surface-hover)]/40 ${i % 2 === 1 ? "bg-[var(--d-surface)]/20" : ""}`}>
-                                <td className="px-4 py-3">
-                                  <div className="flex items-center gap-2.5">
-                                    <TokenIcon mint={h.mint} symbol={h.symbol} size={28} />
-                                    <div>
-                                      <div className="font-medium text-[13px]">{h.symbol}</div>
-                                      <div className="text-[10px] text-[var(--d-ink-faint)]">{h.name}</div>
+                      <div className="divide-y divide-[var(--d-border)]">
+                        {eligibleCollateral.map((h, i) => {
+                          const uiAmount = Number(h.amount) / Math.pow(10, h.decimals);
+                          const isExpanded = expandedMint === h.mint;
+                          const pct = loanPercent[h.mint] ?? 100;
+                          const collateralUsd = h.valueUsd * (pct / 100);
+                          const tiers = [
+                            { name: "Express", ltv: 0.30, days: 2, fee: 0.03, color: "var(--d-bad)" },
+                            { name: "Quick", ltv: 0.25, days: 3, fee: 0.02, color: "var(--d-warn)" },
+                            { name: "Standard", ltv: 0.20, days: 7, fee: 0.015, color: "var(--d-accent)" },
+                          ];
+                          return (
+                            <div key={h.mint}>
+                              {/* Row */}
+                              <button
+                                onClick={() => setExpandedMint(isExpanded ? null : h.mint)}
+                                className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition hover:bg-[var(--d-surface-hover)]/40 ${i % 2 === 1 && !isExpanded ? "bg-[var(--d-surface)]/20" : ""} ${isExpanded ? "bg-[var(--d-accent-dim)]/20" : ""}`}
+                              >
+                                <TokenIcon mint={h.mint} symbol={h.symbol} size={32} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-sm">{h.symbol}</span>
+                                    <span className="text-[10px] text-[var(--d-ink-faint)] hidden sm:inline">{h.name}</span>
+                                  </div>
+                                  <div className="text-[11px] text-[var(--d-ink-soft)]">
+                                    {formatTokenAmount(h.amount, h.decimals)} tokens
+                                    {h.approved.priceUsd ? ` · $${h.approved.priceUsd < 0.01 ? h.approved.priceUsd.toPrecision(4) : h.approved.priceUsd.toFixed(4)}` : ""}
+                                  </div>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <div className="text-sm font-semibold">
+                                    {h.valueUsd > 0 ? `$${h.valueUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
+                                  </div>
+                                  <div className="text-[10px] text-[var(--d-accent-deep)] font-medium">
+                                    up to ${(h.valueUsd * 0.30).toLocaleString(undefined, { maximumFractionDigits: 2 })} loan
+                                  </div>
+                                </div>
+                                <svg
+                                  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--d-ink-faint)" strokeWidth="2" strokeLinecap="round"
+                                  className="shrink-0 transition-transform duration-200"
+                                  style={{ transform: isExpanded ? "rotate(180deg)" : "rotate(0deg)" }}
+                                >
+                                  <polyline points="6 9 12 15 18 9" />
+                                </svg>
+                              </button>
+
+                              {/* Expanded loan simulator */}
+                              {isExpanded && (
+                                <div className="border-t border-[var(--d-border)] bg-[var(--d-surface)]/30 px-4 py-5 sm:px-6">
+                                  {/* Collateral slider */}
+                                  <div className="mb-5">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-xs font-medium text-[var(--d-ink-soft)]">Collateral amount</span>
+                                      <span className="text-xs font-semibold">
+                                        {(uiAmount * pct / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {h.symbol}
+                                        <span className="text-[var(--d-ink-faint)] font-normal ml-1">({pct}%)</span>
+                                      </span>
+                                    </div>
+                                    <input
+                                      type="range"
+                                      min={10}
+                                      max={100}
+                                      step={5}
+                                      value={pct}
+                                      onChange={(e) => setLoanPercent((prev) => ({ ...prev, [h.mint]: Number(e.target.value) }))}
+                                      className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                                      style={{
+                                        background: `linear-gradient(to right, var(--d-accent) 0%, var(--d-accent) ${pct}%, var(--d-border) ${pct}%, var(--d-border) 100%)`,
+                                      }}
+                                    />
+                                    <div className="flex justify-between mt-1">
+                                      {[25, 50, 75, 100].map((v) => (
+                                        <button
+                                          key={v}
+                                          onClick={() => setLoanPercent((prev) => ({ ...prev, [h.mint]: v }))}
+                                          className={`text-[10px] font-medium px-2 py-0.5 rounded-md transition ${pct === v ? "bg-[var(--d-accent)] text-[var(--d-accent-ink)]" : "text-[var(--d-ink-faint)] hover:text-[var(--d-ink-soft)]"}`}
+                                        >
+                                          {v}%
+                                        </button>
+                                      ))}
                                     </div>
                                   </div>
-                                </td>
-                                <td className="px-4 py-3 text-right text-xs text-[var(--d-ink-soft)]">{formatTokenAmount(h.amount, h.decimals)}</td>
-                                <td className="hidden sm:table-cell px-4 py-3 text-right text-xs text-[var(--d-ink-soft)]">
-                                  {h.approved.priceUsd ? `$${h.approved.priceUsd < 0.01 ? h.approved.priceUsd.toPrecision(4) : h.approved.priceUsd.toFixed(4)}` : "—"}
-                                </td>
-                                <td className="px-4 py-3 text-right text-[13px] font-medium">
-                                  {h.valueUsd > 0 ? `$${h.valueUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
-                                </td>
-                                <td className="hidden md:table-cell px-4 py-3 text-right">
-                                  <span className="rounded-md bg-[var(--d-accent-dim)] px-2 py-0.5 text-[11px] font-semibold text-[var(--d-accent-deep)]">
-                                    {maxLoan > 0 ? `~$${maxLoan.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                      <div className="border-t border-[var(--d-border)] bg-[var(--d-surface)]/40 px-4 py-2.5 text-[11px] text-[var(--d-ink-faint)]">
-                        Max loan estimates use Standard tier (20% LTV). Actual rates depend on your credit tier. <Link href="/calculate" className="text-[var(--d-accent-deep)] hover:underline">Calculate exact loan &rarr;</Link>
+
+                                  {/* Tier cards */}
+                                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    {tiers.map((tier) => {
+                                      const loanUsd = collateralUsd * tier.ltv;
+                                      const feeUsd = loanUsd * tier.fee;
+                                      const netUsd = loanUsd - feeUsd;
+                                      return (
+                                        <div
+                                          key={tier.name}
+                                          className="rounded-xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-4 flex flex-col transition hover:border-[var(--d-accent)] hover:shadow-sm"
+                                        >
+                                          <div className="flex items-center justify-between mb-3">
+                                            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: tier.color }}>{tier.name}</span>
+                                            <span className="text-[10px] text-[var(--d-ink-faint)]">{tier.days}d &middot; {(tier.fee * 100).toFixed(1)}% fee</span>
+                                          </div>
+                                          <div className="flex-1">
+                                            <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--d-ink-faint)]">You receive</div>
+                                            <div className="font-display text-xl font-bold tracking-tight mt-0.5">
+                                              ${netUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                            </div>
+                                            <div className="text-[10px] text-[var(--d-ink-faint)] mt-0.5">
+                                              {(tier.ltv * 100).toFixed(0)}% LTV &middot; ${feeUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })} fee
+                                            </div>
+                                          </div>
+                                          <div className="mt-3 pt-3 border-t border-[var(--d-border)] grid grid-cols-2 gap-2 text-[10px]">
+                                            <div>
+                                              <div className="text-[var(--d-ink-faint)]">Repay by</div>
+                                              <div className="font-medium">{tier.days} days</div>
+                                            </div>
+                                            <div>
+                                              <div className="text-[var(--d-ink-faint)]">Collateral</div>
+                                              <div className="font-medium">{(uiAmount * pct / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })} {h.symbol}</div>
+                                            </div>
+                                          </div>
+                                          <a
+                                            href={TELEGRAM_URL}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="mt-3 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition"
+                                            style={{
+                                              background: tier.name === "Standard" ? "var(--d-accent)" : "var(--d-surface)",
+                                              color: tier.name === "Standard" ? "var(--d-accent-ink)" : "var(--d-ink)",
+                                              border: tier.name === "Standard" ? "none" : "1px solid var(--d-border)",
+                                            }}
+                                          >
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" /></svg>
+                                            Borrow {tier.name}
+                                          </a>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+
+                                  {/* Help text */}
+                                  <div className="mt-4 flex items-start gap-2 rounded-lg bg-[var(--d-surface)]/60 px-3 py-2.5">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--d-ink-faint)" strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-0.5">
+                                      <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+                                    </svg>
+                                    <p className="text-[11px] text-[var(--d-ink-soft)] leading-relaxed">
+                                      Loans are executed through the Telegram bot. Use <span className="font-mono font-medium">/borrow</span> to start,
+                                      or <span className="font-mono font-medium">/simulate {h.symbol.toLowerCase()} {Math.floor(uiAmount * pct / 100)}</span> to preview exact SOL amounts.
+                                      Repay before the deadline to reclaim your {h.symbol}.
+                                    </p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="border-t border-[var(--d-border)] bg-[var(--d-surface)]/40 px-4 py-2.5 flex items-center justify-between">
+                        <span className="text-[11px] text-[var(--d-ink-faint)]">
+                          Estimates based on live prices. Actual loan amounts in SOL.
+                        </span>
+                        <Link href="/calculate" className="text-[11px] font-medium text-[var(--d-accent-deep)] hover:underline">
+                          Full calculator &rarr;
+                        </Link>
                       </div>
                     </div>
                   )}
