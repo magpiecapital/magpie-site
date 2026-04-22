@@ -112,6 +112,22 @@ interface TokenHolding {
   decimals: number;
 }
 
+interface ApprovedToken {
+  symbol: string;
+  name: string;
+  mint: string;
+  priceUsd: number | null;
+  priceChange24h: number | null;
+  volume24h: number | null;
+  marketCap: number | null;
+  liquidity: number | null;
+}
+
+interface EligibleHolding extends TokenHolding {
+  approved: ApprovedToken;
+  valueUsd: number;
+}
+
 /* ───────────────────────── SIDEBAR NAV ITEMS ───────────────────────── */
 
 type NavItem = { key: SectionKey; label: string; icon: React.ReactNode } | { key: "overview"; label: string; icon: React.ReactNode };
@@ -460,7 +476,7 @@ function MobileMenu({
               )}
             </button>
           </div>
-          <div className="mt-2 text-lg font-semibold">{solBalance.toFixed(2)} SOL</div>
+          <div className="mt-2 text-lg font-semibold">{solBalance.toFixed(4)} SOL</div>
         </div>
 
         {/* Dashboard sections */}
@@ -569,6 +585,8 @@ export default function DashboardPage() {
   const [solBalance, setSolBalance] = useState<number>(0);
   const [holdings, setHoldings] = useState<TokenHolding[]>([]);
   const [holdingsLoading, setHoldingsLoading] = useState(false);
+  const [approvedTokens, setApprovedTokens] = useState<ApprovedToken[]>([]);
+  const [approvedLoading, setApprovedLoading] = useState(false);
 
   const walletDisplay = connected && publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
@@ -634,6 +652,41 @@ export default function DashboardPage() {
       });
     return () => { cancelled = true; };
   }, [connected, publicKey, connection]);
+
+  // Fetch approved collateral tokens
+  useEffect(() => {
+    if (!connected || !publicKey) { setApprovedTokens([]); return; }
+    let cancelled = false;
+    setApprovedLoading(true);
+    fetch("/api/v1/tokens")
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        if (d.ok && Array.isArray(d.data)) setApprovedTokens(d.data);
+        setApprovedLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setApprovedLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [connected, publicKey]);
+
+  // Derive eligible collateral from holdings × approved tokens
+  const eligibleCollateral: EligibleHolding[] = (() => {
+    if (!holdings.length || !approvedTokens.length) return [];
+    const approvedMap = new Map(approvedTokens.map((t) => [t.mint, t]));
+    return holdings
+      .filter((h) => approvedMap.has(h.mint))
+      .map((h) => {
+        const approved = approvedMap.get(h.mint)!;
+        const uiAmount = Number(h.amount) / Math.pow(10, h.decimals);
+        const valueUsd = approved.priceUsd ? uiAmount * approved.priceUsd : 0;
+        return { ...h, symbol: approved.symbol, name: approved.name, approved, valueUsd };
+      })
+      .sort((a, b) => b.valueUsd - a.valueUsd);
+  })();
+
+  const totalEligibleUsd = eligibleCollateral.reduce((sum, h) => sum + h.valueUsd, 0);
 
   // Fetch live credit score when wallet connected
   useEffect(() => {
@@ -924,7 +977,7 @@ export default function DashboardPage() {
             </div>
             <div className="h-4 w-px bg-[var(--hairline)]" />
             <span className="text-xs text-[var(--d-ink-soft)]">
-              <span className="font-semibold text-[var(--d-ink)]">{solBalance.toFixed(2)} SOL</span>
+              <span className="font-semibold text-[var(--d-ink)]">{solBalance.toFixed(4)} SOL</span>
             </span>
           </div>
 
@@ -992,11 +1045,11 @@ export default function DashboardPage() {
             {/* ─── KPI CARDS ROW ─── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {[
-                { label: "SOL Balance", value: solBalance.toFixed(2), sub: "SOL", accent: false },
+                { label: "SOL Balance", value: solBalance.toFixed(4), sub: "SOL", accent: false },
                 { label: "Holdings", value: `${holdings.length}`, sub: "SPL tokens", accent: false },
+                { label: "Eligible Collateral", value: `${eligibleCollateral.length}`, sub: totalEligibleUsd > 0 ? `$${totalEligibleUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "No eligible tokens", accent: eligibleCollateral.length > 0 },
                 { label: "Active Loans", value: "0", sub: "No active loans", accent: false },
                 { label: "Total Owed", value: "0 SOL", sub: "No debt", accent: false },
-                { label: "Collateral Locked", value: "0", sub: "No collateral", accent: false },
                 { label: "Credit Score", value: `${creditScore}`, sub: `${creditTier} tier`, accent: true },
               ].map((kpi) => (
                 <div
@@ -1026,6 +1079,80 @@ export default function DashboardPage() {
                     />
                   </div>
                 )}
+
+                {/* ELIGIBLE COLLATERAL */}
+                <div id="section-eligible">
+                  <SectionHeader title="Eligible Collateral" count={eligibleCollateral.length} />
+                  {approvedLoading || holdingsLoading ? (
+                    <div className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-10 text-center">
+                      <div className="text-sm text-[var(--d-ink-soft)]">Scanning wallet for eligible tokens...</div>
+                    </div>
+                  ) : eligibleCollateral.length === 0 ? (
+                    <EmptyState
+                      message={holdings.length === 0 ? "No tokens in wallet — deposit supported memecoins to use as collateral" : "None of your tokens are currently eligible as collateral"}
+                      cta={{ label: "View approved tokens", href: "/tokens" }}
+                    />
+                  ) : (
+                    <div className="overflow-hidden rounded-2xl border border-[var(--d-accent)]/20 bg-[var(--d-bg-card)]">
+                      <div className="border-b border-[var(--d-border)] bg-[var(--d-accent-dim)]/30 px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-5 w-5 items-center justify-center rounded-md text-[10px]" style={{ background: "var(--d-accent-dim)", color: "var(--d-accent-deep)" }}>&#x2713;</span>
+                          <span className="text-xs font-medium text-[var(--d-accent-deep)]">
+                            {eligibleCollateral.length} token{eligibleCollateral.length !== 1 ? "s" : ""} eligible
+                          </span>
+                        </div>
+                        <span className="text-xs text-[var(--d-ink-soft)]">
+                          Total: <span className="font-semibold text-[var(--d-ink)]">${totalEligibleUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                        </span>
+                      </div>
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-[var(--d-border)] bg-[var(--d-surface)]/60">
+                            <th className="px-4 py-3 text-left text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Token</th>
+                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Balance</th>
+                            <th className="hidden sm:table-cell px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Price</th>
+                            <th className="px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Value</th>
+                            <th className="hidden md:table-cell px-4 py-3 text-right text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)] font-medium">Max Loan (20%)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {eligibleCollateral.map((h, i) => {
+                            const uiAmount = Number(h.amount) / Math.pow(10, h.decimals);
+                            const maxLoan = h.valueUsd * 0.20;
+                            return (
+                              <tr key={h.mint} className={`border-b border-[var(--d-border)] last:border-0 transition hover:bg-[var(--d-surface-hover)]/40 ${i % 2 === 1 ? "bg-[var(--d-surface)]/20" : ""}`}>
+                                <td className="px-4 py-3">
+                                  <div className="flex items-center gap-2.5">
+                                    <TokenIcon mint={h.mint} symbol={h.symbol} size={28} />
+                                    <div>
+                                      <div className="font-medium text-[13px]">{h.symbol}</div>
+                                      <div className="text-[10px] text-[var(--d-ink-faint)]">{h.name}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-4 py-3 text-right text-xs text-[var(--d-ink-soft)]">{formatTokenAmount(h.amount, h.decimals)}</td>
+                                <td className="hidden sm:table-cell px-4 py-3 text-right text-xs text-[var(--d-ink-soft)]">
+                                  {h.approved.priceUsd ? `$${h.approved.priceUsd < 0.01 ? h.approved.priceUsd.toPrecision(4) : h.approved.priceUsd.toFixed(4)}` : "—"}
+                                </td>
+                                <td className="px-4 py-3 text-right text-[13px] font-medium">
+                                  {h.valueUsd > 0 ? `$${h.valueUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
+                                </td>
+                                <td className="hidden md:table-cell px-4 py-3 text-right">
+                                  <span className="rounded-md bg-[var(--d-accent-dim)] px-2 py-0.5 text-[11px] font-semibold text-[var(--d-accent-deep)]">
+                                    {maxLoan > 0 ? `~$${maxLoan.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "—"}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      <div className="border-t border-[var(--d-border)] bg-[var(--d-surface)]/40 px-4 py-2.5 text-[11px] text-[var(--d-ink-faint)]">
+                        Max loan estimates use Standard tier (20% LTV). Actual rates depend on your credit tier. <Link href="/calculate" className="text-[var(--d-accent-deep)] hover:underline">Calculate exact loan &rarr;</Link>
+                      </div>
+                    </div>
+                  )}
+                </div>
 
                 {/* HOLDINGS TABLE */}
                 {prefs.holdings && (
