@@ -7,6 +7,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { buildBorrowTransaction } from "@/lib/solana/borrow";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const TELEGRAM_LOAN_URL = "https://t.me/magpie_capital_bot?start=loan";
@@ -591,6 +592,12 @@ export default function DashboardPage() {
   const [approvedTokens, setApprovedTokens] = useState<ApprovedToken[]>([]);
   const [approvedLoading, setApprovedLoading] = useState(false);
 
+  // ── Borrow state ──
+  const [borrowing, setBorrowing] = useState(false);
+  const [borrowTx, setBorrowTx] = useState<string | null>(null);
+  const [borrowError, setBorrowError] = useState<string | null>(null);
+  const { sendTransaction } = useWallet();
+
   const walletDisplay = connected && publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
     : "";
@@ -697,6 +704,74 @@ export default function DashboardPage() {
   })();
 
   const totalEligibleUsd = eligibleCollateral.reduce((sum, h) => sum + h.valueUsd, 0);
+
+  // ── Borrow handler: build tx, sign with Phantom, send on-chain ──
+  const handleBorrow = useCallback(async (
+    holding: EligibleHolding,
+    tierOption: number,
+    pct: number,
+  ) => {
+    if (!publicKey || !connected) return;
+    setBorrowing(true);
+    setBorrowTx(null);
+    setBorrowError(null);
+
+    try {
+      const uiAmount = Number(holding.amount) / Math.pow(10, holding.decimals);
+      const collateralUiAmount = uiAmount * (pct / 100);
+      const collateralAmountRaw = BigInt(Math.floor(collateralUiAmount * Math.pow(10, holding.decimals))).toString();
+
+      // Fetch SOL price to convert USD value to lamports
+      const solPriceRes = await fetch("https://api.dexscreener.com/tokens/v1/solana/So11111111111111111111111111111111111111112");
+      const solPriceData = await solPriceRes.json();
+      const solPairs = Array.isArray(solPriceData) ? solPriceData : solPriceData.pairs || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bestSol = solPairs.reduce((best: any, pair: any) =>
+        (pair.liquidity?.usd || 0) > (best.liquidity?.usd || 0) ? pair : best,
+      );
+      const solPriceUsd = parseFloat(bestSol.priceUsd);
+
+      // Collateral value in lamports = (uiAmount * priceUsd / solPriceUsd) * 1e9
+      const priceUsd = holding.approved.priceUsd || 0;
+      const collateralValueSol = (collateralUiAmount * priceUsd) / solPriceUsd;
+      const collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
+
+      const { transaction, loanId, loanPda } = await buildBorrowTransaction({
+        borrower: publicKey,
+        collateralMint: holding.mint,
+        collateralAmountRaw,
+        collateralValueLamports,
+        loanOption: tierOption,
+        connection,
+      });
+
+      const signature = await sendTransaction(transaction, connection, {
+        skipPreflight: false,
+      });
+
+      // Wait for confirmation
+      const latestBlockhash = await connection.getLatestBlockhash("confirmed");
+      await connection.confirmTransaction({
+        signature,
+        ...latestBlockhash,
+      }, "confirmed");
+
+      setBorrowTx(signature);
+
+      // Refresh balances
+      connection.getBalance(publicKey).then((lamports) => setSolBalance(lamports / LAMPORTS_PER_SOL)).catch(() => {});
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Transaction failed";
+      // User rejected in Phantom
+      if (msg.includes("User rejected")) {
+        setBorrowError("Transaction cancelled");
+      } else {
+        setBorrowError(msg);
+      }
+    } finally {
+      setBorrowing(false);
+    }
+  }, [publicKey, connected, connection, sendTransaction]);
 
   // Fetch live credit score when wallet connected
   useEffect(() => {
@@ -1242,24 +1317,49 @@ export default function DashboardPage() {
                                               <div className="font-medium">{tier.ltv > 0.20 ? "Higher risk" : "Lower risk"}</div>
                                             </div>
                                           </div>
-                                          <a
-                                            href={TELEGRAM_LOAN_URL}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="mt-3 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-semibold transition"
+                                          <button
+                                            onClick={() => handleBorrow(h, tier.name === "Express" ? 0 : tier.name === "Quick" ? 1 : 2, pct)}
+                                            disabled={borrowing || !connected}
+                                            className="mt-3 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                             style={{
                                               background: tier.name === "Standard" ? "var(--d-accent)" : "var(--d-surface)",
                                               color: tier.name === "Standard" ? "var(--d-accent-ink)" : "var(--d-ink)",
                                               border: tier.name === "Standard" ? "none" : "1px solid var(--d-border)",
                                             }}
                                           >
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" /></svg>
-                                            Borrow {tier.name}
-                                          </a>
+                                            {borrowing ? (
+                                              <>
+                                                <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
+                                                Signing...
+                                              </>
+                                            ) : (
+                                              <>
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                                                Borrow {tier.name}
+                                              </>
+                                            )}
+                                          </button>
                                         </div>
                                       );
                                     })}
                                   </div>
+
+                                  {/* Borrow status messages */}
+                                  {borrowTx && (
+                                    <div className="mt-4 flex items-start gap-2 rounded-lg bg-green-500/10 border border-green-500/20 px-3 py-2.5">
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" className="shrink-0 mt-0.5"><path d="M20 6L9 17l-5-5" /></svg>
+                                      <div className="text-[11px] text-green-400 leading-relaxed">
+                                        <span className="font-semibold">Loan executed!</span> SOL has been sent to your wallet.{" "}
+                                        <a href={`https://solscan.io/tx/${borrowTx}`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-medium">View transaction</a>
+                                      </div>
+                                    </div>
+                                  )}
+                                  {borrowError && (
+                                    <div className="mt-4 flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5">
+                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
+                                      <p className="text-[11px] text-red-400 leading-relaxed">{borrowError}</p>
+                                    </div>
+                                  )}
 
                                   {/* Help text */}
                                   <div className="mt-4 flex items-start gap-2 rounded-lg bg-[var(--d-surface)]/60 px-3 py-2.5">
@@ -1267,8 +1367,8 @@ export default function DashboardPage() {
                                       <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
                                     </svg>
                                     <p className="text-[11px] text-[var(--d-ink-soft)] leading-relaxed">
-                                      Tap a &ldquo;Borrow&rdquo; button to open the Telegram bot. The bot will show your deposit wallet &mdash; send your {h.symbol} there, then use <span className="font-mono font-medium">/borrow</span> to execute.
-                                      Preview exact SOL amounts with <span className="font-mono font-medium">/simulate {h.symbol.toLowerCase()} {Math.floor(uiAmount * pct / 100)}</span>.
+                                      Click &ldquo;Borrow&rdquo; to sign the transaction with your wallet. Your {h.symbol} is locked as collateral and you receive SOL instantly.
+                                      Repay before the deadline to reclaim your tokens. Manage loans via the <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--d-accent-deep)] font-medium hover:underline">Telegram bot</a>.
                                     </p>
                                   </div>
                                 </div>
