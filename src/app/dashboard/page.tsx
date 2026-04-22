@@ -9,6 +9,7 @@ import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
+const TELEGRAM_LOAN_URL = "https://t.me/magpie_capital_bot?start=loan";
 const PREFS_KEY = "magpie-dashboard-prefs";
 const THEME_KEY = "magpie-dashboard-theme";
 
@@ -1242,7 +1243,7 @@ export default function DashboardPage() {
                                             </div>
                                           </div>
                                           <a
-                                            href={TELEGRAM_URL}
+                                            href={TELEGRAM_LOAN_URL}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="mt-3 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-semibold transition"
@@ -1266,9 +1267,8 @@ export default function DashboardPage() {
                                       <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
                                     </svg>
                                     <p className="text-[11px] text-[var(--d-ink-soft)] leading-relaxed">
-                                      Loans are executed through the Telegram bot. Use <span className="font-mono font-medium">/borrow</span> to start,
-                                      or <span className="font-mono font-medium">/simulate {h.symbol.toLowerCase()} {Math.floor(uiAmount * pct / 100)}</span> to preview exact SOL amounts.
-                                      Repay before the deadline to reclaim your {h.symbol}.
+                                      Tap a &ldquo;Borrow&rdquo; button to open the Telegram bot. The bot will show your deposit wallet &mdash; send your {h.symbol} there, then use <span className="font-mono font-medium">/borrow</span> to execute.
+                                      Preview exact SOL amounts with <span className="font-mono font-medium">/simulate {h.symbol.toLowerCase()} {Math.floor(uiAmount * pct / 100)}</span>.
                                     </p>
                                   </div>
                                 </div>
