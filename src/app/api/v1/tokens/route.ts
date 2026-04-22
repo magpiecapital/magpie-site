@@ -66,6 +66,7 @@ const REGISTRY: { symbol: string; name: string; mint: string }[] = [
   { symbol: "TACO", name: "Taco", mint: "E3wRGJoN5q1oGz9VwKQ3CP4YDy3Bp7hpbPCfn4Hmpump" },
   { symbol: "PITY", name: "Pity", mint: "4DMVnTcZPBNmVTfj7K9EhWMkaZoD2kRRUCdHJNApump" },
   { symbol: "MAXXING", name: "MAXXING", mint: "7P9b1V6WiMZGJBxUqm1s2vHJJLkR2N8ACCESS6MtgY" },
+  { symbol: "RENTA", name: "Renta", mint: "5MxQUFdPisppdVfjitL6hs492GyikCFnsBWYtuAqpump" },
 ];
 
 /* ─── In-memory cache (60s TTL) ─── */
