@@ -4,76 +4,11 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { TOKEN_REGISTRY } from "@/lib/token-registry";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
-/* ─── Token Registry ─── */
-const REGISTRY: { symbol: string; name: string; mint: string }[] = [
-  { symbol: "67", name: "67", mint: "9AvytnUKsLxPxFHFqS6VLxaxt5p6BhYNr53SD2Chpump" },
-  { symbol: "ACT", name: "Act", mint: "GJAFwWjJ3vnTsrQVabjBVK2TYB1YtRCQXRDfDgUnpump" },
-  { symbol: "ALCH", name: "Alchemist AI", mint: "HNg5PYJmtqcmzXrv6S9zP1CDKk5BgDuyFBxbvNApump" },
-  { symbol: "ARC", name: "Arc", mint: "61V8vBaqAGMpgDQi4JcAwo1dmBGHsyhzodcPqnEVpump" },
-  { symbol: "ASTEROID", name: "Asteroid", mint: "F1ppSHedBsGGwEKH78JVgoqr4xkQHswtsGGLpgM7bCP2" },
-  { symbol: "AURA", name: "Aura", mint: "DtR4D9FtVoTX2569gaL837ZgrB6wNjj6tkmnX9Rdk9B2" },
-  { symbol: "BAN", name: "Ban", mint: "9PR7nCP9DpcUotnDPVLUBUZKu5WAYkwrCUx9wDnSpump" },
-  { symbol: "BERT", name: "Bert", mint: "HgBRWfYxEfvPhtqkaeymCQtHCrKE46qQ43pKe8HCpump" },
-  { symbol: "BOME", name: "Bome", mint: "ukHH6c7mMyiWCf1b9pnWe25TSpkDDt3H5pQZgZ74J82" },
-  { symbol: "BONK", name: "Bonk", mint: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263" },
-  { symbol: "BULL", name: "Bull", mint: "3TYgKwkE2Y3rxdw9osLRSpxpXmSC1C1oo19W9KHspump" },
-  { symbol: "BUTTCOIN", name: "Buttcoin", mint: "Cm6fNnMk7NfzStP9CZpsQA2v3jjzbcYGAxdJySmHpump" },
-  { symbol: "CHILLGUY", name: "Chill Guy", mint: "Df6yfrKC8kZE3KNkrHERKzAetSxbrWeniQfyJY4Jpump" },
-  { symbol: "CHILLHOUSE", name: "Chillhouse", mint: "GkyPYa7NnCFbduLknCfBfP7p8564X1VZhwZYJ6CZpump" },
-  { symbol: "CODEC", name: "Codec", mint: "69LjZUUzxj3Cb3Fxeo1X4QpYEQTboApkhXTysPpbpump" },
-  { symbol: "COPPERINU", name: "Copper Inu", mint: "61Wj56QgGyyB966T7YsMzEAKRLcMvJpDbPzjkrCZc4Bi" },
-  { symbol: "DREAMS", name: "Dreams", mint: "GMzuntWYJLpNuCizrSR7ZXggiMdDzTNiEmSNHHunpump" },
-  { symbol: "FARTCOIN", name: "Fartcoin", mint: "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump" },
-  { symbol: "FIH", name: "Fih", mint: "8SkfuQkYNTskoQUbbjr2JbZQeqQV9egnJXgfMXf5bonk" },
-  { symbol: "FORCA", name: "Forca", mint: "J1wsY5rqFesHmQojnzBNs4Bhk5vEtCb9GU5xv7A7pump" },
-  { symbol: "FWOG", name: "Fwog", mint: "A8C3xuqscfmyLrte3VmTqrAq8kgMASius9AFNANwpump" },
-  { symbol: "GIGA", name: "Giga", mint: "63LfDmNb3MQ8mw9MtZ2To9bEA2M71kZUUGq5tiJxcqj9" },
-  { symbol: "GOAT", name: "Goat", mint: "CzLSujWBLFsSjncfkh59rUFqvafWcY5tzedWJSuypump" },
-  { symbol: "GRIFFAIN", name: "Griffain", mint: "KENJSUYLASHUMfHyy5o4Hp2FdNqZg1AsUPhfH2kYvEP" },
-  { symbol: "HODL", name: "Hodl", mint: "Hh3oTaqDCKKfdBgsQEvxp9sUwyNf8x9qmKqEMLBWpump" },
-  { symbol: "JELLYJELLY", name: "Jelly Jelly", mint: "FeR8VBqNRSUD5NtXAj2n3j1dAHkZHfyDktKuLXD4pump" },
-  { symbol: "LOBSTAR", name: "Lobstar", mint: "AVF9F4C4j8b1Kh4BmNHqybDaHgnZpJ7W7yLvL7hUpump" },
-  { symbol: "LOL", name: "LOL", mint: "34q2KmCvapecJgR6ZrtbCTrzZVtkt3a5mHEA3TuEsWYb" },
-  { symbol: "MAXXING", name: "Maxxing", mint: "32CdQdBUxbCsLy5AUHWmyidfwhgGUr9N573NBUrDpump" },
-  { symbol: "MOODENG", name: "Moo Deng", mint: "ED5nyyWEzpPPiWimP8vYm7sD7TD3LAt3Q3gRTWHzPJBY" },
-  { symbol: "NEET", name: "Neet", mint: "Ce2gx9KGXJ6C9Mp5b5x1sn9Mg87JwEbrQby4Zqo3pump" },
-  { symbol: "NOBODY", name: "Nobody", mint: "C29ebrgYjYoJPMGPnPSGY1q3mMGk4iDSqnQeQQA7moon" },
-  { symbol: "PENGU", name: "Pengu", mint: "2zMMhcVQEXDtdE6vsFS7S7D5oUodfJHE8vd1gnBouauv" },
-  { symbol: "PENGUIN", name: "Penguin", mint: "8Jx8AAHj86wbQgUTjGuj6GTTL5Ps3cqxKRTvpaJApump" },
-  { symbol: "PNUT", name: "Pnut", mint: "2qEHjDLDLbuBgRYvsxhc5D6uDWAivNFZGan56P1tpump" },
-  { symbol: "POPCAT", name: "Popcat", mint: "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr" },
-  { symbol: "PUMP", name: "Pump", mint: "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn" },
-  { symbol: "PUMPCADE", name: "Pumpcade", mint: "Eg2ymQ2aQqjMcibnmTt8erC6Tvk9PVpJZCxvVPJz2agu" },
-  { symbol: "PUNCH", name: "Punch", mint: "NV2RYH954cTJ3ckFUpvfqaQXU4ARqqDH3562nFSpump" },
-  { symbol: "PYTH", name: "Pyth", mint: "HZ1JovNiVvGrGNiiYvEozEVgZ58xaU3RKwX8eACQBCt3" },
-  { symbol: "PYTHIA", name: "Pythia", mint: "CreiuhfwdWCN5mJbMJtA9bBpYQrQF2tCBuZwSPWfpump" },
-  { symbol: "RAIN", name: "Rain", mint: "3iC63FgnB7EhcPaiSaC51UkVweeBDkqu17SaRyy2pump" },
-  { symbol: "REITRE", name: "Reitre", mint: "zGh48JtNHVBb5evgoZLXwgPD2Qu4MhkWdJLGDAupump" },
-  { symbol: "RENTA", name: "Renta", mint: "5MxQUFdPisppdVfjitL6hs492GyikCFnsBWYtuAqpump" },
-  { symbol: "RETARDIO", name: "Retardio", mint: "6ogzHhzdrQr9Pgv6hZ2MNze7UrzBMAFyBBWUYp1Fhitx" },
-  { symbol: "SMR", name: "Smr", mint: "EiRfZeWLW1NymAfjKUePz3jwtq5rZ69XM3zLDS1Npump" },
-  { symbol: "SPIKE", name: "Spike", mint: "BFiGUxnidogqcZAPVPDZRCfhx3nXnFLYqpQUaUGpump" },
-  { symbol: "SWARMS", name: "Swarms", mint: "74SBV4zDXxTRgv1pEMoECskKBkZHc2yGPnc7GYVepump" },
-  { symbol: "TESTICLE", name: "Testicle", mint: "4TyZGqRLG3VcHTGMcLBoPUmqYitMVojXinAmkL8xpump" },
-  { symbol: "TRIPLET", name: "TripleT", mint: "J8PSdNP3QewKq2Z1JJJFDMaqF7KcaiJhR7gbr5KZpump" },
-  { symbol: "TROLL", name: "Troll", mint: "5UUH9RTDiSpq6HKS6bp4NdU9PNJpXRXuiw6ShBTBhgH2" },
-  { symbol: "TRUMP", name: "Trump", mint: "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN" },
-  { symbol: "UFD", name: "UFD", mint: "eL5fUxj2J4CiQsmW85k5FG9DvuQjjUoBHoQBi2Kpump" },
-  { symbol: "UNC", name: "Unc", mint: "ACtfUWtgvaXrQGNMiohTusi5jcx5RJf5zwu9aAxkpump" },
-  { symbol: "USDUC", name: "USDUC", mint: "CB9dDufT3ZuQXqqSfa1c5kY935TEreyBw9XJXxHKpump" },
-  { symbol: "USELESS", name: "Useless", mint: "Dz9mQ9NzkBcCsuGPFJ3r1bS4wgqKMHBPiVuniW8Mbonk" },
-  { symbol: "VINE", name: "Vine", mint: "6AJcP7wuLwmRYLBNbi825wgguaPsWzPBEHcHndpRpump" },
-  { symbol: "WHITEWHALE", name: "White Whale", mint: "a3W4qutoEJA4232T2gwZUfgYJTetr96pU4SJMwppump" },
-  { symbol: "WIF", name: "dogwifhat", mint: "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm" },
-  { symbol: "WOJAK", name: "Wojak", mint: "8J69rbLTzWWgUJziFY8jeu5tDwEPBwUz4pKBMr5rpump" },
-  { symbol: "WOULD", name: "Would", mint: "J1Wpmugrooj1yMyQKrdZ2vwRXG5rhfx3vTnYE39gpump" },
-  { symbol: "ZAUTH", name: "Zauth", mint: "DNhQZ1CE9qZ2FNrVhsCXwQJ2vZG8ufZkcYakTS5Jpump" },
-  { symbol: "ZEREBRO", name: "Zerebro", mint: "8x5VqbHA8D7NkD52uNuS5nnt3PwA8pLD34ymskeSo2Wn" },
-  { symbol: "\u6211\u7684\u5200\u76FE", name: "\u6211\u7684\u5200\u76FE", mint: "6iA73gWCKkLWKbVr8rgibV57MMRxzsaqS9cWpgKBpump" },
-];
+const REGISTRY = TOKEN_REGISTRY;
 
 /* ─── Types ─── */
 type SortKey = "rank" | "price" | "change1h" | "change24h" | "volume" | "mcap";
