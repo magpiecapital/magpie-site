@@ -1121,9 +1121,9 @@ export default function DashboardPage() {
                           const pct = loanPercent[h.mint] ?? 100;
                           const collateralUsd = h.valueUsd * (pct / 100);
                           const tiers = [
-                            { name: "Express", ltv: 0.30, days: 2, fee: 0.03, color: "var(--d-bad)" },
-                            { name: "Quick", ltv: 0.25, days: 3, fee: 0.02, color: "var(--d-warn)" },
-                            { name: "Standard", ltv: 0.20, days: 7, fee: 0.015, color: "var(--d-accent)" },
+                            { name: "Express", tag: "Fast cash, premium rate", ltv: 0.30, days: 2, fee: 0.03, color: "var(--d-bad)" },
+                            { name: "Quick", tag: "Balanced speed & value", ltv: 0.25, days: 3, fee: 0.02, color: "var(--d-warn)" },
+                            { name: "Standard", tag: "Best rate, more time to repay", ltv: 0.20, days: 7, fee: 0.015, color: "var(--d-accent)" },
                           ];
                           return (
                             <div key={h.mint}>
@@ -1206,12 +1206,18 @@ export default function DashboardPage() {
                                       return (
                                         <div
                                           key={tier.name}
-                                          className="rounded-xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-4 flex flex-col transition hover:border-[var(--d-accent)] hover:shadow-sm"
+                                          className={`rounded-xl border bg-[var(--d-bg-card)] p-4 flex flex-col transition hover:shadow-sm ${tier.name === "Standard" ? "border-[var(--d-accent)]/50 ring-1 ring-[var(--d-accent)]/20" : "border-[var(--d-border)] hover:border-[var(--d-accent)]"}`}
                                         >
-                                          <div className="flex items-center justify-between mb-3">
-                                            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: tier.color }}>{tier.name}</span>
-                                            <span className="text-[10px] text-[var(--d-ink-faint)]">{tier.days}d &middot; {(tier.fee * 100).toFixed(1)}% fee</span>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-xs font-bold uppercase tracking-wider" style={{ color: tier.color }}>{tier.name}</span>
+                                              {tier.name === "Standard" && (
+                                                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[var(--d-accent)] text-[var(--d-accent-ink)]">Best value</span>
+                                              )}
+                                            </div>
+                                            <span className="text-[10px] font-semibold" style={{ color: tier.color }}>{(tier.fee * 100).toFixed(1)}%</span>
                                           </div>
+                                          <div className="text-[10px] text-[var(--d-ink-faint)] mb-3 italic">{tier.tag}</div>
                                           <div className="flex-1">
                                             <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--d-ink-faint)]">You receive</div>
                                             <div className="font-display text-xl font-bold tracking-tight mt-0.5">
@@ -1221,21 +1227,25 @@ export default function DashboardPage() {
                                               {(tier.ltv * 100).toFixed(0)}% LTV &middot; ${feeUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })} fee
                                             </div>
                                           </div>
-                                          <div className="mt-3 pt-3 border-t border-[var(--d-border)] grid grid-cols-2 gap-2 text-[10px]">
+                                          <div className="mt-3 pt-3 border-t border-[var(--d-border)] grid grid-cols-3 gap-2 text-[10px]">
                                             <div>
-                                              <div className="text-[var(--d-ink-faint)]">Repay by</div>
+                                              <div className="text-[var(--d-ink-faint)]">Duration</div>
                                               <div className="font-medium">{tier.days} days</div>
                                             </div>
                                             <div>
                                               <div className="text-[var(--d-ink-faint)]">Collateral</div>
                                               <div className="font-medium">{(uiAmount * pct / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })} {h.symbol}</div>
                                             </div>
+                                            <div>
+                                              <div className="text-[var(--d-ink-faint)]">Borrow more</div>
+                                              <div className="font-medium">{tier.ltv > 0.20 ? "Higher risk" : "Lower risk"}</div>
+                                            </div>
                                           </div>
                                           <a
                                             href={TELEGRAM_URL}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="mt-3 flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition"
+                                            className="mt-3 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-semibold transition"
                                             style={{
                                               background: tier.name === "Standard" ? "var(--d-accent)" : "var(--d-surface)",
                                               color: tier.name === "Standard" ? "var(--d-accent-ink)" : "var(--d-ink)",
