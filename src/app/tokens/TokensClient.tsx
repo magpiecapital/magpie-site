@@ -232,20 +232,12 @@ export default function TokensClient() {
             </span>
             {!loading && (
               <>
-                <button
-                  onClick={() => { setCategoryFilter("stock"); document.getElementById("token-table")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold cursor-pointer transition hover:border-[var(--ink-soft)]"
-                  style={{ background: "rgba(92,90,82,0.06)", color: "var(--ink-soft)", borderColor: "var(--hairline-strong)" }}
-                >
+                <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ background: "rgba(92,90,82,0.06)", color: "var(--ink-soft)", borderColor: "var(--hairline-strong)" }}>
                   {stats.stockCount} Tokenized Stocks
-                </button>
-                <button
-                  onClick={() => { setCategoryFilter("memecoin"); document.getElementById("token-table")?.scrollIntoView({ behavior: "smooth" }); }}
-                  className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold cursor-pointer transition hover:border-[var(--accent-deep)]"
-                  style={{ background: "var(--accent-dim)", color: "var(--accent-deep)", borderColor: "rgba(247,201,72,0.3)" }}
-                >
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)", borderColor: "rgba(247,201,72,0.3)" }}>
                   {stats.memeCount} Memecoins
-                </button>
+                </span>
               </>
             )}
           </div>
@@ -272,7 +264,7 @@ export default function TokensClient() {
 
           {/* Stats cards */}
           {!loading && (
-            <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4 fade-up fade-up-4">
+            <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 fade-up fade-up-4">
               <StatCard
                 label="Total Tokens"
                 value={stats.count.toString()}
@@ -281,6 +273,13 @@ export default function TokensClient() {
                 label="Tokenized Stocks"
                 value={stats.stockCount.toString()}
                 accent="ink"
+                onClick={() => { setCategoryFilter("stock"); document.getElementById("token-table")?.scrollIntoView({ behavior: "smooth" }); }}
+              />
+              <StatCard
+                label="Memecoins"
+                value={stats.memeCount.toString()}
+                accent="amber"
+                onClick={() => { setCategoryFilter("memecoin"); document.getElementById("token-table")?.scrollIntoView({ behavior: "smooth" }); }}
               />
               <StatCard
                 label="Combined Mcap"
@@ -294,31 +293,6 @@ export default function TokensClient() {
           )}
         </div>
       </section>
-
-      {/* ── Two-Column Showcase ── */}
-      {!loading && (
-        <section className="mx-auto max-w-7xl px-6 pt-10 pb-2">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {/* Stocks column */}
-            <CategoryColumn
-              title="Tokenized Stocks"
-              subtitle="Real equities on Solana via tokens.xyz"
-              tokens={tokens.filter((t) => t.category === "stock").sort((a, b) => (b.mcap ?? 0) - (a.mcap ?? 0))}
-              accent="ink"
-              onViewAll={() => { setCategoryFilter("stock"); document.getElementById("token-table")?.scrollIntoView({ behavior: "smooth" }); }}
-            />
-            {/* Memecoins column */}
-            <CategoryColumn
-              title="Memecoins"
-              subtitle="Top community tokens by market cap"
-              tokens={tokens.filter((t) => t.category === "memecoin").sort((a, b) => (b.mcap ?? 0) - (a.mcap ?? 0)).slice(0, 9)}
-              accent="amber"
-              onViewAll={() => { setCategoryFilter("memecoin"); document.getElementById("token-table")?.scrollIntoView({ behavior: "smooth" }); }}
-              moreCount={tokens.filter((t) => t.category === "memecoin").length - 9}
-            />
-          </div>
-        </section>
-      )}
 
       {/* ── Table Section ── */}
       <section id="token-table" className="mx-auto max-w-7xl px-6 py-10 scroll-mt-20">
@@ -642,95 +616,6 @@ export default function TokensClient() {
    Sub-components
    ═══════════════════════════════════════════ */
 
-function CategoryColumn({
-  title,
-  subtitle,
-  tokens: items,
-  accent,
-  onViewAll,
-  moreCount,
-}: {
-  title: string;
-  subtitle: string;
-  tokens: TokenData[];
-  accent: "ink" | "amber";
-  onViewAll: () => void;
-  moreCount?: number;
-}) {
-  const isInk = accent === "ink";
-  return (
-    <div className={`rounded-2xl border p-5 ${
-      isInk
-        ? "border-[var(--ink)]/10 bg-[var(--ink)] text-white"
-        : "border-[var(--hairline)] bg-[var(--bg-elevated)]"
-    }`}>
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h3 className={`font-display text-lg font-medium tracking-[-0.02em] ${isInk ? "text-white" : ""}`}>
-            {title}
-          </h3>
-          <p className={`text-xs ${isInk ? "text-white/50" : "text-[var(--ink-faint)]"}`}>
-            {subtitle}
-          </p>
-        </div>
-        <button
-          onClick={onViewAll}
-          className={`text-xs font-semibold transition ${
-            isInk ? "text-[var(--accent)] hover:text-[var(--accent-hover)]" : "text-[var(--accent-deep)] hover:text-[var(--ink)]"
-          }`}
-        >
-          View all &rarr;
-        </button>
-      </div>
-      <div className="space-y-1">
-        {items.map((t, i) => (
-          <div
-            key={t.mint}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 transition ${
-              isInk ? "hover:bg-white/5" : "hover:bg-[var(--surface)]"
-            }`}
-          >
-            <span className={`w-5 text-xs tabular font-medium ${isInk ? "text-white/30" : "text-[var(--ink-faint)]"}`}>
-              {i + 1}
-            </span>
-            <TokenIcon symbol={t.symbol} mint={t.mint} imageUrl={t.imageUrl} />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-1.5">
-                <span className={`text-sm font-semibold truncate ${isInk ? "text-white" : ""}`}>{t.name}</span>
-                <span className={`text-xs ${isInk ? "text-white/40" : "text-[var(--ink-faint)]"}`}>{t.symbol}</span>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className={`text-sm tabular font-medium ${isInk ? "text-white" : ""}`}>{fmtUsd(t.price)}</div>
-              <div className={`text-[11px] tabular font-medium ${
-                t.change24h == null
-                  ? (isInk ? "text-white/30" : "text-[var(--ink-faint)]")
-                  : t.change24h >= 0
-                    ? (isInk ? "text-green-400" : "text-[var(--accent-deep)]")
-                    : "text-[var(--bad)]"
-              }`}>
-                {fmtPct(t.change24h)}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      {moreCount != null && moreCount > 0 && (
-        <button
-          onClick={onViewAll}
-          className={`mt-3 w-full rounded-xl py-2.5 text-xs font-semibold transition ${
-            isInk
-              ? "bg-white/10 text-white hover:bg-white/15"
-              : "bg-[var(--surface)] text-[var(--ink-soft)] hover:bg-[var(--surface-strong)]"
-          }`}
-        >
-          +{moreCount} more memecoins
-        </button>
-      )}
-    </div>
-  );
-}
-
 function CategoryBadge({ category }: { category: TokenCategory }) {
   if (category === "stock") {
     return (
@@ -746,24 +631,30 @@ function CategoryBadge({ category }: { category: TokenCategory }) {
   );
 }
 
-function StatCard({ label, value, accent }: { label: string; value: string; accent?: "ink" | "accent" }) {
+function StatCard({ label, value, accent, onClick }: { label: string; value: string; accent?: "ink" | "amber"; onClick?: () => void }) {
+  const Tag = onClick ? "button" : "div";
   return (
-    <div className={`rounded-2xl border px-5 py-4 shadow-sm ${
-      accent === "ink"
-        ? "border-[var(--ink)]/10 bg-[var(--ink)] text-[var(--bg-elevated)]"
-        : "border-[var(--hairline)] bg-[var(--bg-elevated)]"
-    }`}>
+    <Tag
+      onClick={onClick}
+      className={`rounded-2xl border px-5 py-4 shadow-sm text-left transition ${
+        accent === "ink"
+          ? "border-[var(--ink)]/10 bg-[var(--ink)] text-[var(--bg-elevated)]"
+          : accent === "amber"
+            ? "border-[var(--accent)]/30 bg-[var(--accent-dim)]"
+            : "border-[var(--hairline)] bg-[var(--bg-elevated)]"
+      } ${onClick ? "cursor-pointer hover:scale-[1.02] hover:shadow-md active:scale-100" : ""}`}
+    >
       <div className={`text-[10px] uppercase tracking-[0.18em] ${
-        accent === "ink" ? "text-white/50" : "text-[var(--ink-soft)]"
+        accent === "ink" ? "text-white/50" : accent === "amber" ? "text-[var(--accent-deep)]" : "text-[var(--ink-soft)]"
       }`}>
         {label}
       </div>
       <div className={`mt-1 font-display text-2xl font-medium tracking-[-0.03em] ${
-        accent === "ink" ? "text-white" : ""
+        accent === "ink" ? "text-white" : accent === "amber" ? "text-[var(--accent-deep)]" : ""
       }`}>
         {value}
       </div>
-    </div>
+    </Tag>
   );
 }
 
