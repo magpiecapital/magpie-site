@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { Mark } from "@/components/Logo";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import {
   fetchPoolStats,
   fetchDepositorPosition,
@@ -97,11 +98,9 @@ export default function EarnPage() {
   const handleWithdraw = async () => {
     if (!publicKey || !position || !amount) return;
 
-    // Convert SOL amount to shares
     const lamportsRequested = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
     if (lamportsRequested <= 0 || !pool) return;
 
-    // shares = lamports * totalShares / totalDeposits
     const shares = pool.totalDeposits > 0
       ? Math.floor((lamportsRequested * pool.totalShares) / pool.totalDeposits)
       : 0;
@@ -124,33 +123,36 @@ export default function EarnPage() {
     }
   };
 
-  const maxDeposit = Math.max(0, solBalance - 0.01 * LAMPORTS_PER_SOL); // keep 0.01 SOL for fees
+  const maxDeposit = Math.max(0, solBalance - 0.01 * LAMPORTS_PER_SOL);
   const maxWithdraw = position ? position.currentValue : 0;
 
   return (
-    <div className="min-h-screen" style={{ background: "#0f1114", color: "#e8e6e1" }}>
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b" style={{ borderColor: "#2a2c33", background: "rgba(15,17,20,0.9)", backdropFilter: "blur(12px)" }}>
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
-          <Link href="/" className="flex items-center gap-2">
-            <Mark size={24} />
-            <span className="font-display text-base font-semibold tracking-tight" style={{ color: "#f7c948" }}>Magpie</span>
-          </Link>
-          <nav className="flex items-center gap-4 text-sm">
-            <Link href="/dashboard" className="transition hover:text-[#f7c948]" style={{ color: "#9a978f" }}>Dashboard</Link>
-            <span className="font-medium" style={{ color: "#f7c948" }}>Earn</span>
-          </nav>
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
+      <Header />
+
+      {/* Hero */}
+      <section className="relative overflow-hidden border-b border-[var(--hairline)]">
+        <div className="hero-glow" />
+        <div className="relative mx-auto max-w-6xl px-6 pt-16 pb-12 md:pt-20 md:pb-16">
+          <div className="mb-4 flex flex-wrap items-center gap-2 fade-up">
+            <span className="chip">
+              <span className="live-dot" />
+              Permissionless pool
+            </span>
+          </div>
+          <h1 className="font-display text-5xl font-medium tracking-[-0.04em] md:text-7xl fade-up fade-up-1">
+            Earn yield.
+          </h1>
+          <p className="mt-4 max-w-xl text-lg text-[var(--ink-soft)] leading-relaxed fade-up fade-up-2">
+            Supply SOL to the lending pool. Earn a share of every borrower fee.
+            Withdraw anytime — no lockups, no minimums.
+          </p>
         </div>
-      </header>
+      </section>
 
-      <main className="mx-auto max-w-4xl px-4 py-10">
-        <h1 className="font-display text-3xl font-bold tracking-tight mb-1">Earn</h1>
-        <p className="text-sm mb-8" style={{ color: "#9a978f" }}>
-          Supply SOL to the lending pool and earn yield from borrower fees.
-        </p>
-
+      <main className="mx-auto max-w-6xl px-6 py-10">
         {error && (
-          <div className="mb-6 rounded-xl border p-4 text-sm" style={{ borderColor: "#e05555", background: "rgba(224,85,85,0.08)", color: "#e05555" }}>
+          <div className="mb-6 rounded-xl border border-[var(--bad)]/30 bg-[var(--bad)]/5 p-4 text-sm text-[var(--bad)]">
             {error}
           </div>
         )}
@@ -165,18 +167,18 @@ export default function EarnPage() {
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Left: Deposit/Withdraw form */}
-          <div className="rounded-2xl border p-6" style={{ borderColor: "#2a2c33", background: "#1e2028" }}>
+          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm">
             {/* Tabs */}
-            <div className="flex gap-1 rounded-xl p-1 mb-6" style={{ background: "#252730" }}>
+            <div className="flex gap-1 rounded-xl p-1 mb-6 bg-[var(--surface)]">
               {(["deposit", "withdraw"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => { setTab(t); setAmount(""); setTxError(null); setTxResult(null); }}
-                  className="flex-1 rounded-lg py-2 text-sm font-medium capitalize transition"
-                  style={{
-                    background: tab === t ? "#f7c948" : "transparent",
-                    color: tab === t ? "#1a1500" : "#9a978f",
-                  }}
+                  className={`flex-1 rounded-lg py-2 text-sm font-medium capitalize transition ${
+                    tab === t
+                      ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
+                      : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                  }`}
                 >
                   {t}
                 </button>
@@ -185,15 +187,15 @@ export default function EarnPage() {
 
             {!connected ? (
               <div className="text-center py-10">
-                <p className="text-sm mb-3" style={{ color: "#9a978f" }}>Connect your wallet to get started.</p>
-                <p className="text-xs" style={{ color: "#5c5a55" }}>Use the wallet button in the dashboard header.</p>
+                <p className="text-sm mb-3 text-[var(--ink-soft)]">Connect your wallet to get started.</p>
+                <p className="text-xs text-[var(--ink-faint)]">Use the wallet button in the header.</p>
               </div>
             ) : (
               <>
                 {/* Amount input */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-medium" style={{ color: "#9a978f" }}>
+                    <label className="text-xs font-medium text-[var(--ink-soft)]">
                       Amount (SOL)
                     </label>
                     <button
@@ -201,8 +203,7 @@ export default function EarnPage() {
                         const max = tab === "deposit" ? maxDeposit : maxWithdraw;
                         setAmount((max / LAMPORTS_PER_SOL).toFixed(4));
                       }}
-                      className="text-xs font-medium transition hover:opacity-80"
-                      style={{ color: "#f7c948" }}
+                      className="text-xs font-medium text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
                     >
                       Max: {solStr(tab === "deposit" ? maxDeposit : maxWithdraw)} SOL
                     </button>
@@ -214,43 +215,31 @@ export default function EarnPage() {
                     placeholder="0.00"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full rounded-xl border px-4 py-3 text-lg font-medium outline-none transition focus:border-[#f7c948]"
-                    style={{ borderColor: "#2a2c33", background: "#252730", color: "#e8e6e1" }}
+                    className="w-full rounded-xl border border-[var(--hairline-strong)] bg-[var(--surface)] px-4 py-3 text-lg font-medium outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
                   />
                 </div>
 
                 {/* Info row */}
                 {tab === "deposit" && pool && amount && parseFloat(amount) > 0 && (
-                  <div className="mb-4 rounded-lg p-3 text-xs space-y-1" style={{ background: "#252730" }}>
-                    <div className="flex justify-between">
-                      <span style={{ color: "#9a978f" }}>You deposit</span>
-                      <span>{parseFloat(amount).toFixed(4)} SOL</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span style={{ color: "#9a978f" }}>Pool share</span>
-                      <span>
-                        {pool.totalDeposits > 0
-                          ? pct(parseFloat(amount) * LAMPORTS_PER_SOL / (pool.totalDeposits + parseFloat(amount) * LAMPORTS_PER_SOL), 2)
-                          : "100%"}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span style={{ color: "#9a978f" }}>Yield source</span>
-                      <span>Borrower loan fees</span>
-                    </div>
+                  <div className="mb-4 rounded-xl border border-[var(--hairline)] p-3 text-xs space-y-1.5">
+                    <InfoRow label="You deposit" value={`${parseFloat(amount).toFixed(4)} SOL`} />
+                    <InfoRow
+                      label="Pool share"
+                      value={pool.totalDeposits > 0
+                        ? pct(parseFloat(amount) * LAMPORTS_PER_SOL / (pool.totalDeposits + parseFloat(amount) * LAMPORTS_PER_SOL), 2)
+                        : "100%"}
+                    />
+                    <InfoRow label="Yield source" value="Borrower loan fees" />
                   </div>
                 )}
 
                 {tab === "withdraw" && position && amount && parseFloat(amount) > 0 && (
-                  <div className="mb-4 rounded-lg p-3 text-xs space-y-1" style={{ background: "#252730" }}>
-                    <div className="flex justify-between">
-                      <span style={{ color: "#9a978f" }}>You receive</span>
-                      <span>{parseFloat(amount).toFixed(4)} SOL</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span style={{ color: "#9a978f" }}>Remaining position</span>
-                      <span>{solStr(Math.max(0, (position.currentValue) - parseFloat(amount) * LAMPORTS_PER_SOL))} SOL</span>
-                    </div>
+                  <div className="mb-4 rounded-xl border border-[var(--hairline)] p-3 text-xs space-y-1.5">
+                    <InfoRow label="You receive" value={`${parseFloat(amount).toFixed(4)} SOL`} />
+                    <InfoRow
+                      label="Remaining position"
+                      value={`${solStr(Math.max(0, (position.currentValue) - parseFloat(amount) * LAMPORTS_PER_SOL))} SOL`}
+                    />
                   </div>
                 )}
 
@@ -258,29 +247,27 @@ export default function EarnPage() {
                 <button
                   onClick={tab === "deposit" ? handleDeposit : handleWithdraw}
                   disabled={txPending || !amount || parseFloat(amount) <= 0}
-                  className="w-full rounded-xl py-3.5 text-sm font-semibold transition disabled:opacity-40"
-                  style={{ background: "#f7c948", color: "#1a1500" }}
+                  className="btn-accent w-full py-3.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {txPending ? "Confirming..." : tab === "deposit" ? "Deposit SOL" : "Withdraw SOL"}
                 </button>
 
                 {/* Results */}
                 {txResult && (
-                  <div className="mt-4 rounded-lg p-3 text-sm" style={{ background: "rgba(247,201,72,0.08)", border: "1px solid rgba(247,201,72,0.2)" }}>
+                  <div className="mt-4 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-3 text-sm">
                     {txResult.type === "deposit" ? "Deposit" : "Withdrawal"} confirmed!{" "}
                     <a
                       href={`https://solscan.io/tx/${txResult.sig}?cluster=devnet`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="underline"
-                      style={{ color: "#f7c948" }}
+                      className="font-medium text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]"
                     >
                       View on Solscan
                     </a>
                   </div>
                 )}
                 {txError && (
-                  <div className="mt-4 rounded-lg p-3 text-sm" style={{ background: "rgba(224,85,85,0.08)", border: "1px solid rgba(224,85,85,0.2)", color: "#e05555" }}>
+                  <div className="mt-4 rounded-xl border border-[var(--bad)]/30 bg-[var(--bad)]/5 p-3 text-sm text-[var(--bad)]">
                     {txError}
                   </div>
                 )}
@@ -288,35 +275,35 @@ export default function EarnPage() {
             )}
           </div>
 
-          {/* Right: Your Position */}
+          {/* Right: Your Position + Info */}
           <div className="space-y-4">
-            <div className="rounded-2xl border p-6" style={{ borderColor: "#2a2c33", background: "#1e2028" }}>
+            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm">
               <h3 className="font-display text-lg font-semibold mb-4">Your Position</h3>
               {!connected ? (
-                <p className="text-sm" style={{ color: "#9a978f" }}>Connect wallet to view.</p>
+                <p className="text-sm text-[var(--ink-soft)]">Connect wallet to view.</p>
               ) : position ? (
                 <div className="space-y-3">
-                  <PositionRow label="Deposited" value={`${solStr(position.depositedAmount)} SOL`} />
-                  <PositionRow label="Current value" value={`${solStr(position.currentValue)} SOL`} />
-                  <PositionRow
+                  <InfoRow label="Deposited" value={`${solStr(position.depositedAmount)} SOL`} />
+                  <InfoRow label="Current value" value={`${solStr(position.currentValue)} SOL`} />
+                  <InfoRow
                     label="Yield earned"
                     value={`${position.yieldEarned >= 0 ? "+" : ""}${solStr(position.yieldEarned)} SOL`}
                     highlight={position.yieldEarned > 0}
                   />
-                  <PositionRow label="Pool shares" value={position.shares.toLocaleString()} />
+                  <InfoRow label="Pool shares" value={position.shares.toLocaleString()} />
                 </div>
               ) : (
                 <div className="text-center py-6">
-                  <p className="text-sm" style={{ color: "#9a978f" }}>No active position.</p>
-                  <p className="text-xs mt-1" style={{ color: "#5c5a55" }}>Deposit SOL to start earning yield.</p>
+                  <p className="text-sm text-[var(--ink-soft)]">No active position.</p>
+                  <p className="text-xs mt-1 text-[var(--ink-faint)]">Deposit SOL to start earning yield.</p>
                 </div>
               )}
             </div>
 
             {/* How it works */}
-            <div className="rounded-2xl border p-6" style={{ borderColor: "#2a2c33", background: "#1e2028" }}>
+            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm">
               <h3 className="font-display text-lg font-semibold mb-4">How it works</h3>
-              <ol className="space-y-3 text-sm" style={{ color: "#9a978f" }}>
+              <ol className="space-y-3 text-sm text-[var(--ink-soft)]">
                 <HowStep n={1} text="Deposit SOL into the lending pool" />
                 <HowStep n={2} text="Borrowers take loans and pay fees (1.5-3%)" />
                 <HowStep n={3} text="Fees flow back to the pool, increasing your share value" />
@@ -326,45 +313,47 @@ export default function EarnPage() {
 
             {/* Pool breakdown */}
             {pool && (
-              <div className="rounded-2xl border p-6" style={{ borderColor: "#2a2c33", background: "#1e2028" }}>
+              <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm">
                 <h3 className="font-display text-lg font-semibold mb-4">Pool Details</h3>
                 <div className="space-y-3">
-                  <PositionRow label="Available liquidity" value={`${solStr(pool.availableLiquidity, 2)} SOL`} />
-                  <PositionRow label="Total fees earned" value={`${solStr(pool.totalFeesEarned, 4)} SOL`} />
-                  <PositionRow label="Liquidations" value={pool.totalLiquidations.toString()} />
-                  <PositionRow label="Protocol fee" value={`${(pool.protocolFeeBps / 100).toFixed(0)}%`} />
-                  <PositionRow label="Status" value={pool.paused ? "Paused" : "Active"} highlight={!pool.paused} />
+                  <InfoRow label="Available liquidity" value={`${solStr(pool.availableLiquidity, 2)} SOL`} />
+                  <InfoRow label="Total fees earned" value={`${solStr(pool.totalFeesEarned, 4)} SOL`} />
+                  <InfoRow label="Liquidations" value={pool.totalLiquidations.toString()} />
+                  <InfoRow label="Protocol fee" value={`${(pool.protocolFeeBps / 100).toFixed(0)}%`} />
+                  <InfoRow label="Status" value={pool.paused ? "Paused" : "Active"} highlight={!pool.paused} />
                 </div>
               </div>
             )}
 
             {/* Keeper Network */}
             {pool && (
-              <div className="rounded-2xl border p-6" style={{ borderColor: "#2a2c33", background: "#1e2028" }}>
+              <div id="keeper" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm scroll-mt-20">
                 <div className="flex items-center gap-2 mb-4">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-lg text-xs" style={{ background: "rgba(247,201,72,0.12)", color: "#f7c948" }}>
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-dim)] text-xs text-[var(--accent-deep)]">
                     &#x26A1;
                   </span>
                   <h3 className="font-display text-lg font-semibold">Keeper Network</h3>
                 </div>
-                <p className="text-sm mb-4" style={{ color: "#9a978f" }}>
+                <p className="text-sm mb-4 text-[var(--ink-soft)]">
                   Earn passive income by running a liquidation keeper. When loans expire,
                   keepers execute liquidations and earn a bounty — no staking required.
                 </p>
                 <div className="space-y-3">
-                  <PositionRow label="Keeper bounty" value={`${(pool.keeperRewardBps / 100).toFixed(1)}% of collateral`} highlight />
-                  <PositionRow label="Active loans" value={pool.totalLoansIssued > pool.totalLiquidations ? (pool.totalLoansIssued - pool.totalLiquidations).toString() : "0"} />
-                  <PositionRow label="Total liquidations" value={pool.totalLiquidations.toString()} />
-                  <PositionRow label="Permission" value="Permissionless" highlight />
+                  <InfoRow label="Keeper bounty" value={`${(pool.keeperRewardBps / 100).toFixed(1)}% of collateral`} highlight />
+                  <InfoRow label="Active loans" value={pool.totalLoansIssued > pool.totalLiquidations ? (pool.totalLoansIssued - pool.totalLiquidations).toString() : "0"} />
+                  <InfoRow label="Total liquidations" value={pool.totalLiquidations.toString()} />
+                  <InfoRow label="Permission" value="Permissionless" highlight />
                 </div>
-                <div className="mt-4 rounded-lg p-3 text-xs" style={{ background: "#252730", color: "#9a978f" }}>
-                  Run the keeper bot: <code className="font-mono" style={{ color: "#f7c948" }}>node src/services/keeper.js</code>
+                <div className="mt-4 rounded-xl border border-[var(--hairline)] bg-[var(--surface)] p-3 text-xs text-[var(--ink-soft)]">
+                  Run the keeper bot: <code className="font-mono text-[var(--accent-deep)]">node src/services/keeper.js</code>
                 </div>
               </div>
             )}
           </div>
         </div>
       </main>
+
+      <Footer />
     </div>
   );
 }
@@ -373,20 +362,20 @@ export default function EarnPage() {
 
 function StatCard({ label, value, loading }: { label: string; value: string; loading: boolean }) {
   return (
-    <div className="rounded-xl border p-4" style={{ borderColor: "#2a2c33", background: "#1e2028" }}>
-      <p className="text-[11px] font-medium uppercase tracking-wider mb-1" style={{ color: "#5c5a55" }}>{label}</p>
-      <p className="text-lg font-semibold" style={{ color: loading ? "#5c5a55" : "#e8e6e1" }}>
+    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm">
+      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-faint)] mb-1">{label}</p>
+      <p className={`text-lg font-semibold ${loading ? "text-[var(--ink-faint)]" : ""}`}>
         {loading ? "..." : value}
       </p>
     </div>
   );
 }
 
-function PositionRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function InfoRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="flex items-center justify-between text-sm">
-      <span style={{ color: "#9a978f" }}>{label}</span>
-      <span className="font-medium" style={{ color: highlight ? "#f7c948" : "#e8e6e1" }}>{value}</span>
+      <span className="text-[var(--ink-soft)]">{label}</span>
+      <span className={`font-medium ${highlight ? "text-[var(--accent-deep)]" : ""}`}>{value}</span>
     </div>
   );
 }
@@ -394,10 +383,7 @@ function PositionRow({ label, value, highlight }: { label: string; value: string
 function HowStep({ n, text }: { n: number; text: string }) {
   return (
     <li className="flex items-start gap-3">
-      <span
-        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold"
-        style={{ background: "rgba(247,201,72,0.12)", color: "#f7c948" }}
-      >
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--accent-dim)] text-xs font-bold text-[var(--accent-deep)]">
         {n}
       </span>
       <span>{text}</span>
