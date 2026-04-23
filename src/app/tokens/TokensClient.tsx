@@ -224,7 +224,7 @@ export default function TokensClient() {
       {/* ── Hero ── */}
       <section className="relative border-b border-[var(--hairline)] overflow-hidden">
         <div className="hero-glow" />
-        <div className="relative mx-auto max-w-7xl px-6 pt-16 pb-12 md:pt-20 md:pb-16">
+        <div className="relative mx-auto max-w-7xl px-5 pt-12 pb-10 sm:px-6 md:pt-20 md:pb-16">
           <div className="mb-4 flex flex-wrap items-center gap-2 fade-up">
             <span className="chip">
               <span className="live-dot" />
@@ -241,10 +241,10 @@ export default function TokensClient() {
               </>
             )}
           </div>
-          <h1 className="font-display text-5xl font-medium tracking-[-0.04em] md:text-7xl fade-up fade-up-1">
+          <h1 className="font-display text-3xl font-medium tracking-[-0.04em] sm:text-5xl md:text-7xl fade-up fade-up-1">
             Approved Tokens
           </h1>
-          <p className="mt-4 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed fade-up fade-up-2">
+          <p className="mt-3 max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed fade-up fade-up-2 sm:mt-4 sm:text-lg">
             Borrow SOL against memecoins <em className="font-display not-italic text-[var(--ink)]">and</em> tokenized stocks.
             Deposit any approved token as collateral, pick a tier, and get
             SOL instantly.
@@ -264,11 +264,13 @@ export default function TokensClient() {
 
           {/* Stats cards */}
           {!loading && (
-            <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5 fade-up fade-up-4">
-              <StatCard
-                label="Total Tokens"
-                value={stats.count.toString()}
-              />
+            <div className="mt-8 grid grid-cols-2 gap-3 sm:mt-10 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 fade-up fade-up-4">
+              <div className="col-span-2 sm:col-span-1">
+                <StatCard
+                  label="Total Tokens"
+                  value={stats.count.toString()}
+                />
+              </div>
               <StatCard
                 label="Tokenized Stocks"
                 value={stats.stockCount.toString()}
@@ -295,24 +297,25 @@ export default function TokensClient() {
       </section>
 
       {/* ── Table Section ── */}
-      <section id="token-table" className="mx-auto max-w-7xl px-6 py-10 scroll-mt-20">
+      <section id="token-table" className="mx-auto max-w-7xl px-5 py-8 scroll-mt-20 sm:px-6 sm:py-10">
         {/* Category filter tabs */}
-        <div className="mb-5 flex items-center gap-1 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] p-1 w-fit shadow-sm">
+        <div className="mb-5 flex items-center gap-1 overflow-x-auto rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] p-1 w-fit max-w-full shadow-sm">
           {([
-            { key: "all" as CategoryFilter, label: "All Tokens", count: stats.count },
-            { key: "stock" as CategoryFilter, label: "Stocks", count: stats.stockCount },
-            { key: "memecoin" as CategoryFilter, label: "Memecoins", count: stats.memeCount },
+            { key: "all" as CategoryFilter, label: "All", smLabel: "All Tokens", count: stats.count },
+            { key: "stock" as CategoryFilter, label: "Stocks", smLabel: "Stocks", count: stats.stockCount },
+            { key: "memecoin" as CategoryFilter, label: "Memes", smLabel: "Memecoins", count: stats.memeCount },
           ]).map((tab) => (
             <button
               key={tab.key}
               onClick={() => setCategoryFilter(tab.key)}
-              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition-all sm:px-4 ${
                 categoryFilter === tab.key
                   ? "bg-[var(--ink)] text-[var(--bg-elevated)] shadow-sm"
                   : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
               }`}
             >
-              {tab.label}
+              <span className="sm:hidden">{tab.label}</span>
+              <span className="hidden sm:inline">{tab.smLabel}</span>
               <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                 categoryFilter === tab.key
                   ? "bg-white/15 text-[var(--bg-elevated)]"
@@ -566,9 +569,9 @@ export default function TokensClient() {
 
       {/* ── Request Section ── */}
       <section id="submit-token" className="border-t border-[var(--hairline)] scroll-mt-20">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:py-20">
+        <div className="mx-auto max-w-7xl px-5 py-12 sm:px-6 md:py-20">
           <div className="mx-auto max-w-2xl">
-            <h2 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
+            <h2 className="font-display text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">
               Don&rsquo;t see your token?
             </h2>
             <p className="mt-3 text-[var(--ink-soft)] leading-relaxed">
@@ -591,8 +594,8 @@ export default function TokensClient() {
             }}
           />
         </div>
-        <div className="relative mx-auto max-w-7xl px-6 py-16 text-center md:py-20">
-          <h2 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-4xl">
+        <div className="relative mx-auto max-w-7xl px-5 py-12 text-center sm:px-6 md:py-20">
+          <h2 className="font-display text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">
             Ready to borrow against your bags?
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-white/60">

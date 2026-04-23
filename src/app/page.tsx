@@ -188,7 +188,7 @@ export default function Home() {
       {/* ══════════ HERO ══════════ */}
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
-        <div className="mx-auto max-w-6xl px-6 pt-20 pb-28 md:pt-28 md:pb-36">
+        <div className="mx-auto max-w-6xl px-5 pt-14 pb-16 sm:px-6 md:pt-28 md:pb-36">
           <div className="fade-up mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
             <span className="live-dot" />
             <span className="text-[var(--ink)]">Live on Solana mainnet</span>
@@ -200,38 +200,38 @@ export default function Home() {
             <span className="italic">Keep your bag.</span>
           </h1>
 
-          <p className="fade-up fade-up-2 mt-8 max-w-xl text-xl text-[var(--ink-soft)] leading-relaxed">
+          <p className="fade-up fade-up-2 mt-5 max-w-xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-8 sm:text-xl">
             Permissionless lending protocol on Solana. Pledge memecoins or tokenized stocks as collateral, get SOL in seconds — all in a Telegram chat. Every repayment builds your on-chain credit score.
           </p>
 
-          <div className="fade-up fade-up-3 mt-10 flex flex-wrap items-center gap-4">
-            <a href={TELEGRAM_URL} className="btn-accent shimmer text-base">
+          <div className="fade-up fade-up-3 mt-8 flex flex-wrap items-center gap-3 sm:mt-10 sm:gap-4">
+            <a href={TELEGRAM_URL} className="btn-accent shimmer text-sm sm:text-base">
               Start borrowing
               <span aria-hidden>→</span>
             </a>
-            <Link href="/earn" className="btn-ghost text-base">
+            <Link href="/earn" className="btn-ghost text-sm sm:text-base">
               Earn yield
             </Link>
-            <Link href="/tokens" className="btn-ghost text-base">
+            <Link href="/tokens" className="btn-ghost text-sm sm:text-base">
               78 approved tokens
             </Link>
           </div>
 
-          <div className="fade-up fade-up-4 mt-16 grid max-w-4xl grid-cols-2 gap-0 divide-x divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm sm:grid-cols-4">
-            <div className="px-4 py-5 text-center md:px-6">
-              <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl"><CountUp value={78} /></div>
+          <div className="fade-up fade-up-4 mt-12 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-16">
+            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={78} /></div>
               <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Approved tokens</div>
             </div>
-            <div className="px-4 py-5 text-center md:px-6">
-              <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl"><CountUp value={68} /></div>
+            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={68} /></div>
               <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Tests passing</div>
             </div>
-            <div className="px-4 py-5 text-center md:px-6">
-              <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl"><CountUp value={3} /></div>
+            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={3} /></div>
               <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Lending tiers</div>
             </div>
-            <div className="px-4 py-5 text-center md:px-6">
-              <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl">&lt;10s</div>
+            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">&lt;10s</div>
               <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Time to SOL</div>
             </div>
           </div>
@@ -262,9 +262,9 @@ export default function Home() {
       </section>
 
       {/* Elevator pitch */}
-      <section className="mx-auto max-w-5xl px-6 py-24 md:py-32">
+      <section className="mx-auto max-w-5xl px-5 py-16 sm:px-6 md:py-32">
         <Reveal>
-          <p className="font-display text-2xl font-medium leading-relaxed tracking-[-0.02em] text-[var(--ink)] md:text-4xl md:leading-[1.4]">
+          <p className="font-display text-xl font-medium leading-relaxed tracking-[-0.02em] text-[var(--ink)] sm:text-2xl md:text-4xl md:leading-[1.4]">
             Magpie is a permissionless lending protocol on Solana. Anyone can
             {" "}<span className="italic text-[var(--accent-deep)]">supply liquidity</span>{" "}
             to earn yield. Anyone can
@@ -298,15 +298,15 @@ export default function Home() {
 
       {/* ══════════ THE PROTOCOL ══════════ */}
       <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
-        <div className="mx-auto max-w-6xl px-6 py-28 md:py-36">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-36">
           <Reveal>
-            <div className="chip mb-5">The protocol</div>
-            <h2 className="font-display max-w-4xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+            <div className="chip mb-4 md:mb-5">The protocol</div>
+            <h2 className="font-display max-w-4xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-7xl">
               Open infrastructure.
               <br />
               <span className="italic text-[var(--ink-soft)]">No gatekeepers.</span>
             </h2>
-            <p className="mt-6 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
+            <p className="mt-4 max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-6 sm:text-lg">
               An Anchor program on Solana that powers permissionless lending pools, an on-chain credit oracle, and a keeper network for liquidations.
               Every constraint is enforced by the smart contract — not by us.
             </p>
@@ -315,14 +315,14 @@ export default function Home() {
           <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--hairline)] md:grid-cols-2">
             {PROTOCOL_FEATURES.map((f, i) => (
               <Reveal key={f.title} delay={i * 80}>
-                <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-8 md:p-10">
+                <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-6 sm:p-8 md:p-10">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-lg text-[var(--accent-deep)]">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-base text-[var(--accent-deep)] sm:h-10 sm:w-10 sm:text-lg">
                       {f.icon}
                     </div>
-                    <div className="text-xl font-semibold tracking-tight">{f.title}</div>
+                    <div className="text-lg font-semibold tracking-tight sm:text-xl">{f.title}</div>
                   </div>
-                  <div className="text-base leading-relaxed text-[var(--ink-soft)]">
+                  <div className="text-sm leading-relaxed text-[var(--ink-soft)] sm:text-base">
                     {f.desc}
                   </div>
                 </div>
@@ -337,7 +337,7 @@ export default function Home() {
                 <span className="font-mono text-[11px] font-semibold text-white/80">magpie-lending</span>
                 <span className="text-[10px] text-white/40">Anchor program on Solana</span>
               </div>
-              <pre className="overflow-x-auto p-5 font-mono text-[12px] leading-relaxed text-white/70">
+              <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-relaxed text-white/70 sm:p-5 sm:text-[12px]">
 {`// Permissionless liquidation — any wallet can be a keeper
 pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
     let pool = &ctx.accounts.pool;
@@ -360,7 +360,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
 
           {/* On-chain proof */}
           <Reveal delay={220}>
-            <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-12 md:grid-cols-2">
               <a
                 href="https://solscan.io/account/7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P"
                 target="_blank"
@@ -412,15 +412,15 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
       </section>
 
       {/* ══════════ THREE SIDES ══════════ */}
-      <section className="mx-auto max-w-6xl px-6 py-28 md:py-36">
+      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-36">
         <Reveal>
-          <div className="chip mb-5">The marketplace</div>
-          <h2 className="font-display max-w-4xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+          <div className="chip mb-4 md:mb-5">The marketplace</div>
+          <h2 className="font-display max-w-4xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-7xl">
             Borrow. Earn.
             <br />
             <span className="italic text-[var(--ink-soft)]">Build your score.</span>
           </h2>
-          <p className="mt-6 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
+          <p className="mt-4 max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-6 sm:text-lg">
             Three sides of a permissionless lending marketplace — all governed on-chain, all accessible from day one.
           </p>
         </Reveal>
@@ -430,7 +430,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
             <Reveal key={s.chip} delay={i * 80}>
               <Link
                 href={s.href}
-                className="group flex h-full flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg"
+                className="group flex h-full flex-col rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 transition hover:border-[var(--accent)] hover:shadow-lg sm:rounded-3xl sm:p-8"
               >
                 <div className="chip mb-3">{s.chip}</div>
                 <h3 className="font-display text-2xl font-medium tracking-[-0.02em]">{s.title}</h3>
@@ -447,37 +447,37 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
       </section>
 
       {/* ══════════ HOW IT WORKS ══════════ */}
-      <section id="how" className="mx-auto max-w-6xl px-6 py-28 md:py-40">
+      <section id="how" className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-40">
         <Reveal>
-          <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
             <div>
-              <div className="chip mb-5">How it works</div>
-              <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+              <div className="chip mb-4 md:mb-5">How it works</div>
+              <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-7xl">
                 Four taps.
                 <br />
                 <span className="italic text-[var(--ink-soft)]">You&apos;re funded.</span>
               </h2>
             </div>
-            <p className="max-w-md text-lg text-[var(--ink-soft)] leading-relaxed">
+            <p className="max-w-md text-base text-[var(--ink-soft)] leading-relaxed sm:text-lg">
               The Telegram bot wraps the on-chain program in a conversational interface. Pledge collateral, receive SOL, repay on your schedule.
             </p>
           </div>
         </Reveal>
 
-        <div className="mt-20 grid grid-cols-1 gap-14 md:grid-cols-2 md:items-center md:gap-20">
+        <div className="mt-12 grid grid-cols-1 gap-10 sm:mt-20 md:grid-cols-2 md:items-center md:gap-20">
           <Reveal className="order-2 md:order-1">
             <div className="flex flex-col gap-4">
               {STEPS.map((s, i) => (
                 <div
                   key={s.n}
-                  className="group flex gap-5 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 transition hover:border-[var(--ink)] hover:shadow-sm md:p-6"
+                  className="group flex gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 transition hover:border-[var(--ink)] hover:shadow-sm sm:gap-5 sm:p-5 md:p-6"
                   style={{ animationDelay: `${i * 0.08}s` }}
                 >
                   <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[var(--surface)] font-mono text-sm font-semibold text-[var(--ink-soft)] group-hover:bg-[var(--accent)] group-hover:text-[var(--ink)] transition">
                     {s.n}
                   </div>
                   <div>
-                    <div className="text-lg font-semibold tracking-tight">{s.t}</div>
+                    <div className="text-base font-semibold tracking-tight sm:text-lg">{s.t}</div>
                     <div className="mt-1.5 text-sm leading-relaxed text-[var(--ink-soft)]">
                       {s.d}
                     </div>
@@ -499,25 +499,25 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
 
       {/* ══════════ WHY MAGPIE ══════════ */}
       <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
-        <div className="mx-auto max-w-6xl px-6 py-28 md:py-36">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-36">
           <Reveal>
-            <div className="chip mb-5">Why Magpie</div>
-            <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-6xl">
+            <div className="chip mb-4 md:mb-5">Why Magpie</div>
+            <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
               The <span className="italic">quiet</span> lender for loud bags.
             </h2>
           </Reveal>
 
-          <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--hairline)] md:grid-cols-2">
+          <div className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] sm:mt-16 sm:rounded-3xl md:grid-cols-2">
             {PILLARS.map((p, i) => (
               <Reveal key={p.title} delay={i * 80}>
-                <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-8 md:p-10">
+                <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-6 sm:p-8 md:p-10">
                   <div className="flex items-center gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-[var(--ink)]">
                       {String(i + 1).padStart(2, "0")}
                     </div>
-                    <div className="text-xl font-semibold tracking-tight">{p.title}</div>
+                    <div className="text-lg font-semibold tracking-tight sm:text-xl">{p.title}</div>
                   </div>
-                  <div className="text-base leading-relaxed text-[var(--ink-soft)]">
+                  <div className="text-sm leading-relaxed text-[var(--ink-soft)] sm:text-base">
                     {p.body}
                   </div>
                 </div>
@@ -529,31 +529,31 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
 
       {/* ══════════ LENDING TIERS ══════════ */}
       <section id="tiers" className="bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-6 py-28 md:py-40">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-40">
           <Reveal>
-            <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
               <div>
-                <div className="chip mb-5">Lending tiers</div>
-                <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+                <div className="chip mb-4 md:mb-5">Lending tiers</div>
+                <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-7xl">
                   Pick your risk.
                   <br />
                   <span className="italic text-[var(--ink-soft)]">Pick your payout.</span>
                 </h2>
               </div>
-              <div className="max-w-md text-lg leading-relaxed text-[var(--ink-soft)]">
+              <div className="max-w-md text-base leading-relaxed text-[var(--ink-soft)] sm:text-lg">
                 <p>LTV (Loan-to-Value) is the percentage of your collateral&apos;s value you receive as SOL. Higher LTV = more SOL, but less room before liquidation.</p>
-                <p className="mt-3 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-4 py-3 text-sm">
+                <p className="mt-3 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-2.5 text-sm sm:px-4 sm:py-3">
                   <span className="font-semibold text-[var(--ink)]">Example:</span> $1,000 of WIF at 20% LTV = <span className="font-semibold text-[var(--ink)]">$200 in SOL</span>, minus 1.5% fee. Choose Express (30% LTV) to borrow $300, at a 3% fee.
                 </p>
               </div>
             </div>
           </Reveal>
 
-          <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-5 sm:mt-16 sm:gap-6 md:grid-cols-3">
             {TIERS.map((tier, i) => (
               <Reveal key={tier.name} delay={i * 100}>
                 <div
-                  className={`relative flex h-full flex-col rounded-3xl border p-8 transition ${
+                  className={`relative flex h-full flex-col rounded-2xl border p-6 transition sm:rounded-3xl sm:p-8 ${
                     tier.highlight
                       ? "border-[var(--ink)] bg-[var(--bg-elevated)] shadow-[0_30px_80px_-30px_rgba(30,22,0,0.3)]"
                       : "border-[var(--hairline)] bg-[var(--bg-elevated)] hover:border-[var(--ink)] hover:shadow-md"
@@ -565,10 +565,10 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                     </span>
                   )}
                   <div className="flex items-center justify-between">
-                    <div className="font-display text-3xl font-medium tracking-[-0.02em]">{tier.name}</div>
+                    <div className="font-display text-2xl font-medium tracking-[-0.02em] sm:text-3xl">{tier.name}</div>
                   </div>
-                  <div className="mt-8 flex items-baseline gap-2">
-                    <div className="font-display tabular text-7xl font-medium tracking-[-0.04em]">{tier.ltv}</div>
+                  <div className="mt-6 flex items-baseline gap-2 sm:mt-8">
+                    <div className="font-display tabular text-5xl font-medium tracking-[-0.04em] sm:text-7xl">{tier.ltv}</div>
                     <div className="text-sm text-[var(--ink-soft)]">LTV</div>
                   </div>
                   <div className="mt-2 text-sm text-[var(--ink-soft)]">
@@ -607,15 +607,15 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
       </section>
 
       {/* ══════════ FAQ ══════════ */}
-      <section id="faq" className="mx-auto max-w-6xl px-6 py-28 md:py-40">
+      <section id="faq" className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-40">
         <Reveal>
-          <div className="chip mb-5">Questions</div>
-          <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-6xl">
+          <div className="chip mb-4 md:mb-5">Questions</div>
+          <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
             What you&apos;ll want to know.
           </h2>
         </Reveal>
 
-        <div className="mt-16 grid grid-cols-1 gap-x-16 gap-y-10 md:grid-cols-2">
+        <div className="mt-10 grid grid-cols-1 gap-x-16 gap-y-8 sm:mt-16 sm:gap-y-10 md:grid-cols-2">
           {FAQ.map((item, i) => (
             <Reveal key={item.q} delay={(i % 2) * 80}>
               <div>
@@ -623,9 +623,9 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                   <span className="font-mono text-sm text-[var(--accent-deep)]">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <div className="text-xl font-semibold tracking-tight">{item.q}</div>
+                  <div className="text-base font-semibold tracking-tight sm:text-xl">{item.q}</div>
                 </div>
-                <div className="mt-3 pl-9 text-base leading-relaxed text-[var(--ink-soft)]">
+                <div className="mt-2 pl-9 text-sm leading-relaxed text-[var(--ink-soft)] sm:mt-3 sm:text-base">
                   {item.a}
                 </div>
               </div>
@@ -640,18 +640,18 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
           <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[var(--accent)]/20 blur-3xl drift" />
           <div className="absolute -left-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--accent-deep)]/15 blur-3xl drift" />
         </div>
-        <div className="relative mx-auto max-w-6xl px-6 py-28 text-center md:py-40">
-          <Mark size={80} className="mx-auto mb-10 hop" />
-          <h2 className="font-display mx-auto max-w-4xl text-6xl font-medium tracking-[-0.04em] text-white md:text-8xl">
+        <div className="relative mx-auto max-w-6xl px-5 py-16 text-center sm:px-6 md:py-40">
+          <Mark size={64} className="mx-auto mb-8 hop sm:mb-10" />
+          <h2 className="font-display mx-auto max-w-4xl text-4xl font-medium tracking-[-0.04em] text-white sm:text-6xl md:text-8xl">
             Your bags.
             <br />
             <span className="italic text-[var(--accent)]">Your liquidity.</span>
           </h2>
-          <p className="mx-auto mt-6 max-w-lg text-lg text-white/70">
+          <p className="mx-auto mt-4 max-w-lg text-base text-white/70 sm:mt-6 sm:text-lg">
             Borrow SOL. Earn yield. Build your credit score. All permissionless, all on Solana.
           </p>
-          <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} className="btn-accent text-lg">
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-12 sm:gap-4 md:flex-row">
+            <a href={TELEGRAM_URL} className="btn-accent text-base sm:text-lg">
               Start borrowing
               <span aria-hidden>→</span>
             </a>

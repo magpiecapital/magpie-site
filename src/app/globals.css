@@ -204,13 +204,16 @@ body::after {
   background: var(--accent);
   color: var(--ink);
   border-radius: 999px;
-  padding: 0.95rem 1.7rem;
+  padding: 0.75rem 1.3rem;
   font-weight: 600;
   transition: transform 0.18s ease, box-shadow 0.25s ease, background 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 0 0 1px rgba(201, 154, 44, 0.2);
+}
+@media (min-width: 640px) {
+  .btn-accent { padding: 0.95rem 1.7rem; }
 }
 .btn-accent:hover {
   background: var(--accent-hover);
@@ -221,7 +224,7 @@ body::after {
 
 .btn-ghost {
   border-radius: 999px;
-  padding: 0.9rem 1.6rem;
+  padding: 0.7rem 1.2rem;
   font-weight: 600;
   color: var(--ink);
   border: 1px solid var(--hairline-strong);
@@ -230,6 +233,9 @@ body::after {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+}
+@media (min-width: 640px) {
+  .btn-ghost { padding: 0.9rem 1.6rem; }
 }
 .btn-ghost:hover {
   border-color: var(--ink);
@@ -241,12 +247,15 @@ body::after {
   background: var(--ink);
   color: var(--bg-elevated);
   border-radius: 999px;
-  padding: 0.9rem 1.6rem;
+  padding: 0.7rem 1.2rem;
   font-weight: 600;
   transition: transform 0.18s ease, background 0.2s ease;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+}
+@media (min-width: 640px) {
+  .btn-dark { padding: 0.9rem 1.6rem; }
 }
 .btn-dark:hover {
   background: #1f1f1f;

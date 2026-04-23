@@ -7,13 +7,13 @@ const GITHUB_URL = "https://github.com/magpiecapital";
 export function Footer() {
   return (
     <footer className="border-t border-[var(--hairline)] bg-[var(--bg)]">
-      <div className="mx-auto max-w-6xl px-6 py-14">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-4">
-          <div>
+      <div className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14">
+        <div className="grid grid-cols-2 gap-8 sm:gap-10 md:grid-cols-4">
+          <div className="col-span-2 md:col-span-1">
             <Link href="/">
               <Wordmark size={24} />
             </Link>
-            <p className="mt-4 max-w-[220px] text-sm leading-relaxed text-[var(--ink-soft)]">
+            <p className="mt-3 max-w-[280px] text-sm leading-relaxed text-[var(--ink-soft)] sm:mt-4">
               Permissionless lending on Solana. Borrow SOL against memecoins and tokenized stocks.
             </p>
           </div>
@@ -39,7 +39,7 @@ export function Footer() {
             <FooterLink href={GITHUB_URL}>GitHub</FooterLink>
           </FooterCol>
         </div>
-        <div className="mt-14 flex flex-col items-start justify-between gap-4 border-t border-[var(--hairline)] pt-6 md:flex-row md:items-center">
+        <div className="mt-8 flex flex-col items-start justify-between gap-3 border-t border-[var(--hairline)] pt-5 sm:mt-14 sm:gap-4 sm:pt-6 md:flex-row md:items-center">
           <div className="text-xs text-[var(--ink-soft)]">
             &copy; {new Date().getFullYear()} Magpie &middot; Built on Solana
           </div>

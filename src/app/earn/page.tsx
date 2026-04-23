@@ -45,10 +45,13 @@ export default function EarnPage() {
   const [txError, setTxError] = useState<string | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
 
+  const [poolNotInitialized, setPoolNotInitialized] = useState(false);
+
   // Fetch pool stats + position
   const refresh = useCallback(async () => {
     try {
       setError(null);
+      setPoolNotInitialized(false);
       const stats = await fetchPoolStats(connection);
       setPool(stats);
 
@@ -59,7 +62,12 @@ export default function EarnPage() {
         setPosition(pos);
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to fetch pool data");
+      const msg = e instanceof Error ? e.message : "";
+      if (msg.includes("Account does not exist") || msg.includes("has no data")) {
+        setPoolNotInitialized(true);
+      } else {
+        setError(msg || "Failed to fetch pool data");
+      }
     } finally {
       setLoading(false);
     }
@@ -133,32 +141,44 @@ export default function EarnPage() {
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-[var(--hairline)]">
         <div className="hero-glow" />
-        <div className="relative mx-auto max-w-6xl px-6 pt-16 pb-12 md:pt-20 md:pb-16">
+        <div className="relative mx-auto max-w-6xl px-5 pt-12 pb-10 sm:px-6 md:pt-20 md:pb-16">
           <div className="mb-4 flex flex-wrap items-center gap-2 fade-up">
             <span className="chip">
               <span className="live-dot" />
               Permissionless pool
             </span>
           </div>
-          <h1 className="font-display text-5xl font-medium tracking-[-0.04em] md:text-7xl fade-up fade-up-1">
+          <h1 className="font-display text-3xl font-medium tracking-[-0.04em] sm:text-5xl md:text-7xl fade-up fade-up-1">
             Earn yield.
           </h1>
-          <p className="mt-4 max-w-xl text-lg text-[var(--ink-soft)] leading-relaxed fade-up fade-up-2">
+          <p className="mt-3 max-w-xl text-base text-[var(--ink-soft)] leading-relaxed fade-up fade-up-2 sm:mt-4 sm:text-lg">
             Supply SOL to the lending pool. Earn a share of every borrower fee.
             Withdraw anytime — no lockups, no minimums.
           </p>
         </div>
       </section>
 
-      <main className="mx-auto max-w-6xl px-6 py-10">
+      <main className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-10">
         {error && (
           <div className="mb-6 rounded-xl border border-[var(--bad)]/30 bg-[var(--bad)]/5 p-4 text-sm text-[var(--bad)]">
             {error}
           </div>
         )}
 
+        {poolNotInitialized && (
+          <div className="mb-6 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-dim)] p-5">
+            <p className="text-sm font-semibold text-[var(--ink)] mb-1">Lending pool not yet live on mainnet</p>
+            <p className="text-sm text-[var(--ink-soft)]">
+              The pool contract is deployed but hasn&apos;t been initialized yet. Deposits will be
+              enabled once the pool is activated. Join the{" "}
+              <a href="https://t.me/magpiecapital" target="_blank" rel="noopener noreferrer" className="font-medium text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">Telegram</a>
+              {" "}for updates.
+            </p>
+          </div>
+        )}
+
         {/* Pool Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 sm:gap-4 sm:mb-8">
           <StatCard label="Total Deposits" value={pool ? `${solStr(pool.totalDeposits, 2)} SOL` : "--"} loading={loading} />
           <StatCard label="Total Borrowed" value={pool ? `${solStr(pool.totalBorrowed, 2)} SOL` : "--"} loading={loading} />
           <StatCard label="Utilization" value={pool ? pct(pool.utilizationRate) : "--"} loading={loading} />
@@ -167,7 +187,7 @@ export default function EarnPage() {
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Left: Deposit/Withdraw form */}
-          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm">
+          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
             {/* Tabs */}
             <div className="flex gap-1 rounded-xl p-1 mb-6 bg-[var(--surface)]">
               {(["deposit", "withdraw"] as const).map((t) => (
@@ -246,7 +266,7 @@ export default function EarnPage() {
                 {/* Submit button */}
                 <button
                   onClick={tab === "deposit" ? handleDeposit : handleWithdraw}
-                  disabled={txPending || !amount || parseFloat(amount) <= 0}
+                  disabled={txPending || !amount || parseFloat(amount) <= 0 || poolNotInitialized}
                   className="btn-accent w-full py-3.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {txPending ? "Confirming..." : tab === "deposit" ? "Deposit SOL" : "Withdraw SOL"}
@@ -277,8 +297,8 @@ export default function EarnPage() {
 
           {/* Right: Your Position + Info */}
           <div className="space-y-4">
-            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm">
-              <h3 className="font-display text-lg font-semibold mb-4">Your Position</h3>
+            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
+              <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">Your Position</h3>
               {!connected ? (
                 <p className="text-sm text-[var(--ink-soft)]">Connect wallet to view.</p>
               ) : position ? (
@@ -301,8 +321,8 @@ export default function EarnPage() {
             </div>
 
             {/* How it works */}
-            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm">
-              <h3 className="font-display text-lg font-semibold mb-4">How it works</h3>
+            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
+              <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">How it works</h3>
               <ol className="space-y-3 text-sm text-[var(--ink-soft)]">
                 <HowStep n={1} text="Deposit SOL into the lending pool" />
                 <HowStep n={2} text="Borrowers take loans and pay fees (1.5-3%)" />
@@ -313,8 +333,8 @@ export default function EarnPage() {
 
             {/* Pool breakdown */}
             {pool && (
-              <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm">
-                <h3 className="font-display text-lg font-semibold mb-4">Pool Details</h3>
+              <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
+                <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">Pool Details</h3>
                 <div className="space-y-3">
                   <InfoRow label="Available liquidity" value={`${solStr(pool.availableLiquidity, 2)} SOL`} />
                   <InfoRow label="Total fees earned" value={`${solStr(pool.totalFeesEarned, 4)} SOL`} />
@@ -327,12 +347,12 @@ export default function EarnPage() {
 
             {/* Keeper Network */}
             {pool && (
-              <div id="keeper" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 shadow-sm scroll-mt-20">
-                <div className="flex items-center gap-2 mb-4">
+              <div id="keeper" className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm scroll-mt-20 sm:p-6">
+                <div className="flex items-center gap-2 mb-3 sm:mb-4">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-dim)] text-xs text-[var(--accent-deep)]">
                     &#x26A1;
                   </span>
-                  <h3 className="font-display text-lg font-semibold">Keeper Network</h3>
+                  <h3 className="font-display text-base font-semibold sm:text-lg">Keeper Network</h3>
                 </div>
                 <p className="text-sm mb-4 text-[var(--ink-soft)]">
                   Earn passive income by running a liquidation keeper. When loans expire,
