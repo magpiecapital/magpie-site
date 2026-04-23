@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { TOKEN_REGISTRY } from "@/lib/token-registry";
+import { TOKEN_REGISTRY, type TokenCategory } from "@/lib/token-registry";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -13,11 +13,13 @@ const REGISTRY = TOKEN_REGISTRY;
 /* ─── Types ─── */
 type SortKey = "rank" | "price" | "change1h" | "change24h" | "volume" | "mcap";
 type SortDir = "asc" | "desc";
+type CategoryFilter = "all" | TokenCategory;
 
 interface TokenData {
   symbol: string;
   name: string;
   mint: string;
+  category: TokenCategory;
   price: number | null;
   change1h: number | null;
   change6h: number | null;
@@ -54,8 +56,8 @@ function pctClass(n: number | null): string {
 /* ─── DexScreener fetch ─── */
 async function fetchMarketData(
   mints: string[],
-): Promise<Map<string, Omit<TokenData, "symbol" | "name" | "mint">>> {
-  const map = new Map<string, Omit<TokenData, "symbol" | "name" | "mint">>();
+): Promise<Map<string, Omit<TokenData, "symbol" | "name" | "mint" | "category">>> {
+  const map = new Map<string, Omit<TokenData, "symbol" | "name" | "mint" | "category">>();
   const BATCH = 30;
 
   const batches: string[][] = [];
@@ -117,6 +119,7 @@ export default function TokensClient() {
   const [tokens, setTokens] = useState<TokenData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [sortKey, setSortKey] = useState<SortKey>("mcap");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -131,6 +134,7 @@ export default function TokensClient() {
           symbol: t.symbol,
           name: t.name,
           mint: t.mint,
+          category: t.category,
           price: d?.price ?? null,
           change1h: d?.change1h ?? null,
           change6h: d?.change6h ?? null,
@@ -150,6 +154,9 @@ export default function TokensClient() {
   /* Sort + filter */
   const sorted = useMemo(() => {
     let list = tokens;
+    if (categoryFilter !== "all") {
+      list = list.filter((t) => t.category === categoryFilter);
+    }
     if (search) {
       const q = search.toLowerCase();
       list = list.filter(
@@ -184,13 +191,15 @@ export default function TokensClient() {
       }
       return sortDir === "desc" ? bv - av : av - bv;
     });
-  }, [tokens, search, sortKey, sortDir]);
+  }, [tokens, search, categoryFilter, sortKey, sortDir]);
 
   /* Stats */
   const stats = useMemo(() => {
     const totalMcap = tokens.reduce((s, t) => s + (t.mcap ?? 0), 0);
     const totalVol = tokens.reduce((s, t) => s + (t.volume24h ?? 0), 0);
-    return { count: tokens.length, totalMcap, totalVol };
+    const stockCount = tokens.filter((t) => t.category === "stock").length;
+    const memeCount = tokens.filter((t) => t.category === "memecoin").length;
+    return { count: tokens.length, totalMcap, totalVol, stockCount, memeCount };
   }, [tokens]);
 
   const toggleSort = useCallback(
@@ -213,21 +222,34 @@ export default function TokensClient() {
       <Header />
 
       {/* ── Hero ── */}
-      <section className="border-b border-[var(--hairline)]">
-        <div className="mx-auto max-w-7xl px-6 pt-16 pb-12 md:pt-20 md:pb-16">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
-            <span className="live-dot" />
-            <span>{tokens.length} tokens live</span>
+      <section className="relative border-b border-[var(--hairline)] overflow-hidden">
+        <div className="hero-glow" />
+        <div className="relative mx-auto max-w-7xl px-6 pt-16 pb-12 md:pt-20 md:pb-16">
+          <div className="mb-4 flex flex-wrap items-center gap-2 fade-up">
+            <span className="chip">
+              <span className="live-dot" />
+              {tokens.length} tokens live
+            </span>
+            {!loading && (
+              <>
+                <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ background: "rgba(92,90,82,0.06)", color: "var(--ink-soft)", borderColor: "var(--hairline-strong)" }}>
+                  {stats.stockCount} Tokenized Stocks
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)", borderColor: "rgba(247,201,72,0.3)" }}>
+                  {stats.memeCount} Memecoins
+                </span>
+              </>
+            )}
           </div>
-          <h1 className="font-display text-5xl font-medium tracking-[-0.04em] md:text-7xl">
+          <h1 className="font-display text-5xl font-medium tracking-[-0.04em] md:text-7xl fade-up fade-up-1">
             Approved Tokens
           </h1>
-          <p className="mt-4 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
-            Every token below is accepted as collateral on Magpie. Deposit any
-            of them to your wallet, pick a tier, and borrow SOL instantly.
-            Real-time data powered by DexScreener.
+          <p className="mt-4 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed fade-up fade-up-2">
+            Borrow SOL against memecoins <em className="font-display not-italic text-[var(--ink)]">and</em> tokenized stocks.
+            Deposit any approved token as collateral, pick a tier, and get
+            SOL instantly.
           </p>
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap items-center gap-3 fade-up fade-up-3">
             <a
               href="#submit-token"
               className="btn-accent inline-flex items-center gap-2 text-sm"
@@ -237,21 +259,27 @@ export default function TokensClient() {
               </svg>
               Submit a Token
             </a>
+            <span className="text-xs text-[var(--ink-faint)]">Real-time data via DexScreener</span>
           </div>
 
           {/* Stats cards */}
           {!loading && (
-            <div className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4 fade-up fade-up-4">
               <StatCard
-                label="Accepted Tokens"
+                label="Total Tokens"
                 value={stats.count.toString()}
               />
               <StatCard
-                label="Combined Market Cap"
+                label="Tokenized Stocks"
+                value={stats.stockCount.toString()}
+                accent="ink"
+              />
+              <StatCard
+                label="Combined Mcap"
                 value={fmtUsd(stats.totalMcap)}
               />
               <StatCard
-                label="24h Combined Volume"
+                label="24h Volume"
                 value={fmtUsd(stats.totalVol)}
               />
             </div>
@@ -261,6 +289,34 @@ export default function TokensClient() {
 
       {/* ── Table Section ── */}
       <section className="mx-auto max-w-7xl px-6 py-10">
+        {/* Category filter tabs */}
+        <div className="mb-5 flex items-center gap-1 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] p-1 w-fit shadow-sm">
+          {([
+            { key: "all" as CategoryFilter, label: "All Tokens", count: stats.count },
+            { key: "stock" as CategoryFilter, label: "Stocks", count: stats.stockCount },
+            { key: "memecoin" as CategoryFilter, label: "Memecoins", count: stats.memeCount },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setCategoryFilter(tab.key)}
+              className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all ${
+                categoryFilter === tab.key
+                  ? "bg-[var(--ink)] text-[var(--bg-elevated)] shadow-sm"
+                  : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
+              }`}
+            >
+              {tab.label}
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                categoryFilter === tab.key
+                  ? "bg-white/15 text-[var(--bg-elevated)]"
+                  : "bg-[var(--surface)] text-[var(--ink-faint)]"
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
+        </div>
+
         {/* Controls */}
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full sm:max-w-sm">
@@ -313,7 +369,7 @@ export default function TokensClient() {
           <div className="overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm">
             <table className="w-full min-w-[800px] text-sm">
               <thead>
-                <tr className="border-b border-[var(--hairline)] text-left text-xs uppercase tracking-[0.12em] text-[var(--ink-soft)]">
+                <tr className="border-b border-[var(--hairline)] text-left text-xs uppercase tracking-[0.12em] text-[var(--ink-faint)]">
                   <th className="px-4 py-3.5 font-medium w-12">#</th>
                   <th className="px-4 py-3.5 font-medium">Token</th>
                   <th
@@ -390,7 +446,9 @@ export default function TokensClient() {
                 {sorted.map((t, i) => (
                   <tr
                     key={t.mint}
-                    className="border-b border-[var(--hairline)] last:border-0 transition hover:bg-[var(--accent)]/[0.03]"
+                    className={`border-b border-[var(--hairline)] last:border-0 transition hover:bg-[var(--accent)]/[0.03] ${
+                      t.category === "stock" ? "bg-[var(--surface)]/30" : ""
+                    }`}
                   >
                     {/* Rank */}
                     <td className="px-4 py-3 text-[var(--ink-soft)] tabular">
@@ -406,8 +464,11 @@ export default function TokensClient() {
                           imageUrl={t.imageUrl}
                         />
                         <div className="min-w-0">
-                          <div className="font-semibold truncate">
-                            {t.name}
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold truncate">
+                              {t.name}
+                            </span>
+                            <CategoryBadge category={t.category} />
                           </div>
                           <div className="text-xs text-[var(--ink-soft)]">
                             {t.symbol}
@@ -486,8 +547,10 @@ export default function TokensClient() {
             </table>
 
             {sorted.length === 0 && !loading && (
-              <div className="py-16 text-center text-[var(--ink-soft)]">
-                No tokens match &ldquo;{search}&rdquo;
+              <div className="py-20 text-center">
+                <div className="text-3xl mb-3 opacity-30">&#x1F50D;</div>
+                <p className="text-[var(--ink-soft)] font-medium">No tokens match &ldquo;{search}&rdquo;</p>
+                <p className="mt-1 text-sm text-[var(--ink-faint)]">Try a different search term or clear your filters.</p>
               </div>
             )}
           </div>
@@ -546,13 +609,36 @@ export default function TokensClient() {
    Sub-components
    ═══════════════════════════════════════════ */
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function CategoryBadge({ category }: { category: TokenCategory }) {
+  if (category === "stock") {
+    return (
+      <span className="inline-flex items-center rounded-md border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--ink-soft)]">
+        Stock
+      </span>
+    );
+  }
   return (
-    <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-5 py-4 shadow-sm">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-soft)]">
+    <span className="inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)", borderColor: "rgba(247,201,72,0.3)" }}>
+      Meme
+    </span>
+  );
+}
+
+function StatCard({ label, value, accent }: { label: string; value: string; accent?: "ink" | "accent" }) {
+  return (
+    <div className={`rounded-2xl border px-5 py-4 shadow-sm ${
+      accent === "ink"
+        ? "border-[var(--ink)]/10 bg-[var(--ink)] text-[var(--bg-elevated)]"
+        : "border-[var(--hairline)] bg-[var(--bg-elevated)]"
+    }`}>
+      <div className={`text-[10px] uppercase tracking-[0.18em] ${
+        accent === "ink" ? "text-white/50" : "text-[var(--ink-soft)]"
+      }`}>
         {label}
       </div>
-      <div className="mt-1 font-display text-2xl font-medium tracking-[-0.03em]">
+      <div className={`mt-1 font-display text-2xl font-medium tracking-[-0.03em] ${
+        accent === "ink" ? "text-white" : ""
+      }`}>
         {value}
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 
 export const PROGRAM_ID = new PublicKey(
-  "69NB7NPaTLPY2X7hmvV57xL8on9XMJnmXGnbkyTDdSQs",
+  "7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P",
 );
 
 export const LENDER_PUBKEY = new PublicKey(

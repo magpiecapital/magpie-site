@@ -2,16 +2,16 @@ import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 import { PROGRAM_ID } from "./constants";
 
-export function lendingPoolPda(lenderPubkey: PublicKey) {
+export function poolPda(authorityPubkey: PublicKey) {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from("lending-pool"), lenderPubkey.toBuffer()],
+    [Buffer.from("pool"), authorityPubkey.toBuffer()],
     PROGRAM_ID,
   );
 }
 
-export function loanTokenVaultPda(lendingPoolPubkey: PublicKey) {
+export function loanTokenVaultPda(poolPubkey: PublicKey) {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from("loan-token-vault"), lendingPoolPubkey.toBuffer()],
+    [Buffer.from("loan-token-vault"), poolPubkey.toBuffer()],
     PROGRAM_ID,
   );
 }

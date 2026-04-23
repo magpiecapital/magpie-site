@@ -13,7 +13,7 @@ const NAV_SECTIONS = [
     heading: "Core",
     links: [
       { label: "Home", href: "/", icon: "⌂" },
-      { label: "Agent Vault Protocol", href: "/vault", icon: "⬡" },
+      { label: "Earn", href: "/earn", icon: "◉" },
       { label: "Lending", href: "/marketplace", icon: "⇄" },
       { label: "Approved Tokens", href: "/tokens", icon: "◈" },
       { label: "Dashboard", href: "/dashboard", icon: "▦" },
@@ -25,6 +25,7 @@ const NAV_SECTIONS = [
       { label: "Loan Calculator", href: "/calculate", icon: "⊞" },
       { label: "Credit Score", href: "/credit", icon: "★" },
       { label: "Points & Rewards", href: "/points", icon: "◆" },
+      { label: "Keeper Network", href: "/earn#keeper", icon: "⚡" },
       { label: "Protocol Stats", href: "/stats", icon: "◎" },
     ],
   },

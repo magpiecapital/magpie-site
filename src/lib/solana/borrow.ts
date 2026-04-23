@@ -17,7 +17,7 @@ import {
 import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
 import { LENDER_PUBKEY } from "./constants";
 import {
-  lendingPoolPda,
+  poolPda,
   loanTokenVaultPda,
   loanPda,
   collateralVaultPda,
@@ -71,8 +71,8 @@ export async function buildBorrowTransaction({
   const collateralMintPk = new PublicKey(collateralMint);
   const loanTokenMintPk = NATIVE_MINT; // wSOL
 
-  const [lendingPool] = lendingPoolPda(LENDER_PUBKEY);
-  const [loanTokenVault] = loanTokenVaultPda(lendingPool);
+  const [pool] = poolPda(LENDER_PUBKEY);
+  const [loanTokenVault] = loanTokenVaultPda(pool);
 
   const collateralTokenProgram = await getMintTokenProgram(
     connection,
@@ -146,18 +146,17 @@ export async function buildBorrowTransaction({
       loanId,
     )
     .accounts({
+      pool,
+      loanTokenVault,
       loan: loanAccount,
       collateralVault,
-      lendingPool,
-      loanTokenVault,
-      loanTokenMint: loanTokenMintPk,
       collateralMint: collateralMintPk,
       borrowerCollateralAccount: borrowerCollateralAta,
       borrowerLoanTokenAccount: borrowerWsolAta,
       feeWalletTokenAccount: feeWalletWsolAta,
       borrower,
       systemProgram: SystemProgram.programId,
-      collateralTokenProgram,
+      tokenProgram: collateralTokenProgram,
       loanTokenProgram,
       rent: SYSVAR_RENT_PUBKEY,
     })
