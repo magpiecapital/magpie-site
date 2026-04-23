@@ -4,17 +4,12 @@ import { Reveal } from "@/components/Reveal";
 import { PhoneMock } from "@/components/PhoneMock";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { CountUp } from "@/components/CountUp";
+import { TokenMarquee } from "@/components/TokenMarquee";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
 /* ─── Data ─── */
-
-const STATS = [
-  { v: "78", l: "Approved tokens" },
-  { v: "68", l: "Tests passing" },
-  { v: "3", l: "Lending tiers" },
-  { v: "<10s", l: "Time to SOL" },
-];
 
 const PROTOCOL_FEATURES = [
   {
@@ -210,7 +205,7 @@ export default function Home() {
           </p>
 
           <div className="fade-up fade-up-3 mt-10 flex flex-wrap items-center gap-4">
-            <a href={TELEGRAM_URL} className="btn-accent text-base">
+            <a href={TELEGRAM_URL} className="btn-accent shimmer text-base">
               Start borrowing
               <span aria-hidden>→</span>
             </a>
@@ -223,12 +218,22 @@ export default function Home() {
           </div>
 
           <div className="fade-up fade-up-4 mt-16 grid max-w-4xl grid-cols-2 gap-0 divide-x divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm sm:grid-cols-4">
-            {STATS.map((s) => (
-              <div key={s.l} className="px-4 py-5 text-center md:px-6">
-                <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl">{s.v}</div>
-                <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">{s.l}</div>
-              </div>
-            ))}
+            <div className="px-4 py-5 text-center md:px-6">
+              <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl"><CountUp value={78} /></div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Approved tokens</div>
+            </div>
+            <div className="px-4 py-5 text-center md:px-6">
+              <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl"><CountUp value={68} /></div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Tests passing</div>
+            </div>
+            <div className="px-4 py-5 text-center md:px-6">
+              <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl"><CountUp value={3} /></div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Lending tiers</div>
+            </div>
+            <div className="px-4 py-5 text-center md:px-6">
+              <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl">&lt;10s</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Time to SOL</div>
+            </div>
           </div>
 
           {/* Floating mark */}
@@ -271,11 +276,19 @@ export default function Home() {
         </Reveal>
       </section>
 
-      {/* Marquee */}
+      {/* Token logo marquee */}
+      <section className="overflow-hidden border-b border-[var(--hairline)] bg-[var(--surface)] py-5">
+        <div className="mb-3 text-center text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">
+          Accepted collateral
+        </div>
+        <TokenMarquee />
+      </section>
+
+      {/* Feature marquee */}
       <section className="overflow-hidden border-b border-[var(--hairline)] bg-[var(--accent)]">
-        <div className="flex marquee whitespace-nowrap py-5 text-[var(--ink)] font-semibold tracking-tight">
+        <div className="flex marquee whitespace-nowrap py-4 text-[var(--ink)] font-semibold tracking-tight">
           {[...MARQUEE, ...MARQUEE].map((item, i) => (
-            <span key={i} className="flex items-center gap-6 px-6 text-lg">
+            <span key={i} className="flex items-center gap-6 px-6 text-base">
               {item}
               <span aria-hidden className="opacity-30">✦</span>
             </span>
@@ -345,7 +358,43 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
             </div>
           </Reveal>
 
-          <Reveal delay={250}>
+          {/* On-chain proof */}
+          <Reveal delay={220}>
+            <div className="mt-12 grid grid-cols-1 gap-4 md:grid-cols-2">
+              <a
+                href="https://solscan.io/account/7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-5 transition hover:border-[var(--accent)] hover:shadow-sm"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-lg text-[var(--accent-deep)]">
+                  ◉
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold">magpie-lending</div>
+                  <div className="mt-0.5 truncate font-mono text-[11px] text-[var(--ink-faint)]">7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P</div>
+                </div>
+                <span className="text-xs font-medium text-[var(--accent-deep)] opacity-0 transition group-hover:opacity-100">Solscan →</span>
+              </a>
+              <a
+                href="https://solscan.io/account/BBYtty9sqWjHzTuoXSNfDCpNtLn6ZjfSfhYEoY6MFP2E"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-center gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-5 transition hover:border-[var(--accent)] hover:shadow-sm"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-lg text-[var(--accent-deep)]">
+                  ★
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold">magpie-credit-oracle</div>
+                  <div className="mt-0.5 truncate font-mono text-[11px] text-[var(--ink-faint)]">BBYtty9sqWjHzTuoXSNfDCpNtLn6ZjfSfhYEoY6MFP2E</div>
+                </div>
+                <span className="text-xs font-medium text-[var(--accent-deep)] opacity-0 transition group-hover:opacity-100">Solscan →</span>
+              </a>
+            </div>
+          </Reveal>
+
+          <Reveal delay={280}>
             <div className="mt-10 flex flex-wrap items-center gap-4">
               <Link href="/docs" className="btn-accent text-base">
                 Read the docs
