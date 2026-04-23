@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mark, Wordmark } from "@/components/Logo";
+import { Mark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { PhoneMock } from "@/components/PhoneMock";
 import { Header } from "@/components/Header";
@@ -7,11 +7,67 @@ import { Footer } from "@/components/Footer";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
+/* ─── Data ─── */
+
+const STATS = [
+  { v: "78", l: "Approved tokens" },
+  { v: "68", l: "Tests passing" },
+  { v: "3", l: "Lending tiers" },
+  { v: "<10s", l: "Time to SOL" },
+];
+
+const PROTOCOL_FEATURES = [
+  {
+    title: "Permissionless pools",
+    desc: "Anyone can supply SOL to the lending pool and earn yield from loan origination fees. Share-based accounting — deposit, withdraw, compound.",
+    icon: "◉",
+  },
+  {
+    title: "On-chain credit oracle",
+    desc: "The first DeFi credit system. Every repayment builds a 300–850 score, stored on-chain. Better score unlocks better LTV and lower fees over time.",
+    icon: "★",
+  },
+  {
+    title: "Keeper network",
+    desc: "Liquidations are permissionless. Any wallet can execute an overdue liquidation and earn a bounty — no staking required, no gatekeepers.",
+    icon: "⚡",
+  },
+  {
+    title: "Tokenized stock collateral",
+    desc: "Borrow against real equities on Solana. xTSLA, xNVDA, xAAPL, and more via tokens.xyz — the first lending protocol to accept both memecoins and stocks.",
+    icon: "◈",
+  },
+];
+
+const THREE_SIDES = [
+  {
+    chip: "Borrow",
+    title: "78 tokens accepted",
+    desc: "Pledge memecoins or tokenized stocks, pick a tier, get SOL in seconds. Non-custodial, on-chain, delivered in a Telegram chat.",
+    href: "/tokens",
+    cta: "Browse tokens",
+  },
+  {
+    chip: "Earn",
+    title: "Supply & earn yield",
+    desc: "Deposit SOL into the permissionless lending pool. Earn a share of every loan fee, proportional to your deposit. Withdraw anytime.",
+    href: "/earn",
+    cta: "Start earning",
+  },
+  {
+    chip: "Reputation",
+    title: "On-chain credit scores",
+    desc: "Every repayment builds your score (300–850). Higher scores unlock better rates. First portable DeFi credit system — your history, on-chain.",
+    href: "/credit",
+    cta: "Credit system",
+  },
+];
+
 const STEPS = [
   {
     n: "01",
     t: "Open @magpie_capital_bot",
-    d: "Start a chat. Verify your wallet. No seed phrase — keys stay yours, exportable anytime.",
+    d: "Start a chat. Connect your wallet. No seed phrase — keys stay yours.",
   },
   {
     n: "02",
@@ -26,7 +82,7 @@ const STEPS = [
   {
     n: "04",
     t: "Manage or repay",
-    d: "Top-up, partial-repay, or extend anytime. Repay fully to reclaim your bag. Alerts fire at 90% health and 24h-to-due.",
+    d: "Top-up, partial-repay, or extend anytime. Repay fully to reclaim your bag. Alerts fire at 90% health.",
   },
 ];
 
@@ -63,135 +119,111 @@ const TIERS = [
 const PILLARS = [
   {
     title: "Non-custodial",
-    body: "Loan-scoped deposit addresses. Your other holdings are untouchable. Export your keys anytime.",
+    body: "Loan-scoped deposit addresses. Your other holdings are untouchable. Collateral held in on-chain vaults, not our wallets.",
   },
   {
     title: "Transparent pricing",
-    body: "Simple tiered fees based on how much you borrow: 3% Express (30% LTV), 2% Quick (25% LTV), 1.5% Standard (20% LTV). Higher LTV means more SOL but more risk — so the fee is higher. No hidden rate curves, no dynamic APR.",
+    body: "Tiered fees: 3% Express, 2% Quick, 1.5% Standard. No hidden rate curves, no dynamic APR, no liquidation penalties beyond what you pledged.",
   },
   {
-    title: "Liquidation-safe",
-    body: "Only the pledged bag can be liquidated — never your wallet. On-chain, auditable, deterministic.",
+    title: "Permissionless",
+    body: "Anyone can supply liquidity. Anyone can run a keeper. Anyone can build on top. No gatekeepers, no whitelists, open protocol.",
   },
   {
     title: "Telegram-native",
-    body: "No new app. No extension. No seed phrase in a browser tab. Just a chat and a confirm button.",
+    body: "No new app. No extension. No seed phrase in a browser tab. Borrow SOL in a chat — the whole flow takes under 30 seconds.",
   },
 ];
 
 const FAQ = [
   {
     q: "What is LTV and how does it work?",
-    a: "LTV stands for Loan-to-Value — it's the percentage of your collateral's dollar value that you receive as a SOL loan. For example, if you deposit $1,000 worth of WIF at 30% LTV, you receive $300 in SOL. Lower LTV means you borrow less but have more safety margin before liquidation. Higher LTV gives you more SOL upfront but leaves less room for price drops.",
+    a: "LTV stands for Loan-to-Value — the percentage of your collateral's dollar value you receive as SOL. $1,000 of WIF at 30% LTV = $300 in SOL. Lower LTV = less SOL but more safety margin.",
   },
   {
     q: "What tokens can I pledge?",
-    a: "We accept 64+ Solana memecoins including WIF, BONK, Fartcoin, Moo Deng, GOAT, and many more. Check our Approved Tokens page for the full list with live prices and market data. Don't see your bag? You can request a new listing directly from that page.",
+    a: "78 tokens — 69 memecoins (WIF, BONK, Fartcoin, POPCAT, and more) plus 9 tokenized stocks (xTSLA, xNVDA, xAAPL, xGOOGL, xAMZN, xMSFT, xMETA, xMSTR, xCOIN). Check the Approved Tokens page for the full list.",
   },
   {
     q: "What happens if the price drops?",
-    a: "Your loan has a health ratio that tracks your collateral's value against what you owe. You get alerts at 90% health and 24 hours before the due date. You can top-up more collateral, partial-repay, or extend — all in the chat. If health drops below 1.1x (meaning your collateral is worth only 10% more than your debt), the position is liquidated on-chain.",
+    a: "Your loan has a health ratio tracking collateral value vs. debt. You get alerts at 90% health. You can top-up or partial-repay. If health drops below threshold, the position is liquidated on-chain by the keeper network.",
   },
   {
-    q: "How is my loan amount calculated?",
-    a: "Magpie uses real-time oracle prices (via Jupiter) to value your collateral in SOL. Your payout = collateral value × LTV percentage, minus the origination fee. Higher LTV tiers let you borrow more but carry a higher fee to offset risk: Express (30% LTV, 3% fee), Quick (25%, 2%), Standard (20%, 1.5%). Example: $5,000 collateral at Standard = $1,000 SOL, minus $15 fee.",
+    q: "How do I earn yield?",
+    a: "Deposit SOL into the lending pool on the Earn page. You receive pool shares. When borrowers pay fees, the pool grows and your shares are worth more. Withdraw anytime — no lockups.",
   },
   {
-    q: "How fast is this really?",
-    a: "A typical end-to-end flow is under 30 seconds. The SOL payout lands as soon as your deposit confirms on Solana mainnet, usually in 8–12 seconds.",
+    q: "What is the credit oracle?",
+    a: "An on-chain program (BBYtty9...) that tracks a 300–850 credit score per wallet. Every on-time repayment increases your score. Higher scores will unlock better LTV ratios and lower fees.",
   },
   {
-    q: "Do I need to lock the full collateral upfront?",
-    a: "Yes — collateral funds the loan. But you can add more anytime to improve your health ratio, or partial-repay to reduce what you owe.",
+    q: "What is the keeper network?",
+    a: "Liquidations are permissionless. When a loan becomes overdue, any wallet can execute the liquidation and earn a bounty (configurable, up to 20% of seized collateral). No staking required.",
   },
   {
     q: "Is this custodial?",
-    a: "No. Magpie generates a fresh deposit address per loan. You can export the private key from the bot at any time. We never hold your other assets.",
+    a: "No. Collateral sits in on-chain vaults governed by the Anchor program, not in anyone's wallet. The smart contract is publicly auditable and deterministic.",
   },
   {
     q: "What's the smart contract?",
-    a: "An Anchor program deployed on Solana mainnet. Source is publicly auditable. Liquidations and fee flows are deterministic and enforced on-chain.",
+    a: "magpie-lending — an Anchor program on Solana (7tapn...). Permissionless lending pools with share-based accounting, configurable keeper rewards, and tiered fee structure. 68 tests passing.",
   },
 ];
 
 const MARQUEE = [
-  "No credit check",
+  "Permissionless pools",
   "Non-custodial",
+  "On-chain credit scores",
+  "78 approved tokens",
+  "Keeper network",
+  "Tokenized stocks",
   "1.5–3% tiered fee",
   "Repay anytime",
-  "Top-up anytime",
   "Live health alerts",
-  "On-chain liquidation",
   "Solana mainnet",
 ];
 
-const VAULT_FEATURES = [
-  {
-    title: "Spend limits",
-    desc: "Set a maximum amount the agent can spend per session. Enforced at the contract level — the agent physically cannot exceed it.",
-    icon: "⬡",
-  },
-  {
-    title: "Time-bound sessions",
-    desc: "Sessions expire automatically. No open-ended access. Owners can extend or revoke at any time.",
-    icon: "◷",
-  },
-  {
-    title: "Instant revocation",
-    desc: "One transaction to cut agent access. No waiting period, no multi-sig. Owner always has the final word.",
-    icon: "⛨",
-  },
-  {
-    title: "CPI composable",
-    desc: "Other Solana programs can call into vaults via CPI. Build lending, trading, payments — anything — on top of the primitive.",
-    icon: "⇄",
-  },
-];
+/* ─── Page ─── */
 
 export default function Home() {
   return (
     <div className="min-h-screen">
       <Header />
 
-      {/* Hero */}
+      {/* ══════════ HERO ══════════ */}
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
         <div className="mx-auto max-w-6xl px-6 pt-20 pb-28 md:pt-28 md:pb-36">
           <div className="fade-up mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
             <span className="live-dot" />
-            <span className="text-[var(--ink)]">Built on Solana</span>
+            <span className="text-[var(--ink)]">Live on Solana mainnet</span>
           </div>
 
           <h1 className="fade-up fade-up-1 font-display max-w-5xl text-[clamp(3rem,9vw,8.5rem)] leading-[0.92] tracking-[-0.04em] font-medium">
-            Programmable
+            Borrow SOL.
             <br />
-            <span className="italic">vaults</span> for AI.
+            <span className="italic">Keep your bag.</span>
           </h1>
 
           <p className="fade-up fade-up-2 mt-8 max-w-xl text-xl text-[var(--ink-soft)] leading-relaxed">
-            On-chain infrastructure that lets AI agents spend crypto within limits you set. First application: instant memecoin-backed loans, delivered in a Telegram chat.
+            Permissionless lending protocol on Solana. Pledge memecoins or tokenized stocks as collateral, get SOL in seconds — all in a Telegram chat. Every repayment builds your on-chain credit score.
           </p>
 
           <div className="fade-up fade-up-3 mt-10 flex flex-wrap items-center gap-4">
-            <Link href="/vault" className="btn-accent text-base">
-              Explore the protocol
+            <a href={TELEGRAM_URL} className="btn-accent text-base">
+              Start borrowing
               <span aria-hidden>→</span>
-            </Link>
-            <Link href="/demo" className="btn-ghost text-base">
-              Watch the demo
-            </Link>
-            <a href={TELEGRAM_URL} className="btn-ghost text-base">
-              Try the lending bot
             </a>
+            <Link href="/earn" className="btn-ghost text-base">
+              Earn yield
+            </Link>
+            <Link href="/tokens" className="btn-ghost text-base">
+              78 approved tokens
+            </Link>
           </div>
 
           <div className="fade-up fade-up-4 mt-16 grid max-w-4xl grid-cols-2 gap-0 divide-x divide-[var(--hairline)] rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-sm sm:grid-cols-4">
-            {[
-              { v: "17", l: "Instructions" },
-              { v: "53", l: "Tests passing" },
-              { v: "2", l: "Vault types" },
-              { v: "CPI", l: "Composable" },
-            ].map((s) => (
+            {STATS.map((s) => (
               <div key={s.l} className="px-4 py-5 text-center md:px-6">
                 <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-4xl">{s.v}</div>
                 <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">{s.l}</div>
@@ -212,13 +244,13 @@ export default function Home() {
       <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
         <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 py-10 md:flex-row md:justify-between">
           <div className="text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]">
-            Built on
+            Built with
           </div>
           <div className="flex flex-wrap items-center justify-center gap-10 md:gap-14">
             <EcoLogo label="Solana" />
             <EcoLogo label="Anchor" />
-            <EcoLogo label="Pyth" />
             <EcoLogo label="Jupiter" />
+            <EcoLogo label="tokens.xyz" />
             <EcoLogo label="Telegram" />
           </div>
         </div>
@@ -228,12 +260,13 @@ export default function Home() {
       <section className="mx-auto max-w-5xl px-6 py-24 md:py-32">
         <Reveal>
           <p className="font-display text-2xl font-medium leading-relaxed tracking-[-0.02em] text-[var(--ink)] md:text-4xl md:leading-[1.4]">
-            We built vaults on Solana that let AI agents spend your crypto
-            {" — "}but only within limits you set, enforced on-chain. We&apos;re using it to power
-            {" "}
-            <span className="italic text-[var(--accent-deep)]">instant memecoin-backed loans</span>
-            {" "}through a Telegram bot, and every repayment builds your on-chain credit score.
-            {" "}Better score, better rates. The whole thing runs in a chat window.
+            Magpie is a permissionless lending protocol on Solana. Anyone can
+            {" "}<span className="italic text-[var(--accent-deep)]">supply liquidity</span>{" "}
+            to earn yield. Anyone can
+            {" "}<span className="italic text-[var(--accent-deep)]">borrow SOL</span>{" "}
+            against memecoins and tokenized stocks. And anyone can
+            {" "}<span className="italic text-[var(--accent-deep)]">run a keeper</span>{" "}
+            to earn bounties on liquidations. Every repayment builds your on-chain credit score.
           </p>
         </Reveal>
       </section>
@@ -256,19 +289,18 @@ export default function Home() {
           <Reveal>
             <div className="chip mb-5">The protocol</div>
             <h2 className="font-display max-w-4xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
-              Agent Vault Protocol.
+              Open infrastructure.
               <br />
-              <span className="italic text-[var(--ink-soft)]">Trust with limits.</span>
+              <span className="italic text-[var(--ink-soft)]">No gatekeepers.</span>
             </h2>
             <p className="mt-6 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
-              An Anchor program on Solana that creates programmable wallets for AI agents.
-              Owners fund vaults, assign agents, set spend caps and session windows — and the contract enforces every constraint on-chain.
-              Agents can transact autonomously, but they can never exceed their bounds.
+              An Anchor program on Solana that powers permissionless lending pools, an on-chain credit oracle, and a keeper network for liquidations.
+              Every constraint is enforced by the smart contract — not by us.
             </p>
           </Reveal>
 
           <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--hairline)] md:grid-cols-2">
-            {VAULT_FEATURES.map((f, i) => (
+            {PROTOCOL_FEATURES.map((f, i) => (
               <Reveal key={f.title} delay={i * 80}>
                 <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-8 md:p-10">
                   <div className="flex items-center gap-3">
@@ -289,112 +321,83 @@ export default function Home() {
           <Reveal delay={200}>
             <div className="mt-12 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[#0e1621]">
               <div className="flex items-center justify-between border-b border-white/5 bg-[#17212b] px-5 py-3">
-                <span className="font-mono text-[11px] font-semibold text-white/80">vault-consumer.rs</span>
-                <span className="text-[10px] text-white/40">CPI integration example</span>
+                <span className="font-mono text-[11px] font-semibold text-white/80">magpie-lending</span>
+                <span className="text-[10px] text-white/40">Anchor program on Solana</span>
               </div>
               <pre className="overflow-x-auto p-5 font-mono text-[12px] leading-relaxed text-white/70">
-{`// Any Solana program can call agent_vault via CPI
-let cpi_ctx = CpiContext::new(
-    vault_program.to_account_info(),
-    AgentSpend {
-        vault: vault.to_account_info(),
-        agent: agent.to_account_info(),
-        recipient: recipient.to_account_info(),
-    },
-);
-// Contract enforces spend limit + session window
-agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
+{`// Permissionless liquidation — any wallet can be a keeper
+pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
+    let pool = &ctx.accounts.pool;
+    let loan = &mut ctx.accounts.loan;
+
+    // Verify loan is overdue
+    require!(Clock::get()?.unix_timestamp > loan.due_timestamp,
+        LendingError::LoanNotDue);
+
+    // Split collateral: keeper bounty + authority remainder
+    let keeper_reward = collateral_balance
+        .checked_mul(pool.keeper_reward_bps as u64)
+        .unwrap() / 10_000;
+    // Transfer reward to keeper, remainder to pool authority
+    ...
+}`}
               </pre>
             </div>
           </Reveal>
 
           <Reveal delay={250}>
             <div className="mt-10 flex flex-wrap items-center gap-4">
-              <Link href="/vault" className="btn-accent text-base">
-                Full protocol deep-dive
+              <Link href="/docs" className="btn-accent text-base">
+                Read the docs
                 <span aria-hidden>→</span>
               </Link>
-              <Link href="/demo" className="btn-ghost text-base">
-                Interactive demo
+              <Link href="/earn" className="btn-ghost text-base">
+                Supply liquidity
               </Link>
-              <a
-                href="https://github.com/magpiecapital/magpie-bot"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-ghost text-base"
-              >
-                View source on GitHub
-              </a>
+              <Link href="/stats" className="btn-ghost text-base">
+                Protocol stats
+              </Link>
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* ══════════ FIRST APPLICATION ══════════ */}
+      {/* ══════════ THREE SIDES ══════════ */}
       <section className="mx-auto max-w-6xl px-6 py-28 md:py-36">
         <Reveal>
-          <div className="chip mb-5">First application</div>
+          <div className="chip mb-5">The marketplace</div>
           <h2 className="font-display max-w-4xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
-            Borrow SOL.
+            Borrow. Earn.
             <br />
-            <span className="italic text-[var(--ink-soft)]">Keep your bag.</span>
+            <span className="italic text-[var(--ink-soft)]">Build your score.</span>
           </h2>
           <p className="mt-6 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
-            The first product built on the Agent Vault Protocol: memecoin-collateralized lending, delivered entirely through a Telegram bot.
-            Pledge your bag, get SOL in seconds, repay on your schedule.
+            Three sides of a permissionless lending marketplace — all governed on-chain, all accessible from day one.
           </p>
         </Reveal>
 
         <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
-          <Reveal delay={0}>
-            <Link
-              href="/tokens"
-              className="group flex h-full flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg"
-            >
-              <div className="chip mb-3">Collateral</div>
-              <h3 className="font-display text-2xl font-medium tracking-[-0.02em]">64+ tokens</h3>
-              <p className="mt-2 flex-1 text-sm text-[var(--ink-soft)] leading-relaxed">
-                WIF, BONK, Fartcoin, Moo Deng, and dozens more. Live prices, real-time risk assessment.
-              </p>
-              <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[var(--accent-deep)] group-hover:text-[var(--accent)]">
-                Browse tokens <span aria-hidden className="transition group-hover:translate-x-1">→</span>
-              </div>
-            </Link>
-          </Reveal>
-          <Reveal delay={80}>
-            <Link
-              href="/credit"
-              className="group flex h-full flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg"
-            >
-              <div className="chip mb-3">Reputation</div>
-              <h3 className="font-display text-2xl font-medium tracking-[-0.02em]">On-chain credit</h3>
-              <p className="mt-2 flex-1 text-sm text-[var(--ink-soft)] leading-relaxed">
-                First DeFi credit system. Repay on time, level up (300–850), unlock better LTV and lower fees.
-              </p>
-              <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[var(--accent-deep)] group-hover:text-[var(--accent)]">
-                Credit system <span aria-hidden className="transition group-hover:translate-x-1">→</span>
-              </div>
-            </Link>
-          </Reveal>
-          <Reveal delay={160}>
-            <Link
-              href="/points"
-              className="group flex h-full flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg"
-            >
-              <div className="chip mb-3">Rewards</div>
-              <h3 className="font-display text-2xl font-medium tracking-[-0.02em]">Points system</h3>
-              <p className="mt-2 flex-1 text-sm text-[var(--ink-soft)] leading-relaxed">
-                Earn points on every loan. Bigger loans, riskier tiers, early repayments, and streaks all multiply rewards.
-              </p>
-              <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[var(--accent-deep)] group-hover:text-[var(--accent)]">
-                How it works <span aria-hidden className="transition group-hover:translate-x-1">→</span>
-              </div>
-            </Link>
-          </Reveal>
+          {THREE_SIDES.map((s, i) => (
+            <Reveal key={s.chip} delay={i * 80}>
+              <Link
+                href={s.href}
+                className="group flex h-full flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-8 transition hover:border-[var(--accent)] hover:shadow-lg"
+              >
+                <div className="chip mb-3">{s.chip}</div>
+                <h3 className="font-display text-2xl font-medium tracking-[-0.02em]">{s.title}</h3>
+                <p className="mt-2 flex-1 text-sm text-[var(--ink-soft)] leading-relaxed">
+                  {s.desc}
+                </p>
+                <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[var(--accent-deep)] group-hover:text-[var(--accent)]">
+                  {s.cta} <span aria-hidden className="transition group-hover:translate-x-1">→</span>
+                </div>
+              </Link>
+            </Reveal>
+          ))}
         </div>
       </section>
 
-      {/* How it works */}
+      {/* ══════════ HOW IT WORKS ══════════ */}
       <section id="how" className="mx-auto max-w-6xl px-6 py-28 md:py-40">
         <Reveal>
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
@@ -407,7 +410,7 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
               </h2>
             </div>
             <p className="max-w-md text-lg text-[var(--ink-soft)] leading-relaxed">
-              Magpie wraps a Solana lending program in a Telegram bot. Pledge memecoins as collateral, receive SOL instantly, repay on your own schedule.
+              The Telegram bot wraps the on-chain program in a conversational interface. Pledge collateral, receive SOL, repay on your schedule.
             </p>
           </div>
         </Reveal>
@@ -437,15 +440,15 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
           <Reveal className="order-1 md:order-2" delay={150}>
             <PhoneMock />
             <div className="mt-6 text-center">
-              <Link href="/demo" className="text-sm font-medium text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline">
-                Watch the full interactive demo →
-              </Link>
+              <a href={TELEGRAM_URL} className="text-sm font-medium text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline">
+                Try it live on Telegram →
+              </a>
             </div>
           </Reveal>
         </div>
       </section>
 
-      {/* Why Magpie — pillars */}
+      {/* ══════════ WHY MAGPIE ══════════ */}
       <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
         <div className="mx-auto max-w-6xl px-6 py-28 md:py-36">
           <Reveal>
@@ -475,7 +478,7 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
         </div>
       </section>
 
-      {/* Lending tiers */}
+      {/* ══════════ LENDING TIERS ══════════ */}
       <section id="tiers" className="bg-[var(--surface)]">
         <div className="mx-auto max-w-6xl px-6 py-28 md:py-40">
           <Reveal>
@@ -491,7 +494,7 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
               <div className="max-w-md text-lg leading-relaxed text-[var(--ink-soft)]">
                 <p>LTV (Loan-to-Value) is the percentage of your collateral&apos;s value you receive as SOL. Higher LTV = more SOL, but less room before liquidation.</p>
                 <p className="mt-3 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-4 py-3 text-sm">
-                  <span className="font-semibold text-[var(--ink)]">Example:</span> $1,000 of WIF at 20% LTV (Standard) = <span className="font-semibold text-[var(--ink)]">$200 in SOL</span>, minus 1.5% fee. Choose Express (30% LTV) to borrow more, but at a 3% premium.
+                  <span className="font-semibold text-[var(--ink)]">Example:</span> $1,000 of WIF at 20% LTV = <span className="font-semibold text-[var(--ink)]">$200 in SOL</span>, minus 1.5% fee. Choose Express (30% LTV) to borrow $300, at a 3% fee.
                 </p>
               </div>
             </div>
@@ -509,7 +512,7 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
                 >
                   {tier.highlight && (
                     <span className="absolute -top-3 left-8 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink)] shadow-sm">
-                      Most SOL
+                      Most popular
                     </span>
                   )}
                   <div className="flex items-center justify-between">
@@ -544,9 +547,9 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
           <Reveal>
             <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:flex-row md:items-center md:justify-between md:p-8">
               <div className="text-sm leading-relaxed text-[var(--ink-soft)]">
-                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend at your tier&apos;s fee rate, and live health alerts. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">64+ approved tokens</Link>.
+                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend at your tier&apos;s fee rate, live health alerts, and credit score accrual. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">78 approved tokens</Link>.
               </div>
-              <a href={TELEGRAM_URL} className="btn-dark text-sm">
+              <a href={TELEGRAM_URL} className="btn-dark shrink-0 text-sm">
                 Get a quote →
               </a>
             </div>
@@ -554,7 +557,7 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* ══════════ FAQ ══════════ */}
       <section id="faq" className="mx-auto max-w-6xl px-6 py-28 md:py-40">
         <Reveal>
           <div className="chip mb-5">Questions</div>
@@ -582,7 +585,7 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
         </div>
       </section>
 
-      {/* Closing CTA */}
+      {/* ══════════ CLOSING CTA ══════════ */}
       <section className="relative overflow-hidden border-t border-[var(--hairline)] bg-[var(--ink)] text-[var(--bg-elevated)]">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[var(--accent)]/20 blur-3xl drift" />
@@ -591,29 +594,29 @@ agent_vault::cpi::agent_spend(cpi_ctx, amount)?;`}
         <div className="relative mx-auto max-w-6xl px-6 py-28 text-center md:py-40">
           <Mark size={80} className="mx-auto mb-10 hop" />
           <h2 className="font-display mx-auto max-w-4xl text-6xl font-medium tracking-[-0.04em] text-white md:text-8xl">
-            Build on the
+            Your bags.
             <br />
-            <span className="italic text-[var(--accent)]">vault primitive.</span>
+            <span className="italic text-[var(--accent)]">Your liquidity.</span>
           </h2>
           <p className="mx-auto mt-6 max-w-lg text-lg text-white/70">
-            Infrastructure for the AI agent economy on Solana. Explore the protocol, try the lending bot, or build your own integration.
+            Borrow SOL. Earn yield. Build your credit score. All permissionless, all on Solana.
           </p>
           <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <Link href="/vault" className="btn-accent text-lg">
-              Explore the protocol
+            <a href={TELEGRAM_URL} className="btn-accent text-lg">
+              Start borrowing
               <span aria-hidden>→</span>
-            </Link>
-            <a
-              href={TELEGRAM_URL}
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
-            >
-              Try the lending bot
             </a>
             <Link
-              href="/demo"
+              href="/earn"
               className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
             >
-              Watch the demo
+              Earn yield
+            </Link>
+            <Link
+              href="/tokens"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+            >
+              Browse tokens
             </Link>
           </div>
         </div>
@@ -631,4 +634,3 @@ function EcoLogo({ label }: { label: string }) {
     </div>
   );
 }
-

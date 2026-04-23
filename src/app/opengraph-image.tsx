@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Magpie — Programmable vaults for AI agents on Solana.";
+export const alt = "Magpie — Permissionless lending protocol on Solana.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -53,9 +53,9 @@ export default async function Image() {
               flexDirection: "column",
             }}
           >
-            <div>Programmable</div>
+            <div>Borrow SOL.</div>
             <div>
-              <span style={{ fontStyle: "italic", color: "#c99a2c" }}>vaults</span> for AI.
+              <span style={{ fontStyle: "italic", color: "#c99a2c" }}>Keep</span> your bag.
             </div>
           </div>
           <div
@@ -65,7 +65,7 @@ export default async function Image() {
               letterSpacing: "-0.01em",
             }}
           >
-            On-chain infrastructure for AI agents on Solana. First app: memecoin-backed lending.
+            Permissionless lending on Solana. Memecoins + tokenized stocks as collateral.
           </div>
         </div>
 
@@ -80,16 +80,16 @@ export default async function Image() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 32, fontSize: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>17</div>
-              instructions
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>78</div>
+              tokens
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>53</div>
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>68</div>
               tests passing
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>CPI</div>
-              composable
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>3</div>
+              lending tiers
             </div>
           </div>
           <div style={{ fontWeight: 600, color: "#0a0a0a" }}>magpie.capital</div>

@@ -14,7 +14,7 @@ export function Footer() {
               <Wordmark size={24} />
             </Link>
             <p className="mt-4 max-w-[220px] text-sm leading-relaxed text-[var(--ink-soft)]">
-              Borrow SOL against your memecoin bags, in a Telegram chat.
+              Permissionless lending on Solana. Borrow SOL against memecoins and tokenized stocks.
             </p>
           </div>
           <FooterCol title="Product">
@@ -22,10 +22,10 @@ export function Footer() {
             <FooterLink href="/calculate">Loan Calculator</FooterLink>
             <FooterLink href="/credit">Credit System</FooterLink>
             <FooterLink href="/points">Points</FooterLink>
-            <FooterLink href="/vault">Agent Vault</FooterLink>
+            <FooterLink href="/earn">Earn</FooterLink>
             <FooterLink href="/marketplace">Marketplace</FooterLink>
             <FooterLink href="/dashboard">Dashboard</FooterLink>
-            <FooterLink href="/demo">Demo</FooterLink>
+            <FooterLink href="/stats">Protocol Stats</FooterLink>
           </FooterCol>
           <FooterCol title="Resources">
             <FooterLink href="/docs">Documentation</FooterLink>

@@ -21,15 +21,19 @@ const SITE_URL = "https://magpie.capital";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Magpie — Programmable vaults for AI agents on Solana.",
+  title: "Magpie — Permissionless lending protocol on Solana.",
   description:
-    "On-chain infrastructure for the AI agent economy. First app: instant memecoin-backed lending via Telegram.",
+    "Borrow SOL against memecoins and tokenized stocks. Permissionless pools, on-chain credit scores, and a keeper network — all in a Telegram chat.",
   applicationName: "Magpie",
   keywords: [
     "Solana lending",
     "memecoin lending",
+    "tokenized stocks",
     "SOL loan",
     "memecoin collateral",
+    "permissionless lending",
+    "DeFi credit score",
+    "keeper network",
     "Telegram bot",
     "DeFi",
     "non-custodial",
@@ -46,9 +50,9 @@ export const metadata: Metadata = {
     apple: "/favicon.svg",
   },
   openGraph: {
-    title: "Magpie — Programmable vaults for AI agents on Solana.",
+    title: "Magpie — Permissionless lending protocol on Solana.",
     description:
-      "On-chain infrastructure for the AI agent economy. First app: instant memecoin-backed lending via Telegram.",
+      "Borrow SOL against memecoins and tokenized stocks. Permissionless pools, on-chain credit scores, and a keeper network.",
     url: SITE_URL,
     siteName: "Magpie",
     type: "website",
@@ -64,7 +68,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Magpie",
-    description: "Programmable vaults for AI agents on Solana.",
+    description: "Permissionless lending protocol on Solana. Borrow SOL against memecoins and tokenized stocks.",
     site: "@MagpieCapital",
     creator: "@MagpieCapital",
   },
