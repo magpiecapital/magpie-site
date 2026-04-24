@@ -51,9 +51,9 @@ export default function EarnPage() {
   const refresh = useCallback(async () => {
     try {
       setError(null);
-      setPoolNotInitialized(false);
       const stats = await fetchPoolStats(connection);
       setPool(stats);
+      setPoolNotInitialized(false);
 
       if (publicKey) {
         const bal = await connection.getBalance(publicKey);
@@ -65,6 +65,7 @@ export default function EarnPage() {
       const msg = e instanceof Error ? e.message : "";
       if (msg.includes("Account does not exist") || msg.includes("has no data")) {
         setPoolNotInitialized(true);
+        // Don't keep polling — pool won't appear until we initialize it
       } else {
         setError(msg || "Failed to fetch pool data");
       }
@@ -75,9 +76,12 @@ export default function EarnPage() {
 
   useEffect(() => {
     refresh();
-    const interval = setInterval(refresh, 30_000);
-    return () => clearInterval(interval);
-  }, [refresh]);
+    // Only poll if the pool actually exists — otherwise we burn RPC credits for nothing
+    if (!poolNotInitialized) {
+      const interval = setInterval(refresh, 60_000); // 60s instead of 30s
+      return () => clearInterval(interval);
+    }
+  }, [refresh, poolNotInitialized]);
 
   // Handle deposit
   const handleDeposit = async () => {
