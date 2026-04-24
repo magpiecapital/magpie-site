@@ -15,11 +15,10 @@ import type { WalletError } from "@solana/wallet-adapter-base";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-// Use Solana's public mainnet RPC with commitment config
-// The public endpoint rate-limits aggressively — if you have a Helius/QuickNode
-// key, set NEXT_PUBLIC_RPC_URL in your environment for reliability.
-const RPC_ENDPOINT =
-  process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com";
+// Use Solana's free public RPC until the pool is live.
+// Switch back to NEXT_PUBLIC_RPC_URL (Helius) when the pool is initialized
+// and real transactions need reliable RPC.
+const RPC_ENDPOINT = "https://api.mainnet-beta.solana.com";
 
 // Stable reference — prevents ConnectionProvider from re-creating the
 // Connection object on every render, which would cascade re-renders
