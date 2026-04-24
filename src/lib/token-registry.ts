@@ -3,6 +3,8 @@
  * Used by: /api/v1/tokens, /tokens page, /dashboard eligible collateral.
  *
  * To add a new token: append to this array and redeploy.
+ * Every token MUST have an image — either a local path in /public/tokens/
+ * or DexScreener will be used as fallback for memecoins.
  * To remove a token: delete the entry and redeploy.
  */
 
@@ -13,19 +15,21 @@ export interface RegisteredToken {
   name: string;
   mint: string;
   category: TokenCategory;
+  /** Local image path (e.g. "/tokens/xTSLA.svg") — required for stocks, optional for memecoins (DexScreener fallback). */
+  image?: string;
 }
 
 export const TOKEN_REGISTRY: RegisteredToken[] = [
   // ── xStocks (Tokenized Equities) ──
-  { symbol: "xTSLA", name: "Tesla", mint: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB", category: "stock" },
-  { symbol: "xNVDA", name: "NVIDIA", mint: "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh", category: "stock" },
-  { symbol: "xAAPL", name: "Apple", mint: "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp", category: "stock" },
-  { symbol: "xGOOGL", name: "Alphabet", mint: "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN", category: "stock" },
-  { symbol: "xAMZN", name: "Amazon", mint: "Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg", category: "stock" },
-  { symbol: "xMSFT", name: "Microsoft", mint: "FRmH6iRkMr33DLG6zVLR7EM4LojBFAuq6NtFzG6ondo", category: "stock" },
-  { symbol: "xMETA", name: "Meta", mint: "fDxs5y12E7x7jBwCKBXGqt71uJmCWsAQ3Srkte6ondo", category: "stock" },
-  { symbol: "xMSTR", name: "MicroStrategy", mint: "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ", category: "stock" },
-  { symbol: "xCOIN", name: "Coinbase", mint: "Xs7ZdzSHLU9ftNJsii5fCeJhoRWSC32SQGzGQtePxNu", category: "stock" },
+  { symbol: "xTSLA", name: "Tesla", mint: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB", category: "stock", image: "/tokens/xTSLA.svg" },
+  { symbol: "xNVDA", name: "NVIDIA", mint: "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh", category: "stock", image: "/tokens/xNVDA.svg" },
+  { symbol: "xAAPL", name: "Apple", mint: "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp", category: "stock", image: "/tokens/xAAPL.svg" },
+  { symbol: "xGOOGL", name: "Alphabet", mint: "XsCPL9dNWBMvFtTmwcCA5v3xWPSMEBCszbQdiLLq6aN", category: "stock", image: "/tokens/xGOOGL.svg" },
+  { symbol: "xAMZN", name: "Amazon", mint: "Xs3eBt7uRfJX8QUs4suhyU8p2M6DoUDrJyWBa8LLZsg", category: "stock", image: "/tokens/xAMZN.svg" },
+  { symbol: "xMSFT", name: "Microsoft", mint: "FRmH6iRkMr33DLG6zVLR7EM4LojBFAuq6NtFzG6ondo", category: "stock", image: "/tokens/xMSFT.svg" },
+  { symbol: "xMETA", name: "Meta", mint: "fDxs5y12E7x7jBwCKBXGqt71uJmCWsAQ3Srkte6ondo", category: "stock", image: "/tokens/xMETA.svg" },
+  { symbol: "xMSTR", name: "MicroStrategy", mint: "XsP7xzNPvEHS1m6qfanPUGjNmdnmsLKEoNAnHjdxxyZ", category: "stock", image: "/tokens/xMSTR.svg" },
+  { symbol: "xCOIN", name: "Coinbase", mint: "Xs7ZdzSHLU9ftNJsii5fCeJhoRWSC32SQGzGQtePxNu", category: "stock", image: "/tokens/xCOIN.svg" },
 
   // ── Memecoins & SPL Tokens ──
   { symbol: "PUMP", name: "Pump", mint: "pumpCmXqMfrsAkQ5r49WcJnRayYRqmXz6ae8H7H9Dfn", category: "memecoin" },

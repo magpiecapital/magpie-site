@@ -20,6 +20,8 @@ interface TokenData {
   name: string;
   mint: string;
   category: TokenCategory;
+  /** Local image from registry (e.g. "/tokens/xTSLA.svg") */
+  registryImage: string | null;
   price: number | null;
   change1h: number | null;
   change6h: number | null;
@@ -56,8 +58,8 @@ function pctClass(n: number | null): string {
 /* ─── DexScreener fetch ─── */
 async function fetchMarketData(
   mints: string[],
-): Promise<Map<string, Omit<TokenData, "symbol" | "name" | "mint" | "category">>> {
-  const map = new Map<string, Omit<TokenData, "symbol" | "name" | "mint" | "category">>();
+): Promise<Map<string, Omit<TokenData, "symbol" | "name" | "mint" | "category" | "registryImage">>> {
+  const map = new Map<string, Omit<TokenData, "symbol" | "name" | "mint" | "category" | "registryImage">>();
   const BATCH = 30;
 
   const batches: string[][] = [];
@@ -135,6 +137,7 @@ export default function TokensClient() {
           name: t.name,
           mint: t.mint,
           category: t.category,
+          registryImage: t.image ?? null,
           price: d?.price ?? null,
           change1h: d?.change1h ?? null,
           change6h: d?.change6h ?? null,
@@ -471,6 +474,7 @@ export default function TokensClient() {
                         <TokenIcon
                           symbol={t.symbol}
                           mint={t.mint}
+                          registryImage={t.registryImage}
                           imageUrl={t.imageUrl}
                         />
                         <div className="min-w-0">
@@ -664,16 +668,21 @@ function StatCard({ label, value, accent, onClick }: { label: string; value: str
 function TokenIcon({
   symbol,
   mint,
+  registryImage,
   imageUrl,
 }: {
   symbol: string;
   mint: string;
+  /** Local image from registry — highest priority */
+  registryImage: string | null;
   imageUrl: string | null;
 }) {
-  const [src, setSrc] = useState(
-    imageUrl ||
-      `https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`,
-  );
+  // Priority: registry image > DexScreener API image > DexScreener mint URL > fallback initial
+  const initialSrc = registryImage
+    || imageUrl
+    || `https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`;
+
+  const [src, setSrc] = useState(initialSrc);
   const [failed, setFailed] = useState(false);
 
   if (failed) {
@@ -691,15 +700,13 @@ function TokenIcon({
       alt={symbol}
       className="h-8 w-8 shrink-0 rounded-full bg-[var(--bg)]"
       onError={() => {
-        if (
-          !imageUrl ||
-          src === `https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`
-        ) {
-          setFailed(true);
+        // If registry image failed, try DexScreener; if that failed, show initial
+        if (registryImage && src === registryImage) {
+          setSrc(imageUrl || `https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`);
+        } else if (src !== `https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png` && imageUrl) {
+          setSrc(`https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`);
         } else {
-          setSrc(
-            `https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`,
-          );
+          setFailed(true);
         }
       }}
     />

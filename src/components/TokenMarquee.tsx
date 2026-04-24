@@ -5,9 +5,9 @@ import { TOKEN_REGISTRY } from "@/lib/token-registry";
 
 const TOKENS = TOKEN_REGISTRY.slice(0, 30); // top 30 for the marquee
 
-function TokenPill({ symbol, mint }: { symbol: string; mint: string }) {
+function TokenPill({ symbol, mint, image }: { symbol: string; mint: string; image?: string }) {
   const [failed, setFailed] = useState(false);
-  const src = `https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`;
+  const src = image || `https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`;
 
   return (
     <div className="flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3 py-1.5 shadow-sm">
@@ -34,7 +34,7 @@ export function TokenMarquee() {
   return (
     <div className="flex marquee gap-3 py-1">
       {items.map((t, i) => (
-        <TokenPill key={`${t.mint}-${i}`} symbol={t.symbol} mint={t.mint} />
+        <TokenPill key={`${t.mint}-${i}`} symbol={t.symbol} mint={t.mint} image={t.image} />
       ))}
     </div>
   );
