@@ -26,6 +26,8 @@ function pct(n: number, decimals = 1): string {
   return (n * 100).toFixed(decimals) + "%";
 }
 
+const MODE_KEY = "magpie-earn-mode";
+
 /* ───────────────────────── PAGE ───────────────────────── */
 
 export default function EarnPage() {
@@ -36,6 +38,18 @@ export default function EarnPage() {
   const [position, setPosition] = useState<DepositorInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Simple vs Advanced mode — persisted in localStorage
+  const [simpleMode, setSimpleMode] = useState(true);
+  useEffect(() => {
+    const saved = typeof window !== "undefined" ? localStorage.getItem(MODE_KEY) : null;
+    if (saved === "advanced") setSimpleMode(false);
+  }, []);
+  const toggleMode = () => {
+    const next = !simpleMode;
+    setSimpleMode(next);
+    localStorage.setItem(MODE_KEY, next ? "simple" : "advanced");
+  };
 
   // Form state
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
@@ -138,6 +152,198 @@ export default function EarnPage() {
   const maxDeposit = Math.max(0, solBalance - 0.01 * LAMPORTS_PER_SOL);
   const maxWithdraw = position ? position.currentValue : 0;
 
+  /* ─── Shared form pieces ─── */
+  const depositWithdrawTabs = (
+    <div className="flex gap-1 rounded-xl p-1 mb-6 bg-[var(--surface)]">
+      {(["deposit", "withdraw"] as const).map((t) => (
+        <button
+          key={t}
+          onClick={() => { setTab(t); setAmount(""); setTxError(null); setTxResult(null); }}
+          className={`flex-1 rounded-lg py-2 text-sm font-medium capitalize transition ${
+            tab === t
+              ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
+              : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
+          }`}
+        >
+          {t}
+        </button>
+      ))}
+    </div>
+  );
+
+  const amountInput = (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-xs font-medium text-[var(--ink-soft)]">
+          Amount (SOL)
+        </label>
+        <button
+          onClick={() => {
+            const max = tab === "deposit" ? maxDeposit : maxWithdraw;
+            setAmount((max / LAMPORTS_PER_SOL).toFixed(4));
+          }}
+          className="text-xs font-medium text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
+        >
+          Max: {solStr(tab === "deposit" ? maxDeposit : maxWithdraw)} SOL
+        </button>
+      </div>
+      <input
+        type="number"
+        step="0.01"
+        min="0"
+        placeholder="0.00"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        className="w-full rounded-xl border border-[var(--hairline-strong)] bg-[var(--surface)] px-4 py-3 text-lg font-medium outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+      />
+    </div>
+  );
+
+  const submitButton = (
+    <button
+      onClick={tab === "deposit" ? handleDeposit : handleWithdraw}
+      disabled={txPending || !amount || parseFloat(amount) <= 0 || poolNotInitialized}
+      className="btn-accent w-full py-3.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
+    >
+      {txPending ? "Confirming..." : tab === "deposit" ? "Deposit SOL" : "Withdraw SOL"}
+    </button>
+  );
+
+  const txFeedback = (
+    <>
+      {txResult && (
+        <div className="mt-4 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-3 text-sm">
+          {txResult.type === "deposit" ? "Deposit" : "Withdrawal"} confirmed!{" "}
+          <a
+            href={`https://solscan.io/tx/${txResult.sig}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]"
+          >
+            View on Solscan
+          </a>
+        </div>
+      )}
+      {txError && (
+        <div className="mt-4 rounded-xl border border-[var(--bad)]/30 bg-[var(--bad)]/5 p-3 text-sm text-[var(--bad)]">
+          {txError}
+        </div>
+      )}
+    </>
+  );
+
+  /* ─── Mode toggle ─── */
+  const modeToggle = (
+    <button
+      onClick={toggleMode}
+      className="rounded-lg border border-[var(--hairline-strong)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--ink-soft)] transition hover:bg-[var(--surface-hover)] hover:text-[var(--ink)]"
+    >
+      {simpleMode ? "Advanced view" : "Simple view"}
+    </button>
+  );
+
+  /* ═══════════════════════ SIMPLE MODE ═══════════════════════ */
+  if (simpleMode) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
+        <Header />
+
+        <section className="relative overflow-hidden border-b border-[var(--hairline)]">
+          <div className="hero-glow" />
+          <div className="relative mx-auto max-w-6xl px-5 pt-12 pb-10 sm:px-6 md:pt-20 md:pb-16">
+            <div className="mb-4 flex flex-wrap items-center gap-2 fade-up">
+              <span className="chip">
+                <span className="live-dot" />
+                Passive yield
+              </span>
+              {modeToggle}
+            </div>
+            <h1 className="font-display text-3xl font-medium tracking-[-0.04em] sm:text-5xl md:text-7xl fade-up fade-up-1">
+              Set it &amp; forget it.
+            </h1>
+            <p className="mt-3 max-w-xl text-base text-[var(--ink-soft)] leading-relaxed fade-up fade-up-2 sm:mt-4 sm:text-lg">
+              Deposit SOL once. Yield accrues automatically from borrower fees.
+              No staking, no claiming, no lockups. Withdraw anytime.
+            </p>
+          </div>
+        </section>
+
+        <main className="mx-auto max-w-lg px-5 py-8 sm:px-6 sm:py-12">
+          {error && (
+            <div className="mb-6 rounded-xl border border-[var(--bad)]/30 bg-[var(--bad)]/5 p-4 text-sm text-[var(--bad)]">
+              {error}
+            </div>
+          )}
+
+          {poolNotInitialized && (
+            <div className="mb-6 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent-dim)] p-5">
+              <p className="text-sm font-semibold text-[var(--ink)] mb-1">Pool launching soon</p>
+              <p className="text-sm text-[var(--ink-soft)]">
+                Deposits will be enabled once the pool is activated. Join the{" "}
+                <a href="https://t.me/magpiecapital" target="_blank" rel="noopener noreferrer" className="font-medium text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">Telegram</a>
+                {" "}for updates.
+              </p>
+            </div>
+          )}
+
+          {/* Position card */}
+          <div className="mb-6 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 shadow-sm sm:p-8">
+            {!connected ? (
+              <div className="text-center py-8">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent-dim)]">
+                  <svg className="h-7 w-7 text-[var(--accent-deep)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" />
+                  </svg>
+                </div>
+                <p className="text-sm font-medium text-[var(--ink)] mb-1">Connect your wallet to start earning</p>
+                <p className="text-xs text-[var(--ink-faint)]">Use the wallet button in the header</p>
+              </div>
+            ) : (
+              <>
+                {/* Balance display */}
+                <div className="text-center mb-6">
+                  <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-faint)] mb-1">
+                    {position ? "Your position" : "Wallet balance"}
+                  </p>
+                  <p className="font-display text-4xl font-semibold tracking-tight sm:text-5xl">
+                    {position
+                      ? solStr(position.currentValue, 2)
+                      : solStr(solBalance, 2)}
+                    <span className="ml-1.5 text-lg text-[var(--ink-soft)]">SOL</span>
+                  </p>
+                  {position && position.yieldEarned !== 0 && (
+                    <p className={`mt-1 text-sm font-medium ${position.yieldEarned > 0 ? "text-[var(--accent-deep)]" : "text-[var(--bad)]"}`}>
+                      {position.yieldEarned > 0 ? "+" : ""}{solStr(position.yieldEarned)} SOL earned
+                    </p>
+                  )}
+                </div>
+
+                {/* Deposit / Withdraw */}
+                {depositWithdrawTabs}
+                {amountInput}
+                {submitButton}
+                {txFeedback}
+              </>
+            )}
+          </div>
+
+          {/* How it works — minimal */}
+          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 shadow-sm sm:p-8">
+            <h3 className="font-display text-base font-semibold mb-4 sm:text-lg">How it works</h3>
+            <div className="space-y-4">
+              <SimpleStep icon="1" title="Deposit" desc="Send SOL to the lending pool in one transaction." />
+              <SimpleStep icon="2" title="Earn" desc="Borrowers pay fees that automatically grow your share." />
+              <SimpleStep icon="3" title="Withdraw" desc="Pull out your SOL plus earned yield at any time." />
+            </div>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    );
+  }
+
+  /* ═══════════════════════ ADVANCED MODE ═══════════════════════ */
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <Header />
@@ -151,6 +357,7 @@ export default function EarnPage() {
               <span className="live-dot" />
               Permissionless pool
             </span>
+            {modeToggle}
           </div>
           <h1 className="font-display text-3xl font-medium tracking-[-0.04em] sm:text-5xl md:text-7xl fade-up fade-up-1">
             Earn yield.
@@ -192,22 +399,7 @@ export default function EarnPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Left: Deposit/Withdraw form */}
           <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
-            {/* Tabs */}
-            <div className="flex gap-1 rounded-xl p-1 mb-6 bg-[var(--surface)]">
-              {(["deposit", "withdraw"] as const).map((t) => (
-                <button
-                  key={t}
-                  onClick={() => { setTab(t); setAmount(""); setTxError(null); setTxResult(null); }}
-                  className={`flex-1 rounded-lg py-2 text-sm font-medium capitalize transition ${
-                    tab === t
-                      ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
-                      : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
-                  }`}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+            {depositWithdrawTabs}
 
             {!connected ? (
               <div className="text-center py-10">
@@ -216,32 +408,7 @@ export default function EarnPage() {
               </div>
             ) : (
               <>
-                {/* Amount input */}
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-medium text-[var(--ink-soft)]">
-                      Amount (SOL)
-                    </label>
-                    <button
-                      onClick={() => {
-                        const max = tab === "deposit" ? maxDeposit : maxWithdraw;
-                        setAmount((max / LAMPORTS_PER_SOL).toFixed(4));
-                      }}
-                      className="text-xs font-medium text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
-                    >
-                      Max: {solStr(tab === "deposit" ? maxDeposit : maxWithdraw)} SOL
-                    </button>
-                  </div>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full rounded-xl border border-[var(--hairline-strong)] bg-[var(--surface)] px-4 py-3 text-lg font-medium outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
-                  />
-                </div>
+                {amountInput}
 
                 {/* Info row */}
                 {tab === "deposit" && pool && amount && parseFloat(amount) > 0 && (
@@ -267,34 +434,8 @@ export default function EarnPage() {
                   </div>
                 )}
 
-                {/* Submit button */}
-                <button
-                  onClick={tab === "deposit" ? handleDeposit : handleWithdraw}
-                  disabled={txPending || !amount || parseFloat(amount) <= 0 || poolNotInitialized}
-                  className="btn-accent w-full py-3.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {txPending ? "Confirming..." : tab === "deposit" ? "Deposit SOL" : "Withdraw SOL"}
-                </button>
-
-                {/* Results */}
-                {txResult && (
-                  <div className="mt-4 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-3 text-sm">
-                    {txResult.type === "deposit" ? "Deposit" : "Withdrawal"} confirmed!{" "}
-                    <a
-                      href={`https://solscan.io/tx/${txResult.sig}?cluster=devnet`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]"
-                    >
-                      View on Solscan
-                    </a>
-                  </div>
-                )}
-                {txError && (
-                  <div className="mt-4 rounded-xl border border-[var(--bad)]/30 bg-[var(--bad)]/5 p-3 text-sm text-[var(--bad)]">
-                    {txError}
-                  </div>
-                )}
+                {submitButton}
+                {txFeedback}
               </>
             )}
           </div>
@@ -412,5 +553,19 @@ function HowStep({ n, text }: { n: number; text: string }) {
       </span>
       <span>{text}</span>
     </li>
+  );
+}
+
+function SimpleStep({ icon, title, desc }: { icon: string; title: string; desc: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--accent-dim)] text-sm font-bold text-[var(--accent-deep)]">
+        {icon}
+      </span>
+      <div>
+        <p className="text-sm font-semibold text-[var(--ink)]">{title}</p>
+        <p className="text-sm text-[var(--ink-soft)]">{desc}</p>
+      </div>
+    </div>
   );
 }
