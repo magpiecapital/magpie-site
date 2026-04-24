@@ -225,8 +225,8 @@ export default function Home() {
               <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Approved tokens</div>
             </div>
             <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={68} /></div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Tests passing</div>
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">0%</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Lockups</div>
             </div>
             <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
               <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={3} /></div>

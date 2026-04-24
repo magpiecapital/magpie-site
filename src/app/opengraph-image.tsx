@@ -85,8 +85,8 @@ export default async function Image() {
               tokens
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>68</div>
-              tests passing
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>0%</div>
+              lockups
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>3</div>
