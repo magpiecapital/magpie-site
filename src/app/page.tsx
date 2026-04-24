@@ -6,8 +6,10 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
 import { TokenMarquee } from "@/components/TokenMarquee";
+import { TOKEN_REGISTRY } from "@/lib/token-registry";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
+const TOKEN_COUNT = TOKEN_REGISTRY.length;
 
 /* ─── Data ─── */
 
@@ -37,7 +39,7 @@ const PROTOCOL_FEATURES = [
 const THREE_SIDES = [
   {
     chip: "Borrow",
-    title: "78 tokens accepted",
+    title: `${TOKEN_COUNT} tokens accepted`,
     desc: "Pledge memecoins or tokenized stocks, pick a tier, get SOL in seconds. Non-custodial, on-chain, delivered in a Telegram chat.",
     href: "/tokens",
     cta: "Browse tokens",
@@ -137,7 +139,7 @@ const FAQ = [
   },
   {
     q: "What tokens can I pledge?",
-    a: "78 tokens — 69 memecoins (WIF, BONK, Fartcoin, POPCAT, and more) plus 9 tokenized stocks (xTSLA, xNVDA, xAAPL, xGOOGL, xAMZN, xMSFT, xMETA, xMSTR, xCOIN). Check the Approved Tokens page for the full list.",
+    a: `${TOKEN_COUNT} tokens — ${TOKEN_REGISTRY.filter(t => t.category === "memecoin").length} memecoins (WIF, BONK, Fartcoin, POPCAT, and more) plus ${TOKEN_REGISTRY.filter(t => t.category === "stock").length} tokenized stocks (xTSLA, xNVDA, xAAPL, xGOOGL, xAMZN, xMSFT, xMETA, xMSTR, xCOIN). Check the Approved Tokens page for the full list.`,
   },
   {
     q: "What happens if the price drops?",
@@ -169,7 +171,7 @@ const MARQUEE = [
   "Permissionless pools",
   "Non-custodial",
   "On-chain credit scores",
-  "78 approved tokens",
+  `${TOKEN_COUNT} approved tokens`,
   "Keeper network",
   "Tokenized stocks",
   "1.5–3% tiered fee",
@@ -213,13 +215,13 @@ export default function Home() {
               Earn yield
             </Link>
             <Link href="/tokens" className="btn-ghost text-sm sm:text-base">
-              78 approved tokens
+              {TOKEN_COUNT} approved tokens
             </Link>
           </div>
 
           <div className="fade-up fade-up-4 mt-12 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-16">
             <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={78} /></div>
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={TOKEN_COUNT} /></div>
               <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Approved tokens</div>
             </div>
             <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
@@ -596,7 +598,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
           <Reveal>
             <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:flex-row md:items-center md:justify-between md:p-8">
               <div className="text-sm leading-relaxed text-[var(--ink-soft)]">
-                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend at your tier&apos;s fee rate, live health alerts, and credit score accrual. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">78 approved tokens</Link>.
+                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend at your tier&apos;s fee rate, live health alerts, and credit score accrual. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">{TOKEN_COUNT} approved tokens</Link>.
               </div>
               <a href={TELEGRAM_URL} className="btn-dark shrink-0 text-sm">
                 Get a quote →

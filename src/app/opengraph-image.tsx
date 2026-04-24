@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { TOKEN_REGISTRY } from "@/lib/token-registry";
 
 export const runtime = "edge";
 export const alt = "Magpie — Permissionless lending protocol on Solana.";
@@ -80,7 +81,7 @@ export default async function Image() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 32, fontSize: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>78</div>
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>{TOKEN_REGISTRY.length}</div>
               tokens
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
