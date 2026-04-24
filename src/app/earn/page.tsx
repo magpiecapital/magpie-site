@@ -45,15 +45,19 @@ export default function EarnPage() {
   const [txError, setTxError] = useState<string | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
 
-  const [poolNotInitialized, setPoolNotInitialized] = useState(false);
+  // Pool is not yet initialized on mainnet. Flip this to true once
+  // initializePool has been called, then remove the guard.
+  const POOL_LIVE = false;
 
-  // Fetch pool stats + position
+  const [poolNotInitialized] = useState(!POOL_LIVE);
+
+  // Fetch pool stats + position — only when pool is live
   const refresh = useCallback(async () => {
+    if (!POOL_LIVE) return; // zero RPC calls until pool exists
     try {
       setError(null);
       const stats = await fetchPoolStats(connection);
       setPool(stats);
-      setPoolNotInitialized(false);
 
       if (publicKey) {
         const bal = await connection.getBalance(publicKey);
@@ -63,25 +67,21 @@ export default function EarnPage() {
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "";
-      if (msg.includes("Account does not exist") || msg.includes("has no data")) {
-        setPoolNotInitialized(true);
-        // Don't keep polling — pool won't appear until we initialize it
-      } else {
-        setError(msg || "Failed to fetch pool data");
-      }
+      setError(msg || "Failed to fetch pool data");
     } finally {
       setLoading(false);
     }
   }, [connection, publicKey]);
 
   useEffect(() => {
-    refresh();
-    // Only poll if the pool actually exists — otherwise we burn RPC credits for nothing
-    if (!poolNotInitialized) {
-      const interval = setInterval(refresh, 60_000); // 60s instead of 30s
-      return () => clearInterval(interval);
+    if (!POOL_LIVE) {
+      setLoading(false);
+      return;
     }
-  }, [refresh, poolNotInitialized]);
+    refresh();
+    const interval = setInterval(refresh, 60_000);
+    return () => clearInterval(interval);
+  }, [refresh]);
 
   // Handle deposit
   const handleDeposit = async () => {
