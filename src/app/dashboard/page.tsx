@@ -603,12 +603,17 @@ export default function DashboardPage() {
 
   const walletFull = connected && publicKey ? publicKey.toBase58() : "";
 
-  // Fetch real SOL balance
+  // Use a ref for connection to prevent effects re-firing when the
+  // ConnectionProvider re-renders (which creates a new context value).
+  const connRef = useRef(connection);
+  connRef.current = connection;
+
+  // Fetch real SOL balance — poll every 120s (was 30s, burning credits)
   useEffect(() => {
     if (!connected || !publicKey) { setSolBalance(0); return; }
     let cancelled = false;
     const fetchBalance = () => {
-      connection.getBalance(publicKey)
+      connRef.current.getBalance(publicKey)
         .then((lamports) => {
           if (!cancelled) setSolBalance(lamports / LAMPORTS_PER_SOL);
         })
@@ -617,15 +622,19 @@ export default function DashboardPage() {
         });
     };
     fetchBalance();
-    const interval = setInterval(fetchBalance, 30_000);
+    const interval = setInterval(fetchBalance, 120_000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [connected, publicKey, connection]);
+  }, [connected, publicKey]);
 
   // Fetch real SPL token holdings (both TOKEN_PROGRAM_ID and TOKEN_2022)
+  // Only runs once when wallet connects — no polling, no connection dep.
+  const [holdingsFetched, setHoldingsFetched] = useState(false);
   useEffect(() => {
-    if (!connected || !publicKey) { setHoldings([]); return; }
+    if (!connected || !publicKey) { setHoldings([]); setHoldingsFetched(false); return; }
+    if (holdingsFetched) return; // already fetched for this wallet session
     let cancelled = false;
     setHoldingsLoading(true);
+    setHoldingsFetched(true);
 
     const parseAccounts = (result: { value: any[] }): TokenHolding[] =>
       result.value
@@ -646,8 +655,8 @@ export default function DashboardPage() {
         .filter((t: TokenHolding | null): t is TokenHolding => t !== null);
 
     Promise.all([
-      connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID }).catch(() => ({ value: [] })),
-      connection.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_2022_PROGRAM_ID }).catch(() => ({ value: [] })),
+      connRef.current.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID }).catch(() => ({ value: [] })),
+      connRef.current.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_2022_PROGRAM_ID }).catch(() => ({ value: [] })),
     ])
       .then(([splResult, token2022Result]) => {
         if (cancelled) return;
@@ -667,7 +676,7 @@ export default function DashboardPage() {
         }
       });
     return () => { cancelled = true; };
-  }, [connected, publicKey, connection]);
+  }, [connected, publicKey, holdingsFetched]);
 
   // Fetch approved collateral tokens
   useEffect(() => {

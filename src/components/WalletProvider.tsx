@@ -21,6 +21,11 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 const RPC_ENDPOINT =
   process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com";
 
+// Stable reference — prevents ConnectionProvider from re-creating the
+// Connection object on every render, which would cascade re-renders
+// through every component that calls useConnection().
+const CONNECTION_CONFIG = { commitment: "confirmed" as const };
+
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const wallets = useMemo(
     () => [
@@ -38,7 +43,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   return (
     <ConnectionProvider
       endpoint={RPC_ENDPOINT}
-      config={{ commitment: "confirmed" }}
+      config={CONNECTION_CONFIG}
     >
       <SolanaWalletProvider wallets={wallets} onError={onError} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
