@@ -222,19 +222,19 @@ export default function Home() {
           <div className="fade-up fade-up-4 mt-12 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-16">
             <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
               <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={TOKEN_COUNT} /></div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Approved tokens</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Tokens you can borrow against</div>
             </div>
             <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">0%</div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Lockups</div>
-            </div>
-            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={3} /></div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Lending tiers</div>
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">1.5–3%</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Flat fee per loan</div>
             </div>
             <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
               <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">&lt;10s</div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Time to SOL</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">SOL in your wallet</div>
+            </div>
+            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">100%</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Non-custodial &amp; on-chain</div>
             </div>
           </div>
 

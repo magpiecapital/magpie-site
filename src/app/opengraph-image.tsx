@@ -82,15 +82,15 @@ export default async function Image() {
           <div style={{ display: "flex", alignItems: "center", gap: 32, fontSize: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>{TOKEN_REGISTRY.length}</div>
-              tokens
+              tokens accepted
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>0%</div>
-              lockups
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>1.5–3%</div>
+              flat fee
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>3</div>
-              lending tiers
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>&lt;10s</div>
+              to SOL
             </div>
           </div>
           <div style={{ fontWeight: 600, color: "#0a0a0a" }}>magpie.capital</div>
