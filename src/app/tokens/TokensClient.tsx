@@ -601,10 +601,10 @@ export default function TokensClient() {
               Don&rsquo;t see your token?
             </h2>
             <p className="mt-3 text-[var(--ink-soft)] leading-relaxed">
-              Submit a request and we&rsquo;ll review it. We typically approve
-              new tokens within 24 hours if they have sufficient liquidity.
+              Submit a token for instant automated vetting. Paste a mint address
+              or symbol and get a result in seconds.
             </p>
-            <RequestForm />
+            <SubmitForm />
           </div>
         </div>
       </section>
@@ -737,161 +737,193 @@ function TokenIcon({
   );
 }
 
-function RequestForm() {
-  const [name, setName] = useState("");
-  const [symbol, setSymbol] = useState("");
-  const [mint, setMint] = useState("");
-  const [reason, setReason] = useState("");
-  const [telegram, setTelegram] = useState("");
-  const [status, setStatus] = useState<
-    "idle" | "sending" | "success" | "error"
-  >("idle");
+interface SubmitResult {
+  verdict: string;
+  symbol?: string;
+  name?: string;
+  mint?: string;
+  liquidity?: number;
+  volume24h?: number;
+  marketCap?: number;
+  ageHours?: number;
+  hasMintAuthority?: boolean;
+  hasFreezeAuthority?: boolean;
+  fails?: string[];
+  message?: string;
+  error?: string;
+}
+
+function SubmitForm() {
+  const [input, setInput] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending">("idle");
+  const [result, setResult] = useState<SubmitResult | null>(null);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !symbol.trim() || !mint.trim()) return;
+    if (!input.trim()) return;
     setStatus("sending");
+    setResult(null);
     try {
-      const res = await fetch("/api/token-request", {
+      const res = await fetch("/api/submit-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          symbol: symbol.trim(),
-          mint: mint.trim(),
-          reason: reason.trim(),
-          telegram: telegram.trim(),
-        }),
+        body: JSON.stringify({ mint: input.trim() }),
       });
-      if (!res.ok) throw new Error("Request failed");
-      setStatus("success");
-      setName("");
-      setSymbol("");
-      setMint("");
-      setReason("");
-      setTelegram("");
+      const data = await res.json();
+      setResult(data);
     } catch {
-      setStatus("error");
+      setResult({ verdict: "error", error: "Something went wrong. Please try again." });
+    } finally {
+      setStatus("idle");
     }
   }
 
-  if (status === "success") {
-    return (
-      <div className="mt-8 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-6 text-center">
-        <div className="text-2xl">&#10003;</div>
-        <div className="mt-2 font-semibold">Request submitted!</div>
-        <p className="mt-1 text-sm text-[var(--ink-soft)]">
-          We&rsquo;ll review your token and get back to you.
-        </p>
+  return (
+    <div className="mt-8">
+      <form onSubmit={submit} className="flex gap-3">
+        <input
+          type="text"
+          placeholder="Mint address or symbol (e.g. BONK)"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          className="flex-1 rounded-xl border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-4 py-3 text-sm font-mono outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+        />
         <button
-          onClick={() => setStatus("idle")}
-          className="mt-4 text-sm font-medium text-[var(--accent)] underline underline-offset-2"
+          type="submit"
+          disabled={status === "sending" || !input.trim()}
+          className="btn-accent shrink-0 px-6 py-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
         >
+          {status === "sending" ? "Analyzing\u2026" : "Submit"}
+        </button>
+      </form>
+
+      {result && <SubmitResultCard result={result} onReset={() => { setResult(null); setInput(""); }} />}
+    </div>
+  );
+}
+
+function SubmitResultCard({ result, onReset }: { result: SubmitResult; onReset: () => void }) {
+  const v = result.verdict;
+
+  // Approved
+  if (v === "approved") {
+    return (
+      <div className="mt-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-black text-lg font-bold">&#10003;</span>
+          <div>
+            <div className="font-semibold text-lg">{result.symbol} &mdash; Approved!</div>
+            <div className="text-sm text-[var(--ink-soft)]">{result.name}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 mb-4">
+          <Stat label="Liquidity" value={`$${(result.liquidity ?? 0).toLocaleString()}`} />
+          <Stat label="Volume 24h" value={`$${(result.volume24h ?? 0).toLocaleString()}`} />
+          <Stat label="Market Cap" value={`$${(result.marketCap ?? 0).toLocaleString()}`} />
+          <Stat label="Age" value={`${result.ageHours ?? 0}h`} />
+        </div>
+        <p className="text-sm text-[var(--accent-deep)] font-medium">
+          This token is now live as collateral. You can borrow against it immediately on Telegram.
+        </p>
+        <button onClick={onReset} className="mt-4 text-sm font-medium text-[var(--accent)] underline underline-offset-2">
           Submit another
         </button>
       </div>
     );
   }
 
-  return (
-    <form onSubmit={submit} className="mt-8 space-y-4">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field
-          label="Token Name"
-          placeholder="e.g. Dogwifhat"
-          value={name}
-          onChange={setName}
-          required
-        />
-        <Field
-          label="Ticker"
-          placeholder="e.g. WIF"
-          value={symbol}
-          onChange={setSymbol}
-          required
-        />
-      </div>
-      <Field
-        label="Mint Address"
-        placeholder="Solana token mint address"
-        value={mint}
-        onChange={setMint}
-        required
-        mono
-      />
-      <Field
-        label="Why should we add this token?"
-        placeholder="Liquidity, community size, notable listings\u2026"
-        value={reason}
-        onChange={setReason}
-        textarea
-      />
-      <Field
-        label="Your Telegram (optional)"
-        placeholder="@username"
-        value={telegram}
-        onChange={setTelegram}
-      />
-
-      {status === "error" && (
-        <p className="text-sm text-[var(--bad)]">
-          Something went wrong. Please try again.
+  // Under review
+  if (v === "review") {
+    return (
+      <div className="mt-6 rounded-2xl border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--ink)]/10 text-[var(--ink)] text-lg">&#9202;</span>
+          <div>
+            <div className="font-semibold text-lg">{result.symbol} &mdash; Under Review</div>
+            <div className="text-sm text-[var(--ink-soft)]">{result.name}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 mb-4">
+          <Stat label="Liquidity" value={`$${(result.liquidity ?? 0).toLocaleString()}`} />
+          <Stat label="Volume 24h" value={`$${(result.volume24h ?? 0).toLocaleString()}`} />
+          <Stat label="Market Cap" value={`$${(result.marketCap ?? 0).toLocaleString()}`} />
+          <Stat label="Age" value={`${result.ageHours ?? 0}h`} />
+        </div>
+        <p className="text-sm text-[var(--ink-soft)]">
+          This token passed safety checks but needs a quick review before going live. It should be approved shortly.
         </p>
-      )}
+        <button onClick={onReset} className="mt-4 text-sm font-medium text-[var(--accent)] underline underline-offset-2">
+          Submit another
+        </button>
+      </div>
+    );
+  }
 
-      <button
-        type="submit"
-        disabled={status === "sending" || !name || !symbol || !mint}
-        className="btn-accent mt-2 w-full py-3 text-base disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {status === "sending" ? "Submitting\u2026" : "Submit Request"}
-      </button>
-    </form>
-  );
-}
+  // Rejected
+  if (v === "rejected") {
+    return (
+      <div className="mt-6 rounded-2xl border border-[var(--bad)]/20 bg-[var(--bad)]/5 p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--bad)]/10 text-[var(--bad)] text-lg font-bold">&#10007;</span>
+          <div>
+            <div className="font-semibold text-lg">{result.symbol} &mdash; Not Approved</div>
+            <div className="text-sm text-[var(--ink-soft)]">{result.name}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 mb-4">
+          <Stat label="Liquidity" value={`$${(result.liquidity ?? 0).toLocaleString()}`} />
+          <Stat label="Volume 24h" value={`$${(result.volume24h ?? 0).toLocaleString()}`} />
+          <Stat label="Market Cap" value={`$${(result.marketCap ?? 0).toLocaleString()}`} />
+          <Stat label="Age" value={`${result.ageHours ?? 0}h`} />
+        </div>
+        {result.fails && result.fails.length > 0 && (
+          <ul className="mb-3 space-y-1">
+            {result.fails.map((f, i) => (
+              <li key={i} className="text-sm text-[var(--bad)] flex items-start gap-2">
+                <span className="mt-0.5 shrink-0">&#8226;</span> {f}
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="text-sm text-[var(--ink-soft)]">
+          This token does not currently meet our safety criteria for collateral.
+        </p>
+        <button onClick={onReset} className="mt-4 text-sm font-medium text-[var(--accent)] underline underline-offset-2">
+          Submit another
+        </button>
+      </div>
+    );
+  }
 
-function Field({
-  label,
-  placeholder,
-  value,
-  onChange,
-  required,
-  mono,
-  textarea,
-}: {
-  label: string;
-  placeholder: string;
-  value: string;
-  onChange: (v: string) => void;
-  required?: boolean;
-  mono?: boolean;
-  textarea?: boolean;
-}) {
-  const cls = `w-full rounded-xl border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20 ${mono ? "font-mono text-xs" : ""}`;
+  // Already supported / in review / not found / other messages
+  if (result.message) {
+    return (
+      <div className="mt-6 rounded-2xl border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] p-6">
+        <p className="text-sm">{result.message}</p>
+        <button onClick={onReset} className="mt-4 text-sm font-medium text-[var(--accent)] underline underline-offset-2">
+          Submit another
+        </button>
+      </div>
+    );
+  }
 
+  // Error
   return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.1em] text-[var(--ink-soft)]">
-        {label}
-        {required && <span className="text-[var(--bad)]"> *</span>}
-      </span>
-      {textarea ? (
-        <textarea
-          className={cls + " min-h-[80px] resize-y"}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      ) : (
-        <input
-          type="text"
-          className={cls}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          required={required}
-        />
-      )}
-    </label>
+    <div className="mt-6 rounded-2xl border border-[var(--bad)]/20 bg-[var(--bad)]/5 p-6">
+      <p className="text-sm text-[var(--bad)]">{result.error || "Something went wrong."}</p>
+      <button onClick={onReset} className="mt-4 text-sm font-medium text-[var(--accent)] underline underline-offset-2">
+        Try again
+      </button>
+    </div>
   );
 }
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-[var(--surface)] px-3 py-2">
+      <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">{label}</div>
+      <div className="mt-0.5 font-semibold tabular">{value}</div>
+    </div>
+  );
+}
+
