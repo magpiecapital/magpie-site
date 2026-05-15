@@ -854,7 +854,7 @@ function SubmitResultCard({ result, onReset }: { result: SubmitResult; onReset: 
           <Stat label="Age" value={`${result.ageHours ?? 0}h`} />
         </div>
         <p className="text-sm text-[var(--ink-soft)]">
-          This token passed safety checks but needs a quick review before going live. It should be approved shortly.
+          This token passed safety checks and is in the review queue. Tokens are typically approved within 1 hour.
         </p>
         <button onClick={onReset} className="mt-4 text-sm font-medium text-[var(--accent)] underline underline-offset-2">
           Submit another
