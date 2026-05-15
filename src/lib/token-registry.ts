@@ -103,4 +103,5 @@ export const TOKEN_REGISTRY: RegisteredToken[] = [
   { symbol: "RENTA", name: "Renta", mint: "5MxQUFdPisppdVfjitL6hs492GyikCFnsBWYtuAqpump", category: "memecoin" },
   { symbol: "BURNIE", name: "Burnie", mint: "CGEDT9QZDvvH5GmVkWJH2BXiMJqMJySC9ihWyr7Spump", category: "memecoin" },
   { symbol: "SAM", name: "Sam", mint: "7WRX5QGuRLhGCJszpQjYmw6ihb6z8KRdAEHQUhGJpump", category: "memecoin" },
+  { symbol: "GOBLIN", name: "Goblin", mint: "3KHMZhpthXuiCcgfTv7vVu9PpEz64KAEURFwi6Lopump", category: "memecoin" },
 ];
