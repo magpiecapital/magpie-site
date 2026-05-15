@@ -6,11 +6,12 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
 import { TokenMarquee } from "@/components/TokenMarquee";
-import { TOKEN_REGISTRY } from "@/lib/token-registry";
+import { getTokenStats } from "@/lib/db";
+
+export const revalidate = 60;
 
 const X_URL = "https://x.com/MagpieLoans";
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
-const TOKEN_COUNT = TOKEN_REGISTRY.length;
 
 /* ─── Data ─── */
 
@@ -37,10 +38,10 @@ const PROTOCOL_FEATURES = [
   },
 ];
 
-const THREE_SIDES = [
+const THREE_SIDES = (tokenCount: number) => [
   {
     chip: "Borrow",
-    title: `${TOKEN_COUNT} tokens accepted`,
+    title: `${tokenCount} tokens accepted`,
     desc: "Pledge memecoins or tokenized stocks, pick a tier, get SOL in seconds. Non-custodial, on-chain, delivered in a Telegram chat.",
     href: "/tokens",
     cta: "Browse tokens",
@@ -140,7 +141,7 @@ const FAQ = [
   },
   {
     q: "What tokens can I pledge?",
-    a: `${TOKEN_COUNT} tokens — ${TOKEN_REGISTRY.filter(t => t.category === "memecoin").length} memecoins (WIF, BONK, Fartcoin, POPCAT, and more) plus ${TOKEN_REGISTRY.filter(t => t.category === "stock").length} tokenized stocks (xTSLA, xNVDA, xAAPL, xGOOGL, xAMZN, xMSFT, xMETA, xMSTR, xCOIN). Check the Approved Tokens page for the full list.`,
+    a: "", // filled dynamically
   },
   {
     q: "What happens if the price drops?",
@@ -168,11 +169,11 @@ const FAQ = [
   },
 ];
 
-const MARQUEE = [
+const MARQUEE = (tokenCount: number) => [
   "Permissionless pools",
   "Non-custodial",
   "On-chain credit scores",
-  `${TOKEN_COUNT} approved tokens`,
+  `${tokenCount} approved tokens`,
   "Keeper network",
   "Tokenized stocks",
   "1.5–3% tiered fee",
@@ -183,7 +184,12 @@ const MARQUEE = [
 
 /* ─── Page ─── */
 
-export default function Home() {
+export default async function Home() {
+  const { count: TOKEN_COUNT, memeCount, stockCount } = await getTokenStats();
+  const threeSides = THREE_SIDES(TOKEN_COUNT);
+  const marquee = MARQUEE(TOKEN_COUNT);
+  const faqTokenAnswer = `${TOKEN_COUNT} tokens — ${memeCount} memecoins (WIF, BONK, Fartcoin, POPCAT, and more) plus ${stockCount} tokenized stocks (xTSLA, xNVDA, xAAPL, and more). Check the Approved Tokens page for the full list.`;
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -293,7 +299,7 @@ export default function Home() {
       {/* Feature marquee */}
       <section className="overflow-hidden border-b border-[var(--hairline)] bg-[var(--accent)]">
         <div className="flex marquee whitespace-nowrap py-4 text-[var(--ink)] font-semibold tracking-tight">
-          {[...MARQUEE, ...MARQUEE].map((item, i) => (
+          {[...marquee, ...marquee].map((item, i) => (
             <span key={i} className="flex items-center gap-6 px-6 text-base">
               {item}
               <span aria-hidden className="opacity-30">✦</span>
@@ -432,7 +438,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
         </Reveal>
 
         <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
-          {THREE_SIDES.map((s, i) => (
+          {threeSides.map((s, i) => (
             <Reveal key={s.chip} delay={i * 80}>
               <Link
                 href={s.href}
@@ -632,7 +638,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                   <div className="text-base font-semibold tracking-tight sm:text-xl">{item.q}</div>
                 </div>
                 <div className="mt-2 pl-9 text-sm leading-relaxed text-[var(--ink-soft)] sm:mt-3 sm:text-base">
-                  {item.a}
+                  {item.q === "What tokens can I pledge?" ? faqTokenAnswer : item.a}
                 </div>
               </div>
             </Reveal>

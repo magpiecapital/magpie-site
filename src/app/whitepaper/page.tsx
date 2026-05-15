@@ -4,6 +4,9 @@ import { Mark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { getTokenStats } from "@/lib/db";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Whitepaper | Magpie",
@@ -50,7 +53,8 @@ const ROADMAP = [
   { q: "Q4 2026", status: "upcoming", items: "Institutional pools, DAO governance, cross-chain lending" },
 ];
 
-export default function WhitepaperPage() {
+export default async function WhitepaperPage() {
+  const { count: tokenCount } = await getTokenStats();
   return (
     <div className="min-h-screen">
       <Header />
@@ -134,7 +138,7 @@ export default function WhitepaperPage() {
                 operates entirely through a Telegram bot interface, removing the complexity of
                 traditional DeFi dApps. Magpie introduces the first on-chain credit scoring system
                 for memecoin lending, allowing borrowers to build reputation and unlock progressively
-                better terms. With 64+ supported collateral tokens, sub-10-second funding, and
+                better terms. With {tokenCount}+ supported collateral tokens, sub-10-second funding, and
                 deterministic on-chain liquidation, Magpie bridges the gap between memecoin culture
                 and DeFi utility.
               </P>
@@ -168,7 +172,7 @@ export default function WhitepaperPage() {
             <Section id="solution" n="3" title="Solution Overview">
               <P>
                 Magpie is a Telegram-native lending protocol on Solana purpose-built for memecoin
-                holders. The protocol accepts 64+ memecoin tokens as collateral and delivers SOL
+                holders. The protocol accepts {tokenCount}+ memecoin tokens as collateral and delivers SOL
                 loans in under 10 seconds.
               </P>
 
