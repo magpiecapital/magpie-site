@@ -129,11 +129,10 @@ export default function TokensClient() {
   /* Fetch token list from API (fallback to hardcoded registry), then market data */
   useEffect(() => {
     async function load() {
-      // Try API first, fall back to hardcoded registry
+      // Fetch from our own API route (queries DB, falls back to registry)
       let registry: { symbol: string; name: string; mint: string; category: TokenCategory; image?: string | null }[] = REGISTRY;
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://magpie-bot-production.up.railway.app";
-        const res = await fetch(`${apiUrl}/api/v1/tokens`, { signal: AbortSignal.timeout(5000) });
+        const res = await fetch("/api/v1/tokens", { signal: AbortSignal.timeout(5000) });
         if (res.ok) {
           const data = await res.json();
           if (data?.tokens?.length > 0) {
