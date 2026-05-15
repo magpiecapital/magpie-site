@@ -861,107 +861,10 @@ export default function DashboardPage() {
     );
   }
 
-  /* ─── WALLET NOT CONNECTED: Show connect prompt ─── */
-  if (!connected || !publicKey) {
-    const installedWallets = wallets.filter((w) => w.readyState === "Installed");
-    const otherWallets = wallets.filter((w) => w.readyState !== "Installed");
+  const isConnected = connected && publicKey;
+  const installedWallets = wallets.filter((w) => w.readyState === "Installed");
 
-    return (
-      <div
-        className="flex h-screen items-center justify-center transition-colors duration-300"
-        style={{ ...THEMES[theme] as React.CSSProperties, background: "var(--d-bg)", color: "var(--d-ink)" }}
-      >
-        <div className="flex flex-col items-center gap-6 text-center px-6 w-full max-w-sm">
-          <Link href="/">
-            <Wordmark size={32} />
-          </Link>
-          <div className="mt-2">
-            <h1 className="font-display text-2xl font-medium tracking-tight">Connect your wallet</h1>
-            <p className="mt-2 max-w-sm text-sm text-[var(--d-ink-soft)]">
-              Connect a Solana wallet to view your dashboard, balances, and credit score.
-            </p>
-          </div>
-
-          {/* Direct wallet buttons — no modal needed */}
-          <div className="w-full flex flex-col gap-2">
-            {installedWallets.length > 0 && (
-              <>
-                <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--d-ink-faint)] mb-1">Detected wallets</div>
-                {installedWallets.map((wallet) => (
-                  <button
-                    key={wallet.adapter.name}
-                    onClick={() => select(wallet.adapter.name)}
-                    disabled={connecting}
-                    className="flex w-full items-center gap-3 rounded-xl border border-[var(--d-border)] px-4 py-3 text-sm font-medium transition hover:border-[var(--d-accent)] hover:bg-[var(--d-surface-hover)]"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={wallet.adapter.icon} alt={wallet.adapter.name} width={28} height={28} className="rounded-md" />
-                    <span className="flex-1 text-left">{wallet.adapter.name}</span>
-                    <span className="text-xs text-[var(--d-accent-deep)]">
-                      {connecting ? "Connecting..." : "Connect"}
-                    </span>
-                  </button>
-                ))}
-              </>
-            )}
-            {installedWallets.length === 0 && (
-              <div className="rounded-xl border border-dashed border-[var(--d-border-strong)] bg-[var(--d-surface)] p-6 text-sm text-[var(--d-ink-soft)]">
-                No wallet detected. Install{" "}
-                <a href="https://phantom.app" target="_blank" rel="noopener noreferrer" className="text-[var(--d-accent-deep)] underline underline-offset-2">Phantom</a>{" "}
-                or{" "}
-                <a href="https://solflare.com" target="_blank" rel="noopener noreferrer" className="text-[var(--d-accent-deep)] underline underline-offset-2">Solflare</a>{" "}
-                to continue.
-              </div>
-            )}
-            {otherWallets.length > 0 && installedWallets.length > 0 && (
-              <details className="mt-2">
-                <summary className="cursor-pointer text-[10px] uppercase tracking-[0.12em] text-[var(--d-ink-faint)] hover:text-[var(--d-ink-soft)]">
-                  More wallets
-                </summary>
-                <div className="mt-2 flex flex-col gap-2">
-                  {otherWallets.map((wallet) => (
-                    <button
-                      key={wallet.adapter.name}
-                      onClick={() => { select(wallet.adapter.name); }}
-                      className="flex w-full items-center gap-3 rounded-xl border border-[var(--d-border)] px-4 py-3 text-sm font-medium transition hover:border-[var(--d-accent)] hover:bg-[var(--d-surface-hover)] opacity-60 hover:opacity-100"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={wallet.adapter.icon} alt={wallet.adapter.name} width={28} height={28} className="rounded-md" />
-                      <span className="flex-1 text-left">{wallet.adapter.name}</span>
-                      <span className="text-xs text-[var(--d-ink-soft)]">Install</span>
-                    </button>
-                  ))}
-                </div>
-              </details>
-            )}
-          </div>
-
-          <div className="mt-2 flex items-center gap-4">
-            <button
-              onClick={toggleTheme}
-              className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--d-border)] text-[var(--d-ink-soft)] transition hover:border-[var(--d-border-strong)] hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
-              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-            >
-              {theme === "dark" ? (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="5" /><line x1="12" y1="1" x2="12" y2="3" /><line x1="12" y1="21" x2="12" y2="23" /><line x1="4.22" y1="4.22" x2="5.64" y2="5.64" /><line x1="18.36" y1="18.36" x2="19.78" y2="19.78" /><line x1="1" y1="12" x2="3" y2="12" /><line x1="21" y1="12" x2="23" y2="12" /><line x1="4.22" y1="19.78" x2="5.64" y2="18.36" /><line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-                </svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                </svg>
-              )}
-            </button>
-            <Link href="/" className="text-xs text-[var(--d-ink-faint)] hover:text-[var(--d-ink-soft)]">
-              Back to home
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /* ─── WALLET CONNECTED: Full dashboard ─── */
+  /* ─── FULL DASHBOARD (zeroed when no wallet) ─── */
   return (
     <div className="flex h-screen overflow-hidden transition-colors duration-300" style={{ ...THEMES[theme] as React.CSSProperties, background: "var(--d-bg)", color: "var(--d-ink)" }}>
       {/* ─── SIDEBAR ─── */}
@@ -1054,37 +957,67 @@ export default function DashboardPage() {
             <Link href="/"><Mark size={22} /></Link>
           </div>
 
-          {/* Left: wallet */}
+          {/* Left: wallet or connect prompt */}
           <div className="hidden md:flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-xl bg-[var(--d-surface)] px-3 py-1.5">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--d-accent)] opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--d-accent)]" />
-              </span>
-              <span className="text-xs text-[var(--d-ink-soft)] tracking-wide">{walletDisplay}</span>
-              <button onClick={handleCopy} className="flex h-5 w-5 items-center justify-center rounded transition hover:bg-[var(--hairline)]" title="Copy">
-                {copied ? (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-accent)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
-                ) : (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-ink-faint)" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                )}
-              </button>
-            </div>
-            <div className="h-4 w-px bg-[var(--hairline)]" />
-            <span className="text-xs text-[var(--d-ink-soft)]">
-              <span className="font-semibold text-[var(--d-ink)]">{solBalance.toFixed(4)} SOL</span>
-            </span>
+            {isConnected ? (
+              <>
+                <div className="flex items-center gap-2 rounded-xl bg-[var(--d-surface)] px-3 py-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--d-accent)] opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--d-accent)]" />
+                  </span>
+                  <span className="text-xs text-[var(--d-ink-soft)] tracking-wide">{walletDisplay}</span>
+                  <button onClick={handleCopy} className="flex h-5 w-5 items-center justify-center rounded transition hover:bg-[var(--hairline)]" title="Copy">
+                    {copied ? (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-accent)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                    ) : (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-ink-faint)" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                    )}
+                  </button>
+                </div>
+                <div className="h-4 w-px bg-[var(--hairline)]" />
+                <span className="text-xs text-[var(--d-ink-soft)]">
+                  <span className="font-semibold text-[var(--d-ink)]">{solBalance.toFixed(4)} SOL</span>
+                </span>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 rounded-xl bg-[var(--d-surface)] px-3 py-1.5">
+                <span className="relative flex h-2 w-2">
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--d-ink-faint)]" />
+                </span>
+                <span className="text-xs text-[var(--d-ink-faint)]">No wallet connected</span>
+              </div>
+            )}
           </div>
 
           {/* Right: actions */}
           <div className="flex items-center gap-2">
-            {/* Wallet disconnect */}
-            <button
-              onClick={() => disconnect()}
-              className="hidden sm:flex items-center gap-1.5 rounded-xl border border-[var(--d-border)] px-3 py-1.5 text-xs text-[var(--d-ink-soft)] transition hover:border-[var(--d-border-strong)] hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
-            >
-              {walletDisplay}
-            </button>
+            {/* Wallet connect/disconnect */}
+            {isConnected ? (
+              <button
+                onClick={() => disconnect()}
+                className="hidden sm:flex items-center gap-1.5 rounded-xl border border-[var(--d-border)] px-3 py-1.5 text-xs text-[var(--d-ink-soft)] transition hover:border-[var(--d-border-strong)] hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
+              >
+                {walletDisplay}
+              </button>
+            ) : installedWallets.length > 0 ? (
+              <button
+                onClick={() => select(installedWallets[0].adapter.name)}
+                disabled={connecting}
+                className="hidden sm:flex items-center gap-1.5 rounded-xl bg-[var(--d-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]"
+              >
+                {connecting ? "Connecting..." : "Connect Wallet"}
+              </button>
+            ) : (
+              <a
+                href="https://phantom.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:flex items-center gap-1.5 rounded-xl bg-[var(--d-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]"
+              >
+                Get Wallet
+              </a>
+            )}
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
@@ -1136,6 +1069,41 @@ export default function DashboardPage() {
         {/* ─── SCROLLABLE CONTENT ─── */}
         <main className="flex-1 overflow-y-auto">
           <div className="mx-auto max-w-[1400px] px-4 py-6 md:px-6 md:py-8">
+
+            {/* ─── CONNECT BANNER (when no wallet) ─── */}
+            {!isConnected && (
+              <div className="mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-[var(--d-accent)]/25 bg-[var(--d-accent-dim)]/40 px-6 py-5">
+                <div>
+                  <h2 className="font-display text-lg font-semibold tracking-tight">Connect your wallet to get started</h2>
+                  <p className="mt-1 text-sm text-[var(--d-ink-soft)]">View your balances, credit score, and borrow against your memecoins.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {installedWallets.length > 0 ? (
+                    installedWallets.map((wallet) => (
+                      <button
+                        key={wallet.adapter.name}
+                        onClick={() => select(wallet.adapter.name)}
+                        disabled={connecting}
+                        className="flex items-center gap-2 rounded-xl bg-[var(--d-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={wallet.adapter.icon} alt={wallet.adapter.name} width={20} height={20} className="rounded" />
+                        {connecting ? "Connecting..." : wallet.adapter.name}
+                      </button>
+                    ))
+                  ) : (
+                    <a
+                      href="https://phantom.app"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 rounded-xl bg-[var(--d-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]"
+                    >
+                      Install Phantom
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* ─── KPI CARDS ROW ─── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
