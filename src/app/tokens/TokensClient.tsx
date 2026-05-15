@@ -126,11 +126,33 @@ export default function TokensClient() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  /* Fetch market data on mount */
+  /* Fetch token list from API (fallback to hardcoded registry), then market data */
   useEffect(() => {
-    const mints = REGISTRY.map((t) => t.mint);
-    fetchMarketData(mints).then((map) => {
-      const merged: TokenData[] = REGISTRY.map((t) => {
+    async function load() {
+      // Try API first, fall back to hardcoded registry
+      let registry: { symbol: string; name: string; mint: string; category: TokenCategory; image?: string | null }[] = REGISTRY;
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "https://magpie-bot-production.up.railway.app";
+        const res = await fetch(`${apiUrl}/api/v1/tokens`, { signal: AbortSignal.timeout(5000) });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.tokens?.length > 0) {
+            registry = data.tokens.map((t: { symbol: string; name: string; mint: string; category?: string; image?: string | null }) => ({
+              symbol: t.symbol,
+              name: t.name,
+              mint: t.mint,
+              category: (t.category || "memecoin") as TokenCategory,
+              image: t.image ?? null,
+            }));
+          }
+        }
+      } catch {
+        // API unavailable — use hardcoded registry
+      }
+
+      const mints = registry.map((t) => t.mint);
+      const map = await fetchMarketData(mints);
+      const merged: TokenData[] = registry.map((t) => {
         const d = map.get(t.mint);
         return {
           symbol: t.symbol,
@@ -151,7 +173,8 @@ export default function TokensClient() {
       setTokens(merged);
       setLastUpdated(new Date());
       setLoading(false);
-    });
+    }
+    load();
   }, []);
 
   /* Sort + filter */
