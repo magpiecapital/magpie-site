@@ -532,7 +532,7 @@ export default function PointsClient() {
                 Every successful repayment earns you Magpie Points. Bigger loans, riskier tiers, and repayment streaks multiply your rewards. Accumulate now &mdash; every loan counts.
               </p>
               <div className="fade-up fade-up-3 mt-10 flex flex-wrap items-center gap-4">
-                <a href={TELEGRAM_URL} className="btn-accent text-base">
+                <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-base">
                   Start earning
                   <span aria-hidden>&#8594;</span>
                 </a>
@@ -738,7 +738,7 @@ export default function PointsClient() {
             Every loan is an opportunity. Bigger loans, faster repayments, and streaks all stack in your favor.
           </p>
           <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} className="btn-accent text-lg">
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-lg">
               Launch on Telegram
               <span aria-hidden>&#8594;</span>
             </a>

@@ -332,7 +332,7 @@ export default function AboutPage() {
             Your bags are sitting idle. Put them to work.
           </p>
           <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} className="btn-accent text-lg">
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-lg">
               Launch on Telegram
               <span aria-hidden>→</span>
             </a>

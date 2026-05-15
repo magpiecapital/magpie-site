@@ -49,6 +49,8 @@ export function Header() {
           <ConnectWallet variant="ghost" className="hidden md:flex" />
           <a
             href={TELEGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-accent whitespace-nowrap text-sm"
           >
             <span className="hidden sm:inline">Launch</span>

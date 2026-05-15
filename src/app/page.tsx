@@ -8,6 +8,7 @@ import { CountUp } from "@/components/CountUp";
 import { TokenMarquee } from "@/components/TokenMarquee";
 import { TOKEN_REGISTRY } from "@/lib/token-registry";
 
+const X_URL = "https://x.com/MagpieLoans";
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const TOKEN_COUNT = TOKEN_REGISTRY.length;
 
@@ -207,7 +208,7 @@ export default function Home() {
           </p>
 
           <div className="fade-up fade-up-3 mt-8 flex flex-wrap items-center gap-3 sm:mt-10 sm:gap-4">
-            <a href={TELEGRAM_URL} className="btn-accent shimmer text-sm sm:text-base">
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent shimmer text-sm sm:text-base">
               Start borrowing
               <span aria-hidden>→</span>
             </a>
@@ -217,6 +218,9 @@ export default function Home() {
             <Link href="/tokens" className="btn-ghost text-sm sm:text-base">
               {TOKEN_COUNT} approved tokens
             </Link>
+            <a href={X_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost text-sm sm:text-base">
+              Follow on 𝕏
+            </a>
           </div>
 
           <div className="fade-up fade-up-4 mt-12 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-16">
@@ -491,7 +495,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
           <Reveal className="order-1 md:order-2" delay={150}>
             <PhoneMock />
             <div className="mt-6 text-center">
-              <a href={TELEGRAM_URL} className="text-sm font-medium text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline">
+              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline">
                 Try it live on Telegram →
               </a>
             </div>
@@ -600,7 +604,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
               <div className="text-sm leading-relaxed text-[var(--ink-soft)]">
                 <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend at your tier&apos;s fee rate, live health alerts, and credit score accrual. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">{TOKEN_COUNT} approved tokens</Link>.
               </div>
-              <a href={TELEGRAM_URL} className="btn-dark shrink-0 text-sm">
+              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-dark shrink-0 text-sm">
                 Get a quote →
               </a>
             </div>
@@ -653,7 +657,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
             Borrow SOL. Earn yield. Build your credit score. All permissionless, all on Solana.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-12 sm:gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} className="btn-accent text-base sm:text-lg">
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-base sm:text-lg">
               Start borrowing
               <span aria-hidden>→</span>
             </a>
@@ -669,6 +673,14 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
             >
               Browse tokens
             </Link>
+            <a
+              href={X_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+            >
+              Follow on 𝕏
+            </a>
           </div>
         </div>
       </section>

@@ -527,7 +527,7 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 pools &mdash; always with the same principles: simplicity, safety, and speed.
               </P>
               <div className="mt-10 flex flex-wrap gap-4">
-                <a href={TELEGRAM_URL} className="btn-accent text-sm">
+                <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-sm">
                   Launch Magpie Bot
                 </a>
                 <Link href="/docs" className="btn-ghost text-sm">
@@ -544,6 +544,8 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 Questions? Reach out on{" "}
                 <a
                   href={TELEGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="font-semibold text-[var(--accent-deep)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
                 >
                   Telegram

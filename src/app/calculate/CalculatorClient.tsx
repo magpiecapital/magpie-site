@@ -567,7 +567,7 @@ export default function CalculatorClient() {
             Open the bot, pick your tier, and get SOL in under 30 seconds.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} className="btn-accent text-lg">
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-lg">
               Open @magpie_capital_bot
               <span aria-hidden>&#8594;</span>
             </a>

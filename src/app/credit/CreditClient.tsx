@@ -466,7 +466,7 @@ export default function CreditClient() {
                 The first on-chain credit system for memecoin lending. Every on-time repayment builds your score — and your rewards.
               </p>
               <div className="fade-up fade-up-3 mt-10 flex flex-wrap items-center gap-4">
-                <a href={TELEGRAM_URL} className="btn-accent text-base">
+                <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-base">
                   Start building credit
                   <span aria-hidden>→</span>
                 </a>
@@ -790,7 +790,7 @@ export default function CreditClient() {
             Every on-time repayment is a step toward better rates, higher LTV, and exclusive access. Your reputation starts now.
           </p>
           <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} className="btn-accent text-lg">
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-lg">
               Launch on Telegram
               <span aria-hidden>→</span>
             </a>

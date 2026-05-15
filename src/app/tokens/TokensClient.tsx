@@ -607,6 +607,8 @@ export default function TokensClient() {
           </p>
           <a
             href={TELEGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-accent mt-8 inline-flex text-base"
           >
             Launch on Telegram <span aria-hidden>&#8594;</span>

@@ -69,7 +69,7 @@ export default function StatsClient() {
               Charts, volume data, collateral rankings, health distributions, and live activity will populate here once the lending protocol launches and real transactions begin.
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-              <a href={TELEGRAM_URL} className="btn-accent text-base">
+              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-base">
                 Join the waitlist
                 <span aria-hidden>→</span>
               </a>
@@ -98,7 +98,7 @@ export default function StatsClient() {
             Borrow SOL against your bags in seconds. No credit check, no KYC.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} className="btn-accent text-base">
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-base">
               Get notified
               <span aria-hidden>→</span>
             </a>

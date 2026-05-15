@@ -416,7 +416,7 @@ export default function SecurityPage() {
                 <div className="space-y-2">
                   <div className="flex items-start gap-2">
                     <span className="mt-1 text-[var(--accent)]" aria-hidden>&bull;</span>
-                    <span><span className="font-semibold text-[var(--ink)]">Contact:</span> Report via <a href={TELEGRAM_URL} className="underline underline-offset-2 hover:text-[var(--ink)] transition">Telegram @magpie_capital_bot</a> or open a GitHub issue</span>
+                    <span><span className="font-semibold text-[var(--ink)]">Contact:</span> Report via <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-[var(--ink)] transition">Telegram @magpie_capital_bot</a> or open a GitHub issue</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="mt-1 text-[var(--accent)]" aria-hidden>&bull;</span>
@@ -457,7 +457,7 @@ export default function SecurityPage() {
             Your bags deserve the highest standard of protection.
           </p>
           <div className="mt-12">
-            <a href={TELEGRAM_URL} className="btn-accent text-lg">
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-lg">
               Launch on Telegram
               <span aria-hidden>&rarr;</span>
             </a>

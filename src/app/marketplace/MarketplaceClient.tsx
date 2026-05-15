@@ -199,6 +199,8 @@ export function MarketplaceClient() {
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <a
               href={TELEGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-7 py-3.5 text-base font-semibold text-[var(--accent-ink,#0a0a0a)] transition hover:bg-[var(--accent-hover,#e6b830)]"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -446,6 +448,8 @@ export function MarketplaceClient() {
           </p>
           <a
             href={TELEGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-8 py-3.5 text-base font-semibold text-[var(--accent-ink,#0a0a0a)] transition hover:bg-[var(--accent-hover,#e6b830)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">

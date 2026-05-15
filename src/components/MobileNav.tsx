@@ -125,6 +125,8 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
         <div className="border-t border-[var(--hairline)] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <a
             href={TELEGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-3.5 text-sm font-semibold text-[var(--accent-ink)] transition hover:bg-[var(--accent-hover)]"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

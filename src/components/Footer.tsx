@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/Logo";
 
+const X_URL = "https://x.com/MagpieLoans";
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const GITHUB_URL = "https://github.com/magpiecapital";
 
@@ -35,6 +36,7 @@ export function Footer() {
             <FooterLink href="/about">About</FooterLink>
           </FooterCol>
           <FooterCol title="Community">
+            <FooterLink href={X_URL}>X (Twitter)</FooterLink>
             <FooterLink href={TELEGRAM_URL}>Telegram</FooterLink>
             <FooterLink href={GITHUB_URL}>GitHub</FooterLink>
           </FooterCol>

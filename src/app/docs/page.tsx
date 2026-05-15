@@ -100,6 +100,8 @@ export default function DocsPage() {
             <div className="mt-8 border-t border-[var(--hairline)] pt-6">
               <a
                 href={TELEGRAM_URL}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-[13px] font-semibold text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
               >
                 Launch bot →
@@ -536,6 +538,8 @@ export default function DocsPage() {
                 Questions? Reach out on{" "}
                 <a
                   href={TELEGRAM_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="font-semibold text-[var(--accent-deep)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
                 >
                   Telegram
