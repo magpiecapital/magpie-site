@@ -12,11 +12,13 @@ const HEADERS = {
   "X-Powered-By": "Magpie Protocol",
 };
 
-export async function GET() {
+export async function GET(req: Request) {
   const now = Date.now();
+  const url = new URL(req.url);
+  const fresh = url.searchParams.has("fresh");
 
-  /* Serve from cache if fresh */
-  if (cachedData && now - cacheTimestamp < CACHE_TTL_MS) {
+  /* Serve from cache if fresh (unless ?fresh is passed to bust cache) */
+  if (!fresh && cachedData && now - cacheTimestamp < CACHE_TTL_MS) {
     return NextResponse.json(cachedData, { headers: HEADERS });
   }
 

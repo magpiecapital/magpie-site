@@ -127,54 +127,54 @@ export default function TokensClient() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   /* Fetch token list from API (fallback to hardcoded registry), then market data */
-  useEffect(() => {
-    async function load() {
-      // Fetch from our own API route (queries DB, falls back to registry)
-      let registry: { symbol: string; name: string; mint: string; category: TokenCategory; image?: string | null }[] = REGISTRY;
-      try {
-        const res = await fetch("/api/v1/tokens", { signal: AbortSignal.timeout(5000) });
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.tokens?.length > 0) {
-            registry = data.tokens.map((t: { symbol: string; name: string; mint: string; category?: string; image?: string | null }) => ({
-              symbol: t.symbol,
-              name: t.name,
-              mint: t.mint,
-              category: (t.category || "memecoin") as TokenCategory,
-              image: t.image ?? null,
-            }));
-          }
+  const loadTokens = useCallback(async (bustCache = false) => {
+    // Fetch from our own API route (queries DB, falls back to registry)
+    let registry: { symbol: string; name: string; mint: string; category: TokenCategory; image?: string | null }[] = REGISTRY;
+    try {
+      const url = bustCache ? "/api/v1/tokens?fresh" : "/api/v1/tokens";
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000), cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.tokens?.length > 0) {
+          registry = data.tokens.map((t: { symbol: string; name: string; mint: string; category?: string; image?: string | null }) => ({
+            symbol: t.symbol,
+            name: t.name,
+            mint: t.mint,
+            category: (t.category || "memecoin") as TokenCategory,
+            image: t.image ?? null,
+          }));
         }
-      } catch {
-        // API unavailable — use hardcoded registry
       }
-
-      const mints = registry.map((t) => t.mint);
-      const map = await fetchMarketData(mints);
-      const merged: TokenData[] = registry.map((t) => {
-        const d = map.get(t.mint);
-        return {
-          symbol: t.symbol,
-          name: t.name,
-          mint: t.mint,
-          category: t.category,
-          registryImage: t.image ?? null,
-          price: d?.price ?? null,
-          change1h: d?.change1h ?? null,
-          change6h: d?.change6h ?? null,
-          change24h: d?.change24h ?? null,
-          volume24h: d?.volume24h ?? null,
-          mcap: d?.mcap ?? null,
-          liquidity: d?.liquidity ?? null,
-          imageUrl: d?.imageUrl ?? null,
-        };
-      });
-      setTokens(merged);
-      setLastUpdated(new Date());
-      setLoading(false);
+    } catch {
+      // API unavailable — use hardcoded registry
     }
-    load();
+
+    const mints = registry.map((t) => t.mint);
+    const map = await fetchMarketData(mints);
+    const merged: TokenData[] = registry.map((t) => {
+      const d = map.get(t.mint);
+      return {
+        symbol: t.symbol,
+        name: t.name,
+        mint: t.mint,
+        category: t.category,
+        registryImage: t.image ?? null,
+        price: d?.price ?? null,
+        change1h: d?.change1h ?? null,
+        change6h: d?.change6h ?? null,
+        change24h: d?.change24h ?? null,
+        volume24h: d?.volume24h ?? null,
+        mcap: d?.mcap ?? null,
+        liquidity: d?.liquidity ?? null,
+        imageUrl: d?.imageUrl ?? null,
+      };
+    });
+    setTokens(merged);
+    setLastUpdated(new Date());
+    setLoading(false);
   }, []);
+
+  useEffect(() => { loadTokens(); }, [loadTokens]);
 
   /* Sort + filter */
   const sorted = useMemo(() => {
@@ -604,7 +604,7 @@ export default function TokensClient() {
               Submit a token for instant automated vetting. Paste a mint address
               or symbol and get a result in seconds.
             </p>
-            <SubmitForm />
+            <SubmitForm onApproved={() => loadTokens(true)} />
           </div>
         </div>
       </section>
@@ -753,7 +753,7 @@ interface SubmitResult {
   error?: string;
 }
 
-function SubmitForm() {
+function SubmitForm({ onApproved }: { onApproved: () => Promise<void> }) {
   const [input, setInput] = useState("");
   const [status, setStatus] = useState<"idle" | "sending">("idle");
   const [result, setResult] = useState<SubmitResult | null>(null);
@@ -771,6 +771,10 @@ function SubmitForm() {
       });
       const data = await res.json();
       setResult(data);
+      // Refresh token list if approved so it appears immediately
+      if (data.verdict === "approved") {
+        onApproved();
+      }
     } catch {
       setResult({ verdict: "error", error: "Something went wrong. Please try again." });
     } finally {
