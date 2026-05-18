@@ -1,10 +1,8 @@
 import pg from "pg";
 
-function createPool() {
-  const url = process.env.DATABASE_URL || "";
-  if (!url) return new pg.Pool();
+function createPool(url: string) {
+  if (!url) return null;
 
-  // Parse URL to use explicit params (more reliable with proxies)
   try {
     const u = new URL(url);
     return new pg.Pool({
@@ -22,10 +20,31 @@ function createPool() {
   }
 }
 
-const pool = createPool();
+/* Primary: Railway Postgres. Secondary: Neon (add DATABASE_URL_SECONDARY). */
+const primaryPool = createPool(process.env.DATABASE_URL || "");
+const secondaryPool = createPool(process.env.DATABASE_URL_SECONDARY || "");
 
+/**
+ * Query with automatic failover — tries primary DB first, falls back to
+ * secondary (Neon) on connection errors. Survives full Railway outages.
+ */
 export async function query(text: string, params?: unknown[]) {
-  return pool.query(text, params);
+  if (primaryPool) {
+    try {
+      return await primaryPool.query(text, params);
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      const isConnErr =
+        code === "ECONNRESET" || code === "ECONNREFUSED" ||
+        code === "ETIMEDOUT" || code === "57P01";
+      if (!isConnErr || !secondaryPool) throw err;
+      console.warn("[db] Primary DB failed, failing over to secondary:", code);
+    }
+  }
+  if (secondaryPool) {
+    return secondaryPool.query(text, params);
+  }
+  throw new Error("No database connection available");
 }
 
 /* ─── Token stats helper (used by landing page, whitepaper, etc.) ─── */
@@ -85,6 +104,6 @@ export async function getTokenStats(): Promise<TokenStats> {
   // Serve stale cache (any age) — better than hardcoded numbers
   if (statsCache) return statsCache.data;
 
-  // Last resort: hardcoded fallback
-  return { count: 76, memeCount: 69, stockCount: 7 };
+  // Last resort: hardcoded fallback (matches TOKEN_REGISTRY)
+  return { count: 82, memeCount: 73, stockCount: 9 };
 }
