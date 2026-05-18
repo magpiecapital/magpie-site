@@ -53,7 +53,7 @@ export async function GET(req: Request) {
     }
   } catch (err) {
     console.error("[api/tokens] DB error, falling back to registry:", err);
-    console.error("[api/tokens] DATABASE_URL set:", !!process.env.DATABASE_URL, "len:", (process.env.DATABASE_URL||"").length, "DB_SSL:", process.env.DB_SSL);
+    console.error("[api/tokens] DATABASE_URL set:", !!process.env.DATABASE_URL, "len:", (process.env.DATABASE_URL||"").length, "DB_SSL:", process.env.DB_SSL, "ssl_used:", process.env.DB_SSL !== "false");
   }
 
   /* Fallback: hardcoded registry (DB unreachable or empty) */
