@@ -12,17 +12,19 @@ const HEADERS = {
   "X-Powered-By": "Magpie Protocol",
 };
 
+const BOT_API_URL = process.env.BOT_API_URL || "";
+
 export async function GET(req: Request) {
   const now = Date.now();
   const url = new URL(req.url);
   const fresh = url.searchParams.has("fresh");
 
-  /* Serve from cache if fresh (unless ?fresh is passed to bust cache) */
+  /* Serve from cache unless ?fresh is passed */
   if (!fresh && cachedData && now - cacheTimestamp < CACHE_TTL_MS) {
     return NextResponse.json(cachedData, { headers: HEADERS });
   }
 
-  /* Try DB first — single source of truth */
+  /* Strategy 1: Direct DB query */
   try {
     const { rows } = await query(
       `SELECT mint, symbol, name, decimals, category, image_url
@@ -52,11 +54,36 @@ export async function GET(req: Request) {
       return NextResponse.json(response, { headers: HEADERS });
     }
   } catch (err) {
-    console.error("[api/tokens] DB error, falling back to registry:", err);
-    console.error("[api/tokens] DATABASE_URL set:", !!process.env.DATABASE_URL, "len:", (process.env.DATABASE_URL||"").length, "DB_SSL:", process.env.DB_SSL, "ssl_used:", process.env.DB_SSL !== "false");
+    console.error("[api/tokens] DB error:", (err as Error).message);
   }
 
-  /* Fallback: hardcoded registry (DB unreachable or empty) */
+  /* Strategy 2: Fetch from bot API (Railway internal network can reach DB) */
+  if (BOT_API_URL) {
+    try {
+      const res = await fetch(`${BOT_API_URL}/api/v1/tokens`, {
+        signal: AbortSignal.timeout(5_000),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.tokens?.length > 0) {
+          const response = {
+            ok: true,
+            count: data.tokens.length,
+            tokens: data.tokens,
+            source: "bot_api",
+            timestamp: new Date().toISOString(),
+          };
+          cachedData = response;
+          cacheTimestamp = now;
+          return NextResponse.json(response, { headers: HEADERS });
+        }
+      }
+    } catch (err) {
+      console.error("[api/tokens] Bot API error:", (err as Error).message);
+    }
+  }
+
+  /* Strategy 3: Hardcoded registry (last resort) */
   const response = {
     ok: true,
     count: TOKEN_REGISTRY.length,
