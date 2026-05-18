@@ -53,6 +53,7 @@ export async function GET(req: Request) {
     }
   } catch (err) {
     console.error("[api/tokens] DB error, falling back to registry:", err);
+    console.error("[api/tokens] DATABASE_URL set:", !!process.env.DATABASE_URL, "DB_SSL:", process.env.DB_SSL);
   }
 
   /* Fallback: hardcoded registry (DB unreachable or empty) */
