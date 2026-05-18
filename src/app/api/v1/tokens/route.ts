@@ -12,7 +12,7 @@ const HEADERS = {
   "X-Powered-By": "Magpie Protocol",
 };
 
-const BOT_API_URL = process.env.BOT_API_URL || "";
+const BOT_API_URL = process.env.BOT_API_URL ?? "";
 
 export async function GET(req: Request) {
   const now = Date.now();
