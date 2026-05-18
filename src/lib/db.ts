@@ -1,11 +1,28 @@
 import pg from "pg";
 
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 3,
-  ssl: { rejectUnauthorized: false },
-  connectionTimeoutMillis: 5_000,
-});
+function createPool() {
+  const url = process.env.DATABASE_URL || "";
+  if (!url) return new pg.Pool();
+
+  // Parse URL to use explicit params (more reliable with proxies)
+  try {
+    const u = new URL(url);
+    return new pg.Pool({
+      host: u.hostname,
+      port: parseInt(u.port) || 5432,
+      database: u.pathname.slice(1),
+      user: u.username,
+      password: decodeURIComponent(u.password),
+      max: 3,
+      ssl: { rejectUnauthorized: false },
+      connectionTimeoutMillis: 8_000,
+    });
+  } catch {
+    return new pg.Pool({ connectionString: url, max: 3, ssl: { rejectUnauthorized: false } });
+  }
+}
+
+const pool = createPool();
 
 export async function query(text: string, params?: unknown[]) {
   return pool.query(text, params);
