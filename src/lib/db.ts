@@ -43,6 +43,7 @@ export async function getTokenStats(): Promise<TokenStats> {
   const now = Date.now();
   if (statsCache && now - statsCache.ts < STATS_TTL) return statsCache.data;
 
+  // Try DB
   try {
     const { rows } = await query(
       `SELECT
@@ -58,28 +59,32 @@ export async function getTokenStats(): Promise<TokenStats> {
     };
     statsCache = { data, ts: now };
     return data;
-  } catch {
-    // Fallback: try bot API
-    const botUrl = process.env.BOT_API_URL;
-    if (botUrl) {
-      try {
-        const res = await fetch(`${botUrl}/api/v1/tokens`, { signal: AbortSignal.timeout(5_000) });
-        if (res.ok) {
-          const d = await res.json();
-          if (d?.tokens?.length > 0) {
-            const tokens = d.tokens as { category?: string }[];
-            const data: TokenStats = {
-              count: tokens.length,
-              memeCount: tokens.filter(t => t.category === "memecoin" || !t.category).length,
-              stockCount: tokens.filter(t => t.category === "stock").length,
-            };
-            statsCache = { data, ts: Date.now() };
-            return data;
-          }
+  } catch { /* fall through */ }
+
+  // Try bot API
+  const botUrl = process.env.BOT_API_URL;
+  if (botUrl) {
+    try {
+      const res = await fetch(`${botUrl}/api/v1/tokens`, { signal: AbortSignal.timeout(5_000) });
+      if (res.ok) {
+        const d = await res.json();
+        if (d?.tokens?.length > 0) {
+          const tokens = d.tokens as { category?: string }[];
+          const data: TokenStats = {
+            count: tokens.length,
+            memeCount: tokens.filter(t => t.category === "memecoin" || !t.category).length,
+            stockCount: tokens.filter(t => t.category === "stock").length,
+          };
+          statsCache = { data, ts: Date.now() };
+          return data;
         }
-      } catch { /* fall through */ }
-    }
-    if (statsCache) return statsCache.data;
-    return { count: 90, memeCount: 83, stockCount: 7 };
+      }
+    } catch { /* fall through */ }
   }
+
+  // Serve stale cache (any age) — better than hardcoded numbers
+  if (statsCache) return statsCache.data;
+
+  // Last resort: hardcoded fallback
+  return { count: 76, memeCount: 69, stockCount: 7 };
 }

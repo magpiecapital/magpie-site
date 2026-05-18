@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { TOKEN_REGISTRY } from "@/lib/token-registry";
 
-/* ─── In-memory cache (60s TTL) ─── */
-let cachedData: unknown = null;
+/* ─── In-memory cache — never discarded, serves stale on error ─── */
+let cachedData: Record<string, unknown> | null = null;
 let cacheTimestamp = 0;
 const CACHE_TTL_MS = 60_000;
 
+/* Edge CDN: fresh for 60s, serve stale for 1h during revalidation,
+   serve stale for 24h if origin errors (DB down). This is the single
+   highest-impact resilience measure — Vercel CDN itself becomes a cache. */
 const HEADERS = {
-  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30",
+  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=3600, stale-if-error=86400",
   "X-Powered-By": "Magpie Protocol",
 };
 
@@ -19,7 +22,7 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const fresh = url.searchParams.has("fresh");
 
-  /* Serve from cache unless ?fresh is passed */
+  /* Serve from in-memory cache if still fresh */
   if (!fresh && cachedData && now - cacheTimestamp < CACHE_TTL_MS) {
     return NextResponse.json(cachedData, { headers: HEADERS });
   }
@@ -57,7 +60,7 @@ export async function GET(req: Request) {
     console.error("[api/tokens] DB error:", (err as Error).message);
   }
 
-  /* Strategy 2: Fetch from bot API (Railway internal network can reach DB) */
+  /* Strategy 2: Fetch from bot API on Railway */
   if (BOT_API_URL) {
     try {
       const res = await fetch(`${BOT_API_URL}/api/v1/tokens`, {
@@ -83,7 +86,16 @@ export async function GET(req: Request) {
     }
   }
 
-  /* Strategy 3: Hardcoded registry (last resort) */
+  /* Strategy 3: Serve stale in-memory cache (any age) — strictly better
+     than the hardcoded registry since it was once-live data */
+  if (cachedData) {
+    return NextResponse.json(
+      { ...cachedData, stale: true, timestamp: new Date().toISOString() },
+      { headers: HEADERS },
+    );
+  }
+
+  /* Strategy 4: Hardcoded registry (cold start during total outage) */
   const response = {
     ok: true,
     count: TOKEN_REGISTRY.length,
