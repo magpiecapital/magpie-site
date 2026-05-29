@@ -63,7 +63,33 @@ export async function getTokenStats(): Promise<TokenStats> {
   const now = Date.now();
   if (statsCache && now - statsCache.ts < STATS_TTL) return statsCache.data;
 
-  // Try DB
+  // Primary: bot API. Always-on (Railway Hobby), authoritative source.
+  // Don't hit the DB directly — Neon free tier auto-suspends and times out
+  // on cold reads, which used to silently flip the site into fallback mode.
+  const botUrl = process.env.BOT_API_URL;
+  if (botUrl) {
+    try {
+      const res = await fetch(`${botUrl}/api/v1/tokens`, {
+        signal: AbortSignal.timeout(5_000),
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const d = await res.json();
+        if (d?.tokens?.length > 0) {
+          const tokens = d.tokens as { category?: string }[];
+          const data: TokenStats = {
+            count: tokens.length,
+            memeCount: tokens.filter((t) => t.category === "memecoin" || !t.category).length,
+            stockCount: tokens.filter((t) => t.category === "stock").length,
+          };
+          statsCache = { data, ts: now };
+          return data;
+        }
+      }
+    } catch { /* fall through */ }
+  }
+
+  // Secondary: direct DB query. Only reached if the bot API is unreachable.
   try {
     const { rows } = await query(
       `SELECT
@@ -81,33 +107,12 @@ export async function getTokenStats(): Promise<TokenStats> {
     return data;
   } catch { /* fall through */ }
 
-  // Try bot API
-  const botUrl = process.env.BOT_API_URL;
-  if (botUrl) {
-    try {
-      const res = await fetch(`${botUrl}/api/v1/tokens`, { signal: AbortSignal.timeout(5_000) });
-      if (res.ok) {
-        const d = await res.json();
-        if (d?.tokens?.length > 0) {
-          const tokens = d.tokens as { category?: string }[];
-          const data: TokenStats = {
-            count: tokens.length,
-            memeCount: tokens.filter(t => t.category === "memecoin" || !t.category).length,
-            stockCount: tokens.filter(t => t.category === "stock").length,
-          };
-          statsCache = { data, ts: Date.now() };
-          return data;
-        }
-      }
-    } catch { /* fall through */ }
-  }
-
-  // Serve stale cache (any age) — better than recomputed fallback
+  // Serve stale cache before falling to registry — even minutes-old data
+  // beats showing a stale baked-in number.
   if (statsCache) return statsCache.data;
 
-  // Last resort: derive from TOKEN_REGISTRY so the number on landing always
-  // matches the number on /tokens (which reads from the same registry).
-  // Never use a hardcoded count — it will diverge from the registry.
+  // Last resort: derive from TOKEN_REGISTRY. This file is kept in periodic
+  // sync with the bot DB so the fallback never goes too far out of date.
   return {
     count: TOKEN_REGISTRY.length,
     memeCount: TOKEN_REGISTRY.filter((t) => t.category === "memecoin").length,
