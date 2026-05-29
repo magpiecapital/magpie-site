@@ -1,18 +1,22 @@
 import type { Metadata } from "next";
 import TokensClient from "./TokensClient";
-import { TOKEN_REGISTRY } from "@/lib/token-registry";
+import { getTokenStats } from "@/lib/db";
 
-const count = TOKEN_REGISTRY.length;
+// Re-derive metadata at runtime so the count stays synced with the bot's
+// canonical DB instead of being frozen at build time.
+export const revalidate = 60;
 
-export const metadata: Metadata = {
-  title: "Approved Tokens | Magpie",
-  description:
-    `Browse ${count} tokens accepted as collateral on Magpie — memecoins and tokenized stocks. Live prices, volume, market cap, and performance data powered by DexScreener.`,
-  openGraph: {
+export async function generateMetadata(): Promise<Metadata> {
+  const { count } = await getTokenStats();
+  return {
     title: "Approved Tokens | Magpie",
-    description: `${count} memecoin and tokenized stock collateral tokens with live market data.`,
-  },
-};
+    description: `Browse ${count} tokens accepted as collateral on Magpie — memecoins and tokenized stocks. Live prices, volume, market cap, and performance data powered by DexScreener.`,
+    openGraph: {
+      title: "Approved Tokens | Magpie",
+      description: `${count} memecoin and tokenized stock collateral tokens with live market data.`,
+    },
+  };
+}
 
 export default function Page() {
   return <TokensClient />;
