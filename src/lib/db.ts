@@ -1,4 +1,5 @@
 import pg from "pg";
+import { TOKEN_REGISTRY } from "./token-registry";
 
 function createPool(url: string) {
   if (!url) return null;
@@ -101,9 +102,15 @@ export async function getTokenStats(): Promise<TokenStats> {
     } catch { /* fall through */ }
   }
 
-  // Serve stale cache (any age) — better than hardcoded numbers
+  // Serve stale cache (any age) — better than recomputed fallback
   if (statsCache) return statsCache.data;
 
-  // Last resort: hardcoded fallback (matches TOKEN_REGISTRY)
-  return { count: 82, memeCount: 73, stockCount: 9 };
+  // Last resort: derive from TOKEN_REGISTRY so the number on landing always
+  // matches the number on /tokens (which reads from the same registry).
+  // Never use a hardcoded count — it will diverge from the registry.
+  return {
+    count: TOKEN_REGISTRY.length,
+    memeCount: TOKEN_REGISTRY.filter((t) => t.category === "memecoin").length,
+    stockCount: TOKEN_REGISTRY.filter((t) => t.category === "stock").length,
+  };
 }
