@@ -374,7 +374,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
           <Reveal delay={220}>
             <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-12 md:grid-cols-2">
               <a
-                href="https://solscan.io/account/7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P"
+                href="https://solscan.io/account/4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="group flex items-center gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-5 transition hover:border-[var(--accent)] hover:shadow-sm"
@@ -384,7 +384,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-semibold">magpie-lending</div>
-                  <div className="mt-0.5 truncate font-mono text-[11px] text-[var(--ink-faint)]">7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P</div>
+                  <div className="mt-0.5 truncate font-mono text-[11px] text-[var(--ink-faint)]">4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh</div>
                 </div>
                 <span className="text-xs font-medium text-[var(--accent-deep)] opacity-0 transition group-hover:opacity-100">Solscan →</span>
               </a>

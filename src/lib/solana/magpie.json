@@ -1,5 +1,5 @@
 {
-  "address": "7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P",
+  "address": "4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh",
   "metadata": {
     "name": "magpie_lending",
     "version": "0.1.0",
@@ -70,6 +70,87 @@
           "signer": true,
           "relations": [
             "loan"
+          ]
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "admin_withdraw",
+      "docs": [
+        "Emergency admin withdrawal — transfer wSOL directly from vault to authority.",
+        "Only callable by the pool authority. Use this to recover funds that were",
+        "deposited outside the share-based deposit flow."
+      ],
+      "discriminator": [
+        160,
+        166,
+        147,
+        222,
+        46,
+        220,
+        75,
+        224
+      ],
+      "accounts": [
+        {
+          "name": "pool",
+          "writable": true
+        },
+        {
+          "name": "loan_token_vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  108,
+                  111,
+                  97,
+                  110,
+                  45,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  45,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority_token_account",
+          "docs": [
+            "Authority's wSOL token account to receive the funds."
+          ],
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "pool"
           ]
         },
         {
@@ -378,6 +459,70 @@
           "type": "u16"
         }
       ]
+    },
+    {
+      "name": "initialize_price_feed",
+      "docs": [
+        "Initialize a price feed for a specific token mint.",
+        "Only the pool authority can create feeds for their pool."
+      ],
+      "discriminator": [
+        68,
+        180,
+        81,
+        20,
+        102,
+        213,
+        145,
+        233
+      ],
+      "accounts": [
+        {
+          "name": "pool"
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "price_feed",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "pool"
+          ]
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
     },
     {
       "name": "liquidate_loan",
@@ -812,6 +957,42 @@
           "signer": true
         },
         {
+          "name": "authority",
+          "docs": [
+            "Pool authority must co-sign every borrow to attest the collateral value."
+          ],
+          "signer": true
+        },
+        {
+          "name": "price_feed",
+          "docs": [
+            "On-chain price attestation for the collateral mint. PDA seeds already",
+            "enforce mint+pool linkage so duplicate constraints removed."
+          ],
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "collateral_mint"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         },
@@ -920,6 +1101,72 @@
         {
           "name": "paused",
           "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "update_price",
+      "docs": [
+        "Update the attested price for a token. Only the pool authority can call this.",
+        "The bot calls this periodically with fresh Jupiter prices."
+      ],
+      "discriminator": [
+        61,
+        34,
+        117,
+        155,
+        75,
+        34,
+        123,
+        208
+      ],
+      "accounts": [
+        {
+          "name": "pool"
+        },
+        {
+          "name": "price_feed",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  105,
+                  99,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "price_feed.mint",
+                "account": "PriceAttestation"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "pool"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "price_lamports",
+          "type": "u64"
+        },
+        {
+          "name": "confidence_bps",
+          "type": "u16"
         }
       ]
     },
@@ -1066,6 +1313,19 @@
         182,
         1
       ]
+    },
+    {
+      "name": "PriceAttestation",
+      "discriminator": [
+        14,
+        221,
+        251,
+        189,
+        238,
+        210,
+        139,
+        75
+      ]
     }
   ],
   "events": [
@@ -1174,6 +1434,32 @@
       ]
     },
     {
+      "name": "PriceFeedInitialized",
+      "discriminator": [
+        215,
+        208,
+        148,
+        233,
+        198,
+        216,
+        185,
+        183
+      ]
+    },
+    {
+      "name": "PriceUpdated",
+      "discriminator": [
+        154,
+        72,
+        87,
+        150,
+        246,
+        230,
+        23,
+        217
+      ]
+    },
+    {
       "name": "Withdrawn",
       "discriminator": [
         20,
@@ -1252,6 +1538,21 @@
       "code": 6012,
       "name": "KeeperRewardTooHigh",
       "msg": "Keeper reward too high (max 20%)."
+    },
+    {
+      "code": 6013,
+      "name": "StalePriceAttestation",
+      "msg": "Price attestation is stale (older than 2 minutes)."
+    },
+    {
+      "code": 6014,
+      "name": "CollateralValueExceedsAttestation",
+      "msg": "Collateral value exceeds attested price beyond tolerance."
+    },
+    {
+      "code": 6015,
+      "name": "PriceMintMismatch",
+      "msg": "Price attestation mint does not match collateral mint."
     }
   ],
   "types": [
@@ -1759,6 +2060,107 @@
           {
             "name": "protocol_fee_bps",
             "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PriceAttestation",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "docs": [
+              "Token mint this attestation covers"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "docs": [
+              "Pool this attestation belongs to"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "docs": [
+              "Authority allowed to update this feed"
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "price_lamports",
+            "docs": [
+              "Price of 1 full token in lamports (e.g. 1 token = 50000 lamports)"
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "timestamp",
+            "docs": [
+              "Unix timestamp of last update"
+            ],
+            "type": "i64"
+          },
+          {
+            "name": "confidence_bps",
+            "docs": [
+              "Confidence interval in basis points (informational)"
+            ],
+            "type": "u16"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "PDA bump"
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PriceFeedInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PriceUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "price_lamports",
+            "type": "u64"
+          },
+          {
+            "name": "confidence_bps",
+            "type": "u16"
+          },
+          {
+            "name": "timestamp",
+            "type": "i64"
           }
         ]
       }

@@ -1,11 +1,11 @@
 import { PublicKey } from "@solana/web3.js";
 
 export const PROGRAM_ID = new PublicKey(
-  "7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P",
+  "4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh",
 );
 
 export const LENDER_PUBKEY = new PublicKey(
-  "5hsZBreKCt9PqZB4GdTqiGq2tZ1k7rfN4LZ9vEt1S2ML",
+  "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx",
 );
 
 export const LOAN_TIERS = [
