@@ -5,9 +5,6 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PhoneMock } from "@/components/PhoneMock";
-import { TOKEN_REGISTRY } from "@/lib/token-registry";
-
-const TOKEN_COUNT = TOKEN_REGISTRY.length;
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -51,7 +48,8 @@ const CREDIT_TIERS = [
 
 /* ───────────────────────── HOW TO BORROW ───────────────────────── */
 
-const STEPS = [
+function buildSteps(tokenCount: number) {
+  return [
   {
     num: "1",
     title: "Open the Telegram bot",
@@ -61,7 +59,7 @@ const STEPS = [
   {
     num: "2",
     title: "Choose your collateral",
-    desc: `Pick from ${TOKEN_COUNT} approved tokens. The bot shows your eligible tokens and their current value automatically.`,
+    desc: `Pick from ${tokenCount} approved tokens. The bot shows your eligible tokens and their current value automatically.`,
     cmd: "/borrow",
   },
   {
@@ -83,6 +81,7 @@ const STEPS = [
     cmd: "/repay",
   },
 ];
+}
 
 /* ───────────────────────── MINI CALCULATOR ───────────────────────── */
 
@@ -181,7 +180,8 @@ function LoanCalculator() {
 
 /* ───────────────────────── MAIN PAGE ───────────────────────── */
 
-export function MarketplaceClient() {
+export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
+  const STEPS = buildSteps(tokenCount);
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       <Header />
@@ -426,7 +426,7 @@ export function MarketplaceClient() {
         {/* ── Approved tokens callout ── */}
         <section className="mt-16 flex flex-col items-center gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-8 text-center sm:flex-row sm:text-left">
           <div className="flex-1">
-            <h3 className="font-display text-lg font-semibold text-[var(--ink)]">{TOKEN_COUNT} approved tokens</h3>
+            <h3 className="font-display text-lg font-semibold text-[var(--ink)]">{tokenCount} approved tokens</h3>
             <p className="mt-1 text-sm text-[var(--ink-soft)]">
               FARTCOIN, WIF, BONK, POPCAT, PENGU, and dozens more. Each token is risk-assessed in real time by our AI engine.
             </p>
