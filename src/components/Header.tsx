@@ -49,19 +49,19 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+        </nav>
+
+        {/* Right: admin (creator-only) + wallet + launch */}
+        <div className="flex items-center gap-2 sm:gap-3">
           {isCreator && (
             <Link
               href="/admin"
-              className="whitespace-nowrap rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 py-0.5 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
+              className="whitespace-nowrap rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
               title="Creator dashboard — only visible to you"
             >
-              ★ Admin
+              ★ <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
-        </nav>
-
-        {/* Right: wallet + launch */}
-        <div className="flex items-center gap-2 sm:gap-3">
           <ConnectWallet variant="ghost" className="hidden md:flex" />
           <a
             href={TELEGRAM_URL}
