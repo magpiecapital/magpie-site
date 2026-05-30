@@ -64,8 +64,17 @@ type Stats = {
   generated_at: string;
 };
 
-const fmtSol = (lamportsStr: string, decimals = 4) =>
-  (Number(BigInt(lamportsStr || "0")) / 1e9).toFixed(decimals);
+// Postgres SUM(numeric) returns strings with decimals (e.g.
+// "16400.0000000000000000") which BigInt can't parse. Number() handles
+// both clean integer strings and decimal strings just fine for these
+// magnitudes (max ~9e15 lamports = 9M SOL — well under Number precision).
+const fmtSol = (lamportsStr: string | null | undefined, decimals = 4) => {
+  const n = Number(lamportsStr ?? 0);
+  if (!isFinite(n)) return "0";
+  return (n / 1e9).toFixed(decimals);
+};
+const fmtOrDash = (n: number | undefined | null, decimals = 4) =>
+  typeof n === "number" && isFinite(n) ? n.toFixed(decimals) : "—";
 
 const Card = ({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: boolean }) => (
   <div className={`rounded-2xl border p-5 ${accent ? "border-[var(--accent)]/30 bg-[var(--accent)]/5" : "border-[var(--hairline)] bg-[var(--bg)]"}`}>
@@ -180,25 +189,25 @@ export default function AdminClient() {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card
           label="Total fees earned"
-          value={`${pool?.total_fees_earned_sol.toFixed(6) ?? "—"} SOL`}
+          value={`${fmtOrDash(pool?.total_fees_earned_sol, 6)} SOL`}
           sub={`gross · since pool init`}
           accent
         />
         <Card
           label="Your protocol cut"
-          value={`${pool?.protocol_fee_share_sol.toFixed(6) ?? "—"} SOL`}
+          value={`${fmtOrDash(pool?.protocol_fee_share_sol, 6)} SOL`}
           sub={`${((pool?.protocol_fee_bps ?? 0) / 100).toFixed(1)}% of every loan fee`}
           accent
         />
         <Card
           label="Pool TVL"
-          value={`${pool?.total_deposits_sol.toFixed(4) ?? "—"} SOL`}
+          value={`${fmtOrDash(pool?.total_deposits_sol, 4)} SOL`}
           sub="all liquidity providers"
         />
         <Card
           label="Outstanding loans"
-          value={`${pool?.total_borrowed_sol.toFixed(4) ?? "—"} SOL`}
-          sub={`${(stats.pool_utilization * 100).toFixed(1)}% utilization`}
+          value={`${fmtOrDash(pool?.total_borrowed_sol, 4)} SOL`}
+          sub={`${((stats.pool_utilization ?? 0) * 100).toFixed(1)}% utilization`}
         />
       </div>
 
