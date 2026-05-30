@@ -39,6 +39,36 @@ export default function EarnPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Public pool stats — fee periods (for APY estimate) + recent loan
+  // events (for the live pool activity feed). Refreshed every 60s.
+  type RecentLoanEvent = {
+    symbol: string | null;
+    status: string;
+    loan_amount_lamports: string;
+    fee_lamports: string;
+    timestamp: string;
+    event: "borrow" | "repay" | "liquidation";
+  };
+  const [poolApi, setPoolApi] = useState<{
+    fees?: { last_7d_lamports: string; last_30d_lamports: string };
+    recent_loans?: RecentLoanEvent[];
+  } | null>(null);
+  const recentLoanEvents = poolApi?.recent_loans ?? [];
+
+  // Annualize trailing 7d LP fee yield into APY. LP gets 80% of every fee.
+  // Formula: (7d_fees × 0.80 / pool_TVL) × 52  (weeks/year). Returns null
+  // when there's not enough signal yet (no fees in window or zero TVL).
+  const lpApy = (() => {
+    if (!pool || !poolApi?.fees) return null;
+    const tvl = pool.totalDeposits;
+    if (!tvl) return null;
+    const sevenDFees = Number(poolApi.fees.last_7d_lamports) || 0;
+    if (sevenDFees <= 0) return null;
+    const lpShareBps = 10_000 - pool.protocolFeeBps;
+    const lpFees7d = (sevenDFees * lpShareBps) / 10_000;
+    return (lpFees7d / tvl) * 52 * 100;
+  })();
+
   // Simple vs Advanced mode — persisted in localStorage
   const [simpleMode, setSimpleMode] = useState(true);
   useEffect(() => {
@@ -80,6 +110,13 @@ export default function EarnPage() {
         const pos = await fetchDepositorPosition(connection, publicKey);
         setPosition(pos);
       }
+
+      // Public pool stats from the bot API — fee periods + recent events.
+      // Best-effort; failure here doesn't block the rest.
+      fetch("/api/v1/pool/stats")
+        .then((r) => r.json())
+        .then((d) => { if (d?.ok) setPoolApi(d); })
+        .catch(() => {});
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "";
       setError(msg || "Failed to fetch pool data");
@@ -456,7 +493,30 @@ export default function EarnPage() {
                     value={`${position.yieldEarned >= 0 ? "+" : ""}${solStr(position.yieldEarned)} SOL`}
                     highlight={position.yieldEarned > 0}
                   />
-                  <InfoRow label="Pool shares" value={position.shares.toLocaleString()} />
+                  {pool && pool.totalDeposits > 0 && (
+                    <InfoRow
+                      label="Pool share"
+                      value={`${((position.currentValue / pool.totalDeposits) * 100).toFixed(2)}%`}
+                    />
+                  )}
+                  {pool && lpApy != null && (
+                    <InfoRow
+                      label="Est. APY"
+                      value={`${lpApy >= 1000 ? ">1000" : lpApy.toFixed(1)}%`}
+                      highlight={lpApy > 0}
+                    />
+                  )}
+                  {pool && (
+                    <InfoRow
+                      label="Withdrawable now"
+                      value={`${solStr(Math.min(position.currentValue, pool.availableLiquidity))} SOL`}
+                      sub={
+                        position.currentValue > pool.availableLiquidity
+                          ? "Rest available when borrowers repay"
+                          : undefined
+                      }
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="text-center py-6">
@@ -465,6 +525,41 @@ export default function EarnPage() {
                 </div>
               )}
             </div>
+
+            {/* Live yield activity */}
+            {recentLoanEvents.length > 0 && (
+              <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
+                <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">Pool activity</h3>
+                <p className="text-[11px] text-[var(--ink-faint)] mb-3">
+                  Loan events flowing through the pool. 80% of each fee accrues to LPs proportionally.
+                </p>
+                <div className="space-y-2">
+                  {recentLoanEvents.slice(0, 6).map((e, i) => {
+                    const feeSol = Number(e.fee_lamports) / 1e9;
+                    const when = new Date(e.timestamp);
+                    const msAgo = Date.now() - when.getTime();
+                    const rel =
+                      msAgo < 60_000 ? "just now"
+                      : msAgo < 3_600_000 ? `${Math.floor(msAgo / 60_000)}m ago`
+                      : msAgo < 86_400_000 ? `${Math.floor(msAgo / 3_600_000)}h ago`
+                      : `${Math.floor(msAgo / 86_400_000)}d ago`;
+                    const icon = e.event === "repay" ? "✓" : e.event === "liquidation" ? "🔻" : "→";
+                    return (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-2 text-[var(--ink-soft)]">
+                          <span className="text-[var(--accent-deep)]">{icon}</span>
+                          {e.event} <span className="font-medium text-[var(--ink)]">{e.symbol || "?"}</span>
+                        </span>
+                        <span className="flex items-center gap-3">
+                          <span className="font-mono text-[var(--accent-deep)]">+{feeSol.toFixed(6)} SOL</span>
+                          <span className="text-[10px] text-[var(--ink-faint)] w-14 text-right">{rel}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* How LPs earn */}
             <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-dim)]/30 p-4 shadow-sm sm:p-6">
@@ -576,11 +671,14 @@ function StatCard({ label, value, loading }: { label: string; value: string; loa
   );
 }
 
-function InfoRow({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function InfoRow({ label, value, highlight, sub }: { label: string; value: string; highlight?: boolean; sub?: string }) {
   return (
-    <div className="flex items-center justify-between text-sm">
+    <div className="flex items-start justify-between text-sm gap-2">
       <span className="text-[var(--ink-soft)]">{label}</span>
-      <span className={`font-medium ${highlight ? "text-[var(--accent-deep)]" : ""}`}>{value}</span>
+      <span className="text-right">
+        <span className={`font-medium ${highlight ? "text-[var(--accent-deep)]" : ""}`}>{value}</span>
+        {sub && <span className="block text-[10px] text-[var(--ink-faint)] mt-0.5">{sub}</span>}
+      </span>
     </div>
   );
 }
