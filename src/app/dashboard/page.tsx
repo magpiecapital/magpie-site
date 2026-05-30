@@ -719,7 +719,11 @@ export default function DashboardPage() {
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
-        if (d.ok && Array.isArray(d.data)) setApprovedTokens(d.data);
+        // /api/v1/tokens returns { ok, count, tokens: [...] } — the
+        // historical d.data shape never existed, which is why the
+        // approved list silently stayed empty.
+        const list = Array.isArray(d?.tokens) ? d.tokens : Array.isArray(d?.data) ? d.data : [];
+        setApprovedTokens(list);
         setApprovedLoading(false);
       })
       .catch(() => {
@@ -729,10 +733,11 @@ export default function DashboardPage() {
   }, [connected, publicKey]);
 
   // Eligible collateral comes from the server-side endpoint that does the
-  // intersection of (held tokens) × (approved tokens). Bypasses every
-  // possible client-side race / type / wallet-adapter issue.
+  // intersection of (held tokens) × (approved tokens). The dashboard does
+  // NOT gate this on approvedTokens being populated — the API already did
+  // the join and is the authoritative source.
   const eligibleCollateral: EligibleHolding[] = (() => {
-    if (!eligibleFromApi.length || !approvedTokens.length) return [];
+    if (!eligibleFromApi.length) return [];
     const approvedMap = new Map(approvedTokens.map((t) => [t.mint, t]));
     return eligibleFromApi
       .map((e) => {
