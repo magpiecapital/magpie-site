@@ -607,6 +607,19 @@ export default function DashboardPage() {
   const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
   const [loansLoading, setLoansLoading] = useState(false);
 
+  // ── Eligible collateral (server-computed intersection) ──
+  type ApiEligible = {
+    mint: string;
+    symbol: string;
+    name: string;
+    decimals: number;
+    image: string | null;
+    category: string;
+    raw_amount: string;
+    amount: number;
+  };
+  const [eligibleFromApi, setEligibleFromApi] = useState<ApiEligible[]>([]);
+
   // ── Activity feed ──
   type ActivityEvent = {
     id: number;
@@ -715,17 +728,35 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, [connected, publicKey]);
 
-  // Derive eligible collateral from holdings × approved tokens
+  // Eligible collateral comes from the server-side endpoint that does the
+  // intersection of (held tokens) × (approved tokens). Bypasses every
+  // possible client-side race / type / wallet-adapter issue.
   const eligibleCollateral: EligibleHolding[] = (() => {
-    if (!holdings.length || !approvedTokens.length) return [];
+    if (!eligibleFromApi.length || !approvedTokens.length) return [];
     const approvedMap = new Map(approvedTokens.map((t) => [t.mint, t]));
-    return holdings
-      .filter((h) => approvedMap.has(h.mint))
-      .map((h) => {
-        const approved = approvedMap.get(h.mint)!;
-        const uiAmount = Number(h.amount) / Math.pow(10, h.decimals);
-        const valueUsd = approved.priceUsd ? uiAmount * approved.priceUsd : 0;
-        return { ...h, symbol: approved.symbol, name: approved.name, approved, valueUsd };
+    return eligibleFromApi
+      .map((e) => {
+        const approved = approvedMap.get(e.mint);
+        const uiAmount = e.amount ?? 0;
+        const valueUsd = approved?.priceUsd ? uiAmount * approved.priceUsd : 0;
+        return {
+          symbol: e.symbol,
+          name: e.name,
+          mint: e.mint,
+          amount: e.raw_amount,
+          decimals: e.decimals,
+          approved: approved ?? {
+            mint: e.mint,
+            symbol: e.symbol,
+            name: e.name,
+            priceUsd: null,
+            priceChange24h: null,
+            volume24h: null,
+            marketCap: null,
+            liquidity: null,
+          },
+          valueUsd,
+        };
       })
       .sort((a, b) => b.valueUsd - a.valueUsd);
   })();
@@ -830,6 +861,26 @@ export default function DashboardPage() {
     };
     fetchLoans();
     const interval = setInterval(fetchLoans, 30_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [connected, publicKey]);
+
+  // Eligible collateral — single server-computed list, polls every 30s.
+  // This is the source of truth for "what can I borrow against".
+  useEffect(() => {
+    if (!connected || !publicKey) { setEligibleFromApi([]); return; }
+    let cancelled = false;
+    const walletStr = publicKey.toBase58();
+    const fetchEligible = () => {
+      fetch(`/api/v1/eligible-collateral?wallet=${walletStr}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (cancelled || !d?.ok) return;
+          setEligibleFromApi(d.eligible ?? []);
+        })
+        .catch(() => { /* keep last good */ });
+    };
+    fetchEligible();
+    const interval = setInterval(fetchEligible, 30_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
@@ -1159,32 +1210,6 @@ export default function DashboardPage() {
                     </a>
                   )}
                 </div>
-              </div>
-            )}
-
-            {/* ─── Diagnostic strip — temporary: surfaces the data state ─── */}
-            {connected && (
-              <div className="mb-3 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 font-mono text-[10px] text-[var(--d-ink-soft)]">
-                <span className="text-[var(--d-ink-faint)]">connected wallet:</span>{" "}
-                <span className="text-[var(--d-ink)]">{walletFull || "—"}</span>
-                {" · "}
-                <span className="text-[var(--d-ink-faint)]">holdings:</span>{" "}
-                <span className="text-[var(--d-ink)]">{holdings.length}</span>
-                {" · "}
-                <span className="text-[var(--d-ink-faint)]">approved tokens:</span>{" "}
-                <span className="text-[var(--d-ink)]">{approvedTokens.length}</span>
-                {" · "}
-                <span className="text-[var(--d-ink-faint)]">eligible:</span>{" "}
-                <span className="text-[var(--d-ink)]">{eligibleCollateral.length}</span>
-                {holdings.length > 0 && (
-                  <>
-                    {" · "}
-                    <span className="text-[var(--d-ink-faint)]">mints held:</span>{" "}
-                    <span className="text-[var(--d-ink)]">
-                      {holdings.map((h) => h.mint.slice(0, 4)).join(", ")}
-                    </span>
-                  </>
-                )}
               </div>
             )}
 
