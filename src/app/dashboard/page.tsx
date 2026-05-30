@@ -593,6 +593,20 @@ export default function DashboardPage() {
   const [approvedTokens, setApprovedTokens] = useState<ApprovedToken[]>([]);
   const [approvedLoading, setApprovedLoading] = useState(false);
 
+  // ── Loans ──
+  type Loan = {
+    loan_id: string | null;
+    loan_pda: string;
+    status: string;
+    collateral: { mint: string; symbol: string | null; name: string | null; decimals: number | null; image: string | null; category: string; amount: string | null };
+    loan: { amount_lamports: string | null; original_amount_lamports: string | null; ltv_percentage: number; duration_days: number };
+    timestamps: { started_at: string; due_at: string; updated_at: string };
+    tx_signature: string | null;
+  };
+  const [activeLoans, setActiveLoans] = useState<Loan[]>([]);
+  const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
+  const [loansLoading, setLoansLoading] = useState(false);
+
   // ── Borrow state ──
   const [borrowing, setBorrowing] = useState(false);
   const [borrowTx, setBorrowTx] = useState<string | null>(null);
@@ -790,6 +804,30 @@ export default function DashboardPage() {
       .then(r => r.json())
       .then(d => { if (d.ok) setLiveCredit(d.data); })
       .catch(() => {});
+  }, [connected, publicKey]);
+
+  // Fetch active loans + history. Polls every 30s so a freshly-opened or
+  // freshly-repaid loan reflects within seconds of returning to the page.
+  useEffect(() => {
+    if (!connected || !publicKey) {
+      setActiveLoans([]); setLoanHistory([]); return;
+    }
+    let cancelled = false;
+    const fetchLoans = () => {
+      setLoansLoading(true);
+      fetch(`/api/v1/loans?wallet=${publicKey.toBase58()}`)
+        .then(r => r.json())
+        .then(d => {
+          if (cancelled || !d.ok) return;
+          setActiveLoans(d.active ?? []);
+          setLoanHistory(d.history ?? []);
+        })
+        .catch(() => { /* keep last good data on transient failure */ })
+        .finally(() => { if (!cancelled) setLoansLoading(false); });
+    };
+    fetchLoans();
+    const interval = setInterval(fetchLoans, 30_000);
+    return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
   useEffect(() => {
@@ -1107,14 +1145,21 @@ export default function DashboardPage() {
 
             {/* ─── KPI CARDS ROW ─── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              {[
-                { label: "SOL Balance", value: solBalance.toFixed(4), sub: "SOL", accent: false },
-                { label: "Holdings", value: `${holdings.length}`, sub: "SPL tokens", accent: false },
-                { label: "Eligible Collateral", value: `${eligibleCollateral.length}`, sub: totalEligibleUsd > 0 ? `$${totalEligibleUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "No eligible tokens", accent: eligibleCollateral.length > 0 },
-                { label: "Active Loans", value: "0", sub: "No active loans", accent: false },
-                { label: "Total Owed", value: "0 SOL", sub: "No debt", accent: false },
-                { label: "Credit Score", value: `${creditScore}`, sub: `${creditTier} tier`, accent: true },
-              ].map((kpi) => (
+              {(() => {
+                const totalOwedLamports = activeLoans.reduce(
+                  (sum, l) => sum + BigInt(l.loan.original_amount_lamports ?? "0"),
+                  0n,
+                );
+                const totalOwedSol = Number(totalOwedLamports) / LAMPORTS_PER_SOL;
+                return [
+                  { label: "SOL Balance", value: solBalance.toFixed(4), sub: "SOL", accent: false },
+                  { label: "Holdings", value: `${holdings.length}`, sub: "SPL tokens", accent: false },
+                  { label: "Eligible Collateral", value: `${eligibleCollateral.length}`, sub: totalEligibleUsd > 0 ? `$${totalEligibleUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "No eligible tokens", accent: eligibleCollateral.length > 0 },
+                  { label: "Active Loans", value: `${activeLoans.length}`, sub: activeLoans.length > 0 ? "outstanding" : "No active loans", accent: activeLoans.length > 0 },
+                  { label: "Total Owed", value: `${totalOwedSol.toFixed(4)} SOL`, sub: totalOwedSol > 0 ? "repay via Telegram" : "No debt", accent: totalOwedSol > 0 },
+                  { label: "Credit Score", value: `${creditScore}`, sub: `${creditTier} tier`, accent: true },
+                ];
+              })().map((kpi) => (
                 <div
                   key={kpi.label}
                   className={`rounded-2xl border p-4 ${kpi.accent ? "border-[var(--d-accent)]/25 bg-[var(--d-accent-dim)]/40" : "border-[var(--d-border)] bg-[var(--d-bg-card)]"}`}
@@ -1135,11 +1180,64 @@ export default function DashboardPage() {
                 {/* ACTIVE LOANS */}
                 {prefs.activeLoans && (
                   <div id="section-activeLoans">
-                    <SectionHeader title="Active Loans" count={0} />
-                    <EmptyState
-                      message="No active loans — start borrowing on Telegram"
-                      cta={{ label: "Open Telegram Bot", href: TELEGRAM_URL }}
-                    />
+                    <SectionHeader title="Active Loans" count={activeLoans.length} />
+                    {activeLoans.length === 0 ? (
+                      <EmptyState
+                        message={loansLoading ? "Loading your loans..." : "No active loans — start borrowing on Telegram"}
+                        cta={loansLoading ? undefined : { label: "Open Telegram Bot", href: TELEGRAM_URL }}
+                      />
+                    ) : (
+                      <div className="overflow-hidden rounded-2xl border border-[var(--d-accent)]/20 bg-[var(--d-bg-card)]">
+                        <div className="border-b border-[var(--d-border)] bg-[var(--d-accent-dim)]/30 px-4 py-3">
+                          <span className="text-xs font-medium text-[var(--d-accent-deep)]">
+                            {activeLoans.length} loan{activeLoans.length !== 1 ? "s" : ""} outstanding — manage on Telegram
+                          </span>
+                        </div>
+                        <div className="divide-y divide-[var(--d-border)]">
+                          {activeLoans.map((l) => {
+                            const owedSol = Number(BigInt(l.loan.original_amount_lamports ?? "0")) / LAMPORTS_PER_SOL;
+                            const due = new Date(l.timestamps.due_at);
+                            const msLeft = due.getTime() - Date.now();
+                            const dueLabel = msLeft <= 0
+                              ? `Overdue by ${Math.floor(-msLeft / 86_400_000)}d`
+                              : msLeft < 86_400_000
+                                ? `Due in ${Math.floor(msLeft / 3_600_000)}h`
+                                : `Due in ${Math.floor(msLeft / 86_400_000)}d`;
+                            const overdue = msLeft <= 0;
+                            return (
+                              <div key={l.loan_pda} className="flex items-center gap-3 px-4 py-3">
+                                <TokenIcon mint={l.collateral.mint} symbol={l.collateral.symbol || "?"} size={32} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-[14px]">{l.collateral.symbol || l.collateral.mint.slice(0, 6)}</span>
+                                    <span className="text-[10px] text-[var(--d-ink-faint)]">{l.loan.ltv_percentage}% LTV · {l.loan.duration_days}d</span>
+                                  </div>
+                                  <div className="text-[11px] text-[var(--d-ink-soft)]">
+                                    {l.collateral.amount && l.collateral.decimals !== null
+                                      ? formatTokenAmount(l.collateral.amount, l.collateral.decimals)
+                                      : "—"} collateral
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-[13px] font-semibold">{owedSol.toFixed(4)} SOL</div>
+                                  <div className={`text-[10px] ${overdue ? "text-red-500" : "text-[var(--d-ink-faint)]"}`}>{dueLabel}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="border-t border-[var(--d-border)] bg-[var(--d-bg-card)] px-4 py-3 text-center">
+                          <a
+                            href={TELEGRAM_URL}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs font-medium text-[var(--d-accent-deep)] hover:underline"
+                          >
+                            Repay or extend in Telegram →
+                          </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -1417,8 +1515,52 @@ export default function DashboardPage() {
                 {/* LOAN HISTORY */}
                 {prefs.loanHistory && (
                   <div id="section-loanHistory">
-                    <SectionHeader title="Loan History" count={0} />
-                    <EmptyState message="No loan history yet" />
+                    <SectionHeader title="Loan History" count={loanHistory.length} />
+                    {loanHistory.length === 0 ? (
+                      <EmptyState message={loansLoading ? "Loading history..." : "No loan history yet"} />
+                    ) : (
+                      <div className="overflow-hidden rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)]">
+                        <div className="divide-y divide-[var(--d-border)]">
+                          {loanHistory.map((l) => {
+                            const owedSol = Number(BigInt(l.loan.original_amount_lamports ?? "0")) / LAMPORTS_PER_SOL;
+                            const closedAt = new Date(l.timestamps.updated_at);
+                            const statusBadge =
+                              l.status === "repaid"
+                                ? { label: "Repaid", color: "text-emerald-500" }
+                                : l.status === "liquidated"
+                                  ? { label: "Liquidated", color: "text-red-500" }
+                                  : { label: l.status, color: "text-[var(--d-ink-soft)]" };
+                            return (
+                              <div key={l.loan_pda} className="flex items-center gap-3 px-4 py-3">
+                                <TokenIcon mint={l.collateral.mint} symbol={l.collateral.symbol || "?"} size={28} />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium text-[13px]">{l.collateral.symbol || l.collateral.mint.slice(0, 6)}</span>
+                                    <span className={`text-[10px] ${statusBadge.color}`}>{statusBadge.label}</span>
+                                  </div>
+                                  <div className="text-[10px] text-[var(--d-ink-faint)]">
+                                    {closedAt.toLocaleDateString()} · {l.loan.ltv_percentage}% LTV
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-[12px] font-medium">{owedSol.toFixed(4)} SOL</div>
+                                  {l.tx_signature && (
+                                    <a
+                                      href={`https://solscan.io/tx/${l.tx_signature}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-[10px] text-[var(--d-ink-faint)] hover:underline"
+                                    >
+                                      view tx
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
