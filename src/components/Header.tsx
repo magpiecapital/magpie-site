@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Wordmark, Mark } from "@/components/Logo";
 import { MobileNav } from "@/components/MobileNav";
 import { ConnectWallet } from "@/components/ConnectWallet";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
+// Creator wallet — must match LENDER_PUBKEY on the bot. The Admin nav
+// item only appears when this wallet is connected.
+const CREATOR_WALLET = "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx";
 
 const NAV_LINKS = [
   { label: "Earn", href: "/earn" },
@@ -16,6 +20,9 @@ const NAV_LINKS = [
 ];
 
 export function Header() {
+  const { publicKey, connected } = useWallet();
+  const isCreator = connected && publicKey?.toBase58() === CREATOR_WALLET;
+
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--hairline)] bg-[var(--bg)]/85 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 sm:py-4">
@@ -42,6 +49,15 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          {isCreator && (
+            <Link
+              href="/admin"
+              className="whitespace-nowrap rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2.5 py-0.5 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
+              title="Creator dashboard — only visible to you"
+            >
+              ★ Admin
+            </Link>
+          )}
         </nav>
 
         {/* Right: wallet + launch */}
