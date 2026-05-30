@@ -657,53 +657,43 @@ export default function DashboardPage() {
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
-  // Fetch SPL token holdings (both legacy SPL and Token-2022). Polls every
-  // 45s so deposits/withdrawals reflect quickly without hammering the RPC.
+  // Fetch SPL token holdings via our server-side proxy that talks to
+  // the bot's Helius-backed RPC. Bypasses the browser wallet adapter
+  // entirely so Token-2022 mints (like $CUM) reliably show up.
+  // Polls every 30s so deposits / repays reflect quickly.
   useEffect(() => {
     if (!connected || !publicKey) { setHoldings([]); return; }
     let cancelled = false;
-
-    const parseAccounts = (result: { value: any[] }): TokenHolding[] =>
-      result.value
-        .map((account: any) => {
-          const info = account.account.data.parsed?.info;
-          if (!info) return null;
-          const mint = info.mint as string;
-          const tokenAmount = info.tokenAmount;
-          if (!tokenAmount || tokenAmount.uiAmount === 0) return null;
-          return {
-            symbol: mint.slice(0, 4).toUpperCase(),
-            name: mint,
-            mint,
-            amount: tokenAmount.amount as string,
-            decimals: tokenAmount.decimals as number,
-          };
-        })
-        .filter((t: TokenHolding | null): t is TokenHolding => t !== null);
+    const walletStr = publicKey.toBase58();
 
     const fetchHoldings = () => {
       setHoldingsLoading(true);
-      Promise.all([
-        connRef.current.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID }).catch(() => ({ value: [] })),
-        connRef.current.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_2022_PROGRAM_ID }).catch(() => ({ value: [] })),
-      ])
-        .then(([splResult, token2022Result]) => {
-          if (cancelled) return;
-          const allTokens = [...parseAccounts(splResult), ...parseAccounts(token2022Result)]
-            .sort((a, b) => {
-              const aNum = Number(a.amount) / Math.pow(10, a.decimals);
-              const bNum = Number(b.amount) / Math.pow(10, b.decimals);
-              return bNum - aNum;
-            });
-          setHoldings(allTokens);
+      fetch(`/api/v1/wallet/balance?wallet=${walletStr}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (cancelled || !d?.ok) return;
+          if (typeof d.sol?.amount === "number") setSolBalance(d.sol.amount);
+          const tokens: TokenHolding[] = (d.tokens ?? []).map((t: any) => ({
+            symbol: t.symbol || t.mint.slice(0, 4).toUpperCase(),
+            name: t.name || t.mint,
+            mint: t.mint,
+            amount: t.raw_amount,
+            decimals: t.decimals,
+          }));
+          tokens.sort((a, b) => {
+            const aNum = Number(a.amount) / Math.pow(10, a.decimals);
+            const bNum = Number(b.amount) / Math.pow(10, b.decimals);
+            return bNum - aNum;
+          });
+          setHoldings(tokens);
         })
         .catch((err) => {
-          console.warn("[dashboard] getTokenAccounts failed:", err?.message);
+          console.warn("[dashboard] /wallet/balance fetch failed:", err?.message);
         })
         .finally(() => { if (!cancelled) setHoldingsLoading(false); });
     };
     fetchHoldings();
-    const interval = setInterval(fetchHoldings, 45_000);
+    const interval = setInterval(fetchHoldings, 30_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
