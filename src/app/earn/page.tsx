@@ -466,14 +466,53 @@ export default function EarnPage() {
               )}
             </div>
 
-            {/* How it works */}
+            {/* How LPs earn */}
+            <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-dim)]/30 p-4 shadow-sm sm:p-6">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-dim)] text-xs text-[var(--accent-deep)]">
+                  ★
+                </span>
+                <h3 className="font-display text-base font-semibold sm:text-lg">How you earn</h3>
+              </div>
+              <p className="text-sm text-[var(--ink-soft)] mb-4">
+                LPs receive <span className="font-semibold text-[var(--ink)]">80% of every loan fee</span>, proportional to share of the pool. Fees accrue directly into the pool, so your position grows passively.
+              </p>
+
+              <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] overflow-hidden">
+                <div className="grid grid-cols-3 border-b border-[var(--hairline)] bg-[var(--surface)] px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                  <div>Tier</div>
+                  <div className="text-right">Borrower fee</div>
+                  <div className="text-right">Your share</div>
+                </div>
+                {[
+                  { tier: "Express · 30% LTV · 2d", fee: "3.00%", lp: "2.40%" },
+                  { tier: "Quick · 25% LTV · 3d",   fee: "2.00%", lp: "1.60%" },
+                  { tier: "Standard · 20% LTV · 7d", fee: "1.50%", lp: "1.20%" },
+                ].map((row) => (
+                  <div key={row.tier} className="grid grid-cols-3 border-b border-[var(--hairline)] px-3 py-2 text-xs last:border-b-0">
+                    <div className="text-[var(--ink-soft)]">{row.tier}</div>
+                    <div className="text-right text-[var(--ink-soft)]">{row.fee}</div>
+                    <div className="text-right font-semibold text-[var(--accent-deep)]">{row.lp}</div>
+                  </div>
+                ))}
+              </div>
+
+              <ul className="mt-4 space-y-2 text-[12px] text-[var(--ink-soft)]">
+                <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> No lock-up — withdraw any time (subject to available liquidity)</li>
+                <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> Yield is variable, paid in SOL, accrues every loan that closes</li>
+                <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> Share value grows as fees flow in — track it in your position panel</li>
+                <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> Permissionless and on-chain — no off-chain rewards program, no claim step</li>
+              </ul>
+            </div>
+
+            {/* How it works (mechanics) */}
             <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
               <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">How it works</h3>
               <ol className="space-y-3 text-sm text-[var(--ink-soft)]">
-                <HowStep n={1} text="Deposit SOL into the lending pool" />
-                <HowStep n={2} text="Borrowers take loans and pay fees (1.5-3%)" />
-                <HowStep n={3} text="Fees flow back to the pool, increasing your share value" />
-                <HowStep n={4} text="Withdraw anytime with your earned yield" />
+                <HowStep n={1} text="Deposit SOL into the lending pool — you receive shares proportional to your stake" />
+                <HowStep n={2} text="Borrowers take loans against approved memecoins, paying a 1.5–3% fee upfront" />
+                <HowStep n={3} text="80% of every fee flows back into the pool, lifting share value for all LPs" />
+                <HowStep n={4} text="Withdraw anytime: redeem shares for principal + accrued fees in SOL" />
               </ol>
             </div>
 
