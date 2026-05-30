@@ -687,8 +687,12 @@ export default function DashboardPage() {
           if (cancelled || !d?.ok) return;
           if (typeof d.sol?.amount === "number") setSolBalance(d.sol.amount);
           const tokens: TokenHolding[] = (d.tokens ?? []).map((t: any) => ({
-            symbol: t.symbol || t.mint.slice(0, 4).toUpperCase(),
-            name: t.name || t.mint,
+            // Prefer real symbol/name from the API (which now does a
+            // DexScreener lookup for unknown mints); only fall back to
+            // a short label if even that didn't resolve. Never display a
+            // 4-char mint prefix as if it were a ticker.
+            symbol: t.symbol || "Unknown",
+            name: t.name || t.symbol || `Unknown (${t.mint.slice(0, 4)}…${t.mint.slice(-4)})`,
             mint: t.mint,
             amount: t.raw_amount,
             decimals: t.decimals,
