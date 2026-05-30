@@ -115,7 +115,7 @@ export default function AdminClient() {
       }
     };
     fetchStats();
-    const interval = setInterval(fetchStats, 30_000);
+    const interval = setInterval(fetchStats, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [isCreator, publicKey]);
 
@@ -175,7 +175,7 @@ export default function AdminClient() {
           <h1 className="mt-1 font-display text-4xl font-semibold tracking-tight">Magpie protocol</h1>
           <p className="mt-2 text-sm text-[var(--ink-soft)]">
             Real-time view of pool economics, loan activity, and lifetime earnings.{" "}
-            <span className="text-[var(--ink-faint)]">Refreshes every 30s.</span>
+            <span className="text-[var(--ink-faint)]">Refreshes every 60s.</span>
           </p>
         </div>
         {pool?.paused && (

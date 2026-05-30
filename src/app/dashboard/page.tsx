@@ -680,7 +680,7 @@ export default function DashboardPage() {
         });
     };
     fetchBalance();
-    const interval = setInterval(fetchBalance, 20_000);
+    const interval = setInterval(fetchBalance, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
@@ -724,7 +724,7 @@ export default function DashboardPage() {
         .finally(() => { if (!cancelled) setHoldingsLoading(false); });
     };
     fetchHoldings();
-    const interval = setInterval(fetchHoldings, 30_000);
+    const interval = setInterval(fetchHoldings, 90_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
@@ -883,7 +883,7 @@ export default function DashboardPage() {
         .finally(() => { if (!cancelled) setLoansLoading(false); });
     };
     fetchLoans();
-    const interval = setInterval(fetchLoans, 30_000);
+    const interval = setInterval(fetchLoans, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
@@ -903,7 +903,7 @@ export default function DashboardPage() {
         .catch(() => { /* keep last good */ });
     };
     fetchEligible();
-    const interval = setInterval(fetchEligible, 30_000);
+    const interval = setInterval(fetchEligible, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
@@ -919,7 +919,7 @@ export default function DashboardPage() {
         .catch(() => { /* keep last good */ });
     };
     fetchActivity();
-    const interval = setInterval(fetchActivity, 30_000);
+    const interval = setInterval(fetchActivity, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
