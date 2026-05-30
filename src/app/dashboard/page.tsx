@@ -1684,7 +1684,7 @@ export default function DashboardPage() {
                       </div>
                     )}
                     <Link href="/credit" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
-                      Full credit report &rarr;
+                      How credit scoring works &rarr;
                     </Link>
                   </div>
                 )}
