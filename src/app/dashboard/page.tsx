@@ -625,10 +625,24 @@ export default function DashboardPage() {
     id: number;
     type: string;
     score_delta: number;
-    token_symbol: string | null;
-    collateral_mint: string | null;
-    loan_id: number | null;
     timestamp: string;
+    loan_id: number | null;
+    token: {
+      symbol: string;
+      mint: string | null;
+      decimals: number | null;
+      image: string | null;
+    } | null;
+    amounts: {
+      collateral_raw: string | null;
+      loan_lamports: string | null;
+      original_loan_lamports: string | null;
+    };
+    terms: {
+      ltv_percentage: number | null;
+      duration_days: number | null;
+    };
+    tx_signature: string | null;
   };
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
 
@@ -1716,15 +1730,16 @@ export default function DashboardPage() {
                     ) : (
                       <div className="flex flex-col gap-2">
                         {activity.slice(0, 10).map((e) => {
+                          const tokenLabel = e.token?.symbol ?? "loan";
                           const labels: Record<string, string> = {
-                            repay_ontime: "Repaid on time",
-                            repay_early: "Repaid early",
-                            repay_late: "Repaid late",
-                            partial_repay: "Partial repay",
-                            topup: "Added collateral",
-                            extend: "Extended loan",
-                            liquidated: "Liquidated",
-                            borrow: "Took out loan",
+                            repay_ontime: `Repaid ${tokenLabel} loan on time`,
+                            repay_early: `Repaid ${tokenLabel} loan early`,
+                            repay_late: `Repaid ${tokenLabel} loan late`,
+                            partial_repay: `Partial repay on ${tokenLabel} loan`,
+                            topup: `Added ${tokenLabel} collateral`,
+                            extend: `Extended ${tokenLabel} loan`,
+                            liquidated: `${tokenLabel} loan liquidated`,
+                            borrow: `Borrowed against ${tokenLabel}`,
                           };
                           const label = labels[e.type] ?? e.type;
                           const positive = e.score_delta > 0;
@@ -1735,17 +1750,53 @@ export default function DashboardPage() {
                             : msAgo < 3_600_000 ? `${Math.floor(msAgo / 60_000)}m ago`
                             : msAgo < 86_400_000 ? `${Math.floor(msAgo / 3_600_000)}h ago`
                             : `${Math.floor(msAgo / 86_400_000)}d ago`;
+
+                          // Detail line: SOL amount, LTV, duration depending on event type.
+                          const lamportsToSol = (v: string | null) =>
+                            v ? (Number(BigInt(v)) / LAMPORTS_PER_SOL).toFixed(4) : null;
+                          const collateralToHuman = (v: string | null, decimals: number | null) =>
+                            v && decimals != null
+                              ? formatTokenAmount(v, decimals)
+                              : null;
+                          const loanSol = lamportsToSol(e.amounts.original_loan_lamports || e.amounts.loan_lamports);
+                          const collateralAmt = collateralToHuman(e.amounts.collateral_raw, e.token?.decimals ?? null);
+                          const parts: string[] = [];
+                          if (e.type.startsWith("repay") || e.type === "partial_repay") {
+                            if (loanSol) parts.push(`${loanSol} SOL`);
+                            if (e.terms.ltv_percentage != null) parts.push(`${e.terms.ltv_percentage}% LTV`);
+                          } else if (e.type === "borrow") {
+                            if (loanSol) parts.push(`${loanSol} SOL borrowed`);
+                            if (collateralAmt && e.token?.symbol) parts.push(`${collateralAmt} ${e.token.symbol} collateral`);
+                            if (e.terms.duration_days != null) parts.push(`${e.terms.duration_days}d`);
+                          } else if (e.type === "topup") {
+                            if (collateralAmt && e.token?.symbol) parts.push(`${collateralAmt} ${e.token.symbol} added`);
+                          } else if (e.type === "extend") {
+                            if (e.terms.duration_days != null) parts.push(`+${e.terms.duration_days}d`);
+                          } else if (e.type === "liquidated") {
+                            if (collateralAmt && e.token?.symbol) parts.push(`${collateralAmt} ${e.token.symbol} seized`);
+                          }
+                          const detail = parts.join(" · ");
                           return (
                             <div key={e.id} className="flex items-center gap-3 rounded-lg border border-[var(--d-border)] px-3 py-2.5">
                               <span className="text-base">{activityIcon(e.type)}</span>
                               <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 text-[12px] font-medium">
-                                  <span>{label}</span>
-                                  {e.token_symbol && (
-                                    <span className="text-[10px] text-[var(--d-ink-faint)]">{e.token_symbol}</span>
+                                <div className="truncate text-[12px] font-medium">{label}</div>
+                                <div className="mt-0.5 truncate text-[10px] text-[var(--d-ink-faint)]">
+                                  {[detail, rel].filter(Boolean).join(" · ")}
+                                  {e.tx_signature && (
+                                    <>
+                                      {" · "}
+                                      <a
+                                        href={`https://solscan.io/tx/${e.tx_signature}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="underline hover:text-[var(--d-ink-soft)]"
+                                      >
+                                        tx
+                                      </a>
+                                    </>
                                   )}
                                 </div>
-                                <div className="text-[10px] text-[var(--d-ink-faint)]">{rel}</div>
                               </div>
                               {e.score_delta !== 0 && (
                                 <span className={`text-[11px] font-semibold ${positive ? "text-emerald-500" : "text-red-500"}`}>
