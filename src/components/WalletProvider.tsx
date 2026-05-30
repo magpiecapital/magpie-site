@@ -15,18 +15,23 @@ import type { WalletError } from "@solana/wallet-adapter-base";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-// The pool is live, so we need a real RPC that won't rate-limit balance
-// reads. Prefer NEXT_PUBLIC_RPC_URL (Helius) set in Vercel env; fall back
-// to public mainnet only if no Helius URL is configured.
-const RPC_ENDPOINT =
-  process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com";
-
 // Stable reference — prevents ConnectionProvider from re-creating the
 // Connection object on every render, which would cascade re-renders
 // through every component that calls useConnection().
 const CONNECTION_CONFIG = { commitment: "confirmed" as const };
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
+  // Route all RPC through our same-origin proxy at /api/rpc. The proxy
+  // forwards to Helius server-side, so the API key never reaches the
+  // browser and we don't depend on NEXT_PUBLIC_* env vars being inlined
+  // at build time. Resolved inside the component so it picks up
+  // window.location.origin on the client after hydration.
+  const rpcEndpoint = useMemo(
+    () => (typeof window !== "undefined"
+      ? `${window.location.origin}/api/rpc`
+      : "/api/rpc"),
+    [],
+  );
   const wallets = useMemo(
     () => [
       new PhantomWalletAdapter(),
@@ -42,7 +47,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <ConnectionProvider
-      endpoint={RPC_ENDPOINT}
+      endpoint={rpcEndpoint}
       config={CONNECTION_CONFIG}
     >
       <SolanaWalletProvider wallets={wallets} onError={onError} autoConnect>
