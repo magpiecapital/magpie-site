@@ -59,9 +59,10 @@ export default function EarnPage() {
   const [txError, setTxError] = useState<string | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
 
-  // Pool is not yet initialized on mainnet. Flip this to true once
-  // initializePool has been called, then remove the guard.
-  const POOL_LIVE = false;
+  // Pool is live on mainnet (initialized as part of the Token-2022 deploy).
+  // Deposits / withdrawals route through the program's deposit/withdraw
+  // instructions which we've verified work with real funds.
+  const POOL_LIVE = true;
 
   const [poolNotInitialized] = useState(!POOL_LIVE);
 
