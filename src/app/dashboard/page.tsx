@@ -1162,6 +1162,32 @@ export default function DashboardPage() {
               </div>
             )}
 
+            {/* ─── Diagnostic strip — temporary: surfaces the data state ─── */}
+            {connected && (
+              <div className="mb-3 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 font-mono text-[10px] text-[var(--d-ink-soft)]">
+                <span className="text-[var(--d-ink-faint)]">connected wallet:</span>{" "}
+                <span className="text-[var(--d-ink)]">{walletFull || "—"}</span>
+                {" · "}
+                <span className="text-[var(--d-ink-faint)]">holdings:</span>{" "}
+                <span className="text-[var(--d-ink)]">{holdings.length}</span>
+                {" · "}
+                <span className="text-[var(--d-ink-faint)]">approved tokens:</span>{" "}
+                <span className="text-[var(--d-ink)]">{approvedTokens.length}</span>
+                {" · "}
+                <span className="text-[var(--d-ink-faint)]">eligible:</span>{" "}
+                <span className="text-[var(--d-ink)]">{eligibleCollateral.length}</span>
+                {holdings.length > 0 && (
+                  <>
+                    {" · "}
+                    <span className="text-[var(--d-ink-faint)]">mints held:</span>{" "}
+                    <span className="text-[var(--d-ink)]">
+                      {holdings.map((h) => h.mint.slice(0, 4)).join(", ")}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* ─── KPI CARDS ROW ─── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {(() => {
