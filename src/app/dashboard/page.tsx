@@ -969,7 +969,12 @@ export default function DashboardPage() {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  const animatedPoints = useAnimatedCounter(mounted ? 0 : 0);
+  // Total points = net sum of all credit-event deltas (repay_ontime +15,
+  // repay_early +20, borrow +3, topup +8, etc. — and liquidations subtract).
+  // Computed from the live activity feed so it updates the same tick as
+  // the activity entries appear.
+  const totalPoints = activity.reduce((sum, e) => sum + (e.score_delta || 0), 0);
+  const animatedPoints = useAnimatedCounter(mounted ? totalPoints : 0);
 
   // Credit display values
   const creditScore = liveCredit?.score ?? 0;
