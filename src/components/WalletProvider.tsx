@@ -15,10 +15,11 @@ import type { WalletError } from "@solana/wallet-adapter-base";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
 
-// Use Solana's free public RPC until the pool is live.
-// Switch back to NEXT_PUBLIC_RPC_URL (Helius) when the pool is initialized
-// and real transactions need reliable RPC.
-const RPC_ENDPOINT = "https://api.mainnet-beta.solana.com";
+// The pool is live, so we need a real RPC that won't rate-limit balance
+// reads. Prefer NEXT_PUBLIC_RPC_URL (Helius) set in Vercel env; fall back
+// to public mainnet only if no Helius URL is configured.
+const RPC_ENDPOINT =
+  process.env.NEXT_PUBLIC_RPC_URL || "https://api.mainnet-beta.solana.com";
 
 // Stable reference — prevents ConnectionProvider from re-creating the
 // Connection object on every render, which would cascade re-renders

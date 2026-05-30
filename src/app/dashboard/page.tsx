@@ -624,7 +624,8 @@ export default function DashboardPage() {
   const connRef = useRef(connection);
   connRef.current = connection;
 
-  // Fetch real SOL balance — poll every 120s (was 30s, burning credits)
+  // Fetch SOL balance — poll every 20s. With Helius RPC the request cost
+  // is tiny (1 credit each) and the user expects the dashboard to feel live.
   useEffect(() => {
     if (!connected || !publicKey) { setSolBalance(0); return; }
     let cancelled = false;
@@ -633,24 +634,22 @@ export default function DashboardPage() {
         .then((lamports) => {
           if (!cancelled) setSolBalance(lamports / LAMPORTS_PER_SOL);
         })
-        .catch(() => {
-          if (!cancelled) setSolBalance(0);
+        .catch((err) => {
+          // Don't zero on transient failure — keep last good value so a single
+          // 429 doesn't make the UI show "0 SOL" when the user actually has SOL.
+          console.warn("[dashboard] getBalance failed:", err?.message);
         });
     };
     fetchBalance();
-    const interval = setInterval(fetchBalance, 120_000);
+    const interval = setInterval(fetchBalance, 20_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
-  // Fetch real SPL token holdings (both TOKEN_PROGRAM_ID and TOKEN_2022)
-  // Only runs once when wallet connects — no polling, no connection dep.
-  const [holdingsFetched, setHoldingsFetched] = useState(false);
+  // Fetch SPL token holdings (both legacy SPL and Token-2022). Polls every
+  // 45s so deposits/withdrawals reflect quickly without hammering the RPC.
   useEffect(() => {
-    if (!connected || !publicKey) { setHoldings([]); setHoldingsFetched(false); return; }
-    if (holdingsFetched) return; // already fetched for this wallet session
+    if (!connected || !publicKey) { setHoldings([]); return; }
     let cancelled = false;
-    setHoldingsLoading(true);
-    setHoldingsFetched(true);
 
     const parseAccounts = (result: { value: any[] }): TokenHolding[] =>
       result.value
@@ -670,29 +669,31 @@ export default function DashboardPage() {
         })
         .filter((t: TokenHolding | null): t is TokenHolding => t !== null);
 
-    Promise.all([
-      connRef.current.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID }).catch(() => ({ value: [] })),
-      connRef.current.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_2022_PROGRAM_ID }).catch(() => ({ value: [] })),
-    ])
-      .then(([splResult, token2022Result]) => {
-        if (cancelled) return;
-        const allTokens = [...parseAccounts(splResult), ...parseAccounts(token2022Result)]
-          .sort((a, b) => {
-            const aNum = Number(a.amount) / Math.pow(10, a.decimals);
-            const bNum = Number(b.amount) / Math.pow(10, b.decimals);
-            return bNum - aNum;
-          });
-        setHoldings(allTokens);
-        setHoldingsLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setHoldings([]);
-          setHoldingsLoading(false);
-        }
-      });
-    return () => { cancelled = true; };
-  }, [connected, publicKey, holdingsFetched]);
+    const fetchHoldings = () => {
+      setHoldingsLoading(true);
+      Promise.all([
+        connRef.current.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_PROGRAM_ID }).catch(() => ({ value: [] })),
+        connRef.current.getParsedTokenAccountsByOwner(publicKey, { programId: TOKEN_2022_PROGRAM_ID }).catch(() => ({ value: [] })),
+      ])
+        .then(([splResult, token2022Result]) => {
+          if (cancelled) return;
+          const allTokens = [...parseAccounts(splResult), ...parseAccounts(token2022Result)]
+            .sort((a, b) => {
+              const aNum = Number(a.amount) / Math.pow(10, a.decimals);
+              const bNum = Number(b.amount) / Math.pow(10, b.decimals);
+              return bNum - aNum;
+            });
+          setHoldings(allTokens);
+        })
+        .catch((err) => {
+          console.warn("[dashboard] getTokenAccounts failed:", err?.message);
+        })
+        .finally(() => { if (!cancelled) setHoldingsLoading(false); });
+    };
+    fetchHoldings();
+    const interval = setInterval(fetchHoldings, 45_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [connected, publicKey]);
 
   // Fetch approved collateral tokens
   useEffect(() => {
