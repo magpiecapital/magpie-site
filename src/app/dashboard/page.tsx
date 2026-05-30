@@ -607,6 +607,18 @@ export default function DashboardPage() {
   const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
   const [loansLoading, setLoansLoading] = useState(false);
 
+  // ── Activity feed ──
+  type ActivityEvent = {
+    id: number;
+    type: string;
+    score_delta: number;
+    token_symbol: string | null;
+    collateral_mint: string | null;
+    loan_id: number | null;
+    timestamp: string;
+  };
+  const [activity, setActivity] = useState<ActivityEvent[]>([]);
+
   // ── Borrow state ──
   const [borrowing, setBorrowing] = useState(false);
   const [borrowTx, setBorrowTx] = useState<string | null>(null);
@@ -828,6 +840,22 @@ export default function DashboardPage() {
     };
     fetchLoans();
     const interval = setInterval(fetchLoans, 30_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [connected, publicKey]);
+
+  // Activity feed — repays, borrows, top-ups, extensions, liquidations.
+  // Poll every 30s so a fresh repay shows up shortly after returning to the page.
+  useEffect(() => {
+    if (!connected || !publicKey) { setActivity([]); return; }
+    let cancelled = false;
+    const fetchActivity = () => {
+      fetch(`/api/v1/activity?wallet=${publicKey.toBase58()}`)
+        .then(r => r.json())
+        .then(d => { if (!cancelled && d.ok) setActivity(d.events ?? []); })
+        .catch(() => { /* keep last good */ });
+    };
+    fetchActivity();
+    const interval = setInterval(fetchActivity, 30_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey]);
 
@@ -1631,9 +1659,54 @@ export default function DashboardPage() {
                 {prefs.activity && (
                   <div id="section-activity" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
                     <SectionHeader title="Activity" compact />
-                    <div className="py-6 text-center text-sm text-[var(--d-ink-soft)]">
-                      No activity yet
-                    </div>
+                    {activity.length === 0 ? (
+                      <div className="py-6 text-center text-sm text-[var(--d-ink-soft)]">
+                        No activity yet
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {activity.slice(0, 10).map((e) => {
+                          const labels: Record<string, string> = {
+                            repay_ontime: "Repaid on time",
+                            repay_early: "Repaid early",
+                            repay_late: "Repaid late",
+                            partial_repay: "Partial repay",
+                            topup: "Added collateral",
+                            extend: "Extended loan",
+                            liquidated: "Liquidated",
+                            borrow: "Took out loan",
+                          };
+                          const label = labels[e.type] ?? e.type;
+                          const positive = e.score_delta > 0;
+                          const when = new Date(e.timestamp);
+                          const msAgo = Date.now() - when.getTime();
+                          const rel =
+                            msAgo < 60_000 ? "just now"
+                            : msAgo < 3_600_000 ? `${Math.floor(msAgo / 60_000)}m ago`
+                            : msAgo < 86_400_000 ? `${Math.floor(msAgo / 3_600_000)}h ago`
+                            : `${Math.floor(msAgo / 86_400_000)}d ago`;
+                          return (
+                            <div key={e.id} className="flex items-center gap-3 rounded-lg border border-[var(--d-border)] px-3 py-2.5">
+                              <span className="text-base">{activityIcon(e.type)}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 text-[12px] font-medium">
+                                  <span>{label}</span>
+                                  {e.token_symbol && (
+                                    <span className="text-[10px] text-[var(--d-ink-faint)]">{e.token_symbol}</span>
+                                  )}
+                                </div>
+                                <div className="text-[10px] text-[var(--d-ink-faint)]">{rel}</div>
+                              </div>
+                              {e.score_delta !== 0 && (
+                                <span className={`text-[11px] font-semibold ${positive ? "text-emerald-500" : "text-red-500"}`}>
+                                  {positive ? "+" : ""}{e.score_delta}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
 
