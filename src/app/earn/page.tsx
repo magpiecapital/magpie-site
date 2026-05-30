@@ -365,6 +365,40 @@ export default function EarnPage() {
             )}
           </div>
 
+          {/* What you earn — fee breakdown */}
+          <div className="mb-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-dim)]/30 p-5 shadow-sm sm:p-8">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--accent-dim)] text-xs text-[var(--accent-deep)]">★</span>
+              <h3 className="font-display text-base font-semibold sm:text-lg">What you earn</h3>
+            </div>
+            <p className="text-sm text-[var(--ink-soft)] mb-4">
+              LPs receive <span className="font-semibold text-[var(--ink)]">80% of every loan fee</span>, proportional to share of the pool. Fees accrue directly — your position grows passively as borrowers pay.
+            </p>
+            <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] overflow-hidden">
+              <div className="grid grid-cols-3 border-b border-[var(--hairline)] bg-[var(--surface)] px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                <div>Tier</div>
+                <div className="text-right">Borrower fee</div>
+                <div className="text-right">Your share</div>
+              </div>
+              {[
+                { tier: "Express · 2d", fee: "3.00%", lp: "2.40%" },
+                { tier: "Quick · 3d",   fee: "2.00%", lp: "1.60%" },
+                { tier: "Standard · 7d", fee: "1.50%", lp: "1.20%" },
+              ].map((row) => (
+                <div key={row.tier} className="grid grid-cols-3 border-b border-[var(--hairline)] px-3 py-2 text-xs last:border-b-0">
+                  <div className="text-[var(--ink-soft)]">{row.tier}</div>
+                  <div className="text-right text-[var(--ink-soft)]">{row.fee}</div>
+                  <div className="text-right font-semibold text-[var(--accent-deep)]">{row.lp}</div>
+                </div>
+              ))}
+            </div>
+            <ul className="mt-4 space-y-1.5 text-[12px] text-[var(--ink-soft)]">
+              <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> No lock-up — withdraw any time (subject to available liquidity)</li>
+              <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> Paid in SOL, accrues every loan that closes</li>
+              <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> Permissionless — no claim step, share value grows automatically</li>
+            </ul>
+          </div>
+
           {/* How it works — minimal */}
           <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 shadow-sm sm:p-8">
             <h3 className="font-display text-base font-semibold mb-4 sm:text-lg">How it works</h3>
