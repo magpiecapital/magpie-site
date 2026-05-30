@@ -9,7 +9,7 @@ const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
 const NAV_LINKS = [
   { label: "Earn", href: "/earn" },
-  { label: "Lending", href: "/marketplace" },
+  { label: "Borrow", href: "/marketplace" },
   { label: "Tokens", href: "/tokens" },
   { label: "Dashboard", href: "/dashboard" },
   { label: "Docs", href: "/docs" },

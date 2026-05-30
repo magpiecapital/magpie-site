@@ -14,7 +14,7 @@ const NAV_SECTIONS = [
     links: [
       { label: "Home", href: "/", icon: "⌂" },
       { label: "Earn", href: "/earn", icon: "◉" },
-      { label: "Lending", href: "/marketplace", icon: "⇄" },
+      { label: "Borrow", href: "/marketplace", icon: "⇄" },
       { label: "Approved Tokens", href: "/tokens", icon: "◈" },
       { label: "Dashboard", href: "/dashboard", icon: "▦" },
     ],
