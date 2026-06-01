@@ -224,7 +224,7 @@ export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
         {/* ── Key numbers ── */}
         <div className="mt-14 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { label: "Approved tokens", value: "64+" },
+            { label: "Approved tokens", value: `${tokenCount}+` },
             { label: "Origination fee", value: "1.5–3%" },
             { label: "Max LTV", value: "30%" },
             { label: "Fastest loan", value: "~30s" },

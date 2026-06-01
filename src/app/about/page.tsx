@@ -3,6 +3,12 @@ import { Mark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { getTokenStats } from "@/lib/db";
+
+// Refresh the token count every 60s — fast enough that adds-via-screener
+// reflect on the page quickly, slow enough that we're not hammering the
+// bot API.
+export const revalidate = 60;
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const GITHUB_URL = "https://github.com/magpiecapital";
@@ -13,13 +19,14 @@ export const metadata = {
     "The mission behind Magpie — unlocking liquidity from memecoin bags on Solana.",
 };
 
-const FEATURES = [
+function makeFeatures(approvedCount: number) {
+  return [
   {
     title: "Telegram-Native Lending",
     body: "The first lending protocol that lives entirely in a chat. No dApp, no browser extension, no seed phrase in a tab.",
   },
   {
-    title: "64+ Memecoin Collateral",
+    title: `${approvedCount}+ Memecoin Collateral`,
     body: "From WIF to Fartcoin to Moo Deng. If it has liquidity, we'll lend against it.",
   },
   {
@@ -34,16 +41,19 @@ const FEATURES = [
     title: "Sub-10-Second Funding",
     body: "Deposit confirms, SOL arrives. The entire flow takes less time than reading this card.",
   },
-];
+  ];
+}
 
-const STATS = [
-  { value: "64+", label: "Approved Tokens" },
+function makeStats(approvedCount: number) {
+  return [
+  { value: `${approvedCount}+`, label: "Approved Tokens" },
   { value: "<10s", label: "Average Funding Time" },
   { value: "1.5–3%", label: "Tiered Fee" },
   { value: "3", label: "Lending Tiers" },
   { value: "850", label: "Max Credit Score" },
   { value: "24/7", label: "Live on Solana" },
-];
+  ];
+}
 
 const ROADMAP = [
   {
@@ -83,7 +93,10 @@ const VALUES = [
   },
 ];
 
-export default function AboutPage() {
+export default async function AboutPage() {
+  const stats = await getTokenStats().catch(() => ({ count: 64, memeCount: 0, stockCount: 0 }));
+  const FEATURES = makeFeatures(stats.count);
+  const STATS = makeStats(stats.count);
   return (
     <div className="min-h-screen">
       <Header />

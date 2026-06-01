@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { getTokenStats } from "@/lib/db";
+
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Documentation | Magpie",
@@ -59,7 +62,8 @@ const CREDIT_FACTORS = [
   { factor: "Liquidation history", weight: "10%", desc: "Inverse of liquidation frequency" },
 ];
 
-export default function DocsPage() {
+export default async function DocsPage() {
+  const tokenStats = await getTokenStats().catch(() => ({ count: 64 }));
   return (
     <div className="min-h-screen">
       <Header />
@@ -453,7 +457,7 @@ export default function DocsPage() {
           {/* ─── Supported Tokens ─── */}
           <Section id="supported-tokens" title="Supported Tokens" chip="Collateral">
             <P>
-              Magpie currently supports <strong>64+ Solana memecoins</strong> as loan
+              Magpie currently supports <strong>{tokenStats.count}+ Solana memecoins</strong> as loan
               collateral. Tokens are approved based on DEX liquidity depth, trading volume,
               and price stability requirements.
             </P>
