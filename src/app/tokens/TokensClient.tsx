@@ -52,7 +52,7 @@ function fmtPct(n: number | null): string {
 
 function pctClass(n: number | null): string {
   if (n == null) return "text-[var(--ink-soft)]";
-  return n >= 0 ? "text-[var(--accent-deep)]" : "text-[var(--bad)]";
+  return n >= 0 ? "text-emerald-500" : "text-[var(--bad)]";
 }
 
 /* ─── DexScreener fetch ─── */
