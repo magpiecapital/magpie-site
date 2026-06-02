@@ -9,6 +9,11 @@ import { ConnectWallet } from "@/components/ConnectWallet";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const CREATOR_WALLET = "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx";
+// $MAGPIE token nav slot — mirror of the one in Header.tsx. Renders as
+// a disabled/muted pill while MAGPIE_TOKEN_HREF is null; becomes a clickable
+// accent pill once the URL is set.
+const MAGPIE_TOKEN_HREF: string | null = null;
+const MAGPIE_TOKEN_LABEL = "$MAGPIE";
 
 const NAV_SECTIONS = [
   {
@@ -120,6 +125,30 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
               </Link>
             </div>
           )}
+          {/* $MAGPIE token slot */}
+          <div>
+            <div className="px-3 pt-4 pb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+              Token
+            </div>
+            {MAGPIE_TOKEN_HREF ? (
+              <a
+                href={MAGPIE_TOKEN_HREF}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onClose}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[15px] text-[var(--accent)] transition hover:bg-[var(--accent)]/10"
+              >
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--accent)]/15 text-xs text-[var(--accent)]">$</span>
+                {MAGPIE_TOKEN_LABEL}
+              </a>
+            ) : (
+              <span className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-[15px] text-[var(--ink-faint)]">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--surface)] text-xs text-[var(--ink-faint)]">$</span>
+                {MAGPIE_TOKEN_LABEL}
+              </span>
+            )}
+          </div>
+
           {NAV_SECTIONS.map((section) => (
             <div key={section.heading}>
               <div className="px-3 pt-4 pb-1 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
