@@ -16,11 +16,22 @@ interface HolderData {
   has_balance: boolean;
   reward_bps: number;
   reward_pct: number;
-  min_claim_lamports: string;
   lifetime_lamports: string;
   paid_lamports: string;
-  claimable_lamports: string;
+  pending_lamports: string;
   distributions_count: number;
+  estimated_next_payout_lamports: string;
+  seconds_until_next_distribution: number | null;
+  auto_distribute: boolean;
+}
+
+function fmtCountdown(seconds: number | null) {
+  if (seconds == null) return "first distribution pending";
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  if (d > 0) return `~${d}d ${h}h`;
+  const m = Math.floor((seconds % 3600) / 60);
+  return `~${h}h ${m}m`;
 }
 
 interface PoolData {
@@ -168,26 +179,25 @@ export default function HoldersClient() {
                   Your rewards
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-3">
-                  <Stat label="Lifetime" value={`${fmtSol(data.lifetime_lamports)} SOL`} />
-                  <Stat label="Paid out" value={`${fmtSol(data.paid_lamports)} SOL`} />
+                  <Stat label="Lifetime received" value={`${fmtSol(data.paid_lamports)} SOL`} />
                   <Stat label="Distributions" value={data.distributions_count.toString()} />
                   <Stat label="Reward rate" value={`${data.reward_pct}%`} />
+                  <Stat
+                    label="Next in"
+                    value={fmtCountdown(data.seconds_until_next_distribution)}
+                  />
                 </div>
                 <div className="mt-5 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 p-4">
                   <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">
-                    Claimable now
+                    Estimated next payout
                   </div>
                   <div className="mt-1 text-2xl font-semibold text-[var(--ink)]">
-                    {fmtSol(data.claimable_lamports)} SOL
+                    ~{fmtSol(data.estimated_next_payout_lamports)} SOL
                   </div>
-                  <a
-                    href={TELEGRAM_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 inline-block text-sm font-medium text-[var(--accent)] underline-offset-4 hover:underline"
-                  >
-                    Claim in Telegram →
-                  </a>
+                  <p className="mt-2 text-xs text-[var(--ink-soft)]">
+                    Sent automatically to this wallet on the next distribution. Estimate
+                    moves with the live pool size — no action needed on your end.
+                  </p>
                 </div>
               </div>
             </div>
@@ -257,18 +267,26 @@ export default function HoldersClient() {
               No. Just hold $MAGPIE in any wallet you control. The protocol snapshots
               on-chain balances directly — no staking contract, no lockup.
             </Faq>
+            <Faq q="How do I receive my SOL?">
+              Automatically. Every 7 days the bot snapshots all $MAGPIE holders and sends
+              each their pro-rata share via on-chain transfer. SOL just appears in the
+              wallet that holds $MAGPIE — no claim button, no signing, no bot account
+              needed.
+            </Faq>
             <Faq q="When do distributions happen?">
-              Every 7 days. The pool accrues continuously and is distributed at the end of
-              each interval. Your share is then claimable in SOL.
+              Every 7 days. The pool accrues continuously and is paid out at the end of
+              each interval. The next-distribution countdown is shown above when your
+              wallet is connected.
             </Faq>
             <Faq q="Which wallets are eligible?">
               Every on-chain $MAGPIE holder is eligible except: DEX pool accounts
               (Raydium, Orca, Meteora), the pump.fun bonding curve, known burn addresses,
               and the protocol's own wallet.
             </Faq>
-            <Faq q="What's the minimum claim?">
-              0.005 SOL. Tiny distributions accumulate across weeks until they cross the
-              threshold, so dust isn't lost.
+            <Faq q="What if a transfer fails?">
+              Failed transfers are automatically retried on the next cycle. Your reward
+              stays earmarked until it lands in your wallet — nothing is lost to RPC
+              flakiness.
             </Faq>
             <Faq q="Does this dilute LP yield?">
               No. LPs still earn their full 80% of every fee. The 10% holder reward comes
