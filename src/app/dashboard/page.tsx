@@ -208,11 +208,18 @@ function healthLabel(h: number): string {
 function activityIcon(type: string): string {
   switch (type) {
     case "repay": return "\u21A9";
+    case "repay_early": return "\u21A9";
+    case "repay_ontime": return "\u21A9";
+    case "repay_late": return "\u21A9";
     case "health": return "\u26A0";
     case "deposit": return "\u2B07";
     case "borrow": return "\u2B06";
     case "credit": return "\u2605";
     case "extend": return "\u21BB";
+    case "topup": return "\u2795";
+    case "liquidation": return "\u26A0";
+    case "referral_earned": return "\uD83C\uDF81"; // \uD83C\uDF81
+    case "holder_distribution": return "\uD83D\uDC8E"; // \uD83D\uDC8E
     default: return "\u2022";
   }
 }
@@ -642,11 +649,12 @@ export default function DashboardPage() {
   };
   const [eligibleFromApi, setEligibleFromApi] = useState<ApiEligible[]>([]);
 
-  // ── Activity feed ──
+  // ── Activity feed (unified across loans, referrals, holder distributions) ──
   type ActivityEvent = {
-    id: number;
+    id: string | number;
+    source?: string;
     type: string;
-    score_delta: number;
+    score_delta: number | null;
     timestamp: string;
     loan_id: number | null;
     token: {
@@ -665,6 +673,10 @@ export default function DashboardPage() {
       duration_days: number | null;
     };
     tx_signature: string | null;
+    reward: {
+      lamports: string;
+      status: string | null;
+    } | null;
   };
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
 
@@ -1973,6 +1985,7 @@ export default function DashboardPage() {
                       <div className="flex flex-col gap-2">
                         {activity.slice(0, 10).map((e) => {
                           const tokenLabel = e.token?.symbol ?? "loan";
+                          const rewardSol = e.reward ? (Number(e.reward.lamports) / LAMPORTS_PER_SOL).toFixed(6) : null;
                           const labels: Record<string, string> = {
                             repay_ontime: `Repaid ${tokenLabel} loan on time`,
                             repay_early: `Repaid ${tokenLabel} loan early`,
@@ -1982,9 +1995,11 @@ export default function DashboardPage() {
                             extend: `Extended ${tokenLabel} loan`,
                             liquidated: `${tokenLabel} loan liquidated`,
                             borrow: `Borrowed against ${tokenLabel}`,
+                            referral_earned: `Earned ${rewardSol ?? ""} SOL from a referral`,
+                            holder_distribution: `Received ${rewardSol ?? ""} SOL from $MAGPIE snapshot`,
                           };
                           const label = labels[e.type] ?? e.type;
-                          const positive = e.score_delta > 0;
+                          const positive = (e.score_delta ?? 0) > 0 || e.type === "referral_earned" || e.type === "holder_distribution";
                           const when = new Date(e.timestamp);
                           const msAgo = Date.now() - when.getTime();
                           const rel =
@@ -2016,6 +2031,11 @@ export default function DashboardPage() {
                             if (e.terms.duration_days != null) parts.push(`+${e.terms.duration_days}d`);
                           } else if (e.type === "liquidated") {
                             if (collateralAmt && e.token?.symbol) parts.push(`${collateralAmt} ${e.token.symbol} seized`);
+                          } else if (e.type === "referral_earned") {
+                            if (e.reward?.status === "accrued") parts.push("pending claim");
+                            else if (e.reward?.status === "paid") parts.push("paid out");
+                          } else if (e.type === "holder_distribution") {
+                            parts.push("auto-paid to your wallet");
                           }
                           const detail = parts.join(" · ");
                           return (
@@ -2040,11 +2060,15 @@ export default function DashboardPage() {
                                   )}
                                 </div>
                               </div>
-                              {e.score_delta !== 0 && (
+                              {e.reward ? (
+                                <span className="text-[11px] font-mono font-semibold text-emerald-500">
+                                  +{rewardSol} SOL
+                                </span>
+                              ) : (e.score_delta != null && e.score_delta !== 0) ? (
                                 <span className={`text-[11px] font-semibold ${positive ? "text-emerald-500" : "text-red-500"}`}>
                                   {positive ? "+" : ""}{e.score_delta}
                                 </span>
-                              )}
+                              ) : null}
                             </div>
                           );
                         })}

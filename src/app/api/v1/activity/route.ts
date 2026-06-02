@@ -1,9 +1,13 @@
 /**
  * GET /api/v1/activity?wallet=<address>
  *
- * Recent activity for a wallet — credit events (repay, borrow, topup,
- * extend, liquidation) enriched with the token symbol, loan amounts,
- * tier, duration, and transaction signature from the loan they relate to.
+ * Unified activity feed across the entire Magpie ecosystem:
+ *   • Loan-related credit events (borrow, repay, topup, extend, liquidation)
+ *   • Referral earnings (you accrued a share because a referee took a loan)
+ *   • Holder distributions (snapshot paid you SOL pro-rata)
+ *
+ * Single chronological feed for the dashboard — every value-affecting
+ * event in one place.
  */
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
@@ -12,12 +16,12 @@ const HEADERS = {
   "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
 };
 
-interface EventRow {
-  id: number;
-  event_type: string;
-  score_delta: number;
-  metadata: Record<string, unknown> | null;
-  created_at: Date;
+interface UnifiedRow {
+  source: string;
+  id: string;
+  type: string;
+  score_delta: number | string | null;
+  timestamp: Date;
   loan_id: number | null;
   collateral_mint: string | null;
   collateral_amount: string | number | null;
@@ -29,12 +33,14 @@ interface EventRow {
   symbol: string | null;
   decimals: number | null;
   image_url: string | null;
+  reward_lamports: string | null;
+  reward_status: string | null;
 }
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const wallet = searchParams.get("wallet");
-  const limit = Math.min(parseInt(searchParams.get("limit") || "20", 10) || 20, 100);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "30", 10) || 30, 100);
 
   if (!wallet) {
     return NextResponse.json(
@@ -45,19 +51,87 @@ export async function GET(req: Request) {
 
   try {
     const { rows } = await query(
-      `SELECT ce.id, ce.event_type, ce.score_delta, ce.metadata, ce.created_at,
-              ce.loan_id,
-              l.collateral_mint, l.collateral_amount,
-              l.loan_amount_lamports, l.original_loan_amount_lamports,
-              l.ltv_percentage, l.duration_days, l.tx_signature,
-              sm.symbol, sm.decimals, sm.image_url
+      `WITH user_lookup AS (
+         SELECT user_id FROM wallets WHERE public_key = $1
+       )
+       SELECT * FROM (
+         -- 1. Loan-related credit events
+         SELECT
+           'credit_event'::text                    AS source,
+           ce.id::text                             AS id,
+           ce.event_type                           AS type,
+           ce.score_delta::text                    AS score_delta,
+           ce.created_at                           AS timestamp,
+           ce.loan_id                              AS loan_id,
+           l.collateral_mint                       AS collateral_mint,
+           l.collateral_amount::text               AS collateral_amount,
+           l.loan_amount_lamports::text            AS loan_amount_lamports,
+           l.original_loan_amount_lamports::text   AS original_loan_amount_lamports,
+           l.ltv_percentage                        AS ltv_percentage,
+           l.duration_days                         AS duration_days,
+           l.tx_signature                          AS tx_signature,
+           sm.symbol                               AS symbol,
+           sm.decimals                             AS decimals,
+           sm.image_url                            AS image_url,
+           NULL::text                              AS reward_lamports,
+           NULL::text                              AS reward_status
          FROM credit_events ce
-         JOIN wallets w ON w.user_id = ce.user_id
+         JOIN user_lookup ul ON ul.user_id = ce.user_id
          LEFT JOIN loans l ON l.id = ce.loan_id
          LEFT JOIN supported_mints sm ON sm.mint = l.collateral_mint
-        WHERE w.public_key = $1
-        ORDER BY ce.created_at DESC
-        LIMIT $2`,
+
+         UNION ALL
+
+         -- 2. Referral earnings — you (as referrer) accrued a share when a referee took a loan
+         SELECT
+           'referral'::text                        AS source,
+           ('r_' || re.id::text)                   AS id,
+           'referral_earned'                       AS type,
+           NULL::text                              AS score_delta,
+           re.created_at                           AS timestamp,
+           re.loan_db_id                           AS loan_id,
+           NULL::text                              AS collateral_mint,
+           NULL::text                              AS collateral_amount,
+           NULL::text                              AS loan_amount_lamports,
+           NULL::text                              AS original_loan_amount_lamports,
+           NULL::integer                           AS ltv_percentage,
+           NULL::integer                           AS duration_days,
+           re.paid_tx_signature                    AS tx_signature,
+           NULL::text                              AS symbol,
+           NULL::integer                           AS decimals,
+           NULL::text                              AS image_url,
+           re.reward_lamports::text                AS reward_lamports,
+           re.status                               AS reward_status
+         FROM referral_earnings re
+         JOIN user_lookup ul ON ul.user_id = re.referrer_user_id
+
+         UNION ALL
+
+         -- 3. Holder distributions — auto-paid to wallet on each snapshot
+         SELECT
+           'holder'::text                          AS source,
+           ('h_' || mhr.id::text)                  AS id,
+           'holder_distribution'                   AS type,
+           NULL::text                              AS score_delta,
+           COALESCE(mhr.paid_at, mhr.created_at)   AS timestamp,
+           NULL::integer                           AS loan_id,
+           NULL::text                              AS collateral_mint,
+           NULL::text                              AS collateral_amount,
+           NULL::text                              AS loan_amount_lamports,
+           NULL::text                              AS original_loan_amount_lamports,
+           NULL::integer                           AS ltv_percentage,
+           NULL::integer                           AS duration_days,
+           mhr.paid_tx_signature                   AS tx_signature,
+           NULL::text                              AS symbol,
+           NULL::integer                           AS decimals,
+           NULL::text                              AS image_url,
+           mhr.reward_lamports::text               AS reward_lamports,
+           mhr.status                              AS reward_status
+         FROM magpie_holder_rewards mhr
+         WHERE mhr.wallet_address = $1
+       ) AS unified
+       ORDER BY timestamp DESC
+       LIMIT $2`,
       [wallet, limit],
     );
 
@@ -65,11 +139,12 @@ export async function GET(req: Request) {
       {
         ok: true,
         wallet,
-        events: rows.map((r: EventRow) => ({
+        events: rows.map((r: UnifiedRow) => ({
           id: r.id,
-          type: r.event_type,
-          score_delta: r.score_delta,
-          timestamp: r.created_at,
+          source: r.source,
+          type: r.type,
+          score_delta: r.score_delta != null ? Number(r.score_delta) : null,
+          timestamp: r.timestamp,
           loan_id: r.loan_id,
           token: r.symbol
             ? {
@@ -89,6 +164,9 @@ export async function GET(req: Request) {
             duration_days: r.duration_days,
           },
           tx_signature: r.tx_signature,
+          reward: r.reward_lamports
+            ? { lamports: r.reward_lamports, status: r.reward_status ?? null }
+            : null,
         })),
         source: "database",
       },
