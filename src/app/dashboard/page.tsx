@@ -597,6 +597,15 @@ export default function DashboardPage() {
     paid_lamports: string;
     claimable_lamports: string;
   } | null>(null);
+  const [holders, setHolders] = useState<{
+    magpie_balance_raw: string;
+    magpie_balance: number;
+    has_balance: boolean;
+    lifetime_lamports: string;
+    paid_lamports: string;
+    claimable_lamports: string;
+    distributions_count: number;
+  } | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
   const [holdings, setHoldings] = useState<TokenHolding[]>([]);
   const [holdingsLoading, setHoldingsLoading] = useState(false);
@@ -879,6 +888,15 @@ export default function DashboardPage() {
     fetch(`/api/v1/referrals?wallet=${publicKey.toBase58()}`)
       .then(r => r.json())
       .then(d => { if (d.ok) setReferrals(d.data); })
+      .catch(() => {});
+  }, [connected, publicKey]);
+
+  // Fetch $MAGPIE holder stats when wallet connected
+  useEffect(() => {
+    if (!connected || !publicKey) { setHolders(null); return; }
+    fetch(`/api/v1/holders?wallet=${publicKey.toBase58()}`)
+      .then(r => r.json())
+      .then(d => { if (d.ok) setHolders(d.data?.data ?? d.data ?? null); })
       .catch(() => {});
   }, [connected, publicKey]);
 
@@ -1777,6 +1795,60 @@ export default function DashboardPage() {
                   )}
                   <Link href="/refer" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
                     How referrals work &rarr;
+                  </Link>
+                </div>
+
+                {/* $MAGPIE HOLDERS CARD */}
+                <div id="section-holders" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
+                  <SectionHeader title="$MAGPIE Holders" compact />
+                  {holders ? (
+                    <>
+                      <div className="rounded-xl border border-[var(--d-accent)]/25 bg-[var(--d-accent-dim)]/30 p-3">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">
+                          Claimable
+                        </div>
+                        <div className="mt-1 font-mono text-xl font-semibold text-[var(--d-ink)]">
+                          {(Number(holders.claimable_lamports) / 1e9).toFixed(6)} SOL
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Held</div>
+                          <div className="mt-0.5 font-mono text-sm font-semibold text-[var(--d-ink)]">
+                            {(() => {
+                              const n = Number(holders.magpie_balance_raw) / 1e6;
+                              if (n >= 1e6) return (n / 1e6).toFixed(2) + "M";
+                              if (n >= 1e3) return (n / 1e3).toFixed(2) + "K";
+                              return n.toFixed(2);
+                            })()}
+                          </div>
+                        </div>
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Distributions</div>
+                          <div className="mt-0.5 text-sm font-semibold text-[var(--d-ink)]">{holders.distributions_count}</div>
+                        </div>
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Lifetime</div>
+                          <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">{(Number(holders.lifetime_lamports) / 1e9).toFixed(4)}</div>
+                        </div>
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Paid</div>
+                          <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">{(Number(holders.paid_lamports) / 1e9).toFixed(4)}</div>
+                        </div>
+                      </div>
+                      {!holders.has_balance && (
+                        <p className="mt-3 text-xs text-[var(--d-ink-soft)]">
+                          Connected wallet doesn't hold $MAGPIE. Grab some to start earning a share of every loan fee.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-[var(--d-ink-soft)]">
+                      Hold $MAGPIE → earn <span className="font-semibold text-[var(--d-accent-deep)]">10%</span> of every loan fee, distributed weekly.
+                    </p>
+                  )}
+                  <Link href="/holders" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
+                    How holder rewards work &rarr;
                   </Link>
                 </div>
 
