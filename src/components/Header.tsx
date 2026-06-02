@@ -19,6 +19,12 @@ const NAV_LINKS = [
   { label: "Docs", href: "/docs" },
 ];
 
+// $MAGPIE token nav slot. href is a placeholder until the official link
+// is provided — when set, surfaces alongside the main nav in the header
+// and as the last item in the mobile drawer.
+const MAGPIE_TOKEN_HREF: string | null = null; // ← set this when you have the link
+const MAGPIE_TOKEN_LABEL = "$MAGPIE";
+
 export function Header() {
   const { publicKey, connected } = useWallet();
   const isCreator = connected && publicKey?.toBase58() === CREATOR_WALLET;
@@ -49,6 +55,20 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          {MAGPIE_TOKEN_HREF ? (
+            <a
+              href={MAGPIE_TOKEN_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="whitespace-nowrap rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
+            >
+              {MAGPIE_TOKEN_LABEL}
+            </a>
+          ) : (
+            <span className="whitespace-nowrap rounded-full border border-[var(--hairline)] px-3 py-1 text-sm font-medium text-[var(--ink-faint)]">
+              {MAGPIE_TOKEN_LABEL}
+            </span>
+          )}
         </nav>
 
         {/* Right: admin (creator-only) + wallet + launch */}
