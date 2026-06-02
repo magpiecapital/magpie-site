@@ -8,6 +8,7 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
+import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -607,6 +608,7 @@ export default function DashboardPage() {
     distributions_count: number;
     estimated_next_payout_lamports: string;
   } | null>(null);
+  const [lpPosition, setLpPosition] = useState<DepositorInfo | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
   const [holdings, setHoldings] = useState<TokenHolding[]>([]);
   const [holdingsLoading, setHoldingsLoading] = useState(false);
@@ -900,6 +902,18 @@ export default function DashboardPage() {
       .then(d => { if (d.ok) setHolders(d.data?.data ?? d.data ?? null); })
       .catch(() => {});
   }, [connected, publicKey]);
+
+  // Fetch LP position (on-chain depositor PDA) when wallet connected.
+  // Same call as the /earn page — but here we surface it inline so users
+  // don't have to leave the dashboard to see their LP yield.
+  useEffect(() => {
+    if (!connected || !publicKey) { setLpPosition(null); return; }
+    let cancelled = false;
+    fetchDepositorPosition(connection, publicKey)
+      .then(pos => { if (!cancelled) setLpPosition(pos); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [connected, publicKey, connection]);
 
   // Fetch active loans + history. Polls every 30s so a freshly-opened or
   // freshly-repaid loan reflects within seconds of returning to the page.
@@ -1278,6 +1292,43 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+
+            {/* ─── TOTAL EARNED — aggregates LP + Referral + Holder rewards ─── */}
+            {(() => {
+              const lpEarned = lpPosition ? Math.max(0, lpPosition.yieldEarned) / LAMPORTS_PER_SOL : 0;
+              const referralEarned = referrals ? Number(referrals.lifetime_lamports) / LAMPORTS_PER_SOL : 0;
+              const holderEarned = holders ? Number(holders.paid_lamports) / LAMPORTS_PER_SOL : 0;
+              const totalEarned = lpEarned + referralEarned + holderEarned;
+              if (totalEarned <= 0) return null;
+              return (
+                <div className="mb-6 rounded-2xl border border-[var(--d-accent)]/30 bg-[var(--d-accent-dim)]/40 p-5 sm:p-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-accent-deep)]">
+                        Lifetime earned across Magpie
+                      </div>
+                      <div className="mt-1 font-display text-3xl font-semibold text-[var(--d-ink)] sm:text-4xl">
+                        {totalEarned.toFixed(6)} SOL
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 text-xs sm:gap-5">
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)]">LP yield</div>
+                        <div className="mt-0.5 font-mono text-sm text-[var(--d-ink)]">{lpEarned.toFixed(4)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)]">Referrals</div>
+                        <div className="mt-0.5 font-mono text-sm text-[var(--d-ink)]">{referralEarned.toFixed(4)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)]">Holder</div>
+                        <div className="mt-0.5 font-mono text-sm text-[var(--d-ink)]">{holderEarned.toFixed(4)}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ─── KPI CARDS ROW ─── */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
@@ -1745,6 +1796,48 @@ export default function DashboardPage() {
                     </Link>
                   </div>
                 )}
+
+                {/* LP POSITION CARD */}
+                <div id="section-lp" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
+                  <SectionHeader title="LP Position" compact />
+                  {lpPosition && lpPosition.depositedAmount > 0 ? (
+                    <>
+                      <div className="rounded-xl border border-[var(--d-accent)]/25 bg-[var(--d-accent-dim)]/30 p-3">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">
+                          Current value
+                        </div>
+                        <div className="mt-1 font-mono text-xl font-semibold text-[var(--d-ink)]">
+                          {(lpPosition.currentValue / LAMPORTS_PER_SOL).toFixed(6)} SOL
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-[var(--d-ink-faint)]">
+                          {lpPosition.yieldEarned >= 0 ? "+" : ""}
+                          {(lpPosition.yieldEarned / LAMPORTS_PER_SOL).toFixed(6)} SOL earned
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Deposited</div>
+                          <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
+                            {(lpPosition.depositedAmount / LAMPORTS_PER_SOL).toFixed(4)} SOL
+                          </div>
+                        </div>
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Shares</div>
+                          <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
+                            {lpPosition.shares.toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-sm text-[var(--d-ink-soft)]">
+                      No LP position yet. Deposit SOL → earn <span className="font-semibold text-[var(--d-accent-deep)]">80%</span> of every loan fee, pro-rata to your share.
+                    </p>
+                  )}
+                  <Link href="/earn" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
+                    {lpPosition && lpPosition.depositedAmount > 0 ? "Manage position →" : "Deposit SOL →"}
+                  </Link>
+                </div>
 
                 {/* REFERRAL CARD */}
                 <div id="section-referrals" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
