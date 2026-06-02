@@ -587,6 +587,16 @@ export default function DashboardPage() {
   const { publicKey, connected, wallets, select, connecting, disconnect } = useWallet();
   const { connection } = useConnection();
   const [liveCredit, setLiveCredit] = useState<any>(null);
+  const [referrals, setReferrals] = useState<{
+    linked: boolean;
+    code: string | null;
+    share_link: string | null;
+    referred_count: number;
+    borrowed_count: number;
+    lifetime_lamports: string;
+    paid_lamports: string;
+    claimable_lamports: string;
+  } | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
   const [holdings, setHoldings] = useState<TokenHolding[]>([]);
   const [holdingsLoading, setHoldingsLoading] = useState(false);
@@ -860,6 +870,15 @@ export default function DashboardPage() {
     fetch(`/api/v1/credit?wallet=${publicKey.toBase58()}`)
       .then(r => r.json())
       .then(d => { if (d.ok) setLiveCredit(d.data); })
+      .catch(() => {});
+  }, [connected, publicKey]);
+
+  // Fetch referral stats when wallet connected
+  useEffect(() => {
+    if (!connected || !publicKey) { setReferrals(null); return; }
+    fetch(`/api/v1/referrals?wallet=${publicKey.toBase58()}`)
+      .then(r => r.json())
+      .then(d => { if (d.ok) setReferrals(d.data); })
       .catch(() => {});
   }, [connected, publicKey]);
 
@@ -1707,6 +1726,59 @@ export default function DashboardPage() {
                     </Link>
                   </div>
                 )}
+
+                {/* REFERRAL CARD */}
+                <div id="section-referrals" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
+                  <SectionHeader title="Referrals" compact />
+                  {referrals?.linked ? (
+                    <>
+                      <div className="rounded-xl border border-[var(--d-accent)]/25 bg-[var(--d-accent-dim)]/30 p-3">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">
+                          Claimable
+                        </div>
+                        <div className="mt-1 font-mono text-xl font-semibold text-[var(--d-ink)]">
+                          {(Number(referrals.claimable_lamports) / 1e9).toFixed(6)} SOL
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Invited</div>
+                          <div className="mt-0.5 text-sm font-semibold text-[var(--d-ink)]">{referrals.referred_count}</div>
+                        </div>
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Borrowed</div>
+                          <div className="mt-0.5 text-sm font-semibold text-[var(--d-ink)]">{referrals.borrowed_count}</div>
+                        </div>
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Lifetime</div>
+                          <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">{(Number(referrals.lifetime_lamports) / 1e9).toFixed(4)}</div>
+                        </div>
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Paid</div>
+                          <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">{(Number(referrals.paid_lamports) / 1e9).toFixed(4)}</div>
+                        </div>
+                      </div>
+                      {referrals.share_link && (
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(referrals.share_link!).catch(() => {});
+                          }}
+                          className="mt-3 w-full break-all rounded-lg bg-[var(--d-bg)] px-3 py-2 text-left text-[11px] font-mono text-[var(--d-ink-soft)] hover:bg-[var(--d-border)]"
+                          title="Click to copy"
+                        >
+                          {referrals.share_link}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-[var(--d-ink-soft)]">
+                      Earn <span className="font-semibold text-[var(--d-accent-deep)]">5%</span> of every loan fee from friends you refer. Open the bot to get your link.
+                    </p>
+                  )}
+                  <Link href="/refer" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
+                    How referrals work &rarr;
+                  </Link>
+                </div>
 
                 {/* POINTS CARD */}
                 {prefs.points && (

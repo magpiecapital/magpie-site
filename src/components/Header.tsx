@@ -15,6 +15,7 @@ const NAV_LINKS = [
   { label: "Earn", href: "/earn" },
   { label: "Borrow", href: "/marketplace" },
   { label: "Tokens", href: "/tokens" },
+  { label: "Refer", href: "/refer" },
   { label: "Dashboard", href: "/dashboard" },
   { label: "Docs", href: "/docs" },
 ];
