@@ -119,3 +119,97 @@ export async function getTokenStats(): Promise<TokenStats> {
     stockCount: TOKEN_REGISTRY.filter((t) => t.category === "stock").length,
   };
 }
+
+/* ─────────────────────── POOL OVERVIEW (server-side) ─────────────────────── */
+
+export interface PoolOverview {
+  tvl_sol: number;
+  outstanding_sol: number;
+  utilization: number;
+  total_loans_issued: number;
+  total_liquidations: number;
+  loans_repaid: number;
+  active_loans: number;
+  lifetime_fees_sol: number;
+  fees_24h_sol: number;
+  paused: boolean;
+  recent_loans: Array<{
+    symbol: string | null;
+    status: string;
+    loan_amount_lamports: string;
+    fee_lamports: string;
+    timestamp: string;
+    event: string;
+  }>;
+}
+
+let poolCache: { data: PoolOverview; ts: number } | null = null;
+const POOL_TTL = 30_000;
+
+/**
+ * Headline protocol stats for the home page — TVL, loans issued, liquidations,
+ * 24h fees, etc. Pulled from the bot's /api/v1/pool/stats (live on-chain data).
+ * Cached 30s. Falls back to a neutral zero-state if the bot is unreachable.
+ */
+export async function getPoolOverview(): Promise<PoolOverview> {
+  const now = Date.now();
+  if (poolCache && now - poolCache.ts < POOL_TTL) return poolCache.data;
+
+  const botUrl = process.env.BOT_API_URL;
+  if (botUrl) {
+    try {
+      const res = await fetch(`${botUrl}/api/v1/pool/stats`, {
+        signal: AbortSignal.timeout(5_000),
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const d = await res.json();
+        const p = d?.pool ?? {};
+        const f = d?.fees ?? {};
+        const data: PoolOverview = {
+          tvl_sol: Number(p.total_deposits_sol ?? 0),
+          outstanding_sol: Number(p.total_borrowed_sol ?? 0),
+          utilization: Number(p.utilization ?? 0),
+          total_loans_issued: Number(p.total_loans_issued ?? 0),
+          total_liquidations: Number(p.total_liquidations ?? 0),
+          loans_repaid: 0,
+          active_loans: 0,
+          lifetime_fees_sol: Number(p.total_fees_earned_sol ?? 0),
+          fees_24h_sol: Number(f.last_24h_lamports ?? 0) / 1e9,
+          paused: !!p.paused,
+          recent_loans: Array.isArray(d?.recent_loans) ? d.recent_loans.slice(0, 6) : [],
+        };
+        // Backfill repaid+active from a quick DB count (the public stats
+        // endpoint doesn't break these out yet)
+        try {
+          const { rows } = await query(
+            `SELECT
+               COUNT(*) FILTER (WHERE status = 'active')::int     AS active,
+               COUNT(*) FILTER (WHERE status = 'repaid')::int     AS repaid
+             FROM loans`,
+          );
+          data.active_loans = rows[0]?.active ?? 0;
+          data.loans_repaid = rows[0]?.repaid ?? 0;
+        } catch { /* leave at 0 */ }
+
+        poolCache = { data, ts: now };
+        return data;
+      }
+    } catch { /* fall through */ }
+  }
+
+  if (poolCache) return poolCache.data;
+  return {
+    tvl_sol: 0,
+    outstanding_sol: 0,
+    utilization: 0,
+    total_loans_issued: 0,
+    total_liquidations: 0,
+    loans_repaid: 0,
+    active_loans: 0,
+    lifetime_fees_sol: 0,
+    fees_24h_sol: 0,
+    paused: false,
+    recent_loans: [],
+  };
+}
