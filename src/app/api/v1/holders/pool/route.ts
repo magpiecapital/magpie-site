@@ -17,10 +17,8 @@ function fallback() {
     data: {
       pool_lamports: "0",
       pool_sol: 0,
-      last_distribution_at: null,
       reward_bps: 1000,
       reward_pct: 10,
-      distribution_interval_days: 7,
       message: "Bot API unreachable",
     },
     protocol: "magpie-holders-v1",

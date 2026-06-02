@@ -606,7 +606,6 @@ export default function DashboardPage() {
     pending_lamports: string;
     distributions_count: number;
     estimated_next_payout_lamports: string;
-    seconds_until_next_distribution: number | null;
   } | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
   const [holdings, setHoldings] = useState<TokenHolding[]>([]);
@@ -1813,13 +1812,7 @@ export default function DashboardPage() {
                           ~{(Number(holders.estimated_next_payout_lamports) / 1e9).toFixed(6)} SOL
                         </div>
                         <div className="mt-0.5 text-[10px] text-[var(--d-ink-faint)]">
-                          Sent automatically · next: {(() => {
-                            const s = holders.seconds_until_next_distribution;
-                            if (s == null) return "first distribution pending";
-                            const d = Math.floor(s / 86400);
-                            const h = Math.floor((s % 86400) / 3600);
-                            return d > 0 ? `~${d}d ${h}h` : `~${h}h`;
-                          })()}
+                          Auto-sent · snapshots happen periodically
                         </div>
                       </div>
                       <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">

@@ -16,7 +16,6 @@ const HEADERS = {
 };
 
 const REWARD_BPS = 1000;
-const MIN_CLAIM = "5000000";
 
 function zeroState(wallet: string) {
   return {
@@ -28,11 +27,12 @@ function zeroState(wallet: string) {
       has_balance: false,
       reward_bps: REWARD_BPS,
       reward_pct: REWARD_BPS / 100,
-      min_claim_lamports: MIN_CLAIM,
       lifetime_lamports: "0",
       paid_lamports: "0",
-      claimable_lamports: "0",
+      pending_lamports: "0",
       distributions_count: 0,
+      estimated_next_payout_lamports: "0",
+      auto_distribute: true,
       message: "Bot API unreachable — try again in a moment.",
     },
     protocol: "magpie-holders-v1",

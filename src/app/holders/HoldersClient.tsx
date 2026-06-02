@@ -21,24 +21,12 @@ interface HolderData {
   pending_lamports: string;
   distributions_count: number;
   estimated_next_payout_lamports: string;
-  seconds_until_next_distribution: number | null;
   auto_distribute: boolean;
-}
-
-function fmtCountdown(seconds: number | null) {
-  if (seconds == null) return "first distribution pending";
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  if (d > 0) return `~${d}d ${h}h`;
-  const m = Math.floor((seconds % 3600) / 60);
-  return `~${h}h ${m}m`;
 }
 
 interface PoolData {
   pool_lamports: string;
   pool_sol: number;
-  last_distribution_at: string | null;
-  distribution_interval_days: number;
 }
 
 function fmtSol(lamports: string | number) {
@@ -116,10 +104,7 @@ export default function HoldersClient() {
                 {fmtSol(pool.pool_lamports)} SOL
               </div>
               <div className="mt-1 text-xs text-[var(--ink-faint)]">
-                Distributed every {pool.distribution_interval_days} days
-                {pool.last_distribution_at
-                  ? ` · last: ${new Date(pool.last_distribution_at).toLocaleDateString()}`
-                  : " · first distribution pending"}
+                Snapshots happen periodically — distributed pro-rata in SOL.
               </div>
             </div>
           )}
@@ -182,10 +167,7 @@ export default function HoldersClient() {
                   <Stat label="Lifetime received" value={`${fmtSol(data.paid_lamports)} SOL`} />
                   <Stat label="Distributions" value={data.distributions_count.toString()} />
                   <Stat label="Reward rate" value={`${data.reward_pct}%`} />
-                  <Stat
-                    label="Next in"
-                    value={fmtCountdown(data.seconds_until_next_distribution)}
-                  />
+                  <Stat label="Reward token" value="SOL" />
                 </div>
                 <div className="mt-5 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/10 p-4">
                   <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">
@@ -216,13 +198,14 @@ export default function HoldersClient() {
               Every borrow + extend on Magpie charges a fee. 80% flows to LPs, 5% to
               referrers, 10% to $MAGPIE holders, 5% to the protocol.
             </Step>
-            <Step n={2} title="Weekly snapshot">
-              Once a week, the protocol snapshots every wallet holding $MAGPIE on-chain
-              (excluding DEX pools, burn addresses, and protocol wallets).
+            <Step n={2} title="Periodic snapshots">
+              The protocol snapshots every wallet holding $MAGPIE on-chain (excluding
+              DEX pools and protocol accounts) at random intervals — keeping holders
+              honest and farmers out.
             </Step>
-            <Step n={3} title="Pro-rata payout">
-              The accrued pool is distributed proportionally to each holder's balance.
-              Your share is marked claimable — withdraw it as SOL whenever you want.
+            <Step n={3} title="Auto-paid in SOL">
+              Each holder's pro-rata share is sent directly to their wallet on the
+              snapshot. No claim button, no signing — SOL just appears.
             </Step>
           </div>
         </div>
@@ -274,9 +257,10 @@ export default function HoldersClient() {
               needed.
             </Faq>
             <Faq q="When do distributions happen?">
-              Every 7 days. The pool accrues continuously and is paid out at the end of
-              each interval. The next-distribution countdown is shown above when your
-              wallet is connected.
+              Periodically. Snapshots fire at random within an internal window — the
+              exact time isn't published, on purpose. This stops mercenary holders from
+              buying just before a snapshot and dumping right after. Long-term holders
+              catch more snapshots and earn proportionally more.
             </Faq>
             <Faq q="Which wallets are eligible?">
               Every on-chain $MAGPIE holder is eligible except: DEX pool accounts
