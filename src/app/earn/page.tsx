@@ -303,6 +303,15 @@ export default function EarnPage() {
               Deposit SOL once. Yield accrues automatically from borrower fees.
               No staking, no claiming, no lockups. Withdraw anytime.
             </p>
+            <div className="mt-5 fade-up fade-up-3">
+              <Link
+                href="/holders"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/5 px-4 py-2 text-sm font-medium text-[var(--accent-deep)] transition hover:border-[var(--accent)] hover:bg-[var(--accent)]/10"
+              >
+                <span>💎</span>
+                <span>Prefer to earn without depositing? Hold $MAGPIE → 10% of every loan fee →</span>
+              </Link>
+            </div>
           </div>
         </section>
 

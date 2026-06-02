@@ -221,12 +221,12 @@ export default async function Home() {
             <Link href="/earn" className="btn-ghost text-sm sm:text-base">
               Earn yield
             </Link>
+            <Link href="/holders" className="btn-ghost text-sm sm:text-base">
+              💎 Hold $MAGPIE · earn 10%
+            </Link>
             <Link href="/tokens" className="btn-ghost text-sm sm:text-base">
               {TOKEN_COUNT} approved tokens
             </Link>
-            <a href={X_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost text-sm sm:text-base">
-              Follow on 𝕏
-            </a>
           </div>
 
           <div className="fade-up fade-up-4 mt-12 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-16">
@@ -281,11 +281,76 @@ export default async function Home() {
             {" "}<span className="italic text-[var(--accent-deep)]">supply liquidity</span>{" "}
             to earn yield. Anyone can
             {" "}<span className="italic text-[var(--accent-deep)]">borrow SOL</span>{" "}
-            against memecoins and tokenized stocks. And anyone can
+            against memecoins and tokenized stocks. Anyone can
+            {" "}<span className="italic text-[var(--accent-deep)]">hold $MAGPIE</span>{" "}
+            to earn 10% of every loan fee, distributed automatically. And anyone can
             {" "}<span className="italic text-[var(--accent-deep)]">run a keeper</span>{" "}
-            to earn bounties on liquidations. Every repayment builds your on-chain credit score.
+            to earn bounties on liquidations.
           </p>
         </Reveal>
+      </section>
+
+      {/* Three ways to earn */}
+      <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24">
+          <Reveal>
+            <div className="chip mb-4 md:mb-5">Three ways to earn</div>
+            <h2 className="font-display max-w-4xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
+              Every loan pays.<br />
+              <span className="italic">Pick your side of the trade.</span>
+            </h2>
+          </Reveal>
+          <div className="mt-10 grid gap-5 md:mt-16 md:grid-cols-3">
+            <Link
+              href="/earn"
+              className="group rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 transition hover:border-[var(--accent)]/40 hover:bg-[var(--surface)]"
+            >
+              <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">Supply liquidity</div>
+              <div className="mt-3 font-display text-2xl font-medium tracking-tight">
+                Deposit SOL · earn 80% of all fees
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
+                Be the lender. Your SOL funds loans across hundreds of memecoins, and you keep
+                the lion&apos;s share of every fee they pay.
+              </p>
+              <div className="mt-5 text-sm font-medium text-[var(--accent-deep)] underline-offset-4 group-hover:underline">
+                Open the LP →
+              </div>
+            </Link>
+            <Link
+              href="/holders"
+              className="group rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent)]/5 p-6 transition hover:border-[var(--accent)] hover:bg-[var(--accent)]/10"
+            >
+              <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">💎 Hold $MAGPIE · NEW</div>
+              <div className="mt-3 font-display text-2xl font-medium tracking-tight">
+                Earn 10% of every loan fee
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
+                Every $MAGPIE in your wallet is a passive stream. Snapshots happen periodically;
+                SOL hits your wallet automatically. No staking, no claim, no signing.
+              </p>
+              <div className="mt-5 text-sm font-medium text-[var(--accent-deep)] underline-offset-4 group-hover:underline">
+                See your share →
+              </div>
+            </Link>
+            <Link
+              href="/refer"
+              className="group rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 transition hover:border-[var(--accent)]/40 hover:bg-[var(--surface)]"
+            >
+              <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">Refer friends</div>
+              <div className="mt-3 font-display text-2xl font-medium tracking-tight">
+                Earn 5% of their loan fees
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
+                Share your link. Every loan your referrals take pays you 5% of the fee, for
+                life. Paid in SOL on demand.
+              </p>
+              <div className="mt-5 text-sm font-medium text-[var(--accent-deep)] underline-offset-4 group-hover:underline">
+                Grab your link →
+              </div>
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* Token logo marquee */}
