@@ -24,11 +24,6 @@ interface HolderData {
   auto_distribute: boolean;
 }
 
-interface PoolData {
-  pool_lamports: string;
-  pool_sol: number;
-}
-
 function fmtSol(lamports: string | number) {
   const n = typeof lamports === "string" ? Number(lamports) : lamports;
   return (n / 1e9).toFixed(6);
@@ -44,16 +39,7 @@ function fmtMagpie(raw: string | number) {
 export default function HoldersClient() {
   const { connected, publicKey } = useWallet();
   const [data, setData] = useState<HolderData | null>(null);
-  const [pool, setPool] = useState<PoolData | null>(null);
   const [loading, setLoading] = useState(false);
-
-  // Fetch pool size (public, always shown)
-  useEffect(() => {
-    fetch("/api/v1/holders/pool")
-      .then((r) => r.json())
-      .then((j) => setPool(j?.data ?? null))
-      .catch(() => {});
-  }, []);
 
   // Fetch user holder data when wallet connected
   useEffect(() => {
@@ -95,19 +81,9 @@ export default function HoldersClient() {
             holder pro-rata. Real yield, on-chain payout, no staking, no lockup.
           </p>
 
-          {pool && (
-            <div className="mt-8 inline-block rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-6 py-4">
-              <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">
-                Pool accruing now
-              </div>
-              <div className="mt-1 font-mono text-2xl font-semibold text-[var(--accent)]">
-                {fmtSol(pool.pool_lamports)} SOL
-              </div>
-              <div className="mt-1 text-xs text-[var(--ink-faint)]">
-                Snapshots happen periodically — distributed pro-rata in SOL.
-              </div>
-            </div>
-          )}
+          {/* Pool size intentionally hidden from the public hero — pairing
+              pool size with accrual rate would let mercenary holders estimate
+              when a distribution is imminent. The accrual is invisible. */}
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <a href={PUMP_URL} target="_blank" rel="noopener noreferrer" className="btn-accent shimmer text-sm sm:text-base">
