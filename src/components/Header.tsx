@@ -22,7 +22,7 @@ const NAV_LINKS = [
 // $MAGPIE token nav slot. href is a placeholder until the official link
 // is provided — when set, surfaces alongside the main nav in the header
 // and as the last item in the mobile drawer.
-const MAGPIE_TOKEN_HREF: string | null = null; // ← set this when you have the link
+const MAGPIE_TOKEN_HREF: string | null = "https://pump.fun/coin/9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump";
 const MAGPIE_TOKEN_LABEL = "$MAGPIE";
 
 export function Header() {

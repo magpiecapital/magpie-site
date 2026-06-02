@@ -12,7 +12,7 @@ const CREATOR_WALLET = "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx";
 // $MAGPIE token nav slot — mirror of the one in Header.tsx. Renders as
 // a disabled/muted pill while MAGPIE_TOKEN_HREF is null; becomes a clickable
 // accent pill once the URL is set.
-const MAGPIE_TOKEN_HREF: string | null = null;
+const MAGPIE_TOKEN_HREF: string | null = "https://pump.fun/coin/9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump";
 const MAGPIE_TOKEN_LABEL = "$MAGPIE";
 
 const NAV_SECTIONS = [
