@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { LiveActivityFeed } from "@/components/LiveActivityFeed";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -188,6 +189,20 @@ export default function StatsClient() {
             description="5% of every borrower's lifetime fees flows to whoever referred them. Claim any time."
           />
         </div>
+      </section>
+
+      {/* ── Live activity feed — the protocol breathing ── */}
+      <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+        <div className="mb-6 flex items-baseline justify-between">
+          <h2 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
+            Live activity
+          </h2>
+          <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+            Streaming
+          </span>
+        </div>
+        <LiveActivityFeed />
       </section>
 
       {/* ── User-growth strip ── */}
