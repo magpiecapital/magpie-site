@@ -370,6 +370,68 @@ export default function CalculatorClient() {
           </div>
         </div>
 
+        {/* Cheaper-than-selling comparison — the strategic wedge.
+            Re-frames the user's mental model: their real alternative
+            isn't another lender, it's SELLING. Show the cost gap. */}
+        {hasResults && (
+          <div className="mt-10 rounded-3xl border border-[var(--accent)] bg-gradient-to-br from-[var(--accent-dim)] to-[var(--bg-elevated)] p-8 md:p-10">
+            <div className="mb-6 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
+              <div>
+                <div className="chip mb-3">Why borrow vs sell?</div>
+                <h3 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
+                  Borrowing is <span className="italic text-[var(--accent-deep)]">cheaper than selling</span>
+                </h3>
+                <p className="mt-2 max-w-2xl text-sm text-[var(--ink-soft)] leading-relaxed">
+                  Your real alternative isn&apos;t another lender — it&apos;s selling your bag. Here&apos;s the cost gap on Standard tier:
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+              {/* If you sold */}
+              <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">If you sold</div>
+                <div className="mt-2 font-display tabular text-3xl font-medium tracking-[-0.02em] text-red-600 md:text-4xl">
+                  −{fmtUsd(collateralValueUsd! * 0.02)}
+                </div>
+                <div className="mt-1 text-xs text-[var(--ink-soft)]">~2% slippage on most memecoins</div>
+                <div className="mt-4 space-y-1 text-xs text-[var(--ink-soft)]">
+                  <div>• Plus capital gains tax (jurisdiction-dependent)</div>
+                  <div>• You no longer hold the bag — miss any upside</div>
+                  <div>• Irreversible</div>
+                </div>
+              </div>
+
+              {/* If you Magpie */}
+              <div className="rounded-2xl border-2 border-[var(--accent-deep)] bg-[var(--bg-elevated)] p-6">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--accent-deep)]">If you Magpie · Standard</div>
+                <div className="mt-2 font-display tabular text-3xl font-medium tracking-[-0.02em] text-[var(--accent-deep)] md:text-4xl">
+                  −{fmtUsd(tierCalcs[2]?.feeUsd ?? 0)}
+                </div>
+                <div className="mt-1 text-xs text-[var(--ink-soft)]">1.5% one-time fee, no tax event</div>
+                <div className="mt-4 space-y-1 text-xs text-[var(--ink-soft)]">
+                  <div>• Keep the full {numAmount.toLocaleString()} {selectedToken?.symbol} bag</div>
+                  <div>• Receive {fmtSol(tierCalcs[2]?.loanSol ?? 0)} SOL</div>
+                  <div>• Reclaim by repaying — fully reversible</div>
+                </div>
+              </div>
+            </div>
+
+            {(() => {
+              const sellLoss = collateralValueUsd! * 0.02;
+              const borrowFee = tierCalcs[2]?.feeUsd ?? 0;
+              const saved = Math.max(0, sellLoss - borrowFee);
+              return (
+                <div className="mt-6 rounded-2xl bg-[var(--ink)] px-5 py-4 text-[var(--bg-elevated)]">
+                  <span className="font-display text-base font-medium md:text-lg">
+                    You save <span className="text-[var(--accent)]">{fmtUsd(saved)}</span> by borrowing instead of selling — and you keep the bag.
+                  </span>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
         {/* Tier cards */}
         {hasResults && (
           <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">

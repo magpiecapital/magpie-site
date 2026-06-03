@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
 import { TokenMarquee } from "@/components/TokenMarquee";
+import { LiveProtocolTicker } from "@/components/LiveProtocolTicker";
 import { getTokenStats, getPoolOverview } from "@/lib/db";
 
 export const revalidate = 60;
@@ -258,6 +259,11 @@ export default async function Home() {
               <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Non-custodial & on-chain</div>
             </div>
           </div>
+
+          {/* Live protocol ticker — auto-loads from /api/v1/transparency.
+              Renders nothing if data unavailable, so the layout always
+              feels intentional even on a cold cache. */}
+          <LiveProtocolTicker />
 
           {/* Floating mark */}
           <div className="pointer-events-none absolute right-8 top-32 hidden opacity-90 lg:block">
