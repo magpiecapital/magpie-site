@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import StatsClient from "./StatsClient";
 
 export const metadata: Metadata = {
-  title: "Protocol Stats | Magpie",
+  title: "Protocol Transparency | Magpie",
   description:
-    "Real-time metrics from the Magpie lending protocol. Total loans, volume, collateral distribution, and live activity feed.",
+    "Live protocol stats — every loan, every reward, every dollar. Verifiable on-chain. Magpie's transparency dashboard.",
   openGraph: {
-    title: "Protocol Stats | Magpie",
+    title: "Protocol Transparency | Magpie",
     description:
-      "Live dashboard showing Magpie lending protocol statistics — loans originated, SOL lent, TVL, and more.",
+      "Real-time protocol metrics — TVL, default rate, holder rewards, LP loyalty distributions, referral payouts. All public.",
   },
 };
 

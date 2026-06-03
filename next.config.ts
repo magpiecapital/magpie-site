@@ -7,6 +7,13 @@ const nextConfig: NextConfig = {
       buffer: "buffer",
     },
   },
+  async redirects() {
+    return [
+      // /transparency is the canonical (and more shareable) URL for the
+      // protocol transparency dashboard. /stats stays as alias for SEO.
+      { source: "/transparency", destination: "/stats", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;
