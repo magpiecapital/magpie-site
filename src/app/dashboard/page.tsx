@@ -1784,49 +1784,7 @@ export default function DashboardPage() {
               {/* ─── RIGHT COLUMN (4/12) ─── */}
               <div className="xl:col-span-4 flex flex-col gap-6">
 
-                {/* CREDIT SCORE CARD */}
-                {prefs.credit && (
-                  <div id="section-credit" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
-                    <SectionHeader title="Credit Score" compact />
-                    {liveCredit ? (
-                      <>
-                        <div className="flex flex-col items-center">
-                          <CreditGauge score={liveCredit.score} tier={creditTier} />
-                          {liveCredit.change !== undefined && liveCredit.change !== 0 && (
-                            <div className="mt-2 flex items-center gap-1.5">
-                              <span className="text-xs font-semibold" style={{ color: "var(--d-accent-deep)" }}>
-                                {liveCredit.change > 0 ? "+" : ""}{liveCredit.change}
-                              </span>
-                              <span className="text-[11px] text-[var(--d-ink-faint)]">this month</span>
-                            </div>
-                          )}
-                        </div>
-                        {/* Factors */}
-                        {liveCredit.factors && (
-                          <div className="mt-5 flex flex-col gap-2.5">
-                            {liveCredit.factors.repaymentHistory !== undefined && <FactorBar label="Repayment" value={liveCredit.factors.repaymentHistory} />}
-                            {liveCredit.factors.loanVolume !== undefined && <FactorBar label="Volume" value={liveCredit.factors.loanVolume} />}
-                            {liveCredit.factors.accountAge !== undefined && <FactorBar label="Account Age" value={liveCredit.factors.accountAge} />}
-                            {liveCredit.factors.diversity !== undefined && <FactorBar label="Diversity" value={liveCredit.factors.diversity} />}
-                            {liveCredit.factors.liquidations !== undefined && <FactorBar label="Liquidations" value={liveCredit.factors.liquidations} />}
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="flex flex-col items-center py-6">
-                        <CreditGauge score={0} tier="Unranked" />
-                        <p className="mt-4 text-center text-sm text-[var(--d-ink-soft)]">
-                          No credit score yet — take your first loan to start building credit
-                        </p>
-                      </div>
-                    )}
-                    <Link href="/credit" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
-                      How credit scoring works &rarr;
-                    </Link>
-                  </div>
-                )}
-
-                {/* LP POSITION CARD */}
+                {/* LP POSITION CARD — Top of right column so LPs see their position first */}
                 <div id="section-lp" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
                   <SectionHeader title="LP Position" compact />
                   {lpPosition && lpPosition.depositedAmount > 0 ? (
@@ -1894,6 +1852,48 @@ export default function DashboardPage() {
                     {lpPosition && lpPosition.depositedAmount > 0 ? "Manage position →" : "Deposit SOL →"}
                   </Link>
                 </div>
+
+                {/* CREDIT SCORE CARD */}
+                {prefs.credit && (
+                  <div id="section-credit" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
+                    <SectionHeader title="Credit Score" compact />
+                    {liveCredit ? (
+                      <>
+                        <div className="flex flex-col items-center">
+                          <CreditGauge score={liveCredit.score} tier={creditTier} />
+                          {liveCredit.change !== undefined && liveCredit.change !== 0 && (
+                            <div className="mt-2 flex items-center gap-1.5">
+                              <span className="text-xs font-semibold" style={{ color: "var(--d-accent-deep)" }}>
+                                {liveCredit.change > 0 ? "+" : ""}{liveCredit.change}
+                              </span>
+                              <span className="text-[11px] text-[var(--d-ink-faint)]">this month</span>
+                            </div>
+                          )}
+                        </div>
+                        {/* Factors */}
+                        {liveCredit.factors && (
+                          <div className="mt-5 flex flex-col gap-2.5">
+                            {liveCredit.factors.repaymentHistory !== undefined && <FactorBar label="Repayment" value={liveCredit.factors.repaymentHistory} />}
+                            {liveCredit.factors.loanVolume !== undefined && <FactorBar label="Volume" value={liveCredit.factors.loanVolume} />}
+                            {liveCredit.factors.accountAge !== undefined && <FactorBar label="Account Age" value={liveCredit.factors.accountAge} />}
+                            {liveCredit.factors.diversity !== undefined && <FactorBar label="Diversity" value={liveCredit.factors.diversity} />}
+                            {liveCredit.factors.liquidations !== undefined && <FactorBar label="Liquidations" value={liveCredit.factors.liquidations} />}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center py-6">
+                        <CreditGauge score={0} tier="Unranked" />
+                        <p className="mt-4 text-center text-sm text-[var(--d-ink-soft)]">
+                          No credit score yet — take your first loan to start building credit
+                        </p>
+                      </div>
+                    )}
+                    <Link href="/credit" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
+                      How credit scoring works &rarr;
+                    </Link>
+                  </div>
+                )}
 
                 {/* REFERRAL CARD */}
                 <div id="section-referrals" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
