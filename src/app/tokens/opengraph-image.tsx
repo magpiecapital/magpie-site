@@ -18,8 +18,9 @@ export default async function Image() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "80px",
-          background:
-            "radial-gradient(ellipse 900px 600px at 15% 10%, rgba(247, 201, 72, 0.28), transparent 70%), radial-gradient(ellipse 800px 600px at 85% 70%, rgba(201, 154, 44, 0.18), transparent 70%), #fbfaf3",
+          backgroundColor: "#fbfaf3",
+          backgroundImage:
+            "radial-gradient(ellipse 900px 600px at 15% 10%, rgba(247, 201, 72, 0.28), transparent 70%), radial-gradient(ellipse 800px 600px at 85% 70%, rgba(201, 154, 44, 0.18), transparent 70%)",
           fontFamily: "serif",
           color: "#0a0a0a",
         }}
@@ -33,7 +34,7 @@ export default async function Image() {
             <circle cx="30" cy="14" r="1" fill="#ffffff" />
             <circle cx="43" cy="13" r="2.4" fill="#f7c948" />
           </svg>
-          <div style={{ fontSize: 36, fontWeight: 600, letterSpacing: "-0.02em" }}>
+          <div style={{ display: "flex", fontSize: 36, fontWeight: 600, letterSpacing: "-0.02em" }}>
             magpie · approved tokens
           </div>
         </div>
@@ -41,20 +42,17 @@ export default async function Image() {
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           <div
             style={{
-              fontSize: 140,
+              display: "flex",
+              fontSize: 108,
               fontWeight: 500,
               letterSpacing: "-0.045em",
-              lineHeight: 0.92,
-              display: "flex",
-              alignItems: "baseline",
-              gap: 24,
+              lineHeight: 0.95,
             }}
           >
-            <span style={{ color: "#c99a2c", fontStyle: "italic" }}>{count}</span>
-            <span style={{ fontSize: 56, color: "#5c5a52", fontStyle: "normal" }}>tokens accepted</span>
+            <span style={{ color: "#c99a2c", fontStyle: "italic" }}>{`${count}+ tokens`}</span>
           </div>
-          <div style={{ fontSize: 28, color: "#5c5a52", letterSpacing: "-0.01em" }}>
-            Borrow SOL against {memeCount} memecoins + {stockCount} tokenized stocks. Permissionless approval. Token-2022 supported.
+          <div style={{ display: "flex", fontSize: 26, color: "#5c5a52", letterSpacing: "-0.01em" }}>
+            Borrow SOL against memecoins + tokenized stocks. Permissionless approval, Token-2022 supported.
           </div>
         </div>
 
@@ -69,19 +67,19 @@ export default async function Image() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 32, fontSize: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>{memeCount}</div>
-              memecoins
+              <div style={{ display: "flex", fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>{`${memeCount}`}</div>
+              <div style={{ display: "flex" }}>memecoins</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>{stockCount}</div>
-              tokenized stocks
+              <div style={{ display: "flex", fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>{`${stockCount}`}</div>
+              <div style={{ display: "flex" }}>stocks</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>6-layer</div>
-              scam audit
+              <div style={{ display: "flex", fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>6-layer</div>
+              <div style={{ display: "flex" }}>scam audit</div>
             </div>
           </div>
-          <div style={{ fontWeight: 600, color: "#0a0a0a" }}>magpie.capital/tokens</div>
+          <div style={{ display: "flex", fontWeight: 600, color: "#0a0a0a" }}>magpie.capital/tokens</div>
         </div>
       </div>
     ),
