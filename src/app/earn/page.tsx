@@ -135,6 +135,44 @@ export default function EarnPage() {
     return () => clearInterval(interval);
   }, [refresh]);
 
+  /**
+   * Confirm a transaction by POLLING signature status instead of relying
+   * on the default 30s blockhash-expiration strategy. Solana's default
+   * confirmTransaction throws "not confirmed in 30 seconds" even when
+   * the tx is actually confirming on-chain — just slowly during
+   * congestion. This polls every 1.5s up to 90s and returns success
+   * the moment the tx is in.
+   *
+   * Returns:
+   *   { ok: true } on success
+   *   { ok: false, err } on on-chain failure
+   *   { ok: false, pending: true } if 90s passed with no resolution
+   *     (caller can still treat as ambiguous and direct user to explorer)
+   */
+  const confirmWithPoll = useCallback(
+    async (sig: string, timeoutMs = 90_000): Promise<{ ok: boolean; pending?: boolean; err?: unknown }> => {
+      const start = Date.now();
+      const POLL_INTERVAL_MS = 1_500;
+      while (Date.now() - start < timeoutMs) {
+        try {
+          const res = await connection.getSignatureStatuses([sig], { searchTransactionHistory: true });
+          const s = res?.value?.[0];
+          if (s) {
+            if (s.err) return { ok: false, err: s.err };
+            if (s.confirmationStatus === "confirmed" || s.confirmationStatus === "finalized") {
+              return { ok: true };
+            }
+          }
+        } catch {
+          /* transient RPC error — keep polling */
+        }
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      }
+      return { ok: false, pending: true };
+    },
+    [connection],
+  );
+
   // Handle deposit
   const handleDeposit = async () => {
     if (!publicKey || !amount) return;
@@ -144,13 +182,22 @@ export default function EarnPage() {
     setTxPending(true);
     setTxError(null);
     setTxResult(null);
+    let sig = "";
     try {
       const tx = await buildDepositTransaction(connection, publicKey, lamports);
-      const sig = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(sig, "confirmed");
-      setTxResult({ sig, type: "deposit" });
-      setAmount("");
-      refresh();
+      sig = await sendTransaction(tx, connection);
+      const r = await confirmWithPoll(sig);
+      if (r.ok) {
+        setTxResult({ sig, type: "deposit" });
+        setAmount("");
+        refresh();
+      } else if (r.pending) {
+        setTxError(
+          `Tx submitted but not confirmed in 90s. It usually still lands — check https://solscan.io/tx/${sig} in a minute. If it shows Success, your deposit is in.`,
+        );
+      } else {
+        setTxError(`On-chain error: ${JSON.stringify(r.err)}`);
+      }
     } catch (e: unknown) {
       setTxError(e instanceof Error ? e.message : "Transaction failed");
     } finally {
@@ -173,13 +220,22 @@ export default function EarnPage() {
     setTxPending(true);
     setTxError(null);
     setTxResult(null);
+    let sig = "";
     try {
       const tx = await buildWithdrawTransaction(connection, publicKey, shares);
-      const sig = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(sig, "confirmed");
-      setTxResult({ sig, type: "withdraw" });
-      setAmount("");
-      refresh();
+      sig = await sendTransaction(tx, connection);
+      const r = await confirmWithPoll(sig);
+      if (r.ok) {
+        setTxResult({ sig, type: "withdraw" });
+        setAmount("");
+        refresh();
+      } else if (r.pending) {
+        setTxError(
+          `Tx submitted but not confirmed in 90s. It usually still lands — check https://solscan.io/tx/${sig} in a minute. If it shows Success, your withdrawal completed.`,
+        );
+      } else {
+        setTxError(`On-chain error: ${JSON.stringify(r.err)}`);
+      }
     } catch (e: unknown) {
       setTxError(e instanceof Error ? e.message : "Transaction failed");
     } finally {
