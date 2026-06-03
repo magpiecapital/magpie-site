@@ -57,8 +57,12 @@ const TIERS = [
     subtitle: "Getting Started",
     ltv: "20 – 30%",
     fee: "1.5–3%",
-    term: "7 days",
-    perks: ["Standard LTV rates", "1.5–3% origination fee (tier-dependent)", "Standard loan terms"],
+    term: "2–7 days",
+    perks: [
+      "Full access to all loan tiers (Express / Quick / Standard)",
+      "All 280+ approved collateral tokens",
+      "Build reputation with every on-time repayment",
+    ],
     color: "#cd7f32",
     colorDim: "rgba(205,127,50,0.12)",
     borderColor: "rgba(205,127,50,0.3)",
@@ -67,10 +71,14 @@ const TIERS = [
     name: "Silver",
     range: "500 – 649",
     subtitle: "Established",
-    ltv: "22 – 32%",
+    ltv: "20 – 30%",
     fee: "1.5–3%",
-    term: "7 days",
-    perks: ["+2% LTV bonus", "1.5–3% origination fee (tier-dependent)", "Priority support"],
+    term: "2–7 days",
+    perks: [
+      "Status badge on dashboard + leaderboard placement",
+      "Visible track record for future protocols that integrate Magpie credit",
+      "Compounds toward Gold + Platinum",
+    ],
     color: "#a8acb4",
     colorDim: "rgba(168,172,180,0.12)",
     borderColor: "rgba(168,172,180,0.3)",
@@ -79,10 +87,14 @@ const TIERS = [
     name: "Gold",
     range: "650 – 749",
     subtitle: "Trusted",
-    ltv: "25 – 35%",
-    fee: "1.25–2.75%",
-    term: "14 days",
-    perks: ["+5% LTV bonus", "Reduced fees (1.25–2.75%)", "Extended terms (14 days)", "Exclusive token access"],
+    ltv: "20 – 30%",
+    fee: "1.5–3%",
+    term: "2–7 days",
+    perks: [
+      "Premium status badge on dashboard + leaderboard",
+      "Trusted-borrower signal for third-party protocols querying the on-chain credit oracle",
+      "Eligible for upcoming tier-gated perks",
+    ],
     color: "var(--accent)",
     colorDim: "var(--accent-dim)",
     borderColor: "var(--accent-deep)",
@@ -92,10 +104,14 @@ const TIERS = [
     name: "Platinum",
     range: "750 – 850",
     subtitle: "Elite",
-    ltv: "28 – 38%",
-    fee: "1.0–2.5%",
-    term: "30 days",
-    perks: ["+8% LTV bonus", "Lowest fees (1.0–2.5%)", "Custom terms (30 days)", "Early access to features", "Dedicated support"],
+    ltv: "20 – 30%",
+    fee: "1.5–3%",
+    term: "2–7 days",
+    perks: [
+      "Top-tier status badge — sustained zero-liquidation track record",
+      "Public proof-of-reliability on-chain (BBYtty9s… credit oracle)",
+      "First in line for tier-gated upgrades when they ship",
+    ],
     color: "#e8e6e0",
     colorDim: "rgba(232,230,224,0.15)",
     borderColor: "rgba(232,230,224,0.4)",
@@ -113,12 +129,13 @@ const SIM_ACTIONS = [
 ];
 
 const COMPARISON = [
-  { label: "Max LTV", bronze: "30%", silver: "32%", gold: "35%", platinum: "38%" },
-  { label: "Fee", bronze: "1.5–3%", silver: "1.5–3%", gold: "1.25–2.75%", platinum: "1.0–2.5%" },
-  { label: "Max Term", bronze: "7 days", silver: "7 days", gold: "14 days", platinum: "30 days" },
-  { label: "Priority Support", bronze: false, silver: true, gold: true, platinum: true },
-  { label: "Exclusive Tokens", bronze: false, silver: false, gold: true, platinum: true },
-  { label: "Custom Terms", bronze: false, silver: false, gold: false, platinum: true },
+  { label: "Max LTV", bronze: "30%", silver: "30%", gold: "30%", platinum: "30%" },
+  { label: "Fee", bronze: "1.5–3%", silver: "1.5–3%", gold: "1.5–3%", platinum: "1.5–3%" },
+  { label: "Max Term", bronze: "7 days", silver: "7 days", gold: "7 days", platinum: "7 days" },
+  { label: "Tier badge on dashboard", bronze: true, silver: true, gold: true, platinum: true },
+  { label: "Leaderboard placement", bronze: false, silver: true, gold: true, platinum: true },
+  { label: "On-chain reputation signal", bronze: false, silver: true, gold: true, platinum: true },
+  { label: "First in line for tier-gated upgrades", bronze: false, silver: false, gold: true, platinum: true },
 ];
 
 const FAQ = [
@@ -574,8 +591,16 @@ export default function CreditClient() {
           <Reveal>
             <div className="chip mb-5">Credit tiers</div>
             <h2 className="font-display max-w-3xl text-5xl font-medium tracking-[-0.03em] md:text-7xl">
-              Climb higher. <span className="italic text-[var(--ink-soft)]">Borrow better.</span>
+              Climb higher. <span className="italic text-[var(--ink-soft)]">Build reputation.</span>
             </h2>
+            <p className="mt-5 max-w-3xl text-sm leading-relaxed text-[var(--ink-soft)] md:text-base">
+              <strong className="text-[var(--ink)]">Honest note on tier perks today:</strong> the on-chain lending program currently
+              charges the same LTV, fee, and term to every borrower (30% max LTV · 1.5–3% fee · 2–7 days). Tier today
+              is a <em>reputation signal</em> — written to the public credit oracle, visible on your dashboard, queryable
+              by other protocols. Tier-gated economic perks (boosted LTV, lower fees, longer terms) require a program
+              upgrade we&apos;ll ship once volume justifies the audit. Until then, climbing the tiers is reputation,
+              not rate.
+            </p>
           </Reveal>
 
           <div className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

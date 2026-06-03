@@ -227,6 +227,9 @@ export default async function Home() {
             <Link href="/holders" className="btn-ghost text-sm sm:text-base">
               💎 Hold $MAGPIE · earn 10%
             </Link>
+            <Link href="/credit" className="btn-ghost text-sm sm:text-base">
+              ★ Build on-chain credit
+            </Link>
             <Link href="/tokens" className="btn-ghost text-sm sm:text-base">
               {TOKEN_COUNT} approved tokens
             </Link>
@@ -360,6 +363,54 @@ export default async function Home() {
                 Grab your link →
               </div>
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════ ON-CHAIN CREDIT ══════════ */}
+      <section className="border-b border-[var(--hairline)] bg-[var(--bg)]">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24">
+          <Reveal>
+            <div className="chip mb-4 md:mb-5">★ On-chain credit</div>
+            <h2 className="font-display max-w-4xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
+              Every repayment builds your reputation.
+              <br />
+              <span className="italic text-[var(--ink-soft)]">Portable. Verifiable. Yours.</span>
+            </h2>
+            <p className="mt-4 max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-6 sm:text-lg">
+              Magpie writes a 300–850 credit score to an on-chain oracle for every active
+              borrower. Repay on time, your score climbs. Get liquidated, it drops. Future
+              protocols that read this oracle can offer better terms to reliable borrowers
+              — your reputation goes wherever your wallet goes.
+            </p>
+          </Reveal>
+
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4 md:mt-12 md:gap-4">
+            {[
+              { tier: "Bronze", range: "300–499", color: "#cd7f32" },
+              { tier: "Silver", range: "500–649", color: "#a8acb4" },
+              { tier: "Gold", range: "650–749", color: "var(--accent)" },
+              { tier: "Platinum", range: "750–850", color: "#e8e6e0" },
+            ].map((t) => (
+              <div
+                key={t.tier}
+                className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5"
+              >
+                <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">{t.tier}</div>
+                <div className="mt-2 font-display text-2xl font-medium tracking-tight" style={{ color: t.color }}>
+                  {t.range}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 flex flex-wrap items-center gap-3">
+            <Link href="/credit" className="btn-accent text-sm sm:text-base">
+              See how the score moves
+            </Link>
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost text-sm sm:text-base">
+              Check your score in TG
+            </a>
           </div>
         </div>
       </section>

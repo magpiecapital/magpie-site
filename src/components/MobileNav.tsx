@@ -23,6 +23,7 @@ const NAV_SECTIONS = [
       { label: "Earn", href: "/earn", icon: "◉" },
       { label: "Borrow", href: "/marketplace", icon: "⇄" },
       { label: "Approved Tokens", href: "/tokens", icon: "◈" },
+      { label: "Credit Score", href: "/credit", icon: "★" },
       { label: "$MAGPIE Holders", href: "/holders", icon: "💎" },
       { label: "Refer & Earn", href: "/refer", icon: "🎁" },
       { label: "Dashboard", href: "/dashboard", icon: "▦" },
@@ -32,7 +33,6 @@ const NAV_SECTIONS = [
     heading: "Tools",
     links: [
       { label: "Loan Calculator", href: "/calculate", icon: "⊞" },
-      { label: "Credit Score", href: "/credit", icon: "★" },
       { label: "Points & Rewards", href: "/points", icon: "◆" },
       { label: "Keeper Network", href: "/earn#keeper", icon: "⚡" },
       { label: "Protocol Stats", href: "/stats", icon: "◎" },
