@@ -235,30 +235,27 @@ export default async function Home() {
             </Link>
           </div>
 
-          {/* Live protocol stats — pulled from the bot's on-chain reads.
-              Refreshed every ~30s via server-side cache. */}
+          {/* Hero value-prop strip. Qualitative claims that hold up regardless
+              of protocol scale — speed, cost, safety, selection. The detailed
+              live metrics (TVL, loans issued, fees) live in the "Protocol in
+              numbers" section deeper on the page where engaged visitors
+              naturally find them. */}
           <div className="fade-up fade-up-4 mt-12 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-16">
             <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">
-                {poolOverview.tvl_sol.toFixed(2)}
-              </div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">SOL TVL · live</div>
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">&lt;10s</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">SOL in your wallet</div>
             </div>
             <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">
-                <CountUp value={poolOverview.total_loans_issued} />
-              </div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Loans issued · all-time</div>
-            </div>
-            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">
-                {poolOverview.total_liquidations}
-              </div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Liquidations · ever</div>
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">1.5–3%</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Flat fee · no surprises</div>
             </div>
             <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
               <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={TOKEN_COUNT} /></div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Approved collateral</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Tokens you can borrow against</div>
+            </div>
+            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
+              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">100%</div>
+              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Non-custodial & on-chain</div>
             </div>
           </div>
 
@@ -412,65 +409,6 @@ export default async function Home() {
               Check your score in TG
             </a>
           </div>
-        </div>
-      </section>
-
-      {/* ══════════ LIVE PROTOCOL DATA ══════════ */}
-      <section className="border-y border-[var(--hairline)] bg-[var(--bg)]">
-        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24">
-          <Reveal>
-            <div className="chip mb-4 md:mb-5">
-              <span className="live-dot" />
-              <span>Live on Solana mainnet</span>
-            </div>
-            <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
-              The protocol in numbers.
-              <br />
-              <span className="italic text-[var(--ink-soft)]">Live, on-chain, no fudging.</span>
-            </h2>
-          </Reveal>
-
-          <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 md:mt-14 md:grid-cols-4">
-            <LiveStat label="Pool TVL" value={`${poolOverview.tvl_sol.toFixed(2)} SOL`} sub={`${(poolOverview.utilization * 100).toFixed(1)}% utilized`} />
-            <LiveStat label="Loans issued" value={poolOverview.total_loans_issued.toString()} sub={`${poolOverview.loans_repaid} repaid`} />
-            <LiveStat label="Liquidations" value={poolOverview.total_liquidations.toString()} sub="ever" accent={poolOverview.total_liquidations === 0} />
-            <LiveStat label="Fees · 24h" value={`${poolOverview.fees_24h_sol.toFixed(4)} SOL`} sub={`${poolOverview.lifetime_fees_sol.toFixed(4)} lifetime`} />
-          </div>
-
-          {/* Recent loan activity */}
-          {poolOverview.recent_loans.length > 0 && (
-            <div className="mt-12 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 sm:p-7">
-              <div className="mb-5 flex items-center justify-between">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">Recent loan activity</div>
-                <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">live feed</div>
-              </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
-                {poolOverview.recent_loans.slice(0, 6).map((e, i) => {
-                  const sol = (Number(e.loan_amount_lamports || "0") / 1e9).toFixed(4);
-                  const when = new Date(e.timestamp);
-                  const msAgo = Date.now() - when.getTime();
-                  const rel =
-                    msAgo < 60_000 ? "just now"
-                    : msAgo < 3_600_000 ? `${Math.floor(msAgo / 60_000)}m ago`
-                    : msAgo < 86_400_000 ? `${Math.floor(msAgo / 3_600_000)}h ago`
-                    : `${Math.floor(msAgo / 86_400_000)}d ago`;
-                  const eventLabel =
-                    e.event === "repay" ? "↩ Repaid"
-                    : e.event === "liquidation" ? "⚠ Liquidated"
-                    : "💰 Borrowed";
-                  return (
-                    <div key={i} className="flex items-center justify-between rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-4 py-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">{eventLabel} · {e.symbol ?? "?"}</div>
-                        <div className="text-[10px] text-[var(--ink-faint)]">{rel}</div>
-                      </div>
-                      <div className="font-mono text-xs text-[var(--ink-soft)]">{sol} SOL</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
       </section>
 
@@ -692,6 +630,68 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
               </a>
             </div>
           </Reveal>
+        </div>
+      </section>
+
+      {/* ══════════ LIVE PROTOCOL DATA ══════════ */}
+      {/* Placed AFTER 'How it works' so visitors arrive here with full
+          context — by the time they see the numbers, they've already
+          internalized the value prop. Surfacing this too early risks
+          framing the protocol by its current scale rather than its design. */}
+      <section className="border-y border-[var(--hairline)] bg-[var(--bg)]">
+        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24">
+          <Reveal>
+            <div className="chip mb-4 md:mb-5">
+              <span className="live-dot" />
+              <span>Live on Solana mainnet</span>
+            </div>
+            <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
+              The protocol in numbers.
+              <br />
+              <span className="italic text-[var(--ink-soft)]">Live, on-chain, no fudging.</span>
+            </h2>
+          </Reveal>
+
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 md:mt-14 md:grid-cols-4">
+            <LiveStat label="Pool TVL" value={`${poolOverview.tvl_sol.toFixed(2)} SOL`} sub={`${(poolOverview.utilization * 100).toFixed(1)}% utilized`} />
+            <LiveStat label="Loans issued" value={poolOverview.total_loans_issued.toString()} sub={`${poolOverview.loans_repaid} repaid`} />
+            <LiveStat label="Liquidations" value={poolOverview.total_liquidations.toString()} sub="ever" accent={poolOverview.total_liquidations === 0} />
+            <LiveStat label="Fees · 24h" value={`${poolOverview.fees_24h_sol.toFixed(4)} SOL`} sub={`${poolOverview.lifetime_fees_sol.toFixed(4)} lifetime`} />
+          </div>
+
+          {poolOverview.recent_loans.length > 0 && (
+            <div className="mt-12 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 sm:p-7">
+              <div className="mb-5 flex items-center justify-between">
+                <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">Recent loan activity</div>
+                <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">live feed</div>
+              </div>
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
+                {poolOverview.recent_loans.slice(0, 6).map((e, i) => {
+                  const sol = (Number(e.loan_amount_lamports || "0") / 1e9).toFixed(4);
+                  const when = new Date(e.timestamp);
+                  const msAgo = Date.now() - when.getTime();
+                  const rel =
+                    msAgo < 60_000 ? "just now"
+                    : msAgo < 3_600_000 ? `${Math.floor(msAgo / 60_000)}m ago`
+                    : msAgo < 86_400_000 ? `${Math.floor(msAgo / 3_600_000)}h ago`
+                    : `${Math.floor(msAgo / 86_400_000)}d ago`;
+                  const eventLabel =
+                    e.event === "repay" ? "↩ Repaid"
+                    : e.event === "liquidation" ? "⚠ Liquidated"
+                    : "💰 Borrowed";
+                  return (
+                    <div key={i} className="flex items-center justify-between rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-4 py-3">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{eventLabel} · {e.symbol ?? "?"}</div>
+                        <div className="text-[10px] text-[var(--ink-faint)]">{rel}</div>
+                      </div>
+                      <div className="font-mono text-xs text-[var(--ink-soft)]">{sol} SOL</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
