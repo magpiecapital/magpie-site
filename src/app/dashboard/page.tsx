@@ -616,6 +616,14 @@ export default function DashboardPage() {
     estimated_next_payout_lamports: string;
   } | null>(null);
   const [lpPosition, setLpPosition] = useState<DepositorInfo | null>(null);
+  const [lpLoyalty, setLpLoyalty] = useState<{
+    has_position: boolean;
+    days_held: number;
+    lifetime_lamports: string;
+    paid_lamports: string;
+    distributions_received: number;
+    reward_pct: number;
+  } | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
   const [holdings, setHoldings] = useState<TokenHolding[]>([]);
   const [holdingsLoading, setHoldingsLoading] = useState(false);
@@ -912,6 +920,15 @@ export default function DashboardPage() {
     fetch(`/api/v1/holders?wallet=${publicKey.toBase58()}`)
       .then(r => r.json())
       .then(d => { if (d.ok) setHolders(d.data?.data ?? d.data ?? null); })
+      .catch(() => {});
+  }, [connected, publicKey]);
+
+  // Fetch LP loyalty stats (time-weighted bonus earnings)
+  useEffect(() => {
+    if (!connected || !publicKey) { setLpLoyalty(null); return; }
+    fetch(`/api/v1/lp-loyalty?wallet=${publicKey.toBase58()}`)
+      .then(r => r.json())
+      .then(d => { if (d.ok) setLpLoyalty(d.data?.data ?? d.data ?? null); })
       .catch(() => {});
   }, [connected, publicKey]);
 
@@ -1834,16 +1851,43 @@ export default function DashboardPage() {
                           </div>
                         </div>
                         <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
-                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Shares</div>
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Time in pool</div>
                           <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
-                            {lpPosition.shares.toLocaleString()}
+                            {lpLoyalty?.days_held != null ? `${lpLoyalty.days_held.toFixed(1)}d` : "—"}
                           </div>
                         </div>
                       </div>
+                      {lpLoyalty && (
+                        <div className="mt-3 rounded-xl border border-[var(--d-accent)]/15 bg-[var(--d-bg)] p-3">
+                          <div className="flex items-baseline justify-between">
+                            <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">
+                              Loyalty bonus
+                            </div>
+                            <div className="text-[10px] text-[var(--d-accent-deep)]">+{lpLoyalty.reward_pct}% of fees</div>
+                          </div>
+                          <div className="mt-1 grid grid-cols-2 gap-2 text-[11px]">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Lifetime received</div>
+                              <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
+                                {(Number(lpLoyalty.paid_lamports) / LAMPORTS_PER_SOL).toFixed(6)} SOL
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Distributions</div>
+                              <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
+                                {lpLoyalty.distributions_received}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-1 text-[10px] text-[var(--d-ink-faint)]">
+                            Time-weighted bonus on top of base 80% LP yield. Auto-paid in SOL.
+                          </div>
+                        </div>
+                      )}
                     </>
                   ) : (
                     <p className="text-sm text-[var(--d-ink-soft)]">
-                      No LP position yet. Deposit SOL → earn <span className="font-semibold text-[var(--d-accent-deep)]">80%</span> of every loan fee, pro-rata to your share.
+                      No LP position yet. Deposit SOL → earn <span className="font-semibold text-[var(--d-accent-deep)]">80%</span> of every loan fee pro-rata to your share, PLUS time-weighted Loyalty Bonus that rewards long-term holders.
                     </p>
                   )}
                   <Link href="/earn" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
