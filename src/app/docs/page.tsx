@@ -457,30 +457,67 @@ export default async function DocsPage() {
           {/* ─── Supported Tokens ─── */}
           <Section id="supported-tokens" title="Supported Tokens" chip="Collateral">
             <P>
-              Magpie currently supports <strong>{tokenStats.count}+ Solana memecoins</strong> as loan
-              collateral. Tokens are approved based on DEX liquidity depth, trading volume,
-              and price stability requirements.
+              Magpie currently supports <strong>{tokenStats.count}+ Solana tokens</strong> as loan
+              collateral. Anyone can submit a new token via{" "}
+              <span className="font-mono">/submit</span> in the bot — the screener runs
+              a 6-layer safety audit + market evaluation and returns one of three outcomes.
             </P>
 
-            <H3>Approval criteria</H3>
+            <H3>Submission outcomes</H3>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-500">✅ Instant Approval</div>
+                <p className="mt-2 text-sm text-[var(--ink-soft)]">
+                  Passes every audit AND hits auto-approve bar (≥$75K liq, ≥$50K 24h vol, ≥$100K mcap, ≥300 holders, ≥24h old, LP burned, mint/freeze authority revoked, top-10 ≤40%). Live as collateral within seconds.
+                </p>
+              </div>
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-500">🟡 Needs Review</div>
+                <p className="mt-2 text-sm text-[var(--ink-soft)]">
+                  Safe (passes every audit) but below auto-approve bar — usually too young, thin liquidity, or low 24h volume. Queued for team review, typically within an hour.
+                </p>
+              </div>
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/5 p-4">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-rose-500">❌ Declined</div>
+                <p className="mt-2 text-sm text-[var(--ink-soft)]">
+                  Failed a safety gate (honeypot, mint/freeze authority active, ≥40% top-10 concentration, LP not burned, RugCheck flag, symbol impersonation) or below minimum thresholds. Fix the issue and resubmit.
+                </p>
+              </div>
+            </div>
+
+            <H3>The 6-layer safety audit (every submission)</H3>
             <ul className="mt-3 space-y-2 text-[15px] leading-relaxed text-[var(--ink-soft)]">
               <li className="flex items-start gap-2.5">
                 <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--ink)]" />
-                <span>Sufficient DEX liquidity across at least two venues</span>
+                <span><strong>Sellability test</strong> — on-chain swap simulation; honeypots fail here</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--ink)]" />
-                <span>Consistent 24h trading volume above minimum threshold</span>
+                <span><strong>Token-2022 extension audit</strong> — check transfer hooks, fees, permanent delegate</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--ink)]" />
-                <span>Price available via Jupiter Price API v2</span>
+                <span><strong>Holder concentration</strong> — top-10 holders ≤ 40% of supply</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--ink)]" />
-                <span>No evidence of rug-pull risk or contract vulnerabilities</span>
+                <span><strong>RugCheck risk score</strong> — third-party aggregated risk feed</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--ink)]" />
+                <span><strong>Symbol impersonation guard</strong> — block fake variants of approved tokens</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-[var(--ink)]" />
+                <span><strong>Cooldown + minimums</strong> — ≥4h old, $5K+ liq, $500+ 24h volume to even be considered</span>
               </li>
             </ul>
+
+            <p className="mt-6 text-[15px] leading-relaxed text-[var(--ink-soft)]">
+              <Link href="/submit" className="font-medium text-[var(--accent-deep)] underline underline-offset-4 hover:text-[var(--accent)]">
+                See the full submission guide →
+              </Link>
+            </p>
 
             <div className="mt-8 flex flex-col gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
