@@ -24,6 +24,59 @@ type PoolState = {
   paused: boolean;
 };
 
+type Lifetime = {
+  generated_at: string;
+  cached_age_seconds: number;
+  pool: {
+    pda: string;
+    total_deposits_lamports: string;
+    total_borrowed_lamports: string;
+    utilization_pct: number;
+    total_loans_issued: number;
+    total_liquidations: number;
+    total_fees_earned_lamports: string;
+    paused: boolean;
+  };
+  fee_split: {
+    lp_yield_lamports: string;
+    magpie_holders_lamports: string;
+    referrers_lamports: string;
+    lp_loyalty_lamports: string;
+    protocol_treasury_lamports: string;
+  };
+  loans: {
+    total: number; active: number; repaid: number; liquidated: number;
+    unique_borrowers: number;
+    lifetime_volume_lamports: string;
+  };
+  referrals: {
+    reward_events: number;
+    unique_referrers_paid: number;
+    lifetime_accrued_lamports: string;
+    paid_lamports: string;
+    pending_claim_lamports: string;
+  };
+  magpie_holders: {
+    distributions_to_date: number;
+    total_distributed_lamports: string;
+    paid_count: number;
+    pending_count: number;
+    unique_recipients: number;
+    paid_lamports: string;
+    pending_lamports: string;
+    accrued_lamports: string;
+    next_distribution_at: string | null;
+  };
+  lp_loyalty: {
+    distributions_to_date: number;
+    total_distributed_lamports: string;
+    paid_lamports: string;
+    pending_lamports: string;
+    accrued_lamports: string;
+  };
+  users: { total: number; new_24h: number; new_7d: number; new_30d: number };
+};
+
 type Stats = {
   pool: PoolState | null;
   loans: {
@@ -87,6 +140,7 @@ const Card = ({ label, value, sub, accent }: { label: string; value: string; sub
 export default function AdminClient() {
   const { publicKey, connected } = useWallet();
   const [stats, setStats] = useState<Stats | null>(null);
+  const [lifetime, setLifetime] = useState<Lifetime | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -116,6 +170,24 @@ export default function AdminClient() {
     };
     fetchStats();
     const interval = setInterval(fetchStats, 60_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [isCreator, publicKey]);
+
+  // Lifetime stats — cached 1h server-side, so polling every 10 min from
+  // the client is cheap (most hits return the cache instantly).
+  useEffect(() => {
+    if (!isCreator || !publicKey) { setLifetime(null); return; }
+    let cancelled = false;
+    const fetchLifetime = async () => {
+      try {
+        const res = await fetch(`/api/v1/admin/lifetime-stats?wallet=${publicKey.toBase58()}`);
+        if (!res.ok) return;
+        const data: Lifetime = await res.json();
+        if (!cancelled) setLifetime(data);
+      } catch { /* non-critical — pool-stats is the primary view */ }
+    };
+    fetchLifetime();
+    const interval = setInterval(fetchLifetime, 10 * 60_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [isCreator, publicKey]);
 
@@ -231,6 +303,90 @@ export default function AdminClient() {
           <Card label="Lifetime" value={`${fmtSol(stats.fees.lifetime_lamports, 6)} SOL`} sub={`${(stats.fees.protocol_share_bps / 100).toFixed(1)}% to you · ${(stats.fees.lp_share_bps / 100).toFixed(1)}% to LPs`} />
         </div>
       </div>
+
+      {/* Lifetime earnings — per stakeholder */}
+      {lifetime && (
+        <div className="mt-8">
+          <div className="flex items-end justify-between">
+            <h2 className="font-display text-xl font-semibold tracking-tight">Lifetime earnings — by stakeholder</h2>
+            <div className="text-xs text-[var(--ink-faint)]">
+              Cached snapshot · {lifetime.cached_age_seconds < 60 ? "just refreshed" : `${Math.floor(lifetime.cached_age_seconds / 60)}m ago`}
+            </div>
+          </div>
+          <p className="mt-1 text-xs text-[var(--ink-soft)]">
+            Of every loan fee: <span className="font-mono">80% LPs · 10% $MAGPIE holders · 5% referrers · 2% LP loyalty · 3% treasury</span>
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-5">
+            <Card label="LP yield (80%)" value={`${fmtSol(lifetime.fee_split.lp_yield_lamports, 6)} SOL`} sub="auto-accrues to share value" />
+            <Card label="$MAGPIE holders (10%)" value={`${fmtSol(lifetime.fee_split.magpie_holders_lamports, 6)} SOL`} sub={lifetime.magpie_holders.distributions_to_date > 0 ? `${lifetime.magpie_holders.distributions_to_date} distributions` : "first snapshot pending"} />
+            <Card label="Referrers (5%)" value={`${fmtSol(lifetime.fee_split.referrers_lamports, 6)} SOL`} sub={`${lifetime.referrals.unique_referrers_paid} unique referrers · ${lifetime.referrals.reward_events} events`} />
+            <Card label="LP loyalty (2%)" value={`${fmtSol(lifetime.fee_split.lp_loyalty_lamports, 6)} SOL`} sub={`${lifetime.lp_loyalty.distributions_to_date} distributions`} />
+            <Card label="Treasury (3%)" value={`${fmtSol(lifetime.fee_split.protocol_treasury_lamports, 6)} SOL`} sub="protocol cut" />
+          </div>
+
+          {/* Distribution status grid */}
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-5">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">$MAGPIE holder rewards</div>
+              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                <div className="text-[var(--ink-soft)]">Distributions</div>
+                <div className="text-right font-mono">{lifetime.magpie_holders.distributions_to_date}</div>
+                <div className="text-[var(--ink-soft)]">Paid out</div>
+                <div className="text-right font-mono">{fmtSol(lifetime.magpie_holders.paid_lamports, 4)} SOL</div>
+                <div className="text-[var(--ink-soft)]">Pending</div>
+                <div className="text-right font-mono">{fmtSol(lifetime.magpie_holders.pending_lamports, 4)} SOL</div>
+                <div className="text-[var(--ink-soft)]">Pool accrued</div>
+                <div className="text-right font-mono">{fmtSol(lifetime.magpie_holders.accrued_lamports, 4)} SOL</div>
+                <div className="text-[var(--ink-soft)]">Recipients</div>
+                <div className="text-right font-mono">{lifetime.magpie_holders.unique_recipients}</div>
+              </div>
+              {lifetime.magpie_holders.next_distribution_at && (
+                <div className="mt-3 text-xs text-[var(--ink-faint)]">
+                  Next: {new Date(lifetime.magpie_holders.next_distribution_at).toLocaleString()}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-5">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">Referral earnings</div>
+              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                <div className="text-[var(--ink-soft)]">Events</div>
+                <div className="text-right font-mono">{lifetime.referrals.reward_events}</div>
+                <div className="text-[var(--ink-soft)]">Unique referrers</div>
+                <div className="text-right font-mono">{lifetime.referrals.unique_referrers_paid}</div>
+                <div className="text-[var(--ink-soft)]">Accrued</div>
+                <div className="text-right font-mono">{fmtSol(lifetime.referrals.lifetime_accrued_lamports, 4)} SOL</div>
+                <div className="text-[var(--ink-soft)]">Paid out</div>
+                <div className="text-right font-mono">{fmtSol(lifetime.referrals.paid_lamports, 4)} SOL</div>
+                <div className="text-[var(--ink-soft)]">Pending claim</div>
+                <div className="text-right font-mono">{fmtSol(lifetime.referrals.pending_claim_lamports, 4)} SOL</div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-5">
+              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">LP loyalty bonus</div>
+              <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+                <div className="text-[var(--ink-soft)]">Distributions</div>
+                <div className="text-right font-mono">{lifetime.lp_loyalty.distributions_to_date}</div>
+                <div className="text-[var(--ink-soft)]">Paid out</div>
+                <div className="text-right font-mono">{fmtSol(lifetime.lp_loyalty.paid_lamports, 4)} SOL</div>
+                <div className="text-[var(--ink-soft)]">Pending</div>
+                <div className="text-right font-mono">{fmtSol(lifetime.lp_loyalty.pending_lamports, 4)} SOL</div>
+                <div className="text-[var(--ink-soft)]">Pool accrued</div>
+                <div className="text-right font-mono">{fmtSol(lifetime.lp_loyalty.accrued_lamports, 4)} SOL</div>
+              </div>
+            </div>
+          </div>
+
+          {/* User growth strip */}
+          <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <Card label="Total users" value={lifetime.users.total.toLocaleString()} sub="all-time" />
+            <Card label="New 24h" value={lifetime.users.new_24h.toLocaleString()} sub="last day" />
+            <Card label="New 7d" value={lifetime.users.new_7d.toLocaleString()} sub="last week" />
+            <Card label="New 30d" value={lifetime.users.new_30d.toLocaleString()} sub="last month" />
+          </div>
+        </div>
+      )}
 
       {/* Top collateral mints */}
       <div className="mt-8">
