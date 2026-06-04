@@ -28,12 +28,13 @@ interface TransparencyData {
   };
   users: { total: number; new_24h: number; new_7d: number };
   holder_rewards: {
-    current_pool_sol: number;
+    // current_pool_sol is operator-private (NOT returned by the API);
+    // omitted from this type so we never accidentally reference it.
     lifetime_distributions: number;
     last_distribution_sol: number | null;
     last_distribution_at: string | null;
   };
-  lp_loyalty: { current_pool_sol: number; lifetime_distributions: number };
+  lp_loyalty: { lifetime_distributions: number };
   referrals: { lifetime_accrued_sol: number; lifetime_paid_sol: number };
   generated_at: string;
 }
@@ -170,17 +171,17 @@ export default function StatsClient() {
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           <RewardCard
             title="$MAGPIE holders"
-            currentPool={data?.holder_rewards.current_pool_sol ?? 0}
+            hideCurrentPool
             distributions={data?.holder_rewards.lifetime_distributions ?? 0}
             lastDistribution={data?.holder_rewards.last_distribution_sol ?? null}
             lastAt={data?.holder_rewards.last_distribution_at ?? null}
-            description="10% of all loan fees go to $MAGPIE holders, auto-distributed on a randomized 5-10 day window."
+            description="10% of all loan fees go to $MAGPIE holders, auto-distributed on a randomized window. Pool size kept private to prevent gaming."
           />
           <RewardCard
             title="LP Loyalty"
-            currentPool={data?.lp_loyalty.current_pool_sol ?? 0}
+            hideCurrentPool
             distributions={data?.lp_loyalty.lifetime_distributions ?? 0}
-            description="2% of loan fees → time-weighted bonus for long-term LPs."
+            description="2% of loan fees → time-weighted bonus for long-term LPs. Pool size kept private."
           />
           <RewardCard
             title="Referrals"
@@ -306,6 +307,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
 function RewardCard({
   title,
   currentPool,
+  hideCurrentPool,
   distributions,
   lastDistribution,
   lastAt,
@@ -313,25 +315,36 @@ function RewardCard({
   description,
 }: {
   title: string;
-  currentPool: number;
+  currentPool?: number;
+  hideCurrentPool?: boolean;   // for pools we keep operator-private
   distributions?: number;
   lastDistribution?: number | null;
   lastAt?: string | null;
   paidOut?: number | null;
   description: string;
 }) {
+  // Pick a headline number:
+  //  • If currentPool is allowed → use it (referrals)
+  //  • Otherwise → use lifetime distributions count or last distribution
+  const headlineValue = !hideCurrentPool && currentPool != null
+    ? fmtSol(currentPool)
+    : (lastDistribution != null ? fmtSol(lastDistribution) : (distributions != null ? distributions.toString() : "—"));
+  const headlineLabel = !hideCurrentPool && currentPool != null
+    ? "Current pool"
+    : (lastDistribution != null ? "Last distribution" : "Lifetime distributions");
+
   return (
     <div className="card card-hover p-6">
       <div className="text-xs uppercase tracking-[0.2em] text-[var(--ink-faint)]">{title}</div>
       <div className="mt-3 font-display tabular text-3xl font-medium tracking-[-0.02em] md:text-4xl">
-        {fmtSol(currentPool)}
+        {headlineValue}
       </div>
-      <div className="mt-1 text-xs text-[var(--ink-soft)]">Current pool</div>
+      <div className="mt-1 text-xs text-[var(--ink-soft)]">{headlineLabel}</div>
       <div className="mt-4 space-y-1.5 text-xs text-[var(--ink-soft)]">
-        {distributions != null && (
+        {distributions != null && !(headlineLabel === "Lifetime distributions") && (
           <div className="flex justify-between"><span>Lifetime distributions</span><span className="tabular">{distributions}</span></div>
         )}
-        {lastDistribution != null && (
+        {lastDistribution != null && !(headlineLabel === "Last distribution") && (
           <div className="flex justify-between"><span>Last distribution</span><span className="tabular">{fmtSol(lastDistribution)}</span></div>
         )}
         {lastAt && (

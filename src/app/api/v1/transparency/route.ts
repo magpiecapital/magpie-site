@@ -156,8 +156,9 @@ export async function GET() {
         new_7d: Number(users.new_users_7d),
       },
       holder_rewards: {
-        current_pool_sol: holders.current_pool_lamports
-          ? Number(holders.current_pool_lamports) / 1e9 : 0,
+        // current_pool_sol is OPERATOR-PRIVATE — exposing it would let
+        // mercenary holders front-run snapshots. We only publish
+        // historical distributions (which the chain already shows anyway).
         lifetime_distributions: Number(holders.lifetime_distributions),
         last_distribution_sol: holders.last_distribution_lamports
           ? Number(holders.last_distribution_lamports) / 1e9 : null,
