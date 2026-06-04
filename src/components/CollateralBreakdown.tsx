@@ -8,8 +8,15 @@
  * Renders on /stats. Auto-refreshes every 60s. Social proof: shows
  * the protocol's actual collateral diversity rather than promising it
  * abstractly.
+ *
+ * Logo resolution (mirrors the rest of the site):
+ *   1. Local registry image (for xStocks — /tokens/xTSLA.svg etc.)
+ *   2. DB image_url (whatever the screener captured at submission)
+ *   3. DexScreener cached image by mint
+ *   4. Initial badge (symbol's first letter on accent bg)
  */
 import { useEffect, useState } from "react";
+import { TOKEN_REGISTRY } from "@/lib/token-registry";
 
 interface CollateralToken {
   symbol: string;
@@ -93,18 +100,7 @@ export function CollateralBreakdown() {
             >
               {/* Token (with image if available) */}
               <div className="col-span-2 md:col-span-3 flex items-center gap-3 min-w-0">
-                {t.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={t.image_url}
-                    alt={t.symbol}
-                    className="h-8 w-8 rounded-full flex-shrink-0 object-cover ring-1 ring-[var(--hairline)]"
-                  />
-                ) : (
-                  <div className="h-8 w-8 rounded-full bg-[var(--surface)] flex-shrink-0 flex items-center justify-center text-[10px] font-bold text-[var(--ink-soft)] ring-1 ring-[var(--hairline)]">
-                    {t.symbol.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
+                <TokenLogo symbol={t.symbol} mint={t.mint} imageUrl={t.image_url} />
                 <div className="min-w-0">
                   <div className="font-semibold text-sm truncate">${t.symbol}</div>
                   {t.name && (
@@ -145,5 +141,56 @@ export function CollateralBreakdown() {
         {tokens.length} {tokens.length === 1 ? "token" : "tokens"} · refreshes every 60s
       </div>
     </div>
+  );
+}
+
+/* ─── TokenLogo ─── */
+
+function TokenLogo({
+  symbol,
+  mint,
+  imageUrl,
+}: {
+  symbol: string;
+  mint: string;
+  imageUrl: string | null;
+}) {
+  // Priority chain: registry image → DB image_url → DexScreener → initial.
+  // The registry image is for xStocks (local SVGs); memecoins fall through
+  // to DexScreener which has a cached image for ~every Solana token by mint.
+  const registryImage = TOKEN_REGISTRY.find((t) => t.mint === mint)?.image ?? null;
+  const dexScreenerUrl = `https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`;
+  const initialSrc = registryImage || imageUrl || dexScreenerUrl;
+
+  const [src, setSrc] = useState(initialSrc);
+  const [failed, setFailed] = useState(false);
+
+  if (failed) {
+    return (
+      <div className="h-8 w-8 rounded-full bg-[var(--accent)]/15 flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-[var(--accent-deep)] ring-1 ring-[var(--hairline)]">
+        {symbol[0]?.toUpperCase()}
+      </div>
+    );
+  }
+
+  return (
+    /* eslint-disable-next-line @next/next/no-img-element */
+    <img
+      src={src}
+      alt={symbol}
+      className="h-8 w-8 rounded-full flex-shrink-0 object-cover ring-1 ring-[var(--hairline)] bg-[var(--bg)]"
+      onError={() => {
+        // Walk the fallback chain on failure
+        if (registryImage && src === registryImage && (imageUrl || mint)) {
+          setSrc(imageUrl || dexScreenerUrl);
+        } else if (imageUrl && src === imageUrl && mint) {
+          setSrc(dexScreenerUrl);
+        } else if (src !== dexScreenerUrl) {
+          setSrc(dexScreenerUrl);
+        } else {
+          setFailed(true);
+        }
+      }}
+    />
   );
 }
