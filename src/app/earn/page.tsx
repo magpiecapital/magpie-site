@@ -56,9 +56,10 @@ export default function EarnPage() {
   } | null>(null);
   const recentLoanEvents = poolApi?.recent_loans ?? [];
 
-  // Annualize trailing 7d LP fee yield into APY. LP gets 80% of every fee.
-  // Formula: (7d_fees × 0.80 / pool_TVL) × 52  (weeks/year). Returns null
-  // when there's not enough signal yet (no fees in window or zero TVL).
+  // Annualize trailing 7d LP fee yield into APY. The LP share is read
+  // dynamically from on-chain `pool.protocolFeeBps` so this stays correct
+  // whenever the fee split is updated. Returns null when there's not
+  // enough signal (no fees in window or zero TVL).
   const lpApy = (() => {
     if (!pool || !poolApi?.fees) return null;
     const tvl = pool.totalDeposits;
@@ -450,7 +451,7 @@ export default function EarnPage() {
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--ink-soft)] transition hover:border-[var(--accent)]/30 hover:text-[var(--accent-deep)]"
               >
                 <span>💎</span>
-                <span>Prefer to earn without depositing? Hold $MAGPIE → 10% of every fee →</span>
+                <span>Prefer to earn without depositing? Hold $MAGPIE → 30% of every fee →</span>
               </Link>
             </div>
           </div>
@@ -522,7 +523,7 @@ export default function EarnPage() {
               <h3 className="font-display text-base font-semibold sm:text-lg">What you earn</h3>
             </div>
             <p className="text-sm text-[var(--ink-soft)] mb-4">
-              LPs receive <span className="font-semibold text-[var(--ink)]">80% of every loan fee</span>, proportional to share of the pool. Fees accrue directly — your position grows passively as borrowers pay.
+              LPs receive <span className="font-semibold text-[var(--ink)]">60% of every loan fee</span>, proportional to share of the pool. Fees accrue directly — your position grows passively as borrowers pay.
             </p>
             <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] overflow-hidden">
               <div className="grid grid-cols-3 border-b border-[var(--hairline)] bg-[var(--surface)] px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
@@ -715,7 +716,7 @@ export default function EarnPage() {
               <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
                 <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">Pool activity</h3>
                 <p className="text-[11px] text-[var(--ink-faint)] mb-3">
-                  Loan events flowing through the pool. 80% of each fee accrues to LPs proportionally.
+                  Loan events flowing through the pool. 60% of each fee accrues to LPs proportionally.
                 </p>
                 <div className="space-y-2">
                   {recentLoanEvents.slice(0, 6).map((e, i) => {
@@ -754,7 +755,7 @@ export default function EarnPage() {
                 <h3 className="font-display text-base font-semibold sm:text-lg">How you earn</h3>
               </div>
               <p className="text-sm text-[var(--ink-soft)] mb-4">
-                LPs receive <span className="font-semibold text-[var(--ink)]">80% of every loan fee</span>, proportional to share of the pool. Fees accrue directly into the pool, so your position grows passively.
+                LPs receive <span className="font-semibold text-[var(--ink)]">60% of every loan fee</span>, proportional to share of the pool. Fees accrue directly into the pool, so your position grows passively.
               </p>
 
               <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] overflow-hidden">
