@@ -5,8 +5,8 @@ import { useWallet } from "@solana/wallet-adapter-react";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PUMP_URL = "https://pump.fun/coin/9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump";
-const REWARD_PCT = 10;
-const LP_PCT = 80;
+const REWARD_PCT = 30;
+const LP_PCT = 60;
 const REFERRER_PCT = 5;
 const PROTOCOL_PCT = 5;
 
@@ -76,7 +76,7 @@ export default function HoldersClient() {
             Hold $MAGPIE. <span className="text-[var(--accent)]">Earn</span> from every loan.
           </h1>
           <p className="mt-6 max-w-2xl text-base text-[var(--ink-soft)] sm:text-lg">
-            <span className="font-semibold text-[var(--ink)]">10% of every loan fee</span>{" "}
+            <span className="font-semibold text-[var(--ink)]">30% of every loan fee</span>{" "}
             on Magpie accrues to a holder reward pool, distributed weekly to every $MAGPIE
             holder pro-rata. Real yield, on-chain payout, no staking, no lockup.
           </p>
@@ -171,8 +171,8 @@ export default function HoldersClient() {
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             <Step n={1} title="Loans pay fees">
-              Every borrow + extend on Magpie charges a fee. 80% flows to LPs, 5% to
-              referrers, 10% to $MAGPIE holders, 5% to the protocol.
+              Every borrow + extend on Magpie charges a fee. 60% flows to LPs, 30% to
+              $MAGPIE holders, 5% to referrers, 5% to LP loyalty + protocol.
             </Step>
             <Step n={2} title="Periodic snapshots">
               The protocol snapshots every wallet holding $MAGPIE on-chain (excluding
@@ -196,13 +196,14 @@ export default function HoldersClient() {
           <div className="grid gap-8 md:grid-cols-2">
             <div>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                LPs untouched. Real revenue for holders.
+                Real revenue. Paid to holders, automatically.
               </h2>
               <p className="mt-4 max-w-xl text-base text-[var(--ink-soft)]">
-                The holder reward comes from the protocol's own share of fees — not from
-                LP yield. Depositors keep their full 80%, and $MAGPIE holders get a 10%
-                slice of the protocol's revenue, sourced sustainably from real loan
-                activity.
+                $MAGPIE holders get 30% of every loan fee on the protocol, paid in SOL,
+                distributed pro-rata at each snapshot. Sourced sustainably from real
+                loan activity — no inflation, no token printing, no farming gimmicks.
+                LPs still earn the lion's share of fees (60%); holders share in the
+                next-largest slice.
               </p>
             </div>
             <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 sm:p-8">
@@ -248,9 +249,11 @@ export default function HoldersClient() {
               stays earmarked until it lands in your wallet — nothing is lost to RPC
               flakiness.
             </Faq>
-            <Faq q="Does this dilute LP yield?">
-              No. LPs still earn their full 80% of every fee. The 10% holder reward comes
-              from the protocol's existing share, not from LP yield.
+            <Faq q="How does this compare to LP yield?">
+              LPs still get the largest fee slice — 60% of every loan fee accrues to
+              the LP share value automatically. $MAGPIE holders get the next-largest
+              slice at 30%. The full split is 60% LPs · 30% $MAGPIE holders · 5%
+              referrers · 2% LP loyalty bonus · 3% protocol.
             </Faq>
           </div>
           <div className="mt-12 flex flex-wrap items-center gap-3">
