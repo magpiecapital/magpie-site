@@ -165,8 +165,9 @@ export async function GET() {
         last_distribution_at: holders.last_distribution_at,
       },
       lp_loyalty: {
-        current_pool_sol: lpLoy.current_pool_lamports
-          ? Number(lpLoy.current_pool_lamports) / 1e9 : 0,
+        // current_pool_sol is OPERATOR-PRIVATE for the same reason as
+        // holder_rewards — exposing accrued bonus would let LPs game
+        // entry/exit timing around predictable distributions.
         lifetime_distributions: Number(lpLoy.lifetime_distributions),
       },
       referrals: {
