@@ -158,40 +158,6 @@ export default function StatsClient() {
         </div>
       </section>
 
-      {/* ── Rewards distributed ── */}
-      <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-        <div className="mb-8 flex items-baseline justify-between">
-          <h2 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
-            Rewards & distributions
-          </h2>
-          <span className="text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-            SOL distributed
-          </span>
-        </div>
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-          <RewardCard
-            title="$MAGPIE holders"
-            hideCurrentPool
-            distributions={data?.holder_rewards.lifetime_distributions ?? 0}
-            lastDistribution={data?.holder_rewards.last_distribution_sol ?? null}
-            lastAt={data?.holder_rewards.last_distribution_at ?? null}
-            description="10% of all loan fees go to $MAGPIE holders, auto-distributed on a randomized window. Pool size kept private to prevent gaming."
-          />
-          <RewardCard
-            title="LP Loyalty"
-            hideCurrentPool
-            distributions={data?.lp_loyalty.lifetime_distributions ?? 0}
-            description="2% of loan fees → time-weighted bonus for long-term LPs. Pool size kept private."
-          />
-          <RewardCard
-            title="Referrals"
-            currentPool={data?.referrals.lifetime_accrued_sol ?? 0}
-            paidOut={data?.referrals.lifetime_paid_sol ?? null}
-            description="5% of every borrower's lifetime fees flows to whoever referred them. Claim any time."
-          />
-        </div>
-      </section>
-
       {/* ── Live activity feed — the protocol breathing ── */}
       <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
         <div className="mb-6 flex items-baseline justify-between">
