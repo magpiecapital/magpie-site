@@ -1860,14 +1860,14 @@ export default function DashboardPage() {
                             </div>
                           </div>
                           <div className="mt-1 text-[10px] text-[var(--d-ink-faint)]">
-                            Time-weighted bonus on top of base 60% LP yield. Auto-paid in SOL.
+                            Time-weighted bonus on top of base 80% LP yield. Auto-paid in SOL.
                           </div>
                         </div>
                       )}
                     </>
                   ) : (
                     <p className="text-sm text-[var(--d-ink-soft)]">
-                      No LP position yet. Deposit SOL → earn <span className="font-semibold text-[var(--d-accent-deep)]">60%</span> of every loan fee pro-rata to your share, PLUS time-weighted Loyalty Bonus that rewards long-term holders.
+                      No LP position yet. Deposit SOL → earn <span className="font-semibold text-[var(--d-accent-deep)]">80%</span> of every loan fee pro-rata to your share, PLUS time-weighted Loyalty Bonus that rewards long-term holders.
                     </p>
                   )}
                   <Link href="/earn" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
@@ -2015,7 +2015,7 @@ export default function DashboardPage() {
                     </>
                   ) : (
                     <p className="text-sm text-[var(--d-ink-soft)]">
-                      Hold $MAGPIE → earn <span className="font-semibold text-[var(--d-accent-deep)]">30%</span> of every loan fee, paid automatically each week.
+                      Hold $MAGPIE → earn <span className="font-semibold text-[var(--d-accent-deep)]">10%</span> of every loan fee, paid automatically each week.
                     </p>
                   )}
                   <Link href="/holders" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
