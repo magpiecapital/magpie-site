@@ -24,7 +24,7 @@ const NAV_SECTIONS = [
       { label: "Borrow", href: "/marketplace", icon: "⇄" },
       { label: "Approved Tokens", href: "/tokens", icon: "◈" },
       { label: "Credit Score", href: "/credit", icon: "★" },
-      { label: "$MAGPIE Holders", href: "/holders", icon: "💎" },
+      { label: "$MAGPIE Holders", href: "/holders", icon: "◇" },
       { label: "Refer & Earn", href: "/refer", icon: "🎁" },
       { label: "Dashboard", href: "/dashboard", icon: "▦" },
     ],

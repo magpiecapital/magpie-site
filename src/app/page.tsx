@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mark } from "@/components/Logo";
+import { DiamondIcon } from "@/components/DiamondIcon";
 import { Reveal } from "@/components/Reveal";
 import { PhoneMock } from "@/components/PhoneMock";
 import { Header } from "@/components/Header";
@@ -225,8 +226,9 @@ export default async function Home() {
             <Link href="/earn" className="btn-ghost text-sm sm:text-base">
               Earn yield
             </Link>
-            <Link href="/holders" className="btn-ghost text-sm sm:text-base">
-              💎 Hold $MAGPIE · earn 10%
+            <Link href="/holders" className="btn-ghost inline-flex items-center gap-1.5 text-sm sm:text-base">
+              <DiamondIcon className="h-3.5 w-3.5" />
+              <span>Hold $MAGPIE · earn 10%</span>
             </Link>
             <Link href="/credit" className="btn-ghost text-sm sm:text-base">
               ★ Build on-chain credit
@@ -338,7 +340,10 @@ export default async function Home() {
               href="/holders"
               className="group rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent)]/5 p-6 transition hover:border-[var(--accent)] hover:bg-[var(--accent)]/10"
             >
-              <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">💎 Hold $MAGPIE · NEW</div>
+              <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">
+                <DiamondIcon className="h-3 w-3" />
+                <span>Hold $MAGPIE · NEW</span>
+              </div>
               <div className="mt-3 font-display text-2xl font-medium tracking-tight">
                 Earn 10% of every loan fee
               </div>

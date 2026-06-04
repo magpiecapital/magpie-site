@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { DiamondIcon } from "@/components/DiamondIcon";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PUMP_URL = "https://pump.fun/coin/9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump";
@@ -69,7 +70,7 @@ export default function HoldersClient() {
       <section className="relative overflow-hidden">
         <div className="mx-auto max-w-6xl px-5 pt-14 pb-12 sm:px-6 md:pt-24 md:pb-20">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.22em] text-[var(--accent)]">
-            <span>💎</span>
+            <DiamondIcon className="h-3 w-3" />
             <span>$MAGPIE · holders</span>
           </div>
           <h1 className="max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">

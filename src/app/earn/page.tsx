@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { DiamondIcon } from "@/components/DiamondIcon";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import {
@@ -449,7 +450,7 @@ export default function EarnPage() {
                 href="/holders"
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--ink-soft)] transition hover:border-[var(--accent)]/30 hover:text-[var(--accent-deep)]"
               >
-                <span>💎</span>
+                <DiamondIcon className="h-3.5 w-3.5" />
                 <span>Prefer to earn without depositing? Hold $MAGPIE → 10% of every fee →</span>
               </Link>
             </div>
