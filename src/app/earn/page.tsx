@@ -15,6 +15,7 @@ import {
   type PoolStats,
   type DepositorInfo,
 } from "@/lib/solana/pool";
+import { translateTxError, type FriendlyError } from "@/lib/solana/tx-error";
 
 /* ───────────────────────── HELPERS ───────────────────────── */
 
@@ -86,7 +87,7 @@ export default function EarnPage() {
   const [amount, setAmount] = useState("");
   const [txPending, setTxPending] = useState(false);
   const [txResult, setTxResult] = useState<{ sig: string; type: string } | null>(null);
-  const [txError, setTxError] = useState<string | null>(null);
+  const [txError, setTxError] = useState<FriendlyError | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
 
   // Pool is live on mainnet (initialized as part of the Token-2022 deploy).
@@ -118,8 +119,11 @@ export default function EarnPage() {
         .then((d) => { if (d?.ok) setPoolApi(d); })
         .catch(() => {});
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "";
-      setError(msg || "Failed to fetch pool data");
+      // Don't surface raw RPC errors to the user — they're noisy and
+      // usually transient. Log to console for debugging; show a clean
+      // generic message in the UI.
+      console.warn("[earn] pool refresh failed:", e instanceof Error ? e.message : e);
+      setError("Pool data briefly unavailable — refreshing in a moment.");
     } finally {
       setLoading(false);
     }
@@ -179,9 +183,31 @@ export default function EarnPage() {
     const lamports = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
     if (lamports <= 0) return;
 
-    setTxPending(true);
     setTxError(null);
     setTxResult(null);
+
+    // Preflight: do they have enough SOL to cover deposit + ATA rent + fees?
+    // ~0.003 SOL reserve is plenty for typical deposit flows.
+    const GAS_RESERVE = Math.floor(0.003 * LAMPORTS_PER_SOL);
+    if (solBalance < lamports + GAS_RESERVE) {
+      const short = lamports + GAS_RESERVE - solBalance;
+      setTxError({
+        title: "Not enough SOL in your wallet",
+        body: [
+          `You're trying to deposit ${(lamports / LAMPORTS_PER_SOL).toFixed(4)} SOL.`,
+          `Solana also needs ~0.003 SOL for network fees + ATA rent.`,
+          ``,
+          `Your wallet has: ${(solBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL`,
+          `You need at least: ${((lamports + GAS_RESERVE) / LAMPORTS_PER_SOL).toFixed(4)} SOL`,
+          `Short by: ${(short / LAMPORTS_PER_SOL).toFixed(4)} SOL`,
+          ``,
+          "Top up your wallet a bit and try again — or deposit a smaller amount.",
+        ].join("\n"),
+      });
+      return;
+    }
+
+    setTxPending(true);
     let sig = "";
     try {
       const tx = await buildDepositTransaction(connection, publicKey, lamports);
@@ -192,14 +218,12 @@ export default function EarnPage() {
         setAmount("");
         refresh();
       } else if (r.pending) {
-        setTxError(
-          `Tx submitted but not confirmed in 90s. It usually still lands — check https://solscan.io/tx/${sig} in a minute. If it shows Success, your deposit is in.`,
-        );
+        setTxError(translateTxError("not confirmed in 90s", { flow: "deposit", sig }));
       } else {
-        setTxError(`On-chain error: ${JSON.stringify(r.err)}`);
+        setTxError(translateTxError(r.err, { flow: "deposit", sig }));
       }
     } catch (e: unknown) {
-      setTxError(e instanceof Error ? e.message : "Transaction failed");
+      setTxError(translateTxError(e, { flow: "deposit", sig }));
     } finally {
       setTxPending(false);
     }
@@ -207,19 +231,59 @@ export default function EarnPage() {
 
   // Handle withdraw
   const handleWithdraw = async () => {
-    if (!publicKey || !position || !amount) return;
+    setTxError(null);
+    setTxResult(null);
+
+    if (!publicKey) return;
+    if (!position) {
+      setTxError({
+        title: "No deposit found on this wallet",
+        body: "We don't see an LP position for this wallet on-chain. Either you've never deposited from this wallet, or you're connected with a different one. Switch wallets in your adapter and try again.",
+      });
+      return;
+    }
+    if (!amount) return;
 
     const lamportsRequested = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
     if (lamportsRequested <= 0 || !pool) return;
 
+    // Preflight: are they trying to withdraw more than their position is worth?
+    const currentValue = position.currentValue;
+    if (lamportsRequested > currentValue) {
+      setTxError({
+        title: "Withdrawal exceeds your position",
+        body: [
+          `You're trying to withdraw ${(lamportsRequested / LAMPORTS_PER_SOL).toFixed(4)} SOL,`,
+          `but your position is currently worth ${(currentValue / LAMPORTS_PER_SOL).toFixed(4)} SOL.`,
+          ``,
+          "Use Max, or lower the amount.",
+        ].join("\n"),
+      });
+      return;
+    }
+
+    // Preflight: gas reserve check
+    const GAS_RESERVE = Math.floor(0.003 * LAMPORTS_PER_SOL);
+    if (solBalance < GAS_RESERVE) {
+      setTxError({
+        title: "Wallet doesn't have SOL for network fees",
+        body: `Withdrawing still costs ~0.003 SOL for the transaction. Your wallet has ${(solBalance / LAMPORTS_PER_SOL).toFixed(4)} SOL — send a bit more and retry.`,
+      });
+      return;
+    }
+
     const shares = pool.totalDeposits > 0
       ? Math.floor((lamportsRequested * pool.totalShares) / pool.totalDeposits)
       : 0;
-    if (shares <= 0) return;
+    if (shares <= 0) {
+      setTxError({
+        title: "Amount too small",
+        body: "Try a slightly larger amount — this comes out to zero shares against the current pool size.",
+      });
+      return;
+    }
 
     setTxPending(true);
-    setTxError(null);
-    setTxResult(null);
     let sig = "";
     try {
       const tx = await buildWithdrawTransaction(connection, publicKey, shares);
@@ -230,14 +294,12 @@ export default function EarnPage() {
         setAmount("");
         refresh();
       } else if (r.pending) {
-        setTxError(
-          `Tx submitted but not confirmed in 90s. It usually still lands — check https://solscan.io/tx/${sig} in a minute. If it shows Success, your withdrawal completed.`,
-        );
+        setTxError(translateTxError("not confirmed in 90s", { flow: "withdraw", sig }));
       } else {
-        setTxError(`On-chain error: ${JSON.stringify(r.err)}`);
+        setTxError(translateTxError(r.err, { flow: "withdraw", sig }));
       }
     } catch (e: unknown) {
-      setTxError(e instanceof Error ? e.message : "Transaction failed");
+      setTxError(translateTxError(e, { flow: "withdraw", sig }));
     } finally {
       setTxPending(false);
     }
@@ -319,8 +381,27 @@ export default function EarnPage() {
         </div>
       )}
       {txError && (
-        <div className="mt-4 rounded-xl border border-[var(--bad)]/30 bg-[var(--bad)]/5 p-3 text-sm text-[var(--bad)]">
-          {txError}
+        <div className="mt-4 rounded-xl border border-[var(--bad)]/30 bg-[var(--bad)]/5 p-4 text-sm">
+          <div className="font-semibold text-[var(--bad)]">⚠️ {txError.title}</div>
+          <div className="mt-2 whitespace-pre-line leading-relaxed text-[var(--ink-soft)]">
+            {txError.body}
+          </div>
+          {txError.action?.href && (
+            <a
+              href={txError.action.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-[var(--accent-deep)] underline-offset-2 hover:underline"
+            >
+              {txError.action.label} →
+            </a>
+          )}
+          <button
+            onClick={() => setTxError(null)}
+            className="mt-3 ml-3 inline-flex items-center gap-1 text-xs text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"
+          >
+            Dismiss
+          </button>
         </div>
       )}
     </>
