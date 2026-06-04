@@ -16,6 +16,58 @@ const HEADERS = {
 };
 
 const BOT_API_URL = process.env.BOT_API_URL ?? "";
+const SOL_MINT = "So11111111111111111111111111111111111111112";
+// Loans get auto-liquidated when collateral value drops to 1.10x the
+// owed amount (10% buffer). Mirrored from the bot's risk engine.
+const LIQUIDATION_THRESHOLD = 1.10;
+
+/**
+ * Batch-fetch token prices in SOL via DexScreener. Returns a map of
+ * mint → priceSol. Best-effort: missing mints just don't appear in
+ * the map, and callers should skip health computation for those loans.
+ */
+async function fetchPricesInSol(mints: string[]): Promise<Map<string, number>> {
+  const result = new Map<string, number>();
+  if (mints.length === 0) return result;
+  const unique = Array.from(new Set([SOL_MINT, ...mints]));
+  try {
+    // DexScreener supports comma-separated up to 30 mints per request.
+    const chunks: string[][] = [];
+    for (let i = 0; i < unique.length; i += 30) chunks.push(unique.slice(i, i + 30));
+    const responses = await Promise.all(
+      chunks.map((c) =>
+        fetch(`https://api.dexscreener.com/tokens/v1/solana/${c.join(",")}`, {
+          signal: AbortSignal.timeout(5_000),
+        }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ),
+    );
+    // Combine + pick best (highest-liquidity) pair per mint.
+    const bestByMint = new Map<string, { priceUsd: number; liquidityUsd: number }>();
+    for (const data of responses) {
+      const pairs = Array.isArray(data) ? data : (data?.pairs ?? []);
+      for (const p of pairs) {
+        const mint = p.baseToken?.address;
+        if (!mint) continue;
+        const priceUsd = parseFloat(p.priceUsd);
+        const liquidityUsd = p.liquidity?.usd || 0;
+        if (!isFinite(priceUsd) || priceUsd <= 0) continue;
+        const existing = bestByMint.get(mint);
+        if (!existing || liquidityUsd > existing.liquidityUsd) {
+          bestByMint.set(mint, { priceUsd, liquidityUsd });
+        }
+      }
+    }
+    const solPriceUsd = bestByMint.get(SOL_MINT)?.priceUsd;
+    if (!solPriceUsd || solPriceUsd <= 0) return result; // can't price without SOL
+    for (const [mint, { priceUsd }] of bestByMint) {
+      if (mint === SOL_MINT) continue;
+      result.set(mint, priceUsd / solPriceUsd);
+    }
+  } catch {
+    // Network/timeout — return whatever we have, callers degrade gracefully.
+  }
+  return result;
+}
 
 interface LoanRow {
   loan_id: string | number | null;
@@ -38,7 +90,38 @@ interface LoanRow {
   category: string | null;
 }
 
-function shape(l: LoanRow) {
+function shape(l: LoanRow, priceSol: number | null) {
+  // Compute live health for active loans where we have a price.
+  // Health = collateral_value_in_lamports / owed_lamports.
+  // Liquidation price = owed_amount × LIQUIDATION_THRESHOLD / collateral_amount.
+  let healthRatio: number | null = null;
+  let collateralValueLamports: string | null = null;
+  let liquidationPriceSol: number | null = null;
+  if (
+    l.status === "active" &&
+    priceSol != null &&
+    priceSol > 0 &&
+    l.decimals != null &&
+    l.collateral_amount &&
+    l.original_loan_amount_lamports
+  ) {
+    try {
+      const amountTokens = Number(l.collateral_amount) / Math.pow(10, l.decimals);
+      const valueSol = amountTokens * priceSol;
+      const valueLamports = Math.floor(valueSol * 1e9);
+      const owedLamports = Number(l.original_loan_amount_lamports);
+      if (owedLamports > 0 && isFinite(valueLamports)) {
+        collateralValueLamports = valueLamports.toString();
+        healthRatio = valueLamports / owedLamports;
+        // Price at which collateral_value × amount === LIQUIDATION_THRESHOLD × owed
+        // i.e., price_per_token = owed_sol × THRESHOLD / amount_tokens
+        const owedSol = owedLamports / 1e9;
+        liquidationPriceSol = (owedSol * LIQUIDATION_THRESHOLD) / amountTokens;
+      }
+    } catch {
+      // Fall through with nulls — UI shows "—" instead of crashing.
+    }
+  }
   return {
     loan_id: l.loan_id?.toString?.() ?? null,
     loan_pda: l.loan_pda,
@@ -62,6 +145,15 @@ function shape(l: LoanRow) {
       started_at: l.start_timestamp,
       due_at: l.due_timestamp,
       updated_at: l.updated_at,
+    },
+    // Live health snapshot — null for non-active loans or when price is unavailable.
+    // Frontend should treat null as "data unavailable" and render "—".
+    health: healthRatio == null ? null : {
+      ratio: healthRatio,
+      collateral_value_lamports: collateralValueLamports,
+      liquidation_price_sol: liquidationPriceSol,
+      liquidation_threshold: LIQUIDATION_THRESHOLD,
+      current_price_sol: priceSol,
     },
     tx_signature: l.tx_signature,
   };
@@ -96,12 +188,21 @@ export async function GET(req: Request) {
       [wallet],
     );
 
+    // Batch-fetch prices for every unique collateral mint across the
+    // user's active loans so the response carries a live health snapshot.
+    // Best-effort: if pricing fails, we still return the loans (no health
+    // data — UI degrades to "—" cleanly).
+    const activeRows = rows.filter((r: LoanRow) => r.status === "active");
+    const historyRows = rows.filter((r: LoanRow) => r.status !== "active");
+    const activeMints = Array.from(new Set(activeRows.map((r: LoanRow) => r.collateral_mint)));
+    const priceMap = await fetchPricesInSol(activeMints);
+
     return NextResponse.json(
       {
         ok: true,
         wallet,
-        active: rows.filter((r: LoanRow) => r.status === "active").map(shape),
-        history: rows.filter((r: LoanRow) => r.status !== "active").map(shape),
+        active: activeRows.map((r: LoanRow) => shape(r, priceMap.get(r.collateral_mint) ?? null)),
+        history: historyRows.map((r: LoanRow) => shape(r, null)),
         source: "database",
       },
       { headers: HEADERS },

@@ -639,6 +639,16 @@ export default function DashboardPage() {
     collateral: { mint: string; symbol: string | null; name: string | null; decimals: number | null; image: string | null; category: string; amount: string | null };
     loan: { amount_lamports: string | null; original_amount_lamports: string | null; ltv_percentage: number; duration_days: number };
     timestamps: { started_at: string; due_at: string; updated_at: string };
+    // Live collateral-health snapshot — null for non-active loans or
+    // when prices weren't available at fetch time. The UI falls back
+    // to "—" in that case.
+    health?: {
+      ratio: number;
+      collateral_value_lamports: string | null;
+      liquidation_price_sol: number | null;
+      liquidation_threshold: number;
+      current_price_sol: number;
+    } | null;
     tx_signature: string | null;
   };
   const [activeLoans, setActiveLoans] = useState<Loan[]>([]);
@@ -1442,18 +1452,50 @@ export default function DashboardPage() {
                                 ? `Due in ${Math.floor(msLeft / 3_600_000)}h`
                                 : `Due in ${Math.floor(msLeft / 86_400_000)}d`;
                             const overdue = msLeft <= 0;
+
+                            // Live health snapshot. Color-band the badge so users see
+                            // their risk at a glance: green safe, amber tight, red danger.
+                            // Thresholds: <1.20x = danger (close to 1.10x liquidation),
+                            //             1.20-1.50x = tight, >1.50x = healthy.
+                            const h = l.health?.ratio ?? null;
+                            const healthBand = h == null
+                              ? { txt: "text-[var(--d-ink-faint)]", bg: "bg-transparent", label: "—" }
+                              : h < 1.20
+                                ? { txt: "text-red-500", bg: "bg-red-500/10 border border-red-500/30", label: `${h.toFixed(2)}x · danger` }
+                                : h < 1.50
+                                  ? { txt: "text-amber-500", bg: "bg-amber-500/10 border border-amber-500/30", label: `${h.toFixed(2)}x · tight` }
+                                  : { txt: "text-emerald-500", bg: "bg-emerald-500/10 border border-emerald-500/30", label: `${h.toFixed(2)}x · healthy` };
+
                             return (
                               <div key={l.loan_pda} className="flex items-center gap-3 px-4 py-3">
                                 <TokenIcon mint={l.collateral.mint} symbol={l.collateral.symbol || "?"} size={32} />
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <span className="font-medium text-[14px]">{l.collateral.symbol || l.collateral.mint.slice(0, 6)}</span>
                                     <span className="text-[10px] text-[var(--d-ink-faint)]">{l.loan.ltv_percentage}% LTV · {l.loan.duration_days}d</span>
+                                    {h != null && (
+                                      <span
+                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${healthBand.bg} ${healthBand.txt}`}
+                                        title="Collateral value ÷ amount owed. Below 1.10x triggers auto-liquidation."
+                                      >
+                                        {healthBand.label}
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="text-[11px] text-[var(--d-ink-soft)]">
                                     {l.collateral.amount && l.collateral.decimals !== null
                                       ? formatTokenAmount(l.collateral.amount, l.collateral.decimals)
                                       : "—"} collateral
+                                    {l.health?.liquidation_price_sol != null && (
+                                      <>
+                                        {" · "}
+                                        <span className="text-[var(--d-ink-faint)]">
+                                          liq @ {l.health.liquidation_price_sol < 0.000001
+                                            ? l.health.liquidation_price_sol.toExponential(2)
+                                            : l.health.liquidation_price_sol.toFixed(8).replace(/0+$/, "").replace(/\.$/, "")} SOL
+                                        </span>
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                                 <div className="text-right">
