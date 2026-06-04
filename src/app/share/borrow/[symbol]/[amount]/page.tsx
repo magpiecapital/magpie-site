@@ -28,7 +28,7 @@ export async function generateMetadata({
     description: `Borrowed ${amount} SOL against $${cleanSymbol} on Magpie Capital without selling. Borrow your bags. Don't sell.`,
     openGraph: {
       title: `${amount} SOL unlocked from $${cleanSymbol}`,
-      description: `Borrowed against my $${cleanSymbol} bag on @magpie_capital — kept every token.`,
+      description: `Borrowed against my $${cleanSymbol} bag on @MagpieLoans — kept every token.`,
     },
     twitter: {
       card: "summary_large_image",
