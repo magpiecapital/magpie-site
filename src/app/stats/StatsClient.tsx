@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { LiveActivityFeed } from "@/components/LiveActivityFeed";
+import { CollateralBreakdown } from "@/components/CollateralBreakdown";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -156,6 +157,22 @@ export default function StatsClient() {
             <Stat label="Repaid loans" value={data ? fmtNum(data.loans.repaid) : "—"} sub="Successfully closed" />
           </div>
         </div>
+      </section>
+
+      {/* ── Collateral breakdown — every token currently in use ── */}
+      <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+        <div className="mb-6 flex items-baseline justify-between">
+          <h2 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
+            Collateral in use
+          </h2>
+          <span className="text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">
+            Most-used first
+          </span>
+        </div>
+        <p className="mb-6 max-w-2xl text-sm text-[var(--ink-soft)] leading-relaxed">
+          Every token with at least one loan against it. Active count, lifetime count, and SOL borrowed — all verifiable on-chain.
+        </p>
+        <CollateralBreakdown />
       </section>
 
       {/* ── Live activity feed — the protocol breathing ── */}
