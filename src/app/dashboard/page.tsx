@@ -9,6 +9,7 @@ import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
 import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
+import { translateTxError } from "@/lib/solana/tx-error";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -657,6 +658,21 @@ export default function DashboardPage() {
   };
   const [eligibleFromApi, setEligibleFromApi] = useState<ApiEligible[]>([]);
 
+  // Bumped after any user action that mutates protocol state (borrow, etc.)
+  // OR by a 2-min auto-poll for the slower endpoints (credit/refs/holders/lpLoy).
+  // Every state-fetching useEffect depends on this — so a single bump
+  // forces a fresh load across the whole dashboard.
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const forceRefresh = useCallback(() => setRefreshTrigger((n) => n + 1), []);
+
+  // Auto-poll trigger every 2 min so updates from bot actions
+  // (e.g., user repays a loan via TG → credit score updates) appear
+  // on the dashboard without a manual reload.
+  useEffect(() => {
+    const id = setInterval(forceRefresh, 120_000);
+    return () => clearInterval(id);
+  }, [forceRefresh]);
+
   // ── Activity feed (unified across loans, referrals, holder distributions) ──
   type ActivityEvent = {
     id: string | number;
@@ -724,7 +740,7 @@ export default function DashboardPage() {
     fetchBalance();
     const interval = setInterval(fetchBalance, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [connected, publicKey]);
+  }, [connected, publicKey, refreshTrigger]);
 
   // Fetch SPL token holdings via our server-side proxy that talks to
   // the bot's Helius-backed RPC. Bypasses the browser wallet adapter
@@ -768,7 +784,7 @@ export default function DashboardPage() {
     fetchHoldings();
     const interval = setInterval(fetchHoldings, 90_000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [connected, publicKey]);
+  }, [connected, publicKey, refreshTrigger]);
 
   // Fetch approved collateral tokens
   useEffect(() => {
@@ -790,7 +806,7 @@ export default function DashboardPage() {
         if (!cancelled) setApprovedLoading(false);
       });
     return () => { cancelled = true; };
-  }, [connected, publicKey]);
+  }, [connected, publicKey, refreshTrigger]);
 
   // Eligible collateral comes from the server-side endpoint that does the
   // intersection of (held tokens) × (approved tokens). The dashboard does
@@ -881,56 +897,62 @@ export default function DashboardPage() {
 
       setBorrowTx(signature);
 
-      // Refresh balances
+      // Refresh balances + ALL dashboard state. The borrow just changed:
+      //  • SOL balance (got the loan)
+      //  • Active loans (new entry)
+      //  • Eligible collateral (some locked up)
+      //  • Credit score (volume + activity factors tick)
+      //  • Activity feed
+      //  • Referrer's earnings (if applicable)
+      // forceRefresh bumps refreshTrigger which all the effects watch.
       connection.getBalance(publicKey).then((lamports) => setSolBalance(lamports / LAMPORTS_PER_SOL)).catch(() => {});
+      forceRefresh();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Transaction failed";
-      // User rejected in Phantom
-      if (msg.includes("User rejected")) {
-        setBorrowError("Transaction cancelled");
-      } else {
-        setBorrowError(msg);
-      }
+      // Use the same translator as /earn so users see clean, educational
+      // error copy instead of raw Solana logs.
+      const friendly = translateTxError(err, { flow: "deposit" }); // borrow uses same patterns
+      setBorrowError(`${friendly.title}: ${friendly.body.split("\n")[0]}`);
     } finally {
       setBorrowing(false);
     }
-  }, [publicKey, connected, connection, sendTransaction]);
+  }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
 
-  // Fetch live credit score when wallet connected
+  // Fetch live credit score — refetches on wallet change AND refreshTrigger
+  // bumps (every 2 min OR after any user action that mutates state).
   useEffect(() => {
     if (!connected || !publicKey) { setLiveCredit(null); return; }
     fetch(`/api/v1/credit?wallet=${publicKey.toBase58()}`)
       .then(r => r.json())
       .then(d => { if (d.ok) setLiveCredit(d.data); })
       .catch(() => {});
-  }, [connected, publicKey]);
+  }, [connected, publicKey, refreshTrigger]);
 
-  // Fetch referral stats when wallet connected
+  // Fetch referral stats — same refresh dependency
   useEffect(() => {
     if (!connected || !publicKey) { setReferrals(null); return; }
     fetch(`/api/v1/referrals?wallet=${publicKey.toBase58()}`)
       .then(r => r.json())
       .then(d => { if (d.ok) setReferrals(d.data); })
       .catch(() => {});
-  }, [connected, publicKey]);
+  }, [connected, publicKey, refreshTrigger]);
 
-  // Fetch $MAGPIE holder stats when wallet connected
+  // Fetch $MAGPIE holder stats — same refresh dependency
   useEffect(() => {
     if (!connected || !publicKey) { setHolders(null); return; }
     fetch(`/api/v1/holders?wallet=${publicKey.toBase58()}`)
       .then(r => r.json())
       .then(d => { if (d.ok) setHolders(d.data?.data ?? d.data ?? null); })
       .catch(() => {});
-  }, [connected, publicKey]);
+  }, [connected, publicKey, refreshTrigger]);
 
-  // Fetch LP loyalty stats (time-weighted bonus earnings)
+  // Fetch LP loyalty stats — same refresh dependency
   useEffect(() => {
     if (!connected || !publicKey) { setLpLoyalty(null); return; }
     fetch(`/api/v1/lp-loyalty?wallet=${publicKey.toBase58()}`)
       .then(r => r.json())
       .then(d => { if (d.ok) setLpLoyalty(d.data?.data ?? d.data ?? null); })
       .catch(() => {});
-  }, [connected, publicKey]);
+  }, [connected, publicKey, refreshTrigger]);
 
   // Fetch LP position (on-chain depositor PDA) when wallet connected.
   // Same call as the /earn page — but here we surface it inline so users
@@ -966,7 +988,7 @@ export default function DashboardPage() {
     fetchLoans();
     const interval = setInterval(fetchLoans, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [connected, publicKey]);
+  }, [connected, publicKey, refreshTrigger]);
 
   // Eligible collateral — single server-computed list, polls every 30s.
   // This is the source of truth for "what can I borrow against".
@@ -986,7 +1008,7 @@ export default function DashboardPage() {
     fetchEligible();
     const interval = setInterval(fetchEligible, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [connected, publicKey]);
+  }, [connected, publicKey, refreshTrigger]);
 
   // Activity feed — repays, borrows, top-ups, extensions, liquidations.
   // Poll every 30s so a fresh repay shows up shortly after returning to the page.
@@ -1002,7 +1024,7 @@ export default function DashboardPage() {
     fetchActivity();
     const interval = setInterval(fetchActivity, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
-  }, [connected, publicKey]);
+  }, [connected, publicKey, refreshTrigger]);
 
   useEffect(() => {
     setMounted(true);
