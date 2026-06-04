@@ -5,8 +5,8 @@ import { useWallet } from "@solana/wallet-adapter-react";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const REWARD_PCT = 5;
-const LP_PCT = 60;
-const PROTOCOL_PCT = 35;
+const LP_PCT = 80;
+const PROTOCOL_PCT = 15;
 
 interface ReferralData {
   linked: boolean;
@@ -230,12 +230,12 @@ export default function ReferClient() {
           <div className="grid gap-8 md:grid-cols-2">
             <div>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Sourced from protocol revenue.
+                Sourced from protocol revenue. LPs unaffected.
               </h2>
               <p className="mt-4 max-w-xl text-base text-[var(--ink-soft)]">
-                Every Magpie loan charges a fee. 60% flows to LPs, 30% to $MAGPIE
-                holders, 5% to referrers, and the rest covers LP loyalty + protocol.
-                Your 5% comes out of the protocol&apos;s side — not LP yield.
+                Every Magpie loan charges a fee. 80% flows to liquidity providers — the
+                people funding the protocol. The remaining 20% is the protocol’s share.
+                Referrers get a slice of that protocol share — not a cut of LP yield.
               </p>
             </div>
             <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 sm:p-8">

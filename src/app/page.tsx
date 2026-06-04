@@ -226,7 +226,7 @@ export default async function Home() {
               Earn yield
             </Link>
             <Link href="/holders" className="btn-ghost text-sm sm:text-base">
-              💎 Hold $MAGPIE · earn 30%
+              💎 Hold $MAGPIE · earn 10%
             </Link>
             <Link href="/credit" className="btn-ghost text-sm sm:text-base">
               ★ Build on-chain credit
@@ -300,7 +300,7 @@ export default async function Home() {
             {" "}<span className="italic text-[var(--accent-deep)]">borrow SOL</span>{" "}
             against memecoins and tokenized stocks. Anyone can
             {" "}<span className="italic text-[var(--accent-deep)]">hold $MAGPIE</span>{" "}
-            to earn 30% of every loan fee, distributed automatically. And anyone can
+            to earn 10% of every loan fee, distributed automatically. And anyone can
             {" "}<span className="italic text-[var(--accent-deep)]">run a keeper</span>{" "}
             to earn bounties on liquidations.
           </p>
@@ -324,7 +324,7 @@ export default async function Home() {
             >
               <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">Supply liquidity</div>
               <div className="mt-3 font-display text-2xl font-medium tracking-tight">
-                Deposit SOL · earn 60% of all fees
+                Deposit SOL · earn 80% of all fees
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
                 Be the lender. Your SOL funds loans across hundreds of memecoins, and you keep
@@ -340,7 +340,7 @@ export default async function Home() {
             >
               <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">💎 Hold $MAGPIE · NEW</div>
               <div className="mt-3 font-display text-2xl font-medium tracking-tight">
-                Earn 30% of every loan fee
+                Earn 10% of every loan fee
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
                 Every $MAGPIE in your wallet is a passive stream. Snapshots happen periodically;

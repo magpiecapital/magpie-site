@@ -82,7 +82,7 @@ const ROWS: Comparison[] = [
   },
   {
     feature: "Holder rewards",
-    magpie: "$MAGPIE → 30% of fees, auto-distributed",
+    magpie: "$MAGPIE → 10% of fees, auto-distributed",
     marginfi: "No native token rewards",
     kamino: "KMNO emissions (variable)",
     mango: "MNGO governance",
