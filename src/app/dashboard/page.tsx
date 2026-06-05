@@ -756,7 +756,7 @@ export default function DashboardPage() {
   const [borrowing, setBorrowing] = useState(false);
   const [borrowTx, setBorrowTx] = useState<string | null>(null);
   const [borrowError, setBorrowError] = useState<string | null>(null);
-  const { sendTransaction } = useWallet();
+  const { sendTransaction, signTransaction } = useWallet();
 
   // ── Site-repay state (feature-flagged) ──
   // While SITE_REPAY_ENABLED is false, the repay button does not render.
@@ -944,7 +944,7 @@ export default function DashboardPage() {
       const collateralValueSol = (collateralUiAmount * priceUsd) / solPriceUsd;
       const collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
 
-      const { transaction, loanId, loanPda } = await buildBorrowTransaction({
+      const { transaction } = await buildBorrowTransaction({
         borrower: publicKey,
         collateralMint: holding.mint,
         collateralAmountRaw,
@@ -953,16 +953,29 @@ export default function DashboardPage() {
         connection,
       });
 
-      const signature = await sendTransaction(transaction, connection, {
-        skipPreflight: false,
-      });
+      // Two-step sign: user signs first (in browser via wallet adapter),
+      // then the bot's co-sign endpoint adds the lender authority signature
+      // and submits. The endpoint strictly allowlists request_and_fund_loan
+      // and rejects any other instruction the lender authority could sign
+      // (admin_withdraw, set_paused, etc.) — see src/api/cosign-borrow.js
+      // for the security gates.
+      if (!signTransaction) {
+        throw new Error("Wallet does not support signTransaction");
+      }
+      const userSigned = await signTransaction(transaction);
+      const partialBase64 = userSigned.serialize({ requireAllSignatures: false }).toString("base64");
 
-      // Wait for confirmation
-      const latestBlockhash = await connection.getLatestBlockhash("confirmed");
-      await connection.confirmTransaction({
-        signature,
-        ...latestBlockhash,
-      }, "confirmed");
+      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+      const cosignRes = await fetch(`${botApi}/api/v1/cosign-borrow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ partialSignedTxBase64: partialBase64 }),
+      });
+      const cosignBody = await cosignRes.json();
+      if (!cosignRes.ok || !cosignBody.ok) {
+        throw new Error(cosignBody.error || `Co-sign failed (${cosignRes.status})`);
+      }
+      const signature: string = cosignBody.signature;
 
       setBorrowTx(signature);
 
