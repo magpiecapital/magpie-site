@@ -35,6 +35,66 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+export interface TicketDetails {
+  id: number;
+  message: string;
+  status: string;
+  admin_reply: string | null;
+  admin_replied_at: string | null;
+  auto_resolved_at: string | null;
+  last_user_followup_at: string | null;
+  followup_count: number;
+  closed_at: string | null;
+  created_at: string;
+}
+
+/**
+ * Fetch a single ticket's full content. Requires a Phantom signature
+ * because ticket bodies + admin replies are private — the list endpoint
+ * returns metadata only.
+ */
+export async function siteSupportTicketDetails(args: {
+  botApiUrl: string;
+  signerPubkey: string;
+  signMessage: SignMessageFn;
+  ticketId: number;
+}): Promise<TicketDetails> {
+  const { botApiUrl, signerPubkey, signMessage, ticketId } = args;
+  if (!botApiUrl) throw new Error("Bot API URL not configured");
+
+  const payload = {
+    magpie: "support/ticket-details/v1",
+    ticketId,
+    nonce: randomNonceHex(),
+    issuedAt: new Date().toISOString(),
+  };
+  const messageBytes = new TextEncoder().encode(JSON.stringify(payload));
+  let signature: Uint8Array;
+  try {
+    signature = await signMessage(messageBytes);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Wallet declined to sign: ${msg}`);
+  }
+  if (!signature || signature.length !== 64) {
+    throw new Error("Wallet returned an invalid signature");
+  }
+  const res = await fetch(`${botApiUrl.replace(/\/$/, "")}/api/v1/support/ticket-details`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      signedMessageBase64: bytesToBase64(messageBytes),
+      signatureBase58: bs58.encode(signature),
+      signerPubkey,
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(body?.error || `Ticket details fetch failed (HTTP ${res.status})`);
+  }
+  return body as TicketDetails;
+}
+
 export async function siteSupportAsk(args: {
   botApiUrl: string;
   signerPubkey: string;

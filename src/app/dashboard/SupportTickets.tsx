@@ -3,23 +3,28 @@
 /**
  * Support surface on the dashboard.
  *
- * - Lists the linked user's tickets (open + awaiting + recently closed).
- * - Lets the user open a new ticket / question, follow up on an open
- *   one, or close it — all via the signed POST /api/v1/support/ask
- *   endpoint, which also runs the AI agent on the message.
+ * Privacy note: the list endpoint deliberately returns METADATA ONLY
+ * (id, status, timestamps, has_admin_reply boolean) because wallet
+ * pubkeys are public on-chain and the list is not signature-gated.
+ * To read a ticket's message body + admin reply, we fetch from the
+ * signed /api/v1/support/ticket-details endpoint — Phantom prompts
+ * the user to sign once per expansion.
  *
- * Renders only for linked users. Non-linked users see nothing (the
- * LinkToTelegram component prompts them to link first).
+ * Renders only for linked users.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { siteSupportAsk, type SupportAskResult } from "@/lib/solana/site-support";
+import {
+  siteSupportAsk,
+  siteSupportTicketDetails,
+  type TicketDetails,
+  type SupportAskResult,
+} from "@/lib/solana/site-support";
 
-interface Ticket {
+interface TicketMeta {
   id: number;
-  message: string;
   status: "open" | "awaiting_user" | "closed" | string;
-  admin_reply: string | null;
+  has_admin_reply: boolean;
   admin_replied_at: string | null;
   auto_resolved_at: string | null;
   last_user_followup_at: string | null;
@@ -63,10 +68,17 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
   const { publicKey, signMessage } = useWallet();
   const walletStr = publicKey?.toBase58() ?? null;
 
-  const [tickets, setTickets] = useState<Ticket[] | null>(null);
+  const [tickets, setTickets] = useState<TicketMeta[] | null>(null);
   const [linked, setLinked] = useState<boolean | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Per-ticket details cache (id → full content). Loaded lazily when
+  // the user expands a ticket so each Phantom signature only buys read
+  // access to the ticket they actually want to see.
+  const [detailsCache, setDetailsCache] = useState<Record<number, TicketDetails>>({});
+  const [detailsLoadingId, setDetailsLoadingId] = useState<number | null>(null);
+  const [detailsError, setDetailsError] = useState<{ id: number; msg: string } | null>(null);
 
   // Compose-new state
   const [composing, setComposing] = useState(false);
@@ -76,7 +88,6 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
   const [followupFor, setFollowupFor] = useState<number | null>(null);
   const [followupText, setFollowupText] = useState("");
 
-  // Generic "in-flight" state for the signed actions
   const [submitting, setSubmitting] = useState(false);
   const [aiResponse, setAiResponse] = useState<{
     ticketId: number;
@@ -112,6 +123,40 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
     });
   }, [tickets]);
 
+  async function fetchDetails(ticketId: number) {
+    if (!walletStr || !signMessage) {
+      setDetailsError({ id: ticketId, msg: "Connect a wallet that supports signMessage." });
+      return;
+    }
+    if (detailsCache[ticketId]) return; // already loaded
+    setDetailsLoadingId(ticketId);
+    setDetailsError(null);
+    try {
+      const d = await siteSupportTicketDetails({
+        botApiUrl,
+        signerPubkey: walletStr,
+        signMessage,
+        ticketId,
+      });
+      setDetailsCache((c) => ({ ...c, [ticketId]: d }));
+    } catch (e) {
+      setDetailsError({
+        id: ticketId,
+        msg: e instanceof Error ? e.message : String(e),
+      });
+    } finally {
+      setDetailsLoadingId(null);
+    }
+  }
+
+  async function handleExpandToggle(ticketId: number) {
+    const next = expandedId === ticketId ? null : ticketId;
+    setExpandedId(next);
+    if (next !== null && !detailsCache[next]) {
+      fetchDetails(next);
+    }
+  }
+
   async function doSubmit(
     action: "open" | "follow_up" | "close",
     extra: { ticketId?: number; message?: string },
@@ -137,6 +182,14 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
         setError(`Submitted, but AI agent was unavailable: ${r.aiError}`);
       }
       await loadTickets();
+      // Invalidate cached details for this ticket so we refetch the
+      // freshly-appended message + AI reply next time it's expanded.
+      setDetailsCache((c) => {
+        if (!c[r.ticketId]) return c;
+        const { [r.ticketId]: _drop, ...rest } = c;
+        void _drop;
+        return rest;
+      });
       setExpandedId(r.ticketId);
       return r;
     } catch (e) {
@@ -243,10 +296,13 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
         {sorted.map((t) => {
           const badge = statusBadge(t.status);
           const expanded = expandedId === t.id;
+          const details = detailsCache[t.id];
+          const loadingDetails = detailsLoadingId === t.id;
+          const detailErr = detailsError && detailsError.id === t.id ? detailsError.msg : null;
           return (
             <div key={t.id} className="py-2.5">
               <button
-                onClick={() => setExpandedId(expanded ? null : t.id)}
+                onClick={() => handleExpandToggle(t.id)}
                 className="block w-full text-left hover:bg-[var(--d-surface-hover)]/40"
               >
                 <div className="flex items-center justify-between gap-3">
@@ -257,9 +313,9 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
                     <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] ${badge.cls}`}>
                       {badge.label}
                     </span>
-                    <span className="truncate text-xs text-[var(--d-ink-soft)]">
-                      {t.message.split("\n")[0].slice(0, 80)}
-                    </span>
+                    {t.has_admin_reply && (
+                      <span className="text-[10px] text-[var(--d-ink-faint)]">team replied</span>
+                    )}
                   </div>
                   <span className="shrink-0 text-[10px] text-[var(--d-ink-faint)]">
                     {ageStr(t.created_at)}
@@ -269,38 +325,59 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
 
               {expanded && (
                 <div className="mt-2 space-y-2 pl-2">
-                  <div className="rounded-md border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2">
-                    <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-[var(--d-ink-faint)]">
-                      Your message
-                    </div>
-                    <div className="whitespace-pre-wrap text-xs text-[var(--d-ink-soft)]">
-                      {t.message}
-                    </div>
-                  </div>
-                  {t.admin_reply && (
-                    <div className="rounded-md border border-[var(--d-accent)]/25 bg-[var(--d-accent-dim)]/30 px-3 py-2">
-                      <div className="mb-1 flex items-center justify-between">
-                        <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--d-accent-deep)]">
-                          Team reply
-                          {t.auto_resolved_at && (
-                            <span className="ml-1 normal-case text-[var(--d-ink-faint)]">
-                              · AI agent
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-[var(--d-ink-faint)]">
-                          {ageStr(t.admin_replied_at)}
-                        </div>
-                      </div>
-                      <div className="whitespace-pre-wrap text-xs text-[var(--d-ink)]">
-                        {t.admin_reply.replace(/^\[auto-resolved by agent[^\]]*\]\n?\n?/, "")}
-                      </div>
+                  {loadingDetails && (
+                    <div className="text-[11px] text-[var(--d-ink-faint)]">
+                      Sign in your wallet to view this ticket…
                     </div>
                   )}
-                  {t.followup_count > 0 && (
-                    <div className="text-[10px] text-[var(--d-ink-faint)]">
-                      Your follow-ups: {t.followup_count}
+                  {detailErr && (
+                    <div className="rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600">
+                      {detailErr}
+                      <button
+                        onClick={() => fetchDetails(t.id)}
+                        className="ml-2 underline"
+                      >
+                        Retry
+                      </button>
                     </div>
+                  )}
+
+                  {details && (
+                    <>
+                      <div className="rounded-md border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2">
+                        <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-[var(--d-ink-faint)]">
+                          Your message
+                        </div>
+                        <div className="whitespace-pre-wrap text-xs text-[var(--d-ink-soft)]">
+                          {details.message}
+                        </div>
+                      </div>
+                      {details.admin_reply && (
+                        <div className="rounded-md border border-[var(--d-accent)]/25 bg-[var(--d-accent-dim)]/30 px-3 py-2">
+                          <div className="mb-1 flex items-center justify-between">
+                            <div className="text-[10px] uppercase tracking-[0.12em] text-[var(--d-accent-deep)]">
+                              Team reply
+                              {details.auto_resolved_at && (
+                                <span className="ml-1 normal-case text-[var(--d-ink-faint)]">
+                                  · AI agent
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-[var(--d-ink-faint)]">
+                              {ageStr(details.admin_replied_at)}
+                            </div>
+                          </div>
+                          <div className="whitespace-pre-wrap text-xs text-[var(--d-ink)]">
+                            {details.admin_reply.replace(/^\[auto-resolved by agent[^\]]*\]\n?\n?/, "")}
+                          </div>
+                        </div>
+                      )}
+                      {details.followup_count > 0 && (
+                        <div className="text-[10px] text-[var(--d-ink-faint)]">
+                          Your follow-ups: {details.followup_count}
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {t.status !== "closed" && (
