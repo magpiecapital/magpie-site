@@ -504,11 +504,25 @@ export default function EarnPage() {
                       : solStr(solBalance, 2)}
                     <span className="ml-1.5 text-lg text-[var(--ink-soft)]">SOL</span>
                   </p>
-                  {position && position.yieldEarned !== 0 && (
-                    <p className={`mt-1 text-sm font-medium ${position.yieldEarned > 0 ? "text-[var(--accent-deep)]" : "text-[var(--bad)]"}`}>
-                      {position.yieldEarned > 0 ? "+" : ""}{solStr(position.yieldEarned)} SOL earned
-                    </p>
-                  )}
+                  {position && (() => {
+                    // Hide rounding noise: anything under 0.0001 SOL renders as
+                    // "0.0000" and looks like a bug ("-0.000 SOL earned"). Show
+                    // a meaningful status instead while waiting for fees to
+                    // accrue past the display threshold.
+                    const MIN_DISPLAY_LAMPORTS = 100_000; // 0.0001 SOL
+                    if (Math.abs(position.yieldEarned) < MIN_DISPLAY_LAMPORTS) {
+                      return (
+                        <p className="mt-1 text-xs text-[var(--ink-soft)]">
+                          Yield finalizes at the next pool snapshot
+                        </p>
+                      );
+                    }
+                    return (
+                      <p className={`mt-1 text-sm font-medium ${position.yieldEarned > 0 ? "text-[var(--accent-deep)]" : "text-[var(--bad)]"}`}>
+                        {position.yieldEarned > 0 ? "+" : ""}{solStr(position.yieldEarned)} SOL earned
+                      </p>
+                    );
+                  })()}
                 </div>
 
                 {/* Deposit / Withdraw */}
