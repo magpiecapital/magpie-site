@@ -13,6 +13,7 @@ import { translateTxError } from "@/lib/solana/tx-error";
 import CustodialWithdraw from "./CustodialWithdraw";
 import SupportTickets from "./SupportTickets";
 import WalletsList from "./WalletsList";
+import PrefsPanel from "./PrefsPanel";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -1920,6 +1921,13 @@ export default function DashboardPage() {
                 {/* Wallets list — only renders for linked users with 2+ wallets. */}
                 {connected && publicKey && (
                   <WalletsList
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                  />
+                )}
+
+                {/* Auto-Protect + notification prefs — linked users only. */}
+                {connected && publicKey && (
+                  <PrefsPanel
                     botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
