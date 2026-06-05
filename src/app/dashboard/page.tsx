@@ -1899,6 +1899,14 @@ export default function DashboardPage() {
               {/* ─── LEFT COLUMN (8/12) ─── */}
               <div className="xl:col-span-8 flex flex-col gap-6">
 
+                {/* TG link status — invisible until response comes back, then either ✓ banner or button */}
+                {connected && publicKey && (
+                  <LinkToTelegram
+                    wallet={publicKey.toBase58()}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                  />
+                )}
+
                 {/* ACTIVE LOANS */}
                 {prefs.activeLoans && (
                   <div id="section-activeLoans">
@@ -2774,6 +2782,122 @@ function Metric({ label, value, danger }: { label: string; value: string; danger
     <div>
       <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)]">{label}</div>
       <div className={`mt-0.5 text-[13px] font-semibold ${danger ? "text-[var(--bad)]" : ""}`}>{value}</div>
+    </div>
+  );
+}
+
+/**
+ * Link the connected wallet to a Telegram account so the user can use both
+ * surfaces interchangeably. The bot generates a short code; user pastes it
+ * in @magpie_capital_bot as /link <code>; site polls /link/status to detect
+ * the redeem and updates the UI.
+ *
+ * Phantom-first users can skip this — the site already serves the full
+ * loan lifecycle without it. Linking adds value only when the user wants
+ * to (a) see their TG-tied referral code / holder history on the site,
+ * or (b) sign actions in TG against a wallet they connected via Phantom.
+ */
+function LinkToTelegram({ wallet, botApiUrl }: { wallet: string; botApiUrl: string }) {
+  const [status, setStatus] = useState<{ linked: boolean; telegram_username?: string | null } | null>(null);
+  const [code, setCode] = useState<string | null>(null);
+  const [codeExpiresAt, setCodeExpiresAt] = useState<number | null>(null);
+  const [now, setNow] = useState(Date.now());
+  const [requesting, setRequesting] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Poll status — fast cadence when a code is open (user might redeem any
+  // moment), slow when not.
+  useEffect(() => {
+    let cancelled = false;
+    async function check() {
+      try {
+        const r = await fetch(`${botApiUrl}/api/v1/link/status?wallet=${wallet}`);
+        if (!r.ok) return;
+        const j = await r.json();
+        if (!cancelled) {
+          setStatus(j);
+          if (j.linked) setCode(null);
+        }
+      } catch { /* silent */ }
+    }
+    check();
+    const interval = code ? 5_000 : 60_000;
+    const id = setInterval(check, interval);
+    const tick = setInterval(() => setNow(Date.now()), 1000);
+    return () => { cancelled = true; clearInterval(id); clearInterval(tick); };
+  }, [wallet, botApiUrl, code]);
+
+  async function requestCode() {
+    setRequesting(true);
+    setErr(null);
+    try {
+      const r = await fetch(`${botApiUrl}/api/v1/link/request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet }),
+      });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || `HTTP ${r.status}`);
+      setCode(j.code);
+      setCodeExpiresAt(Date.now() + (j.expires_in_seconds * 1000));
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRequesting(false);
+    }
+  }
+
+  if (!status) return null; // still loading
+
+  if (status.linked) {
+    return (
+      <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-xs">
+        <span className="font-semibold text-emerald-600">✓ Linked to Telegram</span>
+        {status.telegram_username && (
+          <span className="ml-1 text-[var(--d-ink-soft)]">as {status.telegram_username}</span>
+        )}
+      </div>
+    );
+  }
+
+  if (code && codeExpiresAt && codeExpiresAt > now) {
+    const secondsLeft = Math.max(0, Math.floor((codeExpiresAt - now) / 1000));
+    const mm = Math.floor(secondsLeft / 60);
+    const ss = secondsLeft % 60;
+    return (
+      <div className="rounded-lg border border-[var(--d-accent)]/30 bg-[var(--d-accent-dim)]/30 p-3">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--d-accent-deep)]">Code generated</div>
+        <div className="mt-1.5 font-mono text-lg font-bold tabular text-[var(--d-ink)]">{code}</div>
+        <p className="mt-2 text-xs text-[var(--d-ink-soft)] leading-relaxed">
+          Paste{" "}
+          <code className="rounded bg-[var(--d-bg-card)] px-1 py-0.5 text-[var(--d-ink)]">/link {code}</code>{" "}
+          in{" "}
+          <a href="https://t.me/magpie_capital_bot" target="_blank" rel="noopener noreferrer" className="font-medium text-[var(--d-accent-deep)] underline hover:text-[var(--d-accent)]">
+            @magpie_capital_bot
+          </a>{" "}
+          to finish linking.
+        </p>
+        <div className="mt-2 text-[10px] text-[var(--d-ink-faint)]">
+          Expires in {mm}:{String(ss).padStart(2, "0")} · auto-detects once you redeem
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 flex items-center justify-between gap-3">
+      <div>
+        <div className="text-[11px] font-semibold text-[var(--d-ink)]">Link to Telegram</div>
+        <div className="text-[10px] text-[var(--d-ink-soft)]">Unifies your loans + referral code across surfaces</div>
+      </div>
+      <button
+        onClick={requestCode}
+        disabled={requesting}
+        className="rounded-md border border-[var(--d-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)] disabled:opacity-50"
+      >
+        {requesting ? "…" : "Link"}
+      </button>
+      {err && <span className="text-[10px] text-red-500">{err}</span>}
     </div>
   );
 }
