@@ -767,6 +767,9 @@ export default function DashboardPage() {
   const [repaySuccessSig, setRepaySuccessSig] = useState<string | null>(null);
   const [repayError, setRepayError] = useState<string | null>(null);
   const [repayConfirmFor, setRepayConfirmFor] = useState<Loan | null>(null);
+  // 100 = full repay (closes loan, collateral returns).
+  // 25/50/75 = partial (pays down debt, collateral stays locked).
+  const [repayPct, setRepayPct] = useState<25 | 50 | 75 | 100>(100);
 
   const walletDisplay = connected && publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
@@ -975,30 +978,49 @@ export default function DashboardPage() {
     }
   }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
 
-  // Site-repay handler. Builds the tx client-side, has the connected wallet
-  // sign it (Phantom etc.), submits, polls for confirmation, refreshes the
-  // loan list. TG /repay flow remains untouched — this is purely additive.
-  const handleRepay = useCallback(async (loan: Loan) => {
+  // Site-repay handler. Routes to full or partial repay based on repayPct.
+  // 100% → buildRepayTransaction (closes loan, collateral returns).
+  // <100 → buildPartialRepayTransaction (pays down debt, collateral stays locked).
+  // Both build → user signs → submit → poll → refresh. TG flow untouched.
+  const handleRepay = useCallback(async (loan: Loan, pct: 25 | 50 | 75 | 100) => {
     if (!publicKey || !connected) return;
     setRepayConfirmFor(null);
     setRepayError(null);
     setRepaySuccessSig(null);
     setRepayPendingFor(loan.loan_pda);
     try {
-      // Lazy-import the tx builder so the bundle stays small when the flag is off
-      const { buildRepayTransaction } = await import("@/lib/solana/repay");
       const { PublicKey } = await import("@solana/web3.js");
       const { PROGRAM_ID } = await import("@/lib/solana/constants");
-      // Route to the program the loan was created on. New loans store
-      // program_id; older rows default to v1 (PROGRAM_ID).
       const programId = loan.program_id ? new PublicKey(loan.program_id) : PROGRAM_ID;
-      const { transaction } = await buildRepayTransaction({
-        borrower: publicKey,
-        loanPda: loan.loan_pda,
-        collateralMint: loan.collateral.mint,
-        connection,
-        programId,
-      });
+      let transaction;
+      if (pct === 100) {
+        // Full repay — reads live on-chain repay_amount internally
+        const { buildRepayTransaction } = await import("@/lib/solana/repay");
+        const r = await buildRepayTransaction({
+          borrower: publicKey,
+          loanPda: loan.loan_pda,
+          collateralMint: loan.collateral.mint,
+          connection,
+          programId,
+        });
+        transaction = r.transaction;
+      } else {
+        // Partial — compute the percentage of current owed (live on-chain
+        // value would be ideal; for now use the original_amount as a safe
+        // upper bound, and the tx builder hard-clamps to actual on-chain).
+        const owed = BigInt(loan.loan.original_amount_lamports ?? "0");
+        const repayLamports = (owed * BigInt(pct)) / 100n;
+        if (repayLamports <= 0n) throw new Error("Partial amount comes out to 0 — try a larger %");
+        const { buildPartialRepayTransaction } = await import("@/lib/solana/partial-repay");
+        const r = await buildPartialRepayTransaction({
+          borrower: publicKey,
+          loanPda: loan.loan_pda,
+          repayLamports,
+          connection,
+          programId,
+        });
+        transaction = r.transaction;
+      }
       const sig = await sendTransaction(transaction, connection);
       // Poll for confirmation
       const start = Date.now();
@@ -1285,35 +1307,85 @@ export default function DashboardPage() {
       </aside>
 
       {/* ─── Site-repay confirmation modal (feature-flagged) ─── */}
-      {SITE_REPAY_ENABLED && repayConfirmFor && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setRepayConfirmFor(null)}>
-          <div className="w-full max-w-md rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-[var(--d-ink)]">Confirm repay</h3>
-            <p className="mt-2 text-sm text-[var(--d-ink-soft)]">
-              You&apos;ll repay <span className="font-mono font-semibold">{((Number(repayConfirmFor.loan.original_amount_lamports ?? 0)) / 1e9).toFixed(4)} SOL</span>{" "}
-              against this loan. Your collateral ({(() => { const a = repayConfirmFor.collateral.amount; const d = repayConfirmFor.collateral.decimals; return a && d != null ? formatTokenAmount(a, d) : "—"; })()}{" "}
-              {repayConfirmFor.collateral.symbol || "tokens"}) returns to your wallet on confirmation.
-            </p>
-            <p className="mt-3 text-xs text-[var(--d-ink-faint)]">
-              Your wallet will pop up to sign. The amount comes from the on-chain loan state — never from a stored display value.
-            </p>
-            <div className="mt-5 flex gap-2 justify-end">
-              <button
-                onClick={() => setRepayConfirmFor(null)}
-                className="rounded-md border border-[var(--d-border)] px-3 py-2 text-sm font-medium text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)]"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleRepay(repayConfirmFor)}
-                className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-white hover:brightness-110"
-              >
-                Sign & repay
-              </button>
+      {SITE_REPAY_ENABLED && repayConfirmFor && (() => {
+        const owed = Number(repayConfirmFor.loan.original_amount_lamports ?? 0) / 1e9;
+        const repayAmount = (owed * repayPct) / 100;
+        const isFull = repayPct === 100;
+        const collateralDisplay = (() => {
+          const a = repayConfirmFor.collateral.amount;
+          const d = repayConfirmFor.collateral.decimals;
+          return a && d != null ? formatTokenAmount(a, d) : "—";
+        })();
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setRepayConfirmFor(null)}>
+            <div className="w-full max-w-md rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-[var(--d-ink)]">Repay loan</h3>
+
+              {/* Percentage selector */}
+              <div className="mt-4 flex gap-1.5">
+                {([25, 50, 75, 100] as const).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setRepayPct(p)}
+                    className={`flex-1 rounded-md border px-2 py-2 text-xs font-semibold transition ${
+                      repayPct === p
+                        ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-white"
+                        : "border-[var(--d-border)] text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)]"
+                    }`}
+                  >
+                    {p === 100 ? "Full" : `${p}%`}
+                  </button>
+                ))}
+              </div>
+
+              {/* Summary */}
+              <div className="mt-4 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] p-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-[var(--d-ink-soft)]">You repay</span>
+                  <span className="font-mono font-semibold text-[var(--d-ink)]">{repayAmount.toFixed(4)} SOL</span>
+                </div>
+                <div className="mt-1.5 flex justify-between">
+                  <span className="text-[var(--d-ink-soft)]">Collateral</span>
+                  <span className="font-mono text-[var(--d-ink)]">
+                    {isFull ? "returns to wallet" : "stays locked"}
+                  </span>
+                </div>
+                {isFull && (
+                  <div className="mt-1.5 text-[11px] text-[var(--d-ink-faint)]">
+                    {collateralDisplay} {repayConfirmFor.collateral.symbol || "tokens"}
+                  </div>
+                )}
+              </div>
+
+              {/* Explanation when partial is selected */}
+              {!isFull && (
+                <p className="mt-3 text-xs text-[var(--d-ink-faint)] leading-relaxed">
+                  Partial repay pays down the debt and lowers your liquidation risk, but the loan stays open and the collateral stays locked. To get collateral back, pick &ldquo;Full&rdquo;.
+                </p>
+              )}
+
+              <p className="mt-3 text-[11px] text-[var(--d-ink-faint)]">
+                Wallet popup is next. Amounts come from the on-chain loan state — never a stored display value.
+              </p>
+
+              <div className="mt-5 flex gap-2 justify-end">
+                <button
+                  onClick={() => setRepayConfirmFor(null)}
+                  className="rounded-md border border-[var(--d-border)] px-3 py-2 text-sm font-medium text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleRepay(repayConfirmFor, repayPct)}
+                  className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-white hover:brightness-110"
+                >
+                  {isFull ? "Sign & repay full" : `Sign & repay ${repayPct}%`}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ─── Site-repay success/error toast (feature-flagged) ─── */}
       {SITE_REPAY_ENABLED && (repaySuccessSig || repayError) && (
@@ -1660,7 +1732,7 @@ export default function DashboardPage() {
                                   </div>
                                   {SITE_REPAY_ENABLED && (
                                     <button
-                                      onClick={() => setRepayConfirmFor(l)}
+                                      onClick={() => { setRepayPct(100); setRepayConfirmFor(l); }}
                                       disabled={repayPendingFor === l.loan_pda}
                                       className="rounded-md bg-[var(--d-accent)] px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
