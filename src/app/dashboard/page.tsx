@@ -15,6 +15,7 @@ import SupportTickets from "./SupportTickets";
 import WalletsList from "./WalletsList";
 import PrefsPanel from "./PrefsPanel";
 import ActivityFeed from "./ActivityFeed";
+import EarningsCard from "./EarningsCard";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -1936,6 +1937,14 @@ export default function DashboardPage() {
                 {/* Unified activity feed for linked users. */}
                 {connected && publicKey && (
                   <ActivityFeed
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                  />
+                )}
+
+                {/* Earnings summary (referrals + holder + LP yield) —
+                    hides if user has zero across all three. */}
+                {connected && publicKey && (
+                  <EarningsCard
                     botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
