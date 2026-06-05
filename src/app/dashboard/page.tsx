@@ -670,6 +670,9 @@ export default function DashboardPage() {
   type Loan = {
     loan_id: string | null;
     loan_pda: string;
+    /** Program ID the loan lives on — v1 (memecoin) or v2b (RWA). Used by
+     * the site repay flow to target the correct on-chain program. */
+    program_id: string | null;
     status: string;
     collateral: { mint: string; symbol: string | null; name: string | null; decimals: number | null; image: string | null; category: string; amount: string | null };
     loan: { amount_lamports: string | null; original_amount_lamports: string | null; ltv_percentage: number; duration_days: number };
@@ -754,6 +757,16 @@ export default function DashboardPage() {
   const [borrowTx, setBorrowTx] = useState<string | null>(null);
   const [borrowError, setBorrowError] = useState<string | null>(null);
   const { sendTransaction } = useWallet();
+
+  // ── Site-repay state (feature-flagged) ──
+  // While SITE_REPAY_ENABLED is false, the repay button does not render.
+  // When true, each active loan card gets a "Repay" button. Building, signing,
+  // and submitting all happens client-side — TG flow stays unchanged.
+  const SITE_REPAY_ENABLED = process.env.NEXT_PUBLIC_SITE_REPAY_ENABLED === "true";
+  const [repayPendingFor, setRepayPendingFor] = useState<string | null>(null); // loan_pda
+  const [repaySuccessSig, setRepaySuccessSig] = useState<string | null>(null);
+  const [repayError, setRepayError] = useState<string | null>(null);
+  const [repayConfirmFor, setRepayConfirmFor] = useState<Loan | null>(null);
 
   const walletDisplay = connected && publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
@@ -959,6 +972,54 @@ export default function DashboardPage() {
       setBorrowError(`${friendly.title}: ${friendly.body.split("\n")[0]}`);
     } finally {
       setBorrowing(false);
+    }
+  }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
+
+  // Site-repay handler. Builds the tx client-side, has the connected wallet
+  // sign it (Phantom etc.), submits, polls for confirmation, refreshes the
+  // loan list. TG /repay flow remains untouched — this is purely additive.
+  const handleRepay = useCallback(async (loan: Loan) => {
+    if (!publicKey || !connected) return;
+    setRepayConfirmFor(null);
+    setRepayError(null);
+    setRepaySuccessSig(null);
+    setRepayPendingFor(loan.loan_pda);
+    try {
+      // Lazy-import the tx builder so the bundle stays small when the flag is off
+      const { buildRepayTransaction } = await import("@/lib/solana/repay");
+      const { PublicKey } = await import("@solana/web3.js");
+      const { PROGRAM_ID } = await import("@/lib/solana/constants");
+      // Route to the program the loan was created on. New loans store
+      // program_id; older rows default to v1 (PROGRAM_ID).
+      const programId = loan.program_id ? new PublicKey(loan.program_id) : PROGRAM_ID;
+      const { transaction } = await buildRepayTransaction({
+        borrower: publicKey,
+        loanPda: loan.loan_pda,
+        collateralMint: loan.collateral.mint,
+        connection,
+        programId,
+      });
+      const sig = await sendTransaction(transaction, connection);
+      // Poll for confirmation
+      const start = Date.now();
+      let confirmed = false;
+      while (Date.now() - start < 90_000) {
+        const status = await connection.getSignatureStatus(sig);
+        const s = status?.value;
+        if (s?.err) throw new Error(JSON.stringify(s.err));
+        if (s?.confirmationStatus === "confirmed" || s?.confirmationStatus === "finalized") {
+          confirmed = true;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
+      setRepaySuccessSig(sig);
+      forceRefresh();
+    } catch (e: unknown) {
+      setRepayError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRepayPendingFor(null);
     }
   }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
 
@@ -1222,6 +1283,63 @@ export default function DashboardPage() {
           </button>
         </div>
       </aside>
+
+      {/* ─── Site-repay confirmation modal (feature-flagged) ─── */}
+      {SITE_REPAY_ENABLED && repayConfirmFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setRepayConfirmFor(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-[var(--d-ink)]">Confirm repay</h3>
+            <p className="mt-2 text-sm text-[var(--d-ink-soft)]">
+              You&apos;ll repay <span className="font-mono font-semibold">{((Number(repayConfirmFor.loan.original_amount_lamports ?? 0)) / 1e9).toFixed(4)} SOL</span>{" "}
+              against this loan. Your collateral ({(() => { const a = repayConfirmFor.collateral.amount; const d = repayConfirmFor.collateral.decimals; return a && d != null ? formatTokenAmount(a, d) : "—"; })()}{" "}
+              {repayConfirmFor.collateral.symbol || "tokens"}) returns to your wallet on confirmation.
+            </p>
+            <p className="mt-3 text-xs text-[var(--d-ink-faint)]">
+              Your wallet will pop up to sign. The amount comes from the on-chain loan state — never from a stored display value.
+            </p>
+            <div className="mt-5 flex gap-2 justify-end">
+              <button
+                onClick={() => setRepayConfirmFor(null)}
+                className="rounded-md border border-[var(--d-border)] px-3 py-2 text-sm font-medium text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleRepay(repayConfirmFor)}
+                className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-white hover:brightness-110"
+              >
+                Sign & repay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Site-repay success/error toast (feature-flagged) ─── */}
+      {SITE_REPAY_ENABLED && (repaySuccessSig || repayError) && (
+        <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-xl bg-[var(--d-bg-panel)] p-4 shadow-2xl border border-[var(--d-border)]">
+          {repaySuccessSig && (
+            <>
+              <div className="text-sm font-semibold text-emerald-600">Repay confirmed</div>
+              <div className="mt-1 text-xs text-[var(--d-ink-soft)]">
+                Collateral returned to your wallet.{" "}
+                <a href={`https://solscan.io/tx/${repaySuccessSig}`} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--d-ink)]">
+                  View tx
+                </a>
+              </div>
+              <button onClick={() => setRepaySuccessSig(null)} className="absolute top-2 right-2 text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]">×</button>
+            </>
+          )}
+          {repayError && (
+            <>
+              <div className="text-sm font-semibold text-red-500">Repay failed</div>
+              <div className="mt-1 text-xs text-[var(--d-ink-soft)] break-words">{repayError.slice(0, 200)}</div>
+              <p className="mt-2 text-[11px] text-[var(--d-ink-faint)]">Your funds are safe. Try again, or use /repay in Telegram.</p>
+              <button onClick={() => setRepayError(null)} className="absolute top-2 right-2 text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]">×</button>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ─── MAIN AREA ─── */}
       <div className="flex flex-1 flex-col overflow-hidden">
@@ -1535,9 +1653,20 @@ export default function DashboardPage() {
                                     )}
                                   </div>
                                 </div>
-                                <div className="text-right">
-                                  <div className="text-[13px] font-semibold">{owedSol.toFixed(4)} SOL</div>
-                                  <div className={`text-[10px] ${overdue ? "text-red-500" : "text-[var(--d-ink-faint)]"}`}>{dueLabel}</div>
+                                <div className="text-right flex items-center gap-2">
+                                  <div>
+                                    <div className="text-[13px] font-semibold">{owedSol.toFixed(4)} SOL</div>
+                                    <div className={`text-[10px] ${overdue ? "text-red-500" : "text-[var(--d-ink-faint)]"}`}>{dueLabel}</div>
+                                  </div>
+                                  {SITE_REPAY_ENABLED && (
+                                    <button
+                                      onClick={() => setRepayConfirmFor(l)}
+                                      disabled={repayPendingFor === l.loan_pda}
+                                      className="rounded-md bg-[var(--d-accent)] px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                      {repayPendingFor === l.loan_pda ? "Repaying…" : "Repay"}
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             );
@@ -1550,7 +1679,7 @@ export default function DashboardPage() {
                             rel="noopener noreferrer"
                             className="text-xs font-medium text-[var(--d-accent-deep)] hover:underline"
                           >
-                            Repay or extend in Telegram →
+                            {SITE_REPAY_ENABLED ? "Repay, extend, or top up in Telegram →" : "Repay or extend in Telegram →"}
                           </a>
                         </div>
                       </div>

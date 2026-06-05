@@ -72,6 +72,7 @@ async function fetchPricesInSol(mints: string[]): Promise<Map<string, number>> {
 interface LoanRow {
   loan_id: string | number | null;
   loan_pda: string;
+  program_id: string | null;
   collateral_mint: string;
   collateral_amount: string | number;
   loan_amount_lamports: string | number;
@@ -125,6 +126,7 @@ function shape(l: LoanRow, priceSol: number | null) {
   return {
     loan_id: l.loan_id?.toString?.() ?? null,
     loan_pda: l.loan_pda,
+    program_id: l.program_id ?? null,
     status: l.status,
     collateral: {
       mint: l.collateral_mint,
@@ -173,7 +175,7 @@ export async function GET(req: Request) {
   /* Strategy 1: direct DB query */
   try {
     const { rows } = await query(
-      `SELECT l.loan_id, l.loan_pda, l.collateral_mint, l.collateral_amount,
+      `SELECT l.loan_id, l.loan_pda, l.program_id, l.collateral_mint, l.collateral_amount,
               l.loan_amount_lamports, l.original_loan_amount_lamports,
               l.ltv_percentage, l.duration_days,
               l.start_timestamp, l.due_timestamp,
