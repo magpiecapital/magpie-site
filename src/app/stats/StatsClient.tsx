@@ -208,6 +208,9 @@ export default function StatsClient() {
         </div>
       </section>
 
+      {/* ── Verify on-chain — every number above can be confirmed independently ── */}
+      <VerifyOnChain />
+
       {/* ── Error / freshness footer ── */}
       <section className="mx-auto max-w-6xl px-6 py-10 text-center text-sm text-[var(--ink-faint)]">
         {error ? (
@@ -339,5 +342,107 @@ function RewardCard({
       </div>
       <p className="mt-4 text-xs leading-relaxed text-[var(--ink-soft)]">{description}</p>
     </div>
+  );
+}
+
+/* ─── Verify on-chain ───────────────────────────────────────────
+   Lets anyone confirm the numbers above are real. Every account here
+   is a clickable Solscan link — readers can see Magpie's pools, the
+   $MAGPIE mint, the lending programs, and every loan / repay /
+   distribution that's ever happened. No off-chain trust required.
+*/
+const ONCHAIN_ACCOUNTS: { label: string; address: string; note: string }[] = [
+  {
+    label: "Lender authority",
+    address: "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx",
+    note: "Pool authority + fee receiver. Every borrow + repay + distribution touches this wallet.",
+  },
+  {
+    label: "Memecoin lending program (v1)",
+    address: "4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh",
+    note: "Anchor program handling all memecoin-collateralized loans. Open-source logic, immutable rules.",
+  },
+  {
+    label: "RWA lending program (v2)",
+    address: "6wSpKAGuiRf3nYHj9raVwmoTPbG5MswBzTy6aMXZHBe",
+    note: "Separate program for tokenized stocks, ETFs, and metals. Same lender authority, isolated state.",
+  },
+  {
+    label: "Memecoin pool state",
+    address: "EynWtuRMUKU3zHzfLv7Y5Qu6MWpwqG17X91QAuHSww9u",
+    note: "Live total_deposits, total_borrowed, total_shares for the memecoin pool.",
+  },
+  {
+    label: "Memecoin pool wSOL vault",
+    address: "5CYVDEqnLknmtyKkFEvpr5XnEJRzieXm1G5hSvYFG2Ko",
+    note: "Holds the wSOL liquidity LPs deposit and borrowers draw from. Read the balance here for live TVL.",
+  },
+  {
+    label: "RWA pool state",
+    address: "3o8QBx6fH9cGZWgZ3Ng6GAseSehEqakvgna9squxaJVP",
+    note: "Live state of the v2 (RWA) lending pool.",
+  },
+  {
+    label: "RWA pool wSOL vault",
+    address: "58PER7L5WtZEDHRt473bSDCKk7KbZPNiw8mbLyn2UBa1",
+    note: "wSOL vault for the v2 (RWA) lending pool.",
+  },
+  {
+    label: "$MAGPIE mint",
+    address: "9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump",
+    note: "Token-2022 mint. Holders earn 10% of every loan fee — distributions go straight from the lender authority to holder wallets.",
+  },
+];
+
+function VerifyOnChain() {
+  return (
+    <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
+      <div className="mb-6 flex items-baseline justify-between">
+        <h2 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
+          Verify on-chain
+        </h2>
+        <span className="text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">
+          Trust nothing, check everything
+        </span>
+      </div>
+      <p className="mb-6 max-w-2xl text-sm text-[var(--ink-soft)] leading-relaxed">
+        Every number on this page is derived from on-chain state — the accounts below.
+        Click any address to inspect it on Solscan. The lending pools, the programs,
+        the $MAGPIE mint, every loan, every distribution: all public, all verifiable
+        without our cooperation.
+      </p>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        {ONCHAIN_ACCOUNTS.map((acc) => (
+          <a
+            key={acc.address}
+            href={`https://solscan.io/account/${acc.address}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="group block rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 transition hover:border-[var(--accent)]/40 hover:shadow-sm"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">
+                {acc.label}
+              </div>
+              <span className="text-[10px] text-[var(--accent-deep)] opacity-0 transition group-hover:opacity-100">
+                Solscan →
+              </span>
+            </div>
+            <div className="mt-2 font-mono text-[11px] text-[var(--ink)] break-all">
+              {acc.address}
+            </div>
+            <div className="mt-2 text-xs leading-relaxed text-[var(--ink-soft)]">
+              {acc.note}
+            </div>
+          </a>
+        ))}
+      </div>
+      <p className="mt-6 max-w-2xl text-xs text-[var(--ink-soft)] leading-relaxed">
+        Want to verify a specific loan? Every borrow + repay shows a transaction
+        signature in <Link href="/dashboard" className="underline hover:text-[var(--ink)]">your dashboard</Link>{" "}
+        and the <a href="#" onClick={(e) => { e.preventDefault(); document.querySelector('[id^="live"]')?.scrollIntoView({ behavior: "smooth" }); }} className="underline hover:text-[var(--ink)]">live activity feed above</a>.
+        Paste any signature into Solscan to see the exact accounts, amounts, and program calls.
+      </p>
+    </section>
   );
 }

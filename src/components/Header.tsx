@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { label: "Holders", href: "/holders" },
   { label: "Refer", href: "/refer" },
   { label: "Dashboard", href: "/dashboard" },
+  { label: "Stats", href: "/stats" },
   { label: "Docs", href: "/docs" },
 ];
 
