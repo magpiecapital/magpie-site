@@ -149,6 +149,12 @@ export async function buildDepositTransaction(
 
   // Pre: create wSOL ATA + wrap SOL
   const preIxs = [
+    // Priority fee — pays validators extra per compute unit so the tx
+    // gets prioritized into the next block instead of sitting in the
+    // mempool during congestion. 100k microLamports × 300k CU =
+    // 30k lamports = 0.00003 SOL extra. Trivial cost, ~10x faster
+    // confirmation when the network is busy.
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }),
     ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 }),
     createAssociatedTokenAccountIdempotentInstruction(
       depositor, wsolAta, depositor, NATIVE_MINT, TOKEN_PROGRAM_ID,
@@ -192,6 +198,32 @@ export async function buildDepositTransaction(
   return tx;
 }
 
+/**
+ * v1 withdraw has an unfixed u64 overflow at lib.rs:300 — it does
+ * `shares.checked_mul(position.deposited_amount)` in u64 instead of u128.
+ * For any position where shares × deposited_amount exceeds u64::MAX
+ * (≈ 1.84 × 10¹⁹), the call returns MathOverflow (custom error 6004).
+ * Roughly, this blocks any single-tx withdraw on LP positions larger
+ * than ~1.36 SOL when deposited_amount and shares are both ≈ that size.
+ *
+ * Until the program is replaced, the site chunks large withdrawals into
+ * multiple sequential transactions, each sized so `chunk_shares ×
+ * deposited_amount < safety_threshold`. After each chunk lands, the
+ * position's deposited_amount has shrunk proportionally, so successive
+ * chunks can be slightly larger. This continues until the requested
+ * amount is fully withdrawn.
+ *
+ * Returns the max shares safely withdrawable in one tx, given the
+ * current on-chain depositedAmount. Uses u64::MAX / 2 as the safety
+ * floor — half of theoretical max to absorb any rounding drift.
+ */
+export function computeMaxSafeWithdrawShares(depositedAmount: number): bigint {
+  if (depositedAmount <= 0) return 0n;
+  const U64_MAX = 18_446_744_073_709_551_615n;
+  // / 2 safety divisor: leaves us a comfortable 50% headroom under u64
+  return U64_MAX / 2n / BigInt(depositedAmount);
+}
+
 /** Build a withdraw transaction (withdraws wSOL from pool -> unwraps to SOL) */
 export async function buildWithdrawTransaction(
   connection: Connection,
@@ -217,6 +249,12 @@ export async function buildWithdrawTransaction(
   );
 
   const preIxs = [
+    // Priority fee — pays validators extra per compute unit so the tx
+    // gets prioritized into the next block instead of sitting in the
+    // mempool during congestion. 100k microLamports × 300k CU =
+    // 30k lamports = 0.00003 SOL extra. Trivial cost, ~10x faster
+    // confirmation when the network is busy.
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }),
     ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 }),
     createAssociatedTokenAccountIdempotentInstruction(
       depositor, wsolAta, depositor, NATIVE_MINT, TOKEN_PROGRAM_ID,

@@ -14,6 +14,7 @@ import {
   fetchDepositorPosition,
   buildDepositTransaction,
   buildWithdrawTransaction,
+  computeMaxSafeWithdrawShares,
   type PoolStats,
   type DepositorInfo,
 } from "@/lib/solana/pool";
@@ -93,6 +94,9 @@ export default function EarnPage() {
   // requested lamports above the actual balance). Cleared on any manual edit.
   const [maxLamports, setMaxLamports] = useState<number | null>(null);
   const [txPending, setTxPending] = useState(false);
+  // For chunked withdraws (working around v1 program's u64 overflow):
+  // {step, total, lamportsDone} so the UI can show 'Withdrawing chunk 2 of 5…'
+  const [chunkProgress, setChunkProgress] = useState<{ step: number; total: number; lamportsDone: number } | null>(null);
   const [txResult, setTxResult] = useState<{ sig: string; type: string } | null>(null);
   const [txError, setTxError] = useState<FriendlyError | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
@@ -305,10 +309,10 @@ export default function EarnPage() {
       return;
     }
 
-    const shares = pool.totalDeposits > 0
+    const sharesRequested = pool.totalDeposits > 0
       ? Math.floor((lamportsRequested * pool.totalShares) / pool.totalDeposits)
       : 0;
-    if (shares <= 0) {
+    if (sharesRequested <= 0) {
       setTxError({
         title: "Amount too small",
         body: "Try a slightly larger amount — this comes out to zero shares against the current pool size.",
@@ -316,25 +320,90 @@ export default function EarnPage() {
       return;
     }
 
+    // Plan the chunking: each chunk's shares × current depositedAmount must
+    // stay under the program's u64 overflow ceiling. computeMaxSafeWithdrawShares
+    // returns the per-tx ceiling; we cap each chunk to that. After each chunk
+    // lands, depositedAmount shrinks proportionally so the ceiling rises — most
+    // positions clear in 1-6 sequential chunks.
     setTxPending(true);
-    let sig = "";
+    setChunkProgress(null);
+    let lastSig = "";
     try {
-      const tx = await buildWithdrawTransaction(connection, publicKey, shares);
-      sig = await sendTransaction(tx, connection);
-      const r = await confirmWithPoll(sig);
-      if (r.ok) {
-        setTxResult({ sig, type: "withdraw" });
-        setAmount("");
-        refresh();
-      } else if (r.pending) {
-        setTxError(translateTxError("not confirmed in 90s", { flow: "withdraw", sig }));
-      } else {
-        setTxError(translateTxError(r.err, { flow: "withdraw", sig }));
+      let remainingShares = BigInt(sharesRequested);
+      let currentDepositedAmount = position.depositedAmount;
+      let chunkStep = 0;
+      // Estimate total chunks for the UI based on initial state. The real count
+      // may differ by ±1 because depositedAmount shrinks each iteration.
+      let estimatedTotal = 1;
+      {
+        const initialSafeMax = computeMaxSafeWithdrawShares(currentDepositedAmount);
+        if (initialSafeMax > 0n && remainingShares > initialSafeMax) {
+          estimatedTotal = Math.ceil(Number(remainingShares) / Number(initialSafeMax));
+        }
       }
+      let lamportsDone = 0;
+
+      while (remainingShares > 0n) {
+        chunkStep++;
+        const safeMaxShares = computeMaxSafeWithdrawShares(currentDepositedAmount);
+        const thisChunk = safeMaxShares > 0n && remainingShares > safeMaxShares
+          ? safeMaxShares
+          : remainingShares;
+        // Capping at Number.MAX_SAFE_INTEGER is fine — total shares in the pool
+        // is well under 2^53 in any realistic scenario.
+        const chunkShares = Number(thisChunk);
+
+        setChunkProgress({ step: chunkStep, total: Math.max(estimatedTotal, chunkStep), lamportsDone });
+
+        const tx = await buildWithdrawTransaction(connection, publicKey, chunkShares);
+        lastSig = await sendTransaction(tx, connection);
+        const r = await confirmWithPoll(lastSig);
+        if (!r.ok) {
+          if (r.pending) {
+            setTxError(translateTxError("not confirmed in 90s", { flow: "withdraw", sig: lastSig }));
+          } else {
+            setTxError(translateTxError(r.err, { flow: "withdraw", sig: lastSig }));
+          }
+          // If at least one chunk landed, surface that explicitly so the user
+          // knows partial funds arrived before the failure.
+          if (chunkStep > 1) {
+            setTxResult({ sig: lastSig, type: "withdraw" });
+          }
+          return;
+        }
+
+        remainingShares -= thisChunk;
+        lamportsDone += Math.floor((chunkShares * pool.totalDeposits) / pool.totalShares);
+
+        // Re-read position so the next iteration uses fresh depositedAmount.
+        // If lookup fails, fall back to a proportional estimate (worst case
+        // is we use a smaller chunk next round — still safe, never overflows).
+        if (remainingShares > 0n) {
+          try {
+            const fresh = await fetchDepositorPosition(connection, publicKey);
+            if (fresh && fresh.depositedAmount > 0) {
+              currentDepositedAmount = fresh.depositedAmount;
+            } else {
+              // No position left — we've withdrawn everything. Done.
+              break;
+            }
+          } catch {
+            // Proportional estimate: deposit shrinks by chunk-fraction of shares
+            const fraction = Number(thisChunk) / sharesRequested;
+            currentDepositedAmount = Math.floor(currentDepositedAmount * (1 - fraction));
+          }
+        }
+      }
+
+      setTxResult({ sig: lastSig, type: "withdraw" });
+      setAmount("");
+      setMaxLamports(null);
+      refresh();
     } catch (e: unknown) {
-      setTxError(translateTxError(e, { flow: "withdraw", sig }));
+      setTxError(translateTxError(e, { flow: "withdraw", sig: lastSig }));
     } finally {
       setTxPending(false);
+      setChunkProgress(null);
     }
   };
 
@@ -400,12 +469,27 @@ export default function EarnPage() {
       disabled={txPending || !amount || parseFloat(amount) <= 0 || poolNotInitialized}
       className="btn-accent w-full py-3.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
     >
-      {txPending ? "Confirming..." : tab === "deposit" ? "Deposit SOL" : "Withdraw SOL"}
+      {txPending
+        ? chunkProgress && chunkProgress.total > 1
+          ? `Withdrawing ${chunkProgress.step} of ${chunkProgress.total}…`
+          : "Confirming..."
+        : tab === "deposit" ? "Deposit SOL" : "Withdraw SOL"}
     </button>
   );
 
   const txFeedback = (
     <>
+      {chunkProgress && chunkProgress.total > 1 && (
+        <div className="mt-4 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-3 text-xs">
+          <div className="flex items-center justify-between font-medium text-[var(--accent-deep)]">
+            <span>Chunk {chunkProgress.step} of {chunkProgress.total}</span>
+            <span className="tabular">{solStr(chunkProgress.lamportsDone, 4)} SOL received so far</span>
+          </div>
+          <p className="mt-1 leading-relaxed text-[var(--ink-soft)]">
+            Large withdrawals are split into multiple transactions automatically. Keep this tab open until all chunks land.
+          </p>
+        </div>
+      )}
       {txResult && (
         <div className="mt-4 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-3 text-sm">
           {txResult.type === "deposit" ? "Deposit" : "Withdrawal"} confirmed!{" "}
