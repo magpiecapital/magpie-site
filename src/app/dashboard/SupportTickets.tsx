@@ -17,6 +17,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import {
   siteSupportAsk,
   siteSupportTicketDetails,
+  siteSupportDeleteTicket,
   type TicketDetails,
   type SupportAskResult,
 } from "@/lib/solana/site-support";
@@ -230,6 +231,38 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
     await doSubmit("close", { ticketId });
   }
 
+  async function handleDelete(ticketId: number) {
+    if (!walletStr || !signMessage) {
+      setError("Connect a wallet that supports signMessage.");
+      return;
+    }
+    const confirmed = typeof window !== "undefined"
+      ? window.confirm("Permanently delete this ticket and its messages? This can't be undone.")
+      : false;
+    if (!confirmed) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await siteSupportDeleteTicket({
+        botApiUrl,
+        signerPubkey: walletStr,
+        signMessage,
+        ticketId,
+      });
+      setDetailsCache((c) => {
+        const { [ticketId]: _drop, ...rest } = c;
+        void _drop;
+        return rest;
+      });
+      if (expandedId === ticketId) setExpandedId(null);
+      await loadTickets();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (linked === null) return null;
   if (linked === false) return null;
 
@@ -400,6 +433,16 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
                         Mark resolved
                       </button>
                     </div>
+                  )}
+
+                  {t.status === "closed" && (
+                    <button
+                      onClick={() => handleDelete(t.id)}
+                      disabled={submitting}
+                      className="text-[10px] text-[var(--d-ink-faint)] hover:text-red-500 underline disabled:opacity-50"
+                    >
+                      Delete this ticket
+                    </button>
                   )}
 
                   {followupFor === t.id && (

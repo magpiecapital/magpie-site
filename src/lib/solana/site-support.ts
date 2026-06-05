@@ -49,6 +49,52 @@ export interface TicketDetails {
 }
 
 /**
+ * Permanently delete a CLOSED ticket. Requires a Phantom signature
+ * proving the signer owns the ticket. Open/awaiting tickets cannot
+ * be deleted — only after they're closed.
+ */
+export async function siteSupportDeleteTicket(args: {
+  botApiUrl: string;
+  signerPubkey: string;
+  signMessage: SignMessageFn;
+  ticketId: number;
+}): Promise<void> {
+  const { botApiUrl, signerPubkey, signMessage, ticketId } = args;
+  if (!botApiUrl) throw new Error("Bot API URL not configured");
+
+  const payload = {
+    magpie: "support/delete-ticket/v1",
+    ticketId,
+    nonce: randomNonceHex(),
+    issuedAt: new Date().toISOString(),
+  };
+  const messageBytes = new TextEncoder().encode(JSON.stringify(payload));
+  let signature: Uint8Array;
+  try {
+    signature = await signMessage(messageBytes);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Wallet declined to sign: ${msg}`);
+  }
+  if (!signature || signature.length !== 64) {
+    throw new Error("Wallet returned an invalid signature");
+  }
+  const res = await fetch(`${botApiUrl.replace(/\/$/, "")}/api/v1/support/delete-ticket`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      signedMessageBase64: bytesToBase64(messageBytes),
+      signatureBase58: bs58.encode(signature),
+      signerPubkey,
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(body?.error || `Delete failed (HTTP ${res.status})`);
+  }
+}
+
+/**
  * Fetch a single ticket's full content. Requires a Phantom signature
  * because ticket bodies + admin replies are private — the list endpoint
  * returns metadata only.
