@@ -87,6 +87,11 @@ export default function EarnPage() {
   // Form state
   const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
   const [amount, setAmount] = useState("");
+  // When the user clicks "Max", we capture the EXACT lamport value here so the
+  // submit path can use the precise on-chain amount instead of round-tripping
+  // through the display string (which rounds at 4 decimals and can push the
+  // requested lamports above the actual balance). Cleared on any manual edit.
+  const [maxLamports, setMaxLamports] = useState<number | null>(null);
   const [txPending, setTxPending] = useState(false);
   const [txResult, setTxResult] = useState<{ sig: string; type: string } | null>(null);
   const [txError, setTxError] = useState<FriendlyError | null>(null);
@@ -182,7 +187,12 @@ export default function EarnPage() {
   // Handle deposit
   const handleDeposit = async () => {
     if (!publicKey || !amount) return;
-    const lamports = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
+    // Source of truth: if Max was clicked, use the captured exact lamport
+    // value. Otherwise parse the user's typed string. Never trust a
+    // round-tripped SOL→string→SOL conversion when the underlying is lamports.
+    let lamports = maxLamports !== null
+      ? maxLamports
+      : Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
     if (lamports <= 0) return;
 
     setTxError(null);
@@ -191,6 +201,13 @@ export default function EarnPage() {
     // Preflight: do they have enough SOL to cover deposit + ATA rent + fees?
     // ~0.003 SOL reserve is plenty for typical deposit flows.
     const GAS_RESERVE = Math.floor(0.003 * LAMPORTS_PER_SOL);
+    // Hard clamp: if the requested amount is within tx-fee tolerance of the
+    // user's actual balance, cap to balance - GAS_RESERVE. Defends against any
+    // future rounding regressions — submission can never exceed real funds.
+    const maxAllowedDeposit = Math.max(0, solBalance - GAS_RESERVE);
+    if (lamports > maxAllowedDeposit && lamports <= solBalance + 1_000_000) {
+      lamports = maxAllowedDeposit;
+    }
     if (solBalance < lamports + GAS_RESERVE) {
       const short = lamports + GAS_RESERVE - solBalance;
       setTxError({
@@ -246,16 +263,22 @@ export default function EarnPage() {
     }
     if (!amount) return;
 
-    let lamportsRequested = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
+    // Source of truth: if Max was clicked, use the captured exact lamport
+    // value (which equals position.currentValue). Otherwise parse the typed
+    // string. Either way, the final value below is hard-clamped to the
+    // actual on-chain position so we can NEVER request more than exists.
+    let lamportsRequested = maxLamports !== null
+      ? maxLamports
+      : Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
     if (lamportsRequested <= 0 || !pool) return;
 
-    // Preflight: are they trying to withdraw more than their position is worth?
-    // Tolerance for display-rounding: if the input is within 0.001 SOL of the
-    // actual position (or below), we silently clamp to the real on-chain value.
-    // Without this, a user typing what the UI displays (e.g. "7.1" for a
-    // position of 7.099897... displayed as 7.10) would always hit this error.
+    // Preflight: are they trying to withdraw substantially more than they own?
+    // Tolerance covers normal display rounding (4-decimal SOL display can be
+    // off by up to ~50,000 lamports). Anything within 0.001 SOL above the
+    // actual position is silently clamped to currentValue (covered by the
+    // hard clamp below). Anything further is a real mistake — show the error.
     const currentValue = position.currentValue;
-    const ROUNDING_TOLERANCE = 1_000_000; // 0.001 SOL — well above 4-decimal display rounding
+    const ROUNDING_TOLERANCE = 1_000_000; // 0.001 SOL
     if (lamportsRequested > currentValue + ROUNDING_TOLERANCE) {
       setTxError({
         title: "Withdrawal exceeds your position",
@@ -268,8 +291,8 @@ export default function EarnPage() {
       });
       return;
     }
-    // Clamp to the actual position so withdraw uses every lamport but never
-    // requests more than the user owns.
+    // Hard clamp — final defense. Even if every other check is bypassed, the
+    // submitted amount can never exceed the user's actual on-chain position.
     if (lamportsRequested > currentValue) lamportsRequested = currentValue;
 
     // Preflight: gas reserve check
@@ -324,7 +347,7 @@ export default function EarnPage() {
       {(["deposit", "withdraw"] as const).map((t) => (
         <button
           key={t}
-          onClick={() => { setTab(t); setAmount(""); setTxError(null); setTxResult(null); }}
+          onClick={() => { setTab(t); setAmount(""); setMaxLamports(null); setTxError(null); setTxResult(null); }}
           className={`flex-1 rounded-lg py-2 text-sm font-medium capitalize transition ${
             tab === t
               ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
@@ -346,13 +369,13 @@ export default function EarnPage() {
         <button
           onClick={() => {
             const max = tab === "deposit" ? maxDeposit : maxWithdraw;
-            // Truncate (not round) to 4 decimals so the input never asks for
-            // more lamports than the user actually has. toFixed rounds up,
-            // which has caused legitimate withdrawals to be rejected as
-            // "exceeds your position" when the underlying value was just
-            // slightly below the 4-decimal display.
-            const truncated = Math.floor(max / 1e5) / 1e4;
-            setAmount(truncated.toFixed(4));
+            // Capture the EXACT lamport amount so submit can use it directly,
+            // bypassing the lossy SOL→string→SOL conversion entirely. The
+            // display string is just for visual feedback — never the source
+            // of truth for the on-chain amount.
+            setMaxLamports(max);
+            const displayed = Math.floor(max / 1e5) / 1e4;
+            setAmount(displayed.toFixed(4));
           }}
           className="text-xs font-medium text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
         >
@@ -365,7 +388,7 @@ export default function EarnPage() {
         min="0"
         placeholder="0.00"
         value={amount}
-        onChange={(e) => setAmount(e.target.value)}
+        onChange={(e) => { setAmount(e.target.value); setMaxLamports(null); }}
         className="w-full rounded-xl border border-[var(--hairline-strong)] bg-[var(--surface)] px-4 py-3 text-lg font-medium outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
       />
     </div>
