@@ -246,12 +246,17 @@ export default function EarnPage() {
     }
     if (!amount) return;
 
-    const lamportsRequested = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
+    let lamportsRequested = Math.floor(parseFloat(amount) * LAMPORTS_PER_SOL);
     if (lamportsRequested <= 0 || !pool) return;
 
     // Preflight: are they trying to withdraw more than their position is worth?
+    // Tolerance for display-rounding: if the input is within 0.001 SOL of the
+    // actual position (or below), we silently clamp to the real on-chain value.
+    // Without this, a user typing what the UI displays (e.g. "7.1" for a
+    // position of 7.099897... displayed as 7.10) would always hit this error.
     const currentValue = position.currentValue;
-    if (lamportsRequested > currentValue) {
+    const ROUNDING_TOLERANCE = 1_000_000; // 0.001 SOL — well above 4-decimal display rounding
+    if (lamportsRequested > currentValue + ROUNDING_TOLERANCE) {
       setTxError({
         title: "Withdrawal exceeds your position",
         body: [
@@ -263,6 +268,9 @@ export default function EarnPage() {
       });
       return;
     }
+    // Clamp to the actual position so withdraw uses every lamport but never
+    // requests more than the user owns.
+    if (lamportsRequested > currentValue) lamportsRequested = currentValue;
 
     // Preflight: gas reserve check
     const GAS_RESERVE = Math.floor(0.003 * LAMPORTS_PER_SOL);
@@ -338,7 +346,13 @@ export default function EarnPage() {
         <button
           onClick={() => {
             const max = tab === "deposit" ? maxDeposit : maxWithdraw;
-            setAmount((max / LAMPORTS_PER_SOL).toFixed(4));
+            // Truncate (not round) to 4 decimals so the input never asks for
+            // more lamports than the user actually has. toFixed rounds up,
+            // which has caused legitimate withdrawals to be rejected as
+            // "exceeds your position" when the underlying value was just
+            // slightly below the 4-decimal display.
+            const truncated = Math.floor(max / 1e5) / 1e4;
+            setAmount(truncated.toFixed(4));
           }}
           className="text-xs font-medium text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
         >
