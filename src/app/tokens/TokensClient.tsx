@@ -224,8 +224,9 @@ export default function TokensClient() {
     const totalVol = tokens.reduce((s, t) => s + (t.volume24h ?? 0), 0);
     const stockCount = tokens.filter((t) => t.category === "stock").length;
     const etfCount = tokens.filter((t) => t.category === "etf").length;
+    const metalCount = tokens.filter((t) => t.category === "metal").length;
     const memeCount = tokens.filter((t) => t.category === "memecoin").length;
-    return { count: tokens.length, totalMcap, totalVol, stockCount, etfCount, memeCount };
+    return { count: tokens.length, totalMcap, totalVol, stockCount, etfCount, metalCount, memeCount };
   }, [tokens]);
 
   const toggleSort = useCallback(
@@ -266,6 +267,11 @@ export default function TokensClient() {
                     {stats.etfCount} ETFs
                   </span>
                 )}
+                {stats.metalCount > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ background: "rgba(180,155,90,0.10)", color: "rgb(130,105,40)", borderColor: "rgba(180,155,90,0.3)" }}>
+                    {stats.metalCount} Metal{stats.metalCount === 1 ? "" : "s"}
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold" style={{ background: "var(--accent-dim)", color: "var(--accent-deep)", borderColor: "rgba(247,201,72,0.3)" }}>
                   {stats.memeCount} Memecoins
                 </span>
@@ -276,7 +282,7 @@ export default function TokensClient() {
             Approved Tokens
           </h1>
           <p className="mt-3 max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed fade-up fade-up-2 sm:mt-4 sm:text-lg">
-            Borrow SOL against memecoins, tokenized stocks, <em className="font-display not-italic text-[var(--ink)]">and</em> ETFs.
+            Borrow SOL against memecoins, tokenized stocks, ETFs, <em className="font-display not-italic text-[var(--ink)]">and</em> metals.
             Deposit any approved token as collateral, pick a tier, and get
             SOL instantly.
           </p>
@@ -316,6 +322,14 @@ export default function TokensClient() {
                   onClick={() => { setCategoryFilter("etf"); document.getElementById("token-table")?.scrollIntoView({ behavior: "smooth" }); }}
                 />
               )}
+              {stats.metalCount > 0 && (
+                <StatCard
+                  label="Metals"
+                  value={stats.metalCount.toString()}
+                  accent="gold"
+                  onClick={() => { setCategoryFilter("metal"); document.getElementById("token-table")?.scrollIntoView({ behavior: "smooth" }); }}
+                />
+              )}
               <StatCard
                 label="Memecoins"
                 value={stats.memeCount.toString()}
@@ -343,6 +357,7 @@ export default function TokensClient() {
             { key: "all" as CategoryFilter, label: "All", smLabel: "All Tokens", count: stats.count },
             { key: "stock" as CategoryFilter, label: "Stocks", smLabel: "Stocks", count: stats.stockCount },
             ...(stats.etfCount > 0 ? [{ key: "etf" as CategoryFilter, label: "ETFs", smLabel: "ETFs", count: stats.etfCount }] : []),
+            ...(stats.metalCount > 0 ? [{ key: "metal" as CategoryFilter, label: "Metals", smLabel: "Metals", count: stats.metalCount }] : []),
             { key: "memecoin" as CategoryFilter, label: "Memes", smLabel: "Memecoins", count: stats.memeCount },
           ]).map((tab) => (
             <button
@@ -691,7 +706,7 @@ function CategoryBadge({ category }: { category: TokenCategory }) {
   );
 }
 
-function StatCard({ label, value, accent, onClick }: { label: string; value: string; accent?: "ink" | "amber" | "blue"; onClick?: () => void }) {
+function StatCard({ label, value, accent, onClick }: { label: string; value: string; accent?: "ink" | "amber" | "blue" | "gold"; onClick?: () => void }) {
   const Tag = onClick ? "button" : "div";
   const bgClass =
     accent === "ink"
@@ -700,16 +715,20 @@ function StatCard({ label, value, accent, onClick }: { label: string; value: str
         ? "border-[var(--accent)]/30 bg-[var(--accent-dim)]"
         : accent === "blue"
           ? "border-[rgba(63,98,168,0.25)] bg-[rgba(63,98,168,0.06)]"
-          : "border-[var(--hairline)] bg-[var(--bg-elevated)]";
+          : accent === "gold"
+            ? "border-[rgba(180,155,90,0.3)] bg-[rgba(180,155,90,0.08)]"
+            : "border-[var(--hairline)] bg-[var(--bg-elevated)]";
   const labelClass =
     accent === "ink" ? "text-white/50"
       : accent === "amber" ? "text-[var(--accent-deep)]"
       : accent === "blue" ? "text-[rgb(46,76,140)]"
+      : accent === "gold" ? "text-[rgb(130,105,40)]"
       : "text-[var(--ink-soft)]";
   const valueClass =
     accent === "ink" ? "text-white"
       : accent === "amber" ? "text-[var(--accent-deep)]"
       : accent === "blue" ? "text-[rgb(46,76,140)]"
+      : accent === "gold" ? "text-[rgb(130,105,40)]"
       : "";
   return (
     <Tag
