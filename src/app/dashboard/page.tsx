@@ -773,6 +773,11 @@ export default function DashboardPage() {
   // Extend modal — shows the computed fee + confirmation
   const [extendConfirmFor, setExtendConfirmFor] = useState<Loan | null>(null);
   const [extendPendingFor, setExtendPendingFor] = useState<string | null>(null);
+  // Topup modal — user enters extra collateral amount
+  const [topupConfirmFor, setTopupConfirmFor] = useState<Loan | null>(null);
+  const [topupAmountStr, setTopupAmountStr] = useState("");
+  const [topupMaxRaw, setTopupMaxRaw] = useState<bigint | null>(null); // exact lamports/raw if Max clicked
+  const [topupPendingFor, setTopupPendingFor] = useState<string | null>(null);
 
   const walletDisplay = connected && publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
@@ -1088,6 +1093,55 @@ export default function DashboardPage() {
       setRepayError(e instanceof Error ? e.message : String(e));
     } finally {
       setExtendPendingFor(null);
+    }
+  }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
+
+  // Topup handler: add more collateral to an existing loan.
+  // Borrower-only signature. Uses same Max-captures-exact-raw pattern as /earn
+  // to avoid display-rounding bugs.
+  const handleTopup = useCallback(async (loan: Loan, rawAmount: bigint) => {
+    if (!publicKey || !connected) return;
+    if (rawAmount <= 0n) {
+      setRepayError("Topup amount must be > 0");
+      return;
+    }
+    setTopupConfirmFor(null);
+    setRepayError(null);
+    setRepaySuccessSig(null);
+    setTopupPendingFor(loan.loan_pda);
+    try {
+      const { PublicKey } = await import("@solana/web3.js");
+      const { PROGRAM_ID } = await import("@/lib/solana/constants");
+      const { buildTopupTransaction } = await import("@/lib/solana/topup");
+      const programId = loan.program_id ? new PublicKey(loan.program_id) : PROGRAM_ID;
+      const { transaction } = await buildTopupTransaction({
+        borrower: publicKey,
+        loanPda: loan.loan_pda,
+        collateralMint: loan.collateral.mint,
+        extraRawAmount: rawAmount,
+        connection,
+        programId,
+      });
+      const sig = await sendTransaction(transaction, connection);
+      const start = Date.now();
+      let confirmed = false;
+      while (Date.now() - start < 90_000) {
+        const status = await connection.getSignatureStatus(sig);
+        const s = status?.value;
+        if (s?.err) throw new Error(JSON.stringify(s.err));
+        if (s?.confirmationStatus === "confirmed" || s?.confirmationStatus === "finalized") {
+          confirmed = true;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
+      setRepaySuccessSig(sig);
+      forceRefresh();
+    } catch (e: unknown) {
+      setRepayError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setTopupPendingFor(null);
     }
   }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
 
@@ -1478,6 +1532,97 @@ export default function DashboardPage() {
         );
       })()}
 
+      {/* ─── Topup modal (feature-flagged) ─── */}
+      {SITE_REPAY_ENABLED && topupConfirmFor && (() => {
+        const loan = topupConfirmFor;
+        const decimals = loan.collateral.decimals ?? 6;
+        const symbol = loan.collateral.symbol || "tokens";
+        const holding = holdings.find((h) => h.mint === loan.collateral.mint);
+        const maxRawAvailable = holding ? BigInt(holding.amount) : 0n;
+        // Compute the raw amount the user actually wants — prefer the
+        // exact captured value from Max click, fall back to parsing the
+        // typed string (with float→BigInt conversion only at submit).
+        let intendedRaw: bigint = 0n;
+        if (topupMaxRaw != null) {
+          intendedRaw = topupMaxRaw;
+        } else {
+          const parsed = parseFloat(topupAmountStr);
+          if (Number.isFinite(parsed) && parsed > 0) {
+            intendedRaw = BigInt(Math.floor(parsed * Math.pow(10, decimals)));
+          }
+        }
+        // Hard clamp to wallet balance — prevents over-asking
+        if (intendedRaw > maxRawAvailable) intendedRaw = maxRawAvailable;
+        const intendedUi = Number(intendedRaw) / Math.pow(10, decimals);
+        const maxUi = Number(maxRawAvailable) / Math.pow(10, decimals);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setTopupConfirmFor(null)}>
+            <div className="w-full max-w-md rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-[var(--d-ink)]">Add collateral</h3>
+              <p className="mt-2 text-sm text-[var(--d-ink-soft)]">
+                Add more {symbol} to this loan&apos;s collateral vault. Lowers your effective LTV. Free (just tx fees).
+              </p>
+
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium text-[var(--d-ink-soft)]">Amount ({symbol})</label>
+                  <button
+                    onClick={() => {
+                      setTopupMaxRaw(maxRawAvailable);
+                      setTopupAmountStr((Math.floor(Number(maxRawAvailable) / Math.pow(10, decimals - 4)) / 1e4).toFixed(4));
+                    }}
+                    className="text-[11px] font-medium text-[var(--d-accent-deep)] hover:text-[var(--d-accent)]"
+                  >
+                    Max: {maxUi.toFixed(4)}
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  placeholder="0.0"
+                  value={topupAmountStr}
+                  onChange={(e) => { setTopupAmountStr(e.target.value); setTopupMaxRaw(null); }}
+                  className="w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 text-sm outline-none focus:border-[var(--d-accent)]"
+                />
+                {maxRawAvailable === 0n && (
+                  <p className="mt-1.5 text-[11px] text-[var(--d-bad)]">You don&apos;t hold any {symbol} in this wallet right now.</p>
+                )}
+              </div>
+
+              <div className="mt-4 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] p-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-[var(--d-ink-soft)]">Adding</span>
+                  <span className="font-mono font-semibold text-[var(--d-ink)]">{intendedUi.toFixed(4)} {symbol}</span>
+                </div>
+                <div className="mt-1.5 flex justify-between">
+                  <span className="text-[var(--d-ink-soft)]">Current collateral</span>
+                  <span className="font-mono text-[var(--d-ink-soft)]">
+                    {(() => { const a = loan.collateral.amount; const d = loan.collateral.decimals; return a && d != null ? formatTokenAmount(a, d) : "—"; })()} {symbol}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-5 flex gap-2 justify-end">
+                <button
+                  onClick={() => setTopupConfirmFor(null)}
+                  className="rounded-md border border-[var(--d-border)] px-3 py-2 text-sm font-medium text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleTopup(loan, intendedRaw)}
+                  disabled={intendedRaw <= 0n}
+                  className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Sign & add
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ─── Site-repay success/error toast (feature-flagged) ─── */}
       {SITE_REPAY_ENABLED && (repaySuccessSig || repayError) && (
         <div className="fixed bottom-4 right-4 z-50 max-w-sm rounded-xl bg-[var(--d-bg-panel)] p-4 shadow-2xl border border-[var(--d-border)]">
@@ -1821,24 +1966,36 @@ export default function DashboardPage() {
                                     <div className="text-[13px] font-semibold">{owedSol.toFixed(4)} SOL</div>
                                     <div className={`text-[10px] ${overdue ? "text-red-500" : "text-[var(--d-ink-faint)]"}`}>{dueLabel}</div>
                                   </div>
-                                  {SITE_REPAY_ENABLED && (
-                                    <div className="flex flex-col gap-1">
-                                      <button
-                                        onClick={() => { setRepayPct(100); setRepayConfirmFor(l); }}
-                                        disabled={repayPendingFor === l.loan_pda || extendPendingFor === l.loan_pda}
-                                        className="rounded-md bg-[var(--d-accent)] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        {repayPendingFor === l.loan_pda ? "Repaying…" : "Repay"}
-                                      </button>
-                                      <button
-                                        onClick={() => setExtendConfirmFor(l)}
-                                        disabled={repayPendingFor === l.loan_pda || extendPendingFor === l.loan_pda}
-                                        className="rounded-md border border-[var(--d-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-                                      >
-                                        {extendPendingFor === l.loan_pda ? "Extending…" : "Extend"}
-                                      </button>
-                                    </div>
-                                  )}
+                                  {SITE_REPAY_ENABLED && (() => {
+                                    const anyPending = repayPendingFor === l.loan_pda || extendPendingFor === l.loan_pda || topupPendingFor === l.loan_pda;
+                                    return (
+                                      <div className="flex flex-col gap-1">
+                                        <button
+                                          onClick={() => { setRepayPct(100); setRepayConfirmFor(l); }}
+                                          disabled={anyPending}
+                                          className="rounded-md bg-[var(--d-accent)] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                          {repayPendingFor === l.loan_pda ? "Repaying…" : "Repay"}
+                                        </button>
+                                        <div className="flex gap-1">
+                                          <button
+                                            onClick={() => setExtendConfirmFor(l)}
+                                            disabled={anyPending}
+                                            className="flex-1 rounded-md border border-[var(--d-border)] px-2 py-1 text-[10px] font-semibold text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            {extendPendingFor === l.loan_pda ? "…" : "Extend"}
+                                          </button>
+                                          <button
+                                            onClick={() => { setTopupAmountStr(""); setTopupMaxRaw(null); setTopupConfirmFor(l); }}
+                                            disabled={anyPending}
+                                            className="flex-1 rounded-md border border-[var(--d-border)] px-2 py-1 text-[10px] font-semibold text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                          >
+                                            {topupPendingFor === l.loan_pda ? "…" : "Top up"}
+                                          </button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                             );
