@@ -24,6 +24,11 @@ interface PrefsState {
   notify_health: boolean;
 }
 
+interface SiteLockState {
+  locked: boolean;
+  until: string | null;
+}
+
 interface ActionRow {
   action_type: string;
   amount_lamports: string | null;
@@ -82,6 +87,7 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
 
   const [linked, setLinked] = useState<boolean | null>(null);
   const [prefs, setPrefs] = useState<PrefsState | null>(null);
+  const [siteLock, setSiteLock] = useState<SiteLockState | null>(null);
   const [actions, setActions] = useState<ActionRow[]>([]);
   const [busyKey, setBusyKey] = useState<PrefKey | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -95,6 +101,7 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
       const j = await r.json();
       setLinked(!!j.linked);
       if (j.prefs) setPrefs(j.prefs);
+      if (j.site_lock) setSiteLock(j.site_lock);
       if (Array.isArray(j.recent_actions)) setActions(j.recent_actions);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -171,6 +178,26 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
       <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--d-ink-faint)]">
         Auto-Protect & notifications
       </div>
+
+      {siteLock?.locked && siteLock.until && (
+        <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600">
+          <div className="font-semibold">🔒 Site signed actions are locked</div>
+          <div className="mt-0.5 text-amber-700">
+            Until {new Date(siteLock.until).toLocaleString()} · Run{" "}
+            <code className="rounded bg-amber-500/10 px-1">/lock 0</code>{" "}
+            in{" "}
+            <a
+              href="https://t.me/magpie_capital_bot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              @magpie_capital_bot
+            </a>{" "}
+            to clear it.
+          </div>
+        </div>
+      )}
 
       <div className="mt-3 divide-y divide-[var(--d-border)]">
         {TOGGLES.map(({ key, label, sublabel }) => {
