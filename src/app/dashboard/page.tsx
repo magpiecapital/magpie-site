@@ -770,6 +770,9 @@ export default function DashboardPage() {
   // 100 = full repay (closes loan, collateral returns).
   // 25/50/75 = partial (pays down debt, collateral stays locked).
   const [repayPct, setRepayPct] = useState<25 | 50 | 75 | 100>(100);
+  // Extend modal — shows the computed fee + confirmation
+  const [extendConfirmFor, setExtendConfirmFor] = useState<Loan | null>(null);
+  const [extendPendingFor, setExtendPendingFor] = useState<string | null>(null);
 
   const walletDisplay = connected && publicKey
     ? `${publicKey.toBase58().slice(0, 4)}...${publicKey.toBase58().slice(-4)}`
@@ -1042,6 +1045,49 @@ export default function DashboardPage() {
       setRepayError(e instanceof Error ? e.message : String(e));
     } finally {
       setRepayPendingFor(null);
+    }
+  }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
+
+  // Extend handler: pay tier-dependent fee, get a fresh duration.
+  // Borrower-only signature, no lender co-sign needed.
+  const handleExtend = useCallback(async (loan: Loan) => {
+    if (!publicKey || !connected) return;
+    setExtendConfirmFor(null);
+    setRepayError(null);
+    setRepaySuccessSig(null);
+    setExtendPendingFor(loan.loan_pda);
+    try {
+      const { PublicKey } = await import("@solana/web3.js");
+      const { PROGRAM_ID } = await import("@/lib/solana/constants");
+      const { buildExtendTransaction } = await import("@/lib/solana/extend");
+      const programId = loan.program_id ? new PublicKey(loan.program_id) : PROGRAM_ID;
+      const { transaction } = await buildExtendTransaction({
+        borrower: publicKey,
+        loanPda: loan.loan_pda,
+        connection,
+        programId,
+      });
+      const sig = await sendTransaction(transaction, connection);
+      // Confirm polling — same pattern as repay
+      const start = Date.now();
+      let confirmed = false;
+      while (Date.now() - start < 90_000) {
+        const status = await connection.getSignatureStatus(sig);
+        const s = status?.value;
+        if (s?.err) throw new Error(JSON.stringify(s.err));
+        if (s?.confirmationStatus === "confirmed" || s?.confirmationStatus === "finalized") {
+          confirmed = true;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 2000));
+      }
+      if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
+      setRepaySuccessSig(sig);
+      forceRefresh();
+    } catch (e: unknown) {
+      setRepayError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setExtendPendingFor(null);
     }
   }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
 
@@ -1380,6 +1426,51 @@ export default function DashboardPage() {
                   className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-white hover:brightness-110"
                 >
                   {isFull ? "Sign & repay full" : `Sign & repay ${repayPct}%`}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ─── Extend confirmation modal (feature-flagged) ─── */}
+      {SITE_REPAY_ENABLED && extendConfirmFor && (() => {
+        const owed = Number(extendConfirmFor.loan.original_amount_lamports ?? 0) / 1e9;
+        const ltv = extendConfirmFor.loan.ltv_percentage;
+        const feePct = ltv >= 30 ? 0.03 : ltv >= 25 ? 0.02 : 0.015;
+        const feeSol = owed * feePct;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setExtendConfirmFor(null)}>
+            <div className="w-full max-w-md rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-[var(--d-ink)]">Extend loan</h3>
+              <p className="mt-2 text-sm text-[var(--d-ink-soft)]">
+                Renews this loan for another full duration ({extendConfirmFor.loan.duration_days}d). If past-due, the clock resets from now.
+              </p>
+              <div className="mt-4 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] p-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-[var(--d-ink-soft)]">Extend fee ({(feePct * 100).toFixed(1)}% of owed)</span>
+                  <span className="font-mono font-semibold text-[var(--d-ink)]">{feeSol.toFixed(4)} SOL</span>
+                </div>
+                <div className="mt-1.5 flex justify-between">
+                  <span className="text-[var(--d-ink-soft)]">New due in</span>
+                  <span className="font-mono text-[var(--d-ink)]">~{extendConfirmFor.loan.duration_days} days</span>
+                </div>
+              </div>
+              <p className="mt-3 text-[11px] text-[var(--d-ink-faint)]">
+                The exact fee is computed from on-chain state at sign time, not the display value above.
+              </p>
+              <div className="mt-5 flex gap-2 justify-end">
+                <button
+                  onClick={() => setExtendConfirmFor(null)}
+                  className="rounded-md border border-[var(--d-border)] px-3 py-2 text-sm font-medium text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleExtend(extendConfirmFor)}
+                  className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-white hover:brightness-110"
+                >
+                  Sign & extend
                 </button>
               </div>
             </div>
@@ -1731,13 +1822,22 @@ export default function DashboardPage() {
                                     <div className={`text-[10px] ${overdue ? "text-red-500" : "text-[var(--d-ink-faint)]"}`}>{dueLabel}</div>
                                   </div>
                                   {SITE_REPAY_ENABLED && (
-                                    <button
-                                      onClick={() => { setRepayPct(100); setRepayConfirmFor(l); }}
-                                      disabled={repayPendingFor === l.loan_pda}
-                                      className="rounded-md bg-[var(--d-accent)] px-2.5 py-1.5 text-[11px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                      {repayPendingFor === l.loan_pda ? "Repaying…" : "Repay"}
-                                    </button>
+                                    <div className="flex flex-col gap-1">
+                                      <button
+                                        onClick={() => { setRepayPct(100); setRepayConfirmFor(l); }}
+                                        disabled={repayPendingFor === l.loan_pda || extendPendingFor === l.loan_pda}
+                                        className="rounded-md bg-[var(--d-accent)] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {repayPendingFor === l.loan_pda ? "Repaying…" : "Repay"}
+                                      </button>
+                                      <button
+                                        onClick={() => setExtendConfirmFor(l)}
+                                        disabled={repayPendingFor === l.loan_pda || extendPendingFor === l.loan_pda}
+                                        className="rounded-md border border-[var(--d-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {extendPendingFor === l.loan_pda ? "Extending…" : "Extend"}
+                                      </button>
+                                    </div>
                                   )}
                                 </div>
                               </div>
