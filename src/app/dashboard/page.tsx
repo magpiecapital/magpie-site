@@ -10,6 +10,7 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
 import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
 import { translateTxError } from "@/lib/solana/tx-error";
+import CustodialWithdraw from "./CustodialWithdraw";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -1903,6 +1904,13 @@ export default function DashboardPage() {
                 {connected && publicKey && (
                   <LinkToTelegram
                     wallet={publicKey.toBase58()}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                  />
+                )}
+
+                {/* Custodial wallet management — only renders for linked users. */}
+                {connected && publicKey && (
+                  <CustodialWithdraw
                     botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
