@@ -20,7 +20,6 @@ interface WalletRow {
   id: number;
   public_key: string;
   source: "custodial" | "imported" | "site-link" | string;
-  label: string | null;
   is_active: boolean;
   managed: boolean;
   created_at: string;
@@ -110,7 +109,6 @@ export default function WalletsList({ botApiUrl }: { botApiUrl: string }) {
               </div>
               <div className="mt-0.5 text-[10px] text-[var(--d-ink-faint)]">
                 {sourceLabel(w.source)}
-                {w.label && <span> · {w.label}</span>}
                 {!w.managed && <span className="ml-1">· you hold keys</span>}
               </div>
             </div>
