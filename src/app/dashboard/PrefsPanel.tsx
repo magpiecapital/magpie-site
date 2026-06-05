@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { siteSetPref, type PrefKey } from "@/lib/solana/site-prefs";
+import { siteMeExport } from "@/lib/solana/site-export";
 
 interface PrefsState {
   auto_protect: boolean;
@@ -83,6 +84,7 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
   const [prefs, setPrefs] = useState<PrefsState | null>(null);
   const [actions, setActions] = useState<ActionRow[]>([]);
   const [busyKey, setBusyKey] = useState<PrefKey | null>(null);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -102,6 +104,36 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
   useEffect(() => {
     load();
   }, [load]);
+
+  async function handleExport() {
+    if (!walletStr || !signMessage) {
+      setError("Connect a wallet that supports signMessage.");
+      return;
+    }
+    setExporting(true);
+    setError(null);
+    try {
+      const data = await siteMeExport({
+        botApiUrl,
+        signerPubkey: walletStr,
+        signMessage,
+      });
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+      a.href = url;
+      a.download = `magpie-export-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function handleToggle(key: PrefKey) {
     if (!walletStr || !signMessage || !prefs) {
@@ -207,6 +239,22 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
           </div>
         </div>
       )}
+
+      <div className="mt-4 border-t border-[var(--d-border)] pt-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-medium text-[var(--d-ink)]">Export my data</div>
+          <div className="mt-0.5 text-[10px] text-[var(--d-ink-faint)]">
+            Download a JSON file of everything Magpie holds for your account.
+          </div>
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="shrink-0 rounded-md border border-[var(--d-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)] disabled:opacity-50"
+        >
+          {exporting ? "Signing…" : "Download"}
+        </button>
+      </div>
 
       {error && (
         <div className="mt-3 rounded-md border border-red-500/30 bg-red-500/5 px-3 py-2 text-xs text-red-600">
