@@ -16,6 +16,7 @@ import WalletsList from "./WalletsList";
 import PrefsPanel from "./PrefsPanel";
 import ActivityFeed from "./ActivityFeed";
 import EarningsCard from "./EarningsCard";
+import FloatingAiChat from "./FloatingAiChat";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -1945,6 +1946,13 @@ export default function DashboardPage() {
                     hides if user has zero across all three. */}
                 {connected && publicKey && (
                   <EarningsCard
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                  />
+                )}
+
+                {/* Floating AI chat — fixed bottom-right, hides for non-linked users. */}
+                {connected && publicKey && (
+                  <FloatingAiChat
                     botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
