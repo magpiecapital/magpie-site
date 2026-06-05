@@ -8,7 +8,7 @@
  * To remove a token: delete the entry and redeploy.
  */
 
-export type TokenCategory = "stock" | "memecoin";
+export type TokenCategory = "stock" | "etf" | "metal" | "memecoin";
 
 export interface RegisteredToken {
   symbol: string;
