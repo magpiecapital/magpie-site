@@ -28,6 +28,7 @@ export function Footer() {
             <FooterLink href="/dashboard">Dashboard</FooterLink>
             <FooterLink href="/leaderboard">Leaderboard</FooterLink>
             <FooterLink href="/stats">Protocol Stats</FooterLink>
+            <FooterLink href="/status">Status</FooterLink>
           </FooterCol>
           <FooterCol title="Resources">
             <FooterLink href="/docs">Documentation</FooterLink>
