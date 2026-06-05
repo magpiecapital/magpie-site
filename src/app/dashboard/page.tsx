@@ -12,6 +12,7 @@ import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
 import { translateTxError } from "@/lib/solana/tx-error";
 import CustodialWithdraw from "./CustodialWithdraw";
 import SupportTickets from "./SupportTickets";
+import WalletsList from "./WalletsList";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -1912,6 +1913,13 @@ export default function DashboardPage() {
                 {/* Custodial wallet management — only renders for linked users. */}
                 {connected && publicKey && (
                   <CustodialWithdraw
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                  />
+                )}
+
+                {/* Wallets list — only renders for linked users with 2+ wallets. */}
+                {connected && publicKey && (
+                  <WalletsList
                     botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
