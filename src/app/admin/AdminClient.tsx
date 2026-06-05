@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import Link from "next/link";
 import { ConnectWallet } from "@/components/ConnectWallet";
+import { StatusDot } from "@/components/icons";
 
 // Creator/lender wallet — must match LENDER_PUBKEY on the bot.
 const CREATOR_WALLET = "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx";
@@ -434,7 +435,11 @@ export default function AdminClient() {
                 <tr><td colSpan={6} className="px-4 py-6 text-center text-[var(--ink-soft)]">No loans yet</td></tr>
               ) : stats.loans.recent.map((l) => {
                 const when = new Date(l.start_timestamp);
-                const status = l.status === "active" ? "🟢 active" : l.status === "repaid" ? "✓ repaid" : l.status === "liquidated" ? "🔻 liquidated" : l.status;
+                const statusColor =
+                  l.status === "active" ? "text-emerald-600"
+                  : l.status === "repaid" ? "text-[var(--ink-soft)]"
+                  : l.status === "liquidated" ? "text-red-600"
+                  : "text-[var(--ink-faint)]";
                 return (
                   <tr key={l.id}>
                     <td className="px-4 py-3">
@@ -442,7 +447,12 @@ export default function AdminClient() {
                     </td>
                     <td className="px-4 py-3 text-right font-mono">{fmtSol(l.amount)} SOL</td>
                     <td className="px-4 py-3 text-right text-[var(--ink-soft)]">{l.ltv_percentage}% · {l.duration_days}d</td>
-                    <td className="px-4 py-3 text-[var(--ink-soft)]">{status}</td>
+                    <td className={`px-4 py-3 ${statusColor}`}>
+                      <span className="inline-flex items-center gap-1.5">
+                        <StatusDot className="h-1.5 w-1.5" />
+                        {l.status}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 text-[var(--ink-faint)] text-xs">{when.toLocaleString()}</td>
                     <td className="px-4 py-3 text-right">
                       {l.tx_signature && (

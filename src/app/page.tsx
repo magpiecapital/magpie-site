@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Mark } from "@/components/Logo";
 import { DiamondIcon } from "@/components/DiamondIcon";
+import { ArrowDownRightIcon, CheckIcon, TriangleAlertIcon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
 import { PhoneMock } from "@/components/PhoneMock";
 import { Header } from "@/components/Header";
@@ -686,15 +687,26 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                     : msAgo < 3_600_000 ? `${Math.floor(msAgo / 60_000)}m ago`
                     : msAgo < 86_400_000 ? `${Math.floor(msAgo / 3_600_000)}h ago`
                     : `${Math.floor(msAgo / 86_400_000)}d ago`;
+                  const EventIcon =
+                    e.event === "repay" ? CheckIcon
+                    : e.event === "liquidation" ? TriangleAlertIcon
+                    : ArrowDownRightIcon;
+                  const eventColor =
+                    e.event === "repay" ? "text-emerald-600"
+                    : e.event === "liquidation" ? "text-red-600"
+                    : "text-[var(--accent-deep)]";
                   const eventLabel =
-                    e.event === "repay" ? "↩ Repaid"
-                    : e.event === "liquidation" ? "⚠ Liquidated"
-                    : "💰 Borrowed";
+                    e.event === "repay" ? "Repaid"
+                    : e.event === "liquidation" ? "Liquidated"
+                    : "Borrowed";
                   return (
                     <div key={i} className="flex items-center justify-between rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-4 py-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-medium">{eventLabel} · {e.symbol ?? "?"}</div>
-                        <div className="text-[10px] text-[var(--ink-faint)]">{rel}</div>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <EventIcon className={`h-4 w-4 shrink-0 ${eventColor}`} />
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium">{eventLabel} · {e.symbol ?? "?"}</div>
+                          <div className="text-[10px] text-[var(--ink-faint)]">{rel}</div>
+                        </div>
                       </div>
                       <div className="font-mono text-xs text-[var(--ink-soft)]">{sol} SOL</div>
                     </div>

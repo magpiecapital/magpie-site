@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Header } from "@/components/Header";
+import { StatusDot } from "@/components/icons";
 import { Footer } from "@/components/Footer";
 
 export const metadata: Metadata = {
@@ -100,7 +101,7 @@ export default function Page() {
             {/* NEEDS REVIEW */}
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6">
               <div className="flex items-center gap-2 text-amber-500">
-                <span className="text-2xl">🟡</span>
+                <StatusDot className="h-3 w-3" />
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em]">
                   Submission Needs Review
                 </span>

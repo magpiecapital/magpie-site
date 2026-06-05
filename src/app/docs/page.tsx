@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Header } from "@/components/Header";
+import { StatusDot } from "@/components/icons";
 import { Footer } from "@/components/Footer";
 import { getTokenStats } from "@/lib/db";
 
@@ -472,7 +473,10 @@ export default async function DocsPage() {
                 </p>
               </div>
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-500">🟡 Needs Review</div>
+                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-500">
+                  <StatusDot className="h-2 w-2" />
+                  <span>Needs Review</span>
+                </div>
                 <p className="mt-2 text-sm text-[var(--ink-soft)]">
                   Safe (passes every audit) but below auto-approve bar — usually too young, thin liquidity, or low 24h volume. Queued for team review, typically within an hour.
                 </p>

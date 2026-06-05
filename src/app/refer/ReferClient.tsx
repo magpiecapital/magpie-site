@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { GiftIcon } from "@/components/icons";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const REWARD_PCT = 5;
@@ -76,7 +77,7 @@ export default function ReferClient() {
       <section className="relative overflow-hidden">
         <div className="mx-auto max-w-6xl px-5 pt-14 pb-12 sm:px-6 md:pt-24 md:pb-20">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.22em] text-[var(--accent)]">
-            <span>🎁</span>
+            <GiftIcon className="h-3 w-3" />
             <span>New · referrals</span>
           </div>
           <h1 className="max-w-3xl text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl md:text-6xl">

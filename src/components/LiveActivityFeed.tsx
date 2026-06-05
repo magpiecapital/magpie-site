@@ -12,6 +12,12 @@
  * loading state so the panel feels solid before any data lands.
  */
 import { useEffect, useState } from "react";
+import {
+  ArrowDownRightIcon as ArrowDownRight,
+  CheckIcon,
+  TriangleAlertIcon as TriangleAlert,
+  PulseIcon,
+} from "@/components/icons";
 
 interface Event {
   type: "borrow" | "repay" | "liquidation" | "update";
@@ -50,43 +56,8 @@ function fmtAmount(n: number | null) {
   return (n / 1_000_000).toFixed(2) + "M";
 }
 
-// ─── Custom line icons — replace 💰 ✅ ⚠️ 🔄 emojis ───
-// All stroke-only, inherit currentColor, sized for inline use.
-function ArrowDownRight({ className = "" }: { className?: string }) {
-  // "Loan disbursed" — direction-into-wallet arrow.
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M7 7 L17 17" />
-      <path d="M17 9 L17 17 L9 17" />
-    </svg>
-  );
-}
-function CheckIcon({ className = "" }: { className?: string }) {
-  // "Repaid" — clean checkmark.
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M5 12 L10 17 L19 7" />
-    </svg>
-  );
-}
-function TriangleAlert({ className = "" }: { className?: string }) {
-  // "Liquidated" — refined warning triangle.
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M12 4 L21 19 L3 19 Z" />
-      <path d="M12 10 L12 14" />
-      <circle cx="12" cy="17" r="0.5" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-function PulseIcon({ className = "" }: { className?: string }) {
-  // "Update" — neutral activity pulse.
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M3 12 H8 L10 7 L14 17 L16 12 H21" />
-    </svg>
-  );
-}
+// Line icons live in @/components/icons — imported above for one
+// consistent visual vocabulary across the site.
 
 interface EventStyle {
   Icon: ({ className }: { className?: string }) => React.JSX.Element;

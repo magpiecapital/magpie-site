@@ -578,6 +578,41 @@ function EmptyState({ message, cta }: { message: string; cta?: { label: string; 
   );
 }
 
+/**
+ * Skeleton placeholder for loading-state sections. Renders N row-shaped
+ * pulsing blocks inside a rounded container that visually matches the
+ * eventual populated content. Used everywhere we'd otherwise show
+ * plain "Loading…" text.
+ */
+function SkeletonRows({ count = 3, layout = "row" }: { count?: number; layout?: "row" | "card" }) {
+  if (layout === "card") {
+    return (
+      <div className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-6">
+        <div className="h-4 w-32 rounded bg-[var(--d-border)] animate-pulse" />
+        <div className="mt-3 h-8 w-48 rounded bg-[var(--d-border)] animate-pulse" />
+        <div className="mt-2 h-3 w-24 rounded bg-[var(--d-border)] animate-pulse" />
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)]">
+      <div className="divide-y divide-[var(--d-border)]">
+        {Array.from({ length: count }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 px-4 py-3.5">
+            <div className="h-8 w-8 rounded-full bg-[var(--d-border)] animate-pulse shrink-0" />
+            <div className="flex-1 flex items-center gap-3 min-w-0">
+              <div className="h-3 w-20 rounded bg-[var(--d-border)] animate-pulse" />
+              <div className="h-3 w-16 rounded bg-[var(--d-border)] animate-pulse" />
+              <div className="h-3 w-24 rounded bg-[var(--d-border)] animate-pulse" />
+            </div>
+            <div className="h-3 w-14 rounded bg-[var(--d-border)] animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ───────────────────────── MAIN PAGE ───────────────────────── */
 
 export default function DashboardPage() {
@@ -1429,10 +1464,12 @@ export default function DashboardPage() {
                 {prefs.activeLoans && (
                   <div id="section-activeLoans">
                     <SectionHeader title="Active Loans" count={activeLoans.length} />
-                    {activeLoans.length === 0 ? (
+                    {loansLoading && activeLoans.length === 0 ? (
+                      <SkeletonRows count={3} />
+                    ) : activeLoans.length === 0 ? (
                       <EmptyState
-                        message={loansLoading ? "Loading your loans..." : "No active loans — start borrowing on Telegram"}
-                        cta={loansLoading ? undefined : { label: "Open Telegram Bot", href: TELEGRAM_URL }}
+                        message="No active loans — start borrowing on Telegram"
+                        cta={{ label: "Open Telegram Bot", href: TELEGRAM_URL }}
                       />
                     ) : (
                       <div className="overflow-hidden rounded-2xl border border-[var(--d-accent)]/20 bg-[var(--d-bg-card)]">
@@ -1525,9 +1562,7 @@ export default function DashboardPage() {
                 <div id="section-eligible">
                   <SectionHeader title="Eligible Collateral" count={eligibleCollateral.length} />
                   {approvedLoading || holdingsLoading ? (
-                    <div className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-10 text-center">
-                      <div className="text-sm text-[var(--d-ink-soft)]">Scanning wallet for eligible tokens...</div>
-                    </div>
+                    <SkeletonRows count={3} />
                   ) : eligibleCollateral.length === 0 ? (
                     <EmptyState
                       message={holdings.length === 0 ? "No tokens in wallet — deposit supported memecoins to use as collateral" : "None of your tokens are currently eligible as collateral"}
@@ -1750,9 +1785,7 @@ export default function DashboardPage() {
                   <div id="section-holdings">
                     <SectionHeader title="Holdings" count={holdings.length} />
                     {holdingsLoading ? (
-                      <div className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-10 text-center">
-                        <div className="text-sm text-[var(--d-ink-soft)]">Loading token balances...</div>
-                      </div>
+                      <SkeletonRows count={4} />
                     ) : holdings.length === 0 ? (
                       <EmptyState message="No SPL tokens found in this wallet" />
                     ) : (
@@ -1796,8 +1829,10 @@ export default function DashboardPage() {
                 {prefs.loanHistory && (
                   <div id="section-loanHistory">
                     <SectionHeader title="Loan History" count={loanHistory.length} />
-                    {loanHistory.length === 0 ? (
-                      <EmptyState message={loansLoading ? "Loading history..." : "No loan history yet"} />
+                    {loansLoading && loanHistory.length === 0 ? (
+                      <SkeletonRows count={3} />
+                    ) : loanHistory.length === 0 ? (
+                      <EmptyState message="No loan history yet" />
                     ) : (
                       <div className="overflow-hidden rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)]">
                         <div className="divide-y divide-[var(--d-border)]">

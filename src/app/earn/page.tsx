@@ -6,6 +6,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { DiamondIcon } from "@/components/DiamondIcon";
+import { TriangleAlertIcon } from "@/components/icons";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import {
@@ -383,7 +384,10 @@ export default function EarnPage() {
       )}
       {txError && (
         <div className="mt-4 rounded-xl border border-[var(--bad)]/30 bg-[var(--bad)]/5 p-4 text-sm">
-          <div className="font-semibold text-[var(--bad)]">⚠️ {txError.title}</div>
+          <div className="flex items-center gap-2 font-semibold text-[var(--bad)]">
+            <TriangleAlertIcon className="h-4 w-4" />
+            <span>{txError.title}</span>
+          </div>
           <div className="mt-2 whitespace-pre-line leading-relaxed text-[var(--ink-soft)]">
             {txError.body}
           </div>
