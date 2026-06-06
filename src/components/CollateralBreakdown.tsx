@@ -23,12 +23,17 @@ interface CollateralToken {
   name: string | null;
   mint: string;
   image_url: string | null;
+  decimals: number;
   active_loans: number;
   repaid_loans: number;
   liquidated_loans: number;
   total_loans: number;
   total_borrowed_sol: number;
   active_borrowed_sol: number;
+  /** Raw sum of collateral_amount across all ACTIVE loans. Use with
+   *  `decimals` to convert to human-readable. Comes from sum'd raw
+   *  on-chain values — safe to BigInt regardless of supply size. */
+  active_collateral_raw: string;
 }
 
 function fmtSol(n: number) {
@@ -36,6 +41,32 @@ function fmtSol(n: number) {
   if (n < 1) return n.toFixed(3);
   if (n < 100) return n.toFixed(2);
   return n.toFixed(1);
+}
+
+/** BigInt-safe token-amount formatter. e.g. ("14160345328", 6) → "14,160.35".
+ *  Returns "0" when raw is zero/empty/invalid. Decimals are read from
+ *  supported_mints which the bot verifies against on-chain mint info. */
+function fmtTokenAmount(rawStr: string, decimals: number): string {
+  if (!rawStr || rawStr === "0") return "0";
+  try {
+    const raw = BigInt(rawStr);
+    if (raw === 0n) return "0";
+    const divisor = 10n ** BigInt(Math.max(0, decimals));
+    const whole = raw / divisor;
+    const frac = raw % divisor;
+    // Big-supply memecoins display as K/M/B abbreviations
+    const wholeNum = Number(whole);
+    if (wholeNum >= 1_000_000_000) return (wholeNum / 1_000_000_000).toFixed(2) + "B";
+    if (wholeNum >= 1_000_000)     return (wholeNum / 1_000_000).toFixed(2) + "M";
+    if (wholeNum >= 1_000)         return (wholeNum / 1_000).toFixed(2) + "K";
+    const wholeStr = whole.toString();
+    if (decimals === 0 || frac === 0n) return wholeStr;
+    const fracDigits = wholeNum < 1 ? Math.min(decimals, 6) : 2;
+    const fracStr = frac.toString().padStart(decimals, "0").slice(0, fracDigits).replace(/0+$/, "");
+    return fracStr ? `${wholeStr}.${fracStr}` : wholeStr;
+  } catch {
+    return "—";
+  }
 }
 
 export function CollateralBreakdown() {
@@ -82,10 +113,11 @@ export function CollateralBreakdown() {
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)]">
       {/* Header row */}
-      <div className="hidden md:grid grid-cols-12 gap-4 border-b border-[var(--hairline)] bg-[var(--surface)] px-5 py-3 text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">
+      <div className="hidden md:grid grid-cols-12 gap-3 border-b border-[var(--hairline)] bg-[var(--surface)] px-5 py-3 text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">
         <div className="col-span-3">Token</div>
-        <div className="col-span-3">Active loans</div>
-        <div className="col-span-2 text-right">Lifetime</div>
+        <div className="col-span-2">Active loans</div>
+        <div className="col-span-1 text-right">Lifetime</div>
+        <div className="col-span-2 text-right">Locked collateral</div>
         <div className="col-span-2 text-right">Active SOL</div>
         <div className="col-span-2 text-right">Lifetime SOL</div>
       </div>
@@ -96,7 +128,7 @@ export function CollateralBreakdown() {
           return (
             <div
               key={t.mint}
-              className="grid grid-cols-2 md:grid-cols-12 gap-3 md:gap-4 px-5 py-4 transition hover:bg-[var(--surface)]"
+              className="grid grid-cols-2 md:grid-cols-12 gap-3 px-5 py-4 transition hover:bg-[var(--surface)]"
             >
               {/* Token (with image if available) */}
               <div className="col-span-2 md:col-span-3 flex items-center gap-3 min-w-0">
@@ -110,8 +142,8 @@ export function CollateralBreakdown() {
               </div>
 
               {/* Active loans bar */}
-              <div className="col-span-2 md:col-span-3 flex items-center gap-3">
-                <span className="font-display tabular text-base font-medium w-8">{t.active_loans}</span>
+              <div className="col-span-2 md:col-span-2 flex items-center gap-2">
+                <span className="font-display tabular text-base font-medium w-6">{t.active_loans}</span>
                 <div className="flex-1 h-1.5 rounded-full bg-[var(--surface)] overflow-hidden">
                   <div
                     className="h-full rounded-full bg-[var(--accent)]"
@@ -120,15 +152,30 @@ export function CollateralBreakdown() {
                 </div>
               </div>
 
-              {/* Numbers — collapse on mobile into a tight row */}
-              <div className="col-span-1 md:col-span-2 text-right">
+              {/* Lifetime count */}
+              <div className="col-span-1 md:col-span-1 text-right">
                 <div className="md:hidden text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Lifetime</div>
                 <div className="font-display tabular text-sm">{t.total_loans}</div>
               </div>
+
+              {/* Locked collateral — token amount currently in escrow */}
+              <div className="col-span-1 md:col-span-2 text-right">
+                <div className="md:hidden text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Locked</div>
+                <div className="font-display tabular text-sm">
+                  {t.active_loans > 0 ? fmtTokenAmount(t.active_collateral_raw, t.decimals) : "—"}
+                </div>
+                <div className="text-[10px] text-[var(--ink-faint)] hidden md:block">
+                  {t.active_loans > 0 ? t.symbol : ""}
+                </div>
+              </div>
+
+              {/* Active SOL borrowed */}
               <div className="col-span-1 md:col-span-2 text-right">
                 <div className="md:hidden text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Active SOL</div>
                 <div className="font-display tabular text-sm">{fmtSol(t.active_borrowed_sol)}</div>
               </div>
+
+              {/* Lifetime SOL — desktop only */}
               <div className="hidden md:block col-span-2 text-right">
                 <div className="font-display tabular text-sm text-[var(--ink-soft)]">{fmtSol(t.total_borrowed_sol)}</div>
               </div>
