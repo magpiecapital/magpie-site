@@ -64,20 +64,26 @@ html[data-theme="dark"] {
   --surface: #1a1a20;
   --surface-strong: #22222a;
 
-  --accent: #f7c948;          /* keep the amber — it's the brand */
-  --accent-hover: #ffd668;
+  /* Brand stays amber but DESATURATED in dark mode. Full-saturation
+     amber against pure dark vibrates and causes eye strain. These
+     values keep the warm hue but step the saturation down ~30% and
+     lightness down ~12 points so big amber surfaces (CTAs, badges)
+     read as confident, not blinding. */
+  --accent: #c99a2c;          /* muted amber — same hue, lower sat */
+  --accent-hover: #d8aa3a;
   --accent-dim: #3b3520;
-  --accent-deep: #ffd668;     /* brighter on dark for contrast */
-  --accent-ink: #1a1500;
+  --accent-deep: #e0b340;     /* slightly brighter for emphasis */
+  --accent-ink: #1a1500;      /* dark text always reads on amber */
 
   --good: #f4f1e6;
-  --warn: #d9844f;
-  --bad: #d44a4a;
+  --warn: #c97a4a;            /* muted from #d9844f */
+  --bad: #c44545;             /* muted from #d44a4a */
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 20px 60px -20px rgba(0, 0, 0, 0.7);
-  --shadow-amber: 0 16px 40px -16px rgba(247, 201, 72, 0.4);
+  /* Amber halo also muted in dark — was too punchy at 0.4 */
+  --shadow-amber: 0 16px 40px -16px rgba(201, 154, 44, 0.25);
 }
 
 /* Smooth the theme flip — but only the colors. Layout properties
@@ -262,7 +268,11 @@ body::after {
 /* ---- buttons ---- */
 .btn-accent {
   background: var(--accent);
-  color: var(--ink);
+  /* var(--accent-ink) is always dark — so text-on-amber has the same
+     high contrast in both light and dark mode. (Previously --ink
+     flipped to off-white in dark, making amber+off-white = low
+     contrast + visually vibrating.) */
+  color: var(--accent-ink);
   border-radius: 999px;
   padding: 0.75rem 1.3rem;
   font-weight: 600;
@@ -281,6 +291,15 @@ body::after {
   box-shadow: var(--shadow-amber), 0 1px 0 rgba(255, 255, 255, 0.5) inset;
 }
 .btn-accent:active { transform: translateY(0); }
+
+/* Dim the harsh white inset highlight when in dark mode — the
+   reflection cue looks pasted-on against muted amber. */
+html[data-theme="dark"] .btn-accent {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+html[data-theme="dark"] .btn-accent:hover {
+  box-shadow: var(--shadow-amber), 0 1px 0 rgba(255, 255, 255, 0.18) inset;
+}
 
 .btn-ghost {
   border-radius: 999px;

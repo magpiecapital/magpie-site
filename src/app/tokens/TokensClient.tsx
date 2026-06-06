@@ -601,7 +601,7 @@ export default function TokensClient() {
                           href={TELEGRAM_URL}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center rounded-lg bg-[var(--accent)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink)] transition hover:brightness-110"
+                          className="inline-flex items-center rounded-lg bg-[var(--accent)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-ink)] transition hover:brightness-110"
                         >
                           Borrow
                         </a>
@@ -878,7 +878,7 @@ function SubmitResultCard({ result, onReset }: { result: SubmitResult; onReset: 
     return (
       <div className="mt-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-6">
         <div className="flex items-center gap-3 mb-4">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--ink)] text-lg font-bold">&#10003;</span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--accent-ink)] text-lg font-bold">&#10003;</span>
           <div>
             <div className="font-semibold text-lg">{result.symbol} &mdash; Approved!</div>
             <div className="text-sm text-[var(--ink-soft)]">{result.name}</div>

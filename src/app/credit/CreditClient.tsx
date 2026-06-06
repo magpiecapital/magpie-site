@@ -545,7 +545,7 @@ export default function CreditClient() {
                   {i < 3 && (
                     <div className="absolute -right-3 top-1/2 hidden h-px w-6 bg-[var(--hairline-strong)] md:block" />
                   )}
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface)] text-lg font-semibold text-[var(--accent-deep)] transition group-hover:bg-[var(--accent)] group-hover:text-[var(--ink)]">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface)] text-lg font-semibold text-[var(--accent-deep)] transition group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)]">
                     {s.icon}
                   </div>
                   <div className="mt-5 font-mono text-xs text-[var(--ink-faint)]">{s.step}</div>
@@ -621,7 +621,7 @@ export default function CreditClient() {
                   }}
                 >
                   {tier.highlight && (
-                    <span className="absolute -top-3 left-7 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink)] shadow-sm">
+                    <span className="absolute -top-3 left-7 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent-ink)] shadow-sm">
                       Most popular
                     </span>
                   )}

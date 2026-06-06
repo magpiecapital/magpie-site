@@ -621,7 +621,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                   className="group flex gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 transition hover:border-[var(--ink)] hover:shadow-sm sm:gap-5 sm:p-5 md:p-6"
                   style={{ animationDelay: `${i * 0.08}s` }}
                 >
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[var(--surface)] font-mono text-sm font-semibold text-[var(--ink-soft)] group-hover:bg-[var(--accent)] group-hover:text-[var(--ink)] transition">
+                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[var(--surface)] font-mono text-sm font-semibold text-[var(--ink-soft)] group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)] transition">
                     {s.n}
                   </div>
                   <div>
@@ -733,7 +733,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
               <Reveal key={p.title} delay={i * 80}>
                 <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-6 sm:p-8 md:p-10">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-[var(--ink)]">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-[var(--accent-ink)]">
                       {String(i + 1).padStart(2, "0")}
                     </div>
                     <div className="text-lg font-semibold tracking-tight sm:text-xl">{p.title}</div>
@@ -781,7 +781,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                   }`}
                 >
                   {tier.highlight && (
-                    <span className="absolute -top-3 left-8 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--ink)] shadow-sm">
+                    <span className="absolute -top-3 left-8 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent-ink)] shadow-sm">
                       Most popular
                     </span>
                   )}
