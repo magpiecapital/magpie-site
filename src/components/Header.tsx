@@ -7,7 +7,6 @@ import { MobileNav } from "@/components/MobileNav";
 import { ConnectWallet } from "@/components/ConnectWallet";
 import ThemeToggle from "@/components/ThemeToggle";
 
-const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 // Creator wallet — must match LENDER_PUBKEY on the bot. The Admin nav
 // item only appears when this wallet is connected.
 const CREATOR_WALLET = "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx";
@@ -91,19 +90,17 @@ export function Header() {
           )}
           <ThemeToggle />
           <ConnectWallet variant="ghost" className="hidden md:flex" />
-          <a
-            href={TELEGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/dashboard"
             className="btn-accent whitespace-nowrap text-sm"
           >
             <span className="hidden sm:inline">Launch</span>
             <span className="sm:hidden">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" />
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
             </span>
-          </a>
+          </Link>
         </div>
       </div>
     </header>

@@ -220,10 +220,10 @@ export default async function Home() {
           </p>
 
           <div className="fade-up fade-up-3 mt-8 flex flex-wrap items-center gap-3 sm:mt-10 sm:gap-4">
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent shimmer text-sm sm:text-base">
+            <Link href="/dashboard" className="btn-accent shimmer text-sm sm:text-base">
               Start borrowing
               <span aria-hidden>→</span>
-            </a>
+            </Link>
             <Link href="/earn" className="btn-ghost text-sm sm:text-base">
               Earn yield
             </Link>
@@ -238,6 +238,18 @@ export default async function Home() {
               {TOKEN_COUNT} approved tokens
             </Link>
           </div>
+
+          <p className="fade-up fade-up-3 mt-4 text-[12px]" style={{ color: "var(--ink-faint)" }}>
+            Prefer Telegram?{" "}
+            <a
+              href={TELEGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 hover:text-[var(--ink-soft)]"
+            >
+              Use the bot →
+            </a>
+          </p>
 
           {/* Hero value-prop strip. Qualitative claims that hold up regardless
               of protocol scale — speed, cost, safety, selection. The detailed
@@ -820,9 +832,9 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
               <div className="text-sm leading-relaxed text-[var(--ink-soft)]">
                 <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend at your tier&apos;s fee rate, live health alerts, and credit score accrual. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">{TOKEN_COUNT} approved tokens</Link>.
               </div>
-              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-dark shrink-0 text-sm">
+              <Link href="/dashboard" className="btn-dark shrink-0 text-sm">
                 Get a quote →
-              </a>
+              </Link>
             </div>
           </Reveal>
         </div>
@@ -873,10 +885,10 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
             Borrow SOL. Earn yield. Build your credit score. All permissionless, all on Solana.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-12 sm:gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-base sm:text-lg">
+            <Link href="/dashboard" className="btn-accent text-base sm:text-lg">
               Start borrowing
               <span aria-hidden>→</span>
-            </a>
+            </Link>
             <Link
               href="/earn"
               className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
