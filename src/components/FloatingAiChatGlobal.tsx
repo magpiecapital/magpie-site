@@ -408,15 +408,97 @@ export default function FloatingAiChatGlobal() {
     );
   }, []);
 
-  /* ── Suggestions tailored per state ── */
+  /* ── Suggestions adapt to the current page ── */
   const suggestions = useMemo(() => {
+    const path = pathname || "/";
+    // Per-page starter prompts. Picked to be specific enough to feel
+    // smart but generic enough to work for any user. Pip's tool
+    // access fills in the personal details.
+    if (path.startsWith("/credit")) {
+      return [
+        "What's my credit score?",
+        "How do I improve it?",
+        "What does my tier unlock?",
+      ];
+    }
+    if (path.startsWith("/tokens")) {
+      return [
+        "Which tokens have the lowest fees?",
+        "How do tokenized stocks work as collateral?",
+        "What's a safe LTV for memecoins?",
+      ];
+    }
+    if (path.startsWith("/earn") || path.startsWith("/vault")) {
+      return [
+        "What's the LP APY right now?",
+        "How does LP loyalty work?",
+        "Is it safe to deposit?",
+      ];
+    }
+    if (path.startsWith("/refer")) {
+      return [
+        "How much have I earned from referrals?",
+        "How do payouts work?",
+        "Share my code",
+      ];
+    }
+    if (path.startsWith("/holders")) {
+      return [
+        "How are $MAGPIE rewards calculated?",
+        "When is the next distribution?",
+        "Show me my pending payout",
+      ];
+    }
+    if (path.startsWith("/dashboard")) {
+      return [
+        "Show me my active loans",
+        "Why did my health drop?",
+        "What can I borrow right now?",
+      ];
+    }
+    if (path.startsWith("/leaderboard")) {
+      return [
+        "How do I get on the leaderboard?",
+        "What's the highest possible score?",
+        "Why is my score behind?",
+      ];
+    }
+    if (path.startsWith("/status")) {
+      return [
+        "Is everything working?",
+        "What does each check mean?",
+        "When was the last outage?",
+      ];
+    }
+    if (path.startsWith("/privacy") || path.startsWith("/security")) {
+      return [
+        "What data does Magpie store?",
+        "How do I lock my account?",
+        "Can I export my data?",
+      ];
+    }
+    if (path.startsWith("/submit")) {
+      return [
+        "What does the token review check?",
+        "How long does approval take?",
+        "Why was a token declined?",
+      ];
+    }
+    if (path.startsWith("/docs") || path.startsWith("/whitepaper")) {
+      return [
+        "How does liquidation work?",
+        "What's the fee split?",
+        "How is the credit score calculated?",
+      ];
+    }
+    // Homepage + everything else: broadly useful prompts.
     return [
       "What's my credit score?",
-      "Why did my health drop?",
       "How do referral rewards work?",
-      "Show me my active loans",
+      "What can I borrow right now?",
+      "Walk me through the protocol",
     ];
-  }, []);
+  }, [pathname]);
 
   return (
     <>
