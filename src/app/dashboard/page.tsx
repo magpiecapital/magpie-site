@@ -10,15 +10,21 @@ import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
 import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
 import { translateTxError } from "@/lib/solana/tx-error";
+import dynamic from "next/dynamic";
 import CustodialWithdraw from "./CustodialWithdraw";
 import SupportTickets from "./SupportTickets";
 import WalletsList from "./WalletsList";
 import PrefsPanel from "./PrefsPanel";
 import ActivityFeed from "./ActivityFeed";
 import EarningsCard from "./EarningsCard";
-import FloatingAiChat from "./FloatingAiChat";
 import SiteStatusBanner from "./SiteStatusBanner";
 import { DashboardProvider } from "./DashboardContext";
+
+// Floating AI chat is hidden until the user opens it — keep its
+// signing + crypto bundle out of the initial dashboard payload.
+const FloatingAiChat = dynamic(() => import("./FloatingAiChat"), {
+  ssr: false,
+});
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";

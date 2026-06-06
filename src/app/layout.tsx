@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Inter, Fraunces } from "next/font/google";
 import { ClientProviders } from "@/components/ClientProviders";
@@ -18,6 +18,15 @@ const fraunces = Fraunces({
 });
 
 const SITE_URL = "https://magpie.capital";
+
+export const viewport: Viewport = {
+  // viewport-fit=cover lets us use env(safe-area-inset-*) so floating
+  // elements (chat button, fixed banners) clear iOS home indicators
+  // and Android nav bars on mobile.
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -94,6 +103,12 @@ export default function RootLayout({
       <head>
         {/* Buffer polyfill — MUST load before any Solana JS. Synchronous script. */}
         <Script src="/buffer-polyfill.js" strategy="beforeInteractive" />
+        {/* Connect early to the third-party services we hit on dashboard load. */}
+        <link rel="preconnect" href="https://magpie-bot-production.up.railway.app" />
+        <link rel="dns-prefetch" href="https://magpie-bot-production.up.railway.app" />
+        <link rel="dns-prefetch" href="https://api.mainnet-beta.solana.com" />
+        <link rel="dns-prefetch" href="https://api.dexscreener.com" />
+        <link rel="dns-prefetch" href="https://dd.dexscreener.com" />
       </head>
       <body>
         <ClientProviders>{children}</ClientProviders>
