@@ -42,6 +42,12 @@ export async function GET(req: Request) {
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "20", 10)));
 
   try {
+    // One row per loan. The earlier LEFT JOIN wallets w ON w.user_id =
+    // l.user_id was a cross-join in disguise: users with multiple linked
+    // wallets had their single loan appear once per wallet (so a 4.7 SOL
+    // borrow looked like 3 separate events). Use a LATERAL subquery to
+    // pick exactly one wallet per user — prefer the active one, fall
+    // back to oldest imported.
     const { rows } = await query(
       `SELECT
          l.loan_id, l.status,
@@ -53,7 +59,12 @@ export async function GET(req: Request) {
          w.public_key AS wallet_pub
        FROM loans l
        LEFT JOIN supported_mints sm ON sm.mint = l.collateral_mint
-       LEFT JOIN wallets w ON w.user_id = l.user_id
+       LEFT JOIN LATERAL (
+         SELECT public_key FROM wallets
+          WHERE user_id = l.user_id
+          ORDER BY is_active DESC, created_at ASC
+          LIMIT 1
+       ) w ON true
        ORDER BY GREATEST(l.start_timestamp, l.updated_at) DESC
        LIMIT $1`,
       [limit],
