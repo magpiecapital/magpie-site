@@ -178,7 +178,7 @@ export function PipActionCard({
   // ── REPAY card ─────────────────────────────────────────────────
   if (action.type === "repay") {
     return (
-      <Card title={`Repay loan #${action.loan_id.slice(-6)}`}>
+      <Card title={`Repay loan #${action.loan_id.slice(-6)}`} kind="repay">
         <Row label="Owed" value={`${fmtSol(action.owed_sol)} SOL`} mono />
         <Row label="Fee included" value={`${fmtSol(action.fee_sol)} SOL`} mono muted />
         <Row label="Collateral returns" value={action.collateral_symbol ?? "—"} />
@@ -202,7 +202,7 @@ export function PipActionCard({
   // ── TOPUP card ─────────────────────────────────────────────────
   if (action.type === "topup") {
     return (
-      <Card title={`Top up loan #${action.loan_id.slice(-6)}`}>
+      <Card title={`Top up loan #${action.loan_id.slice(-6)}`} kind="add collateral">
         <Row label="Adding" value={`${action.extra_ui_amount} ${action.collateral_symbol ?? "tokens"}`} />
         <Row label="Effect" value="Lowers LTV, raises health" muted />
         <Footer
@@ -220,7 +220,7 @@ export function PipActionCard({
   // ── EXTEND card ────────────────────────────────────────────────
   if (action.type === "extend") {
     return (
-      <Card title={`Extend loan #${action.loan_id.slice(-6)}`}>
+      <Card title={`Extend loan #${action.loan_id.slice(-6)}`} kind="extend term">
         <Row label="Fee" value={`~${fmtSol(action.est_fee_sol)} SOL`} mono />
         <Row label="Current due" value={new Date(action.current_due_at_utc).toLocaleDateString(undefined, { month: "short", day: "numeric" })} muted />
         <Row label="New due" value={new Date(action.new_due_at_utc).toLocaleDateString(undefined, { month: "short", day: "numeric" })} />
@@ -240,7 +240,7 @@ export function PipActionCard({
   // ── PARTIAL REPAY card ─────────────────────────────────────────
   if (action.type === "partial_repay") {
     return (
-      <Card title={`Partial repay · loan #${action.loan_id.slice(-6)}`}>
+      <Card title={`Partial repay · loan #${action.loan_id.slice(-6)}`} kind="partial repay">
         <Row label="Paying" value={`${fmtSol(action.repay_sol)} SOL`} mono />
         <Row label="Currently owed" value={`${fmtSol(action.owed_sol_before)} SOL`} mono muted />
         <Row label="After payment" value={`${fmtSol(action.owed_sol_after)} SOL`} mono />
@@ -259,7 +259,7 @@ export function PipActionCard({
 
   // ── BORROW card ────────────────────────────────────────────────
   return (
-    <Card title={`Borrow ${fmtSol(action.received_sol)} SOL · ${action.tier_label}`}>
+    <Card title={`Borrow ${fmtSol(action.received_sol)} SOL · ${action.tier_label}`} kind="new loan">
       <Row label="Collateral" value={`${action.collateral_ui_amount} ${action.collateral_symbol}`} />
       <Row label="LTV" value={`${action.ltv_pct}%`} />
       <Row label="Term" value={`${action.duration_days} day${action.duration_days === 1 ? "" : "s"}`} />
@@ -280,22 +280,28 @@ export function PipActionCard({
 
 /* ── Shared sub-components ───────────────────────────────────────── */
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, kind = "action", children }: { title: string; kind?: string; children: React.ReactNode }) {
   return (
     <div
-      className="rounded-2xl border p-3 mt-2 text-[13px]"
+      className="rounded-2xl border p-4 mt-2 text-[13px] shadow-sm"
       style={{
         borderColor: "var(--accent)",
         background: "var(--bg-elevated, var(--surface))",
       }}
     >
-      <div className="flex items-center justify-between mb-2">
-        <div className="font-semibold" style={{ color: "var(--ink)" }}>{title}</div>
-        <div className="text-[10px] uppercase tracking-wider" style={{ color: "var(--accent-deep)" }}>
-          one-tap action
+      <div className="flex items-center justify-between mb-3 pb-2.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--hairline) 60%, transparent)" }}>
+        <div className="font-semibold text-[14px] leading-tight" style={{ color: "var(--ink)" }}>{title}</div>
+        <div
+          className="text-[10px] uppercase tracking-[0.1em] font-semibold px-2 py-0.5 rounded-full"
+          style={{
+            color: "var(--accent-ink, #0a0a0a)",
+            background: "var(--accent)",
+          }}
+        >
+          {kind}
         </div>
       </div>
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]" style={{ color: "var(--ink-soft)" }}>
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]" style={{ color: "var(--ink-soft)" }}>
         {children}
       </dl>
     </div>
