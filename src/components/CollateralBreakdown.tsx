@@ -15,8 +15,11 @@
  *   3. DexScreener cached image by mint
  *   4. Initial badge (symbol's first letter on accent bg)
  */
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TOKEN_REGISTRY } from "@/lib/token-registry";
+
+type SortKey = "active_sol" | "active_loans" | "total_loans" | "locked_collateral" | "lifetime_sol";
+type SortDir = "asc" | "desc";
 
 interface CollateralToken {
   symbol: string;
@@ -72,6 +75,59 @@ function fmtTokenAmount(rawStr: string, decimals: number): string {
 export function CollateralBreakdown() {
   const [tokens, setTokens] = useState<CollateralToken[]>([]);
   const [loading, setLoading] = useState(true);
+  // Default sort: Active SOL borrowed, descending — answers the
+  // immediate "which collateral is the protocol most exposed to" Q.
+  const [sortKey, setSortKey] = useState<SortKey>("active_sol");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      // Same column → flip direction
+      setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    } else {
+      // New column → start descending (most users want big-first)
+      setSortKey(key);
+      setSortDir("desc");
+    }
+  };
+
+  // BigInt-safe comparator for locked collateral (raw values can be
+  // huge and decimals vary per token — normalize to a Number for the
+  // sort by dividing by decimals, then compare).
+  function normalizedCollateral(t: CollateralToken): number {
+    try {
+      const raw = BigInt(t.active_collateral_raw || "0");
+      if (raw === 0n) return 0;
+      const div = 10n ** BigInt(Math.max(0, t.decimals));
+      // Whole part is exact; fractional part as float fine for sort
+      const whole = Number(raw / div);
+      const frac = Number(raw % div) / Number(div);
+      return whole + frac;
+    } catch {
+      return 0;
+    }
+  }
+
+  const sortedTokens = useMemo(() => {
+    const arr = [...tokens];
+    const dir = sortDir === "desc" ? -1 : 1;
+    arr.sort((a, b) => {
+      let av = 0, bv = 0;
+      switch (sortKey) {
+        case "active_sol":         av = a.active_borrowed_sol; bv = b.active_borrowed_sol; break;
+        case "active_loans":       av = a.active_loans;        bv = b.active_loans;        break;
+        case "total_loans":        av = a.total_loans;         bv = b.total_loans;         break;
+        case "locked_collateral":  av = normalizedCollateral(a); bv = normalizedCollateral(b); break;
+        case "lifetime_sol":       av = a.total_borrowed_sol;  bv = b.total_borrowed_sol;  break;
+      }
+      if (av === bv) {
+        // Stable tiebreak by symbol so the order doesn't shuffle
+        return a.symbol.localeCompare(b.symbol);
+      }
+      return (av - bv) * dir;
+    });
+    return arr;
+  }, [tokens, sortKey, sortDir]);
 
   useEffect(() => {
     let cancelled = false;
@@ -110,20 +166,43 @@ export function CollateralBreakdown() {
   // Compute totals for proportion bars
   const maxActive = Math.max(...tokens.map((t) => t.active_loans), 1);
 
+  const arrow = (key: SortKey) =>
+    sortKey !== key ? (
+      <span className="opacity-30 ml-1">↕</span>
+    ) : sortDir === "desc" ? (
+      <span className="ml-1" style={{ color: "var(--accent-deep)" }}>↓</span>
+    ) : (
+      <span className="ml-1" style={{ color: "var(--accent-deep)" }}>↑</span>
+    );
+
+  const headerCellClass = (align: "left" | "right") =>
+    `cursor-pointer select-none transition hover:text-[var(--ink)] ${align === "right" ? "text-right" : ""}`;
+
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)]">
-      {/* Header row */}
+      {/* Header row — click any column to sort by it (defaults to DESC,
+          re-click flips). Active sort highlighted via arrow. */}
       <div className="hidden md:grid grid-cols-12 gap-3 border-b border-[var(--hairline)] bg-[var(--surface)] px-5 py-3 text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">
         <div className="col-span-3">Token</div>
-        <div className="col-span-2">Active loans</div>
-        <div className="col-span-1 text-right">Lifetime</div>
-        <div className="col-span-2 text-right">Locked collateral</div>
-        <div className="col-span-2 text-right">Active SOL</div>
-        <div className="col-span-2 text-right">Lifetime SOL</div>
+        <button onClick={() => handleSort("active_loans")} className={headerCellClass("left") + " col-span-2"}>
+          Active loans{arrow("active_loans")}
+        </button>
+        <button onClick={() => handleSort("total_loans")} className={headerCellClass("right") + " col-span-1"}>
+          Lifetime{arrow("total_loans")}
+        </button>
+        <button onClick={() => handleSort("locked_collateral")} className={headerCellClass("right") + " col-span-2"}>
+          Locked collateral{arrow("locked_collateral")}
+        </button>
+        <button onClick={() => handleSort("active_sol")} className={headerCellClass("right") + " col-span-2"}>
+          Active SOL{arrow("active_sol")}
+        </button>
+        <button onClick={() => handleSort("lifetime_sol")} className={headerCellClass("right") + " col-span-2"}>
+          Lifetime SOL{arrow("lifetime_sol")}
+        </button>
       </div>
 
       <div className="divide-y divide-[var(--hairline)]">
-        {tokens.map((t) => {
+        {sortedTokens.map((t) => {
           const pct = maxActive > 0 ? (t.active_loans / maxActive) * 100 : 0;
           return (
             <div
