@@ -116,8 +116,16 @@ function MarkdownBubble({ text }: { text: string }) {
 }
 
 /* ─────────────── Main ─────────────── */
+// Hard-coded fallback so the floating chat works even if the
+// NEXT_PUBLIC_BOT_API_URL env var isn't inlined into a given build
+// (this kept happening on Vercel for client-only components — the
+// dashboard widgets work because they receive the URL as a prop
+// from page.tsx, which is built differently). The env var still
+// wins when set so test/staging deploys can override.
+const DEFAULT_BOT_API = "https://magpie-bot-production.up.railway.app";
+
 export default function FloatingAiChatGlobal() {
-  const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+  const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || DEFAULT_BOT_API;
   const { publicKey, signMessage, connected } = useWallet();
   const walletStr = publicKey?.toBase58() ?? null;
   const pathname = usePathname();
