@@ -988,6 +988,23 @@ export default function FloatingAiChatGlobal() {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSend();
+                    return;
+                  }
+                  // ↑ on an empty composer recalls the last sent
+                  // message — power-user shortcut familiar from
+                  // every terminal and most chat apps.
+                  if (e.key === "ArrowUp" && input.length === 0) {
+                    const lastUser = [...turns].reverse().find((t) => t.role === "user");
+                    if (lastUser) {
+                      e.preventDefault();
+                      setInput(lastUser.text);
+                      setTimeout(() => {
+                        const ta = textareaRef.current;
+                        if (ta) {
+                          ta.selectionStart = ta.selectionEnd = ta.value.length;
+                        }
+                      }, 0);
+                    }
                   }
                 }}
                 placeholder={`Message ${AGENT_NAME}…`}
