@@ -12,13 +12,17 @@ import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
 import { translateTxError } from "@/lib/solana/tx-error";
 import dynamic from "next/dynamic";
 import CustodialWithdraw from "./CustodialWithdraw";
-import SupportTickets from "./SupportTickets";
 import WalletsList from "./WalletsList";
 import PrefsPanel from "./PrefsPanel";
-import ActivityFeed from "./ActivityFeed";
-import EarningsCard from "./EarningsCard";
 import SiteStatusBanner from "./SiteStatusBanner";
 import { DashboardProvider } from "./DashboardContext";
+
+// Below-the-fold widgets are dynamically imported so the initial
+// dashboard payload stays small. Each shows null while loading
+// (their natural empty-state). Mobile networks gain the most here.
+const SupportTickets = dynamic(() => import("./SupportTickets"), { ssr: false });
+const ActivityFeed = dynamic(() => import("./ActivityFeed"), { ssr: false });
+const EarningsCard = dynamic(() => import("./EarningsCard"), { ssr: false });
 
 // Floating AI chat is hidden until the user opens it — keep its
 // signing + crypto bundle out of the initial dashboard payload.
