@@ -41,6 +41,20 @@ type Turn = {
 };
 
 const AGENT_NAME = "Pip";
+
+/** "just now" / "5m" / "2h" / "Yesterday" / "Mar 4" */
+function relativeTime(ms: number): string {
+  const diff = Date.now() - ms;
+  const mins = Math.floor(diff / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "yesterday";
+  if (days < 7) return `${days}d`;
+  return new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 const STORAGE_PREFIX = "magpie-pip-chat:";
 const MAX_PERSISTED_TURNS = 50;
 
@@ -871,9 +885,24 @@ export default function FloatingAiChatGlobal() {
             const isFirstOfGroup = !prev || prev.role !== t.role;
             const next = turns[i + 1];
             const isLastOfGroup = !next || next.role !== t.role;
+            // Show a timestamp above the FIRST message of a group when
+            // there's been a long gap since the previous group ended,
+            // OR when this is the first message of the conversation.
+            // Threshold: 10 min. Quiet during active back-and-forth.
+            const showTimeBreak =
+              isFirstOfGroup &&
+              (!prev || (t.at - prev.at) > 10 * 60 * 1000);
             return (
+              <div key={i}>
+                {showTimeBreak && (
+                  <div
+                    className="text-center my-2 text-[10px] uppercase tracking-[0.1em]"
+                    style={{ color: "var(--ink-faint)" }}
+                  >
+                    {relativeTime(t.at)}
+                  </div>
+                )}
               <div
-                key={i}
                 className={`pip-turn flex gap-2 group ${t.role === "user" ? "flex-row-reverse" : ""} ${
                   isFirstOfGroup ? "mt-2" : "mt-0.5"
                 }`}
@@ -948,6 +977,7 @@ export default function FloatingAiChatGlobal() {
                     </button>
                   )}
                 </div>
+              </div>
               </div>
             );
           })}

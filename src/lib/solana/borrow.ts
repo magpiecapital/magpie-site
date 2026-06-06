@@ -117,6 +117,9 @@ export async function buildBorrowTransaction({
 
   // Pre-instructions
   const preIxs = [
+    // Priority fee for fast confirmation during congestion.
+    // 100k microLamports × 400k CU = 40k lamports = 0.00004 SOL extra.
+    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }),
     ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
     createAssociatedTokenAccountIdempotentInstruction(
       borrower,
