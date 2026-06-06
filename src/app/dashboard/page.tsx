@@ -17,6 +17,7 @@ import PrefsPanel from "./PrefsPanel";
 import ActivityFeed from "./ActivityFeed";
 import EarningsCard from "./EarningsCard";
 import FloatingAiChat from "./FloatingAiChat";
+import SiteStatusBanner from "./SiteStatusBanner";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -1905,6 +1906,9 @@ export default function DashboardPage() {
 
               {/* ─── LEFT COLUMN (8/12) ─── */}
               <div className="xl:col-span-8 flex flex-col gap-6">
+
+                {/* Global site-disabled banner — visible to everyone when the operator has flipped the kill-switch. */}
+                <SiteStatusBanner botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""} />
 
                 {/* TG link status — invisible until response comes back, then either ✓ banner or button */}
                 {connected && publicKey && (
