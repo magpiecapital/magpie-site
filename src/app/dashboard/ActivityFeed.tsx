@@ -23,6 +23,8 @@ interface ActivityEvent {
     | "site_withdraw"
     | "referral_paid"
     | "holder_reward_paid"
+    | "lock_set"
+    | "lock_cleared"
     | string;
   at: string;
   loan_id?: string | null;
@@ -40,6 +42,8 @@ interface ActivityEvent {
   health_after?: number | null;
   status?: string;
   tx_signature?: string | null;
+  hours?: number | null;
+  set_by?: string;
 }
 
 const LAMPORTS_PER_SOL = 1_000_000_000;
@@ -167,6 +171,26 @@ function renderEvent(e: ActivityEvent): { icon: string; title: React.ReactNode; 
           </>
         ),
       };
+    case "lock_set": {
+      const who = e.set_by === "self" || e.set_by === "callback" ? "you" : e.set_by || "?";
+      return {
+        icon: "🔒",
+        title: (
+          <>
+            Site lock set {e.hours ? <span className="text-[var(--d-ink-faint)]">· {e.hours}h</span> : null}
+          </>
+        ),
+        sub: <>by {who}</>,
+      };
+    }
+    case "lock_cleared": {
+      const who = e.set_by === "self" || e.set_by === "callback" ? "you" : e.set_by || "?";
+      return {
+        icon: "🔓",
+        title: <>Site lock cleared</>,
+        sub: <>by {who}</>,
+      };
+    }
     default:
       return { icon: "•", title: e.kind };
   }
