@@ -253,6 +253,7 @@ export default function FloatingAiChatGlobal() {
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [showScrollDown, setShowScrollDown] = useState(false);
 
   /* ── Storage key scoped to wallet pubkey ── */
   const storageKey = useMemo(
@@ -345,11 +346,42 @@ export default function FloatingAiChatGlobal() {
     setLinkCheckCount((n) => n + 1);
   }, []);
 
-  /* ── Auto-scroll ── */
+  /* ── Auto-scroll, but only when already at the bottom ──
+     Common chat pattern: don't yank the user back down if they've
+     scrolled up to re-read something. If they ARE at the bottom,
+     new messages do auto-scroll. */
   useEffect(() => {
-    if (!scrollRef.current) return;
-    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+    // Auto-scroll if user is within 80px of the bottom.
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 80) {
+      el.scrollTop = el.scrollHeight;
+    } else {
+      // User is reading older messages — surface the scroll-down hint.
+      setShowScrollDown(true);
+    }
   }, [turns, busy]);
+
+  /* ── Track scroll position so we can hide the scroll-down button
+        when the user reaches the bottom naturally ── */
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const onScroll = () => {
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      setShowScrollDown(distanceFromBottom >= 80);
+    };
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
+  }, [open]);
+
+  const scrollToBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    setShowScrollDown(false);
+  }, []);
 
   /* ── Focus textarea when panel opens ── */
   useEffect(() => {
@@ -638,10 +670,13 @@ export default function FloatingAiChatGlobal() {
           )}
         </div>
 
-        {/* Body — iMessage-style tight stack with subtle background */}
+        {/* Body — iMessage-style tight stack with subtle background.
+            Wrapped so the scroll-down button can absolute-position
+            over the scroll region without affecting layout. */}
+        <div className="relative flex-1 min-h-0">
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto px-4 py-3"
+          className="absolute inset-0 overflow-y-auto px-4 py-3"
           style={{ background: "var(--bg)" }}
         >
           {!connected && (
@@ -899,6 +934,26 @@ export default function FloatingAiChatGlobal() {
               </div>
             </div>
           )}
+        </div>
+        {/* Scroll-to-bottom — only shown when user is scrolled up */}
+        {showScrollDown && (
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            aria-label="Scroll to latest"
+            className="absolute right-3 bottom-3 h-8 w-8 flex items-center justify-center rounded-full transition-opacity hover:opacity-90 active:scale-95"
+            style={{
+              background: "var(--bg-elevated)",
+              color: "var(--ink-soft)",
+              border: "1px solid var(--hairline)",
+              boxShadow: "0 2px 6px rgba(0,0,0,0.15)",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </button>
+        )}
         </div>
 
         {error && (
