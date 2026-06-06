@@ -778,6 +778,10 @@ function TokenIcon({
     <img
       src={src}
       alt={symbol}
+      width={32}
+      height={32}
+      loading="lazy"
+      decoding="async"
       className="h-8 w-8 shrink-0 rounded-full bg-[var(--bg)]"
       onError={() => {
         // If registry image failed, try DexScreener; if that failed, show initial
