@@ -39,7 +39,30 @@ export interface ProposedRepayAction {
   expires_at: number;
 }
 
-export type ProposedAction = ProposedRepayAction;
+export interface ProposedBorrowAction {
+  type: "borrow";
+  collateral_mint: string;
+  collateral_symbol: string;
+  collateral_decimals: number;
+  collateral_amount_raw: string;
+  collateral_ui_amount: string;
+  collateral_value_lamports: string;
+  tier_option: 0 | 1 | 2;
+  tier_label: string;
+  ltv_pct: number;
+  duration_days: number;
+  fee_bps: number;
+  principal_lamports: string;
+  principal_sol: string;
+  fee_lamports: string;
+  fee_sol: string;
+  received_lamports: string;
+  received_sol: string;
+  due_at_utc: string;
+  expires_at: number;
+}
+
+export type ProposedAction = ProposedRepayAction | ProposedBorrowAction;
 
 export interface AiChatResult {
   response: string;
