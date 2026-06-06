@@ -786,6 +786,38 @@ export default function FloatingAiChatGlobal() {
         ) : (
           <PipAvatar size={56} pulsing={busy && !open} />
         )}
+        {/* Status badge — glanceable signal that Pip has something
+            relevant. Red for past-due / urgent (<6h), amber for due-
+            soon (<24h). Hidden when nothing's actionable or the panel
+            is open. Doesn't replace the chips; just nudges the user
+            to open Pip. */}
+        {!open && loanSummary && loanSummary.some(
+          (l) => l.status === "active" && l.hours_to_due < 24,
+        ) && (
+          <span
+            className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full border-2 animate-pulse"
+            style={{
+              borderColor: "var(--bg)",
+              background: loanSummary.some(
+                (l) => l.status === "active" && l.hours_to_due < 6,
+              )
+                ? "var(--bad, #ef4444)"
+                : "#f59e0b",
+            }}
+            aria-label="Pip has something for you to look at"
+            title={
+              loanSummary.some(
+                (l) => l.status === "active" && l.hours_to_due < 0,
+              )
+                ? "You have a past-due loan"
+                : loanSummary.some(
+                    (l) => l.status === "active" && l.hours_to_due < 6,
+                  )
+                ? "Loan due in under 6 hours"
+                : "Loan due within 24 hours"
+            }
+          />
+        )}
       </button>
 
       {/* Panel */}
