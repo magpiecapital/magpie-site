@@ -126,6 +126,46 @@ function StreamingBubble({
   );
 }
 
+/* ─────────────── Slash-command pill ───────────────
+   Pip frequently mentions bot commands like /repay or /borrow. We
+   turn those into tappable pills: tap = copy command + open the TG
+   bot so the user can paste in one motion. */
+function SlashCommandPill({ command }: { command: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleClick = () => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(command).catch(() => {});
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+    if (typeof window !== "undefined") {
+      window.open("https://t.me/magpie_capital_bot", "_blank", "noopener,noreferrer");
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      title={copied ? "Copied! Opening @magpie_capital_bot…" : `Copy ${command} + open Telegram bot`}
+      className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-mono text-[0.88em] font-medium transition-colors hover:opacity-80 active:scale-95"
+      style={{
+        background: "var(--accent-dim)",
+        color: "var(--accent-deep)",
+        border: "1px solid var(--accent-deep)",
+      }}
+    >
+      {copied ? (
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
+          <path d="M20 6L9 17l-5-5" />
+        </svg>
+      ) : null}
+      {command}
+    </button>
+  );
+}
+
+const SLASH_COMMAND_RE = /^\/[a-z][a-z0-9_-]{1,30}$/i;
+
 /* ─────────────── Markdown bubble ─────────────── */
 function MarkdownBubble({ text }: { text: string }) {
   return (
@@ -151,14 +191,23 @@ function MarkdownBubble({ text }: { text: string }) {
         ),
         strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
         em: ({ children }) => <em className="italic">{children}</em>,
-        code: ({ children }) => (
-          <code
-            className="rounded px-1 py-0.5 font-mono text-[0.9em]"
-            style={{ background: "rgba(0,0,0,0.06)" }}
-          >
-            {children}
-          </code>
-        ),
+        code: ({ children }) => {
+          // If the code content is a slash command, render it as a
+          // tappable pill instead of inert mono text. Makes "use
+          // /repay to close your loan" actionable in one tap.
+          const text = String(children ?? "").trim();
+          if (SLASH_COMMAND_RE.test(text)) {
+            return <SlashCommandPill command={text} />;
+          }
+          return (
+            <code
+              className="rounded px-1 py-0.5 font-mono text-[0.9em]"
+              style={{ background: "rgba(0,0,0,0.06)" }}
+            >
+              {children}
+            </code>
+          );
+        },
         pre: ({ children }) => (
           <pre
             className="my-2 overflow-x-auto rounded-md p-2 font-mono text-[0.85em] leading-snug"
