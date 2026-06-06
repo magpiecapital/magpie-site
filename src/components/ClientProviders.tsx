@@ -9,6 +9,18 @@ const WalletProvider = dynamic(
   { ssr: false },
 );
 
+// Site-wide floating AI chat — available on every page. Loaded
+// client-only because it needs the wallet adapter.
+const FloatingAiChatGlobal = dynamic(
+  () => import("./FloatingAiChatGlobal"),
+  { ssr: false },
+);
+
 export function ClientProviders({ children }: { children: React.ReactNode }) {
-  return <WalletProvider>{children}</WalletProvider>;
+  return (
+    <WalletProvider>
+      {children}
+      <FloatingAiChatGlobal />
+    </WalletProvider>
+  );
 }

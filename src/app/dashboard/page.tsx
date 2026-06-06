@@ -24,11 +24,9 @@ const SupportTickets = dynamic(() => import("./SupportTickets"), { ssr: false })
 const ActivityFeed = dynamic(() => import("./ActivityFeed"), { ssr: false });
 const EarningsCard = dynamic(() => import("./EarningsCard"), { ssr: false });
 
-// Floating AI chat is hidden until the user opens it — keep its
-// signing + crypto bundle out of the initial dashboard payload.
-const FloatingAiChat = dynamic(() => import("./FloatingAiChat"), {
-  ssr: false,
-});
+// Note: the floating AI chat is rendered site-wide via
+// ClientProviders → FloatingAiChatGlobal, so the dashboard no longer
+// mounts its own copy.
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -2836,11 +2834,8 @@ export default function DashboardPage() {
         </main>
       </div>
 
-      {/* Floating AI chat — rendered at the page root so no ancestor
-          transform/overflow can affect its fixed positioning. */}
-      {connected && publicKey && (
-        <FloatingAiChat botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""} />
-      )}
+      {/* (Floating AI chat now lives in ClientProviders → renders
+          on every page, available regardless of connection state.) */}
     </div>
   );
 }
