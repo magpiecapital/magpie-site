@@ -1970,12 +1970,9 @@ export default function DashboardPage() {
                   />
                 )}
 
-                {/* Floating AI chat — fixed bottom-right, hides for non-linked users. */}
-                {connected && publicKey && (
-                  <FloatingAiChat
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
-                  />
-                )}
+                {/* (Floating AI chat is rendered at the page root —
+                    see below — so no ancestor transform/overflow can
+                    affect its fixed positioning.) */}
 
                 {/* Support tickets — only renders if the user has tickets. */}
                 {connected && publicKey && (
@@ -2838,6 +2835,12 @@ export default function DashboardPage() {
           </div>
         </main>
       </div>
+
+      {/* Floating AI chat — rendered at the page root so no ancestor
+          transform/overflow can affect its fixed positioning. */}
+      {connected && publicKey && (
+        <FloatingAiChat botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""} />
+      )}
     </div>
   );
 }
