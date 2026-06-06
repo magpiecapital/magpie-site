@@ -62,7 +62,54 @@ export interface ProposedBorrowAction {
   expires_at: number;
 }
 
-export type ProposedAction = ProposedRepayAction | ProposedBorrowAction;
+export interface ProposedTopupAction {
+  type: "topup";
+  loan_id: string;
+  loan_pda: string;
+  program_id: string;
+  collateral_mint: string;
+  collateral_symbol: string | null;
+  collateral_decimals: number;
+  extra_amount_raw: string;
+  extra_ui_amount: string;
+  current_collateral_raw: string;
+  expires_at: number;
+}
+
+export interface ProposedExtendAction {
+  type: "extend";
+  loan_id: string;
+  loan_pda: string;
+  program_id: string;
+  collateral_symbol: string | null;
+  duration_days: number;
+  est_fee_sol: string;
+  current_due_at_utc: string;
+  new_due_at_utc: string;
+  expires_at: number;
+}
+
+export interface ProposedPartialRepayAction {
+  type: "partial_repay";
+  loan_id: string;
+  loan_pda: string;
+  program_id: string;
+  collateral_symbol: string | null;
+  repay_lamports: string;
+  repay_sol: string;
+  owed_lamports_before: string;
+  owed_sol_before: string;
+  owed_lamports_after: string;
+  owed_sol_after: string;
+  expires_at: number;
+}
+
+export type ProposedAction =
+  | ProposedRepayAction
+  | ProposedBorrowAction
+  | ProposedTopupAction
+  | ProposedExtendAction
+  | ProposedPartialRepayAction;
 
 export interface AiChatResult {
   response: string;

@@ -69,6 +69,69 @@ export function PipActionCard({
         return;
       }
 
+      if (action.type === "topup") {
+        const { PublicKey } = await import("@solana/web3.js");
+        const { buildTopupTransaction } = await import("@/lib/solana/topup");
+        const programId = new PublicKey(action.program_id);
+        const { transaction } = await buildTopupTransaction({
+          borrower: publicKey,
+          loanPda: action.loan_pda,
+          collateralMint: action.collateral_mint,
+          extraRawAmount: BigInt(action.extra_amount_raw),
+          connection,
+          programId,
+        });
+        const sig = await sendTransaction(transaction, connection);
+        await waitConfirmed(connection, sig);
+        setDoneSig(sig);
+        onResult(
+          `✅ Added ${action.extra_ui_amount} ${action.collateral_symbol} to loan #${action.loan_id.slice(-6)} · ` +
+          `[tx](https://solscan.io/tx/${sig})`,
+        );
+        return;
+      }
+
+      if (action.type === "extend") {
+        const { PublicKey } = await import("@solana/web3.js");
+        const { buildExtendTransaction } = await import("@/lib/solana/extend");
+        const programId = new PublicKey(action.program_id);
+        const { transaction } = await buildExtendTransaction({
+          borrower: publicKey,
+          loanPda: action.loan_pda,
+          connection,
+          programId,
+        });
+        const sig = await sendTransaction(transaction, connection);
+        await waitConfirmed(connection, sig);
+        setDoneSig(sig);
+        onResult(
+          `✅ Extended loan #${action.loan_id.slice(-6)} · new due ${new Date(action.new_due_at_utc).toLocaleDateString()} · ` +
+          `[tx](https://solscan.io/tx/${sig})`,
+        );
+        return;
+      }
+
+      if (action.type === "partial_repay") {
+        const { PublicKey } = await import("@solana/web3.js");
+        const { buildPartialRepayTransaction } = await import("@/lib/solana/partial-repay");
+        const programId = new PublicKey(action.program_id);
+        const { transaction } = await buildPartialRepayTransaction({
+          borrower: publicKey,
+          loanPda: action.loan_pda,
+          repayLamports: BigInt(action.repay_lamports),
+          connection,
+          programId,
+        });
+        const sig = await sendTransaction(transaction, connection);
+        await waitConfirmed(connection, sig);
+        setDoneSig(sig);
+        onResult(
+          `✅ Paid down ${fmtSol(action.repay_sol)} SOL on loan #${action.loan_id.slice(-6)} · now owes ${fmtSol(action.owed_sol_after)} SOL · ` +
+          `[tx](https://solscan.io/tx/${sig})`,
+        );
+        return;
+      }
+
       // borrow: build tx, user signs, bot co-signs, returned signature is final
       if (action.type === "borrow") {
         if (!signTransaction) throw new Error("Wallet does not support signTransaction");
@@ -130,6 +193,64 @@ export function PipActionCard({
           doneSig={doneSig}
           error={error}
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Repay"}
+          onClick={handleSign}
+        />
+      </Card>
+    );
+  }
+
+  // ── TOPUP card ─────────────────────────────────────────────────
+  if (action.type === "topup") {
+    return (
+      <Card title={`Top up loan #${action.loan_id.slice(-6)}`}>
+        <Row label="Adding" value={`${action.extra_ui_amount} ${action.collateral_symbol ?? "tokens"}`} />
+        <Row label="Effect" value="Lowers LTV, raises health" muted />
+        <Footer
+          busy={busy}
+          expired={expired}
+          doneSig={doneSig}
+          error={error}
+          buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Top up"}
+          onClick={handleSign}
+        />
+      </Card>
+    );
+  }
+
+  // ── EXTEND card ────────────────────────────────────────────────
+  if (action.type === "extend") {
+    return (
+      <Card title={`Extend loan #${action.loan_id.slice(-6)}`}>
+        <Row label="Fee" value={`~${fmtSol(action.est_fee_sol)} SOL`} mono />
+        <Row label="Current due" value={new Date(action.current_due_at_utc).toLocaleDateString(undefined, { month: "short", day: "numeric" })} muted />
+        <Row label="New due" value={new Date(action.new_due_at_utc).toLocaleDateString(undefined, { month: "short", day: "numeric" })} />
+        <Row label="Added" value={`${action.duration_days} day${action.duration_days === 1 ? "" : "s"}`} />
+        <Footer
+          busy={busy}
+          expired={expired}
+          doneSig={doneSig}
+          error={error}
+          buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Extend"}
+          onClick={handleSign}
+        />
+      </Card>
+    );
+  }
+
+  // ── PARTIAL REPAY card ─────────────────────────────────────────
+  if (action.type === "partial_repay") {
+    return (
+      <Card title={`Partial repay · loan #${action.loan_id.slice(-6)}`}>
+        <Row label="Paying" value={`${fmtSol(action.repay_sol)} SOL`} mono />
+        <Row label="Currently owed" value={`${fmtSol(action.owed_sol_before)} SOL`} mono muted />
+        <Row label="After payment" value={`${fmtSol(action.owed_sol_after)} SOL`} mono />
+        <Row label="Collateral" value="Stays locked (loan stays open)" muted />
+        <Footer
+          busy={busy}
+          expired={expired}
+          doneSig={doneSig}
+          error={error}
+          buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Pay down"}
           onClick={handleSign}
         />
       </Card>
