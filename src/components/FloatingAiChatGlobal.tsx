@@ -354,10 +354,10 @@ export default function FloatingAiChatGlobal() {
           return {
             loan_id: String(l.loan_id),
             symbol: l.collateral?.symbol ?? null,
-            // Health isn't exposed by /loans; left null so the chip
-            // logic ignores it. (Future improvement: dedicated endpoint
-            // or piggyback on-chain read here.)
-            health: null,
+            // Health now sourced live from the bot's /loans endpoint
+            // (collateral_value / owed). May be null if the price
+            // feed had a hiccup at fetch time — chip logic tolerates.
+            health: typeof l.health_ratio === "number" ? l.health_ratio : null,
             hours_to_due: hours,
             status: l.status ?? "active",
           };
@@ -795,32 +795,34 @@ export default function FloatingAiChatGlobal() {
             is open. Doesn't replace the chips; just nudges the user
             to open Pip. */}
         {!open && loanSummary && loanSummary.some(
-          (l) => l.status === "active" && l.hours_to_due < 24,
-        ) && (
-          <span
-            className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full border-2 animate-pulse"
-            style={{
-              borderColor: "var(--bg)",
-              background: loanSummary.some(
-                (l) => l.status === "active" && l.hours_to_due < 6,
-              )
-                ? "var(--bad, #ef4444)"
-                : "#f59e0b",
-            }}
-            aria-label="Pip has something for you to look at"
-            title={
-              loanSummary.some(
-                (l) => l.status === "active" && l.hours_to_due < 0,
-              )
-                ? "You have a past-due loan"
-                : loanSummary.some(
-                    (l) => l.status === "active" && l.hours_to_due < 6,
-                  )
-                ? "Loan due in under 6 hours"
-                : "Loan due within 24 hours"
-            }
-          />
-        )}
+          (l) => l.status === "active" && (l.hours_to_due < 24 || (l.health != null && l.health < 1.30)),
+        ) && (() => {
+          const tightHealth = loanSummary.some(
+            (l) => l.status === "active" && l.health != null && l.health < 1.20,
+          );
+          const pastDue = loanSummary.some(
+            (l) => l.status === "active" && l.hours_to_due < 0,
+          );
+          const urgentDue = loanSummary.some(
+            (l) => l.status === "active" && l.hours_to_due < 6,
+          );
+          const red = tightHealth || pastDue || urgentDue;
+          const reason = pastDue ? "Past-due loan"
+            : tightHealth ? "Loan health below 1.20x"
+            : urgentDue ? "Loan due in under 6 hours"
+            : "Loan due within 24 hours";
+          return (
+            <span
+              className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full border-2 animate-pulse"
+              style={{
+                borderColor: "var(--bg)",
+                background: red ? "var(--bad, #ef4444)" : "#f59e0b",
+              }}
+              aria-label="Pip has something for you to look at"
+              title={reason}
+            />
+          );
+        })()}
       </button>
 
       {/* Panel */}
