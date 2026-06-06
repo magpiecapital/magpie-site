@@ -115,14 +115,75 @@ export function getCachedSessionExpiry(pubkey: string): number | null {
 }
 
 /**
+ * Distinct error class for "the bot doesn't have the session endpoint
+ * yet" — lets siteAiChat fall back to the per-message signed path
+ * instead of failing the whole chat.
+ */
+export class PipSessionEndpointUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PipSessionEndpointUnavailableError";
+  }
+}
+
+/**
+ * Probe whether the bot exposes /api/v1/auth/pip-session as a public
+ * route. We cache the result per pageload so we don't probe twice.
+ */
+let _sessionEndpointAvailable: boolean | null = null;
+async function checkSessionEndpointAvailable(botApiUrl: string): Promise<boolean> {
+  if (_sessionEndpointAvailable !== null) return _sessionEndpointAvailable;
+  try {
+    // OPTIONS preflight will tell us if the route exists + is public.
+    // A POST with an empty body returns 400 "missing fields" if the
+    // route is public, or 401 "Invalid or missing API key" if the
+    // route hits the API-key auth gate (bot not yet redeployed).
+    const r = await fetch(`${botApiUrl.replace(/\/$/, "")}/api/v1/auth/pip-session`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    const body = await r.json().catch(() => ({}));
+    // 400 = endpoint exists and is public, we just sent bad fields.
+    // 401 with "Invalid or missing API key" = endpoint isn't public yet.
+    if (r.status === 400) {
+      _sessionEndpointAvailable = true;
+    } else if (r.status === 401 && /api key/i.test(body?.error || "")) {
+      _sessionEndpointAvailable = false;
+    } else if (r.status === 404) {
+      _sessionEndpointAvailable = false;
+    } else {
+      // Anything else we treat as "available" — the endpoint
+      // responded with SOMETHING that wasn't an auth-gate rejection.
+      _sessionEndpointAvailable = true;
+    }
+  } catch {
+    // Network error — assume unavailable so we use the safer path.
+    _sessionEndpointAvailable = false;
+  }
+  return _sessionEndpointAvailable;
+}
+
+/**
  * Mint a fresh Pip session via signed message. Prompts Phantom once.
  * Caches the token in localStorage for re-use.
+ *
+ * Throws PipSessionEndpointUnavailableError if the bot hasn't deployed
+ * the session endpoint yet — callers should fall back to per-message
+ * signing in that case.
  */
 export async function mintPipSession(args: {
   botApiUrl: string;
   signerPubkey: string;
   signMessage: SignMessageFn;
 }): Promise<CachedSession> {
+  // Probe FIRST so we don't ask the user to sign a session message
+  // that the bot can't validate.
+  const available = await checkSessionEndpointAvailable(args.botApiUrl);
+  if (!available) {
+    throw new PipSessionEndpointUnavailableError("pip-session endpoint not deployed yet");
+  }
+
   const payload = {
     magpie: "pip-session/v1",
     nonce: randomNonceHex(),
@@ -169,11 +230,20 @@ export async function siteAiChat(args: {
    *  Pip respond more usefully ("you're on the tokens page, so..."). */
   pageContext?: string;
 }): Promise<AiChatResult> {
-  // Prefer Bearer if we have a cached session.
+  // Try the Bearer-token path first.
   let session = readCachedSession(args.signerPubkey);
   if (!session) {
-    // Mint a new one — this triggers Phantom ONCE for the day.
-    session = await mintPipSession(args);
+    try {
+      session = await mintPipSession(args);
+    } catch (e) {
+      if (e instanceof PipSessionEndpointUnavailableError) {
+        // Bot hasn't deployed the session endpoint yet — fall back to
+        // per-message signing. UX worse (one Phantom prompt per
+        // message) but functional.
+        return siteAiChatSignedFallback(args);
+      }
+      throw e;
+    }
   }
 
   const callWithToken = async (token: string) => {
@@ -196,17 +266,56 @@ export async function siteAiChat(args: {
   let { status, body } = await callWithToken(session.token);
 
   // If the bot says the token is expired/invalid, mint a fresh one
-  // and retry once. This handles the edge case where our cached
-  // expiry math doesn't line up with the server's.
+  // and retry once. Handles edge cases where the cached expiry
+  // math doesn't line up with the server's, or the HMAC secret
+  // rotated on a redeploy.
   if (status === 401) {
     clearCachedSession(args.signerPubkey);
-    session = await mintPipSession(args);
+    try {
+      session = await mintPipSession(args);
+    } catch (e) {
+      if (e instanceof PipSessionEndpointUnavailableError) {
+        return siteAiChatSignedFallback(args);
+      }
+      throw e;
+    }
     ({ status, body } = await callWithToken(session.token));
   }
 
   if (status !== 200) {
     throw new Error(body?.error || `Chat failed (HTTP ${status})`);
   }
+  return {
+    response: body.response,
+    blockedReason: body.blocked_reason ?? null,
+    spendCapped: !!body.spend_capped,
+    escalatedTicketId: body.escalated_ticket_id ?? null,
+  };
+}
+
+/**
+ * Legacy per-message signing path. Used as fallback when the session
+ * endpoint isn't deployed yet. Triggers a Phantom prompt per message.
+ */
+async function siteAiChatSignedFallback(args: {
+  botApiUrl: string;
+  signerPubkey: string;
+  signMessage: SignMessageFn;
+  message: string;
+  pageContext?: string;
+}): Promise<AiChatResult> {
+  const body = await postSigned(
+    "/api/v1/ai/chat",
+    {
+      magpie: "ai-chat/v1",
+      action: "chat",
+      message: args.message,
+      page_context: args.pageContext ?? null,
+      nonce: randomNonceHex(),
+      issuedAt: new Date().toISOString(),
+    },
+    args,
+  );
   return {
     response: body.response,
     blockedReason: body.blocked_reason ?? null,
