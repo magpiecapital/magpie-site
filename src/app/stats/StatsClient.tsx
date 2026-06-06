@@ -229,10 +229,10 @@ export default function StatsClient() {
           <div className="absolute -left-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--accent-deep)]/15 blur-3xl drift" />
         </div>
         <div className="relative mx-auto max-w-6xl px-6 py-20 text-center md:py-28">
-          <h2 className="font-display mx-auto max-w-3xl text-4xl font-medium tracking-[-0.03em] text-white md:text-6xl">
+          <h2 className="font-display mx-auto max-w-3xl text-4xl font-medium tracking-[-0.03em] text-[var(--bg-elevated)] md:text-6xl">
             Borrow against bags. <span className="italic text-[var(--accent)]">Never sell.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-base text-white/70">
+          <p className="mx-auto mt-4 max-w-md text-base text-[var(--bg-elevated)]/70">
             Telegram-native lending on Solana. Zero liquidations by design.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row">
@@ -240,7 +240,7 @@ export default function StatsClient() {
               Start borrowing
               <span aria-hidden>→</span>
             </a>
-            <Link href="/tokens" className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10">
+            <Link href="/tokens" className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10">
               Browse collateral
             </Link>
           </div>
