@@ -1182,7 +1182,19 @@ export default function FloatingAiChatGlobal() {
               style={{ color: "var(--ink-faint)" }}
             >
               <span>Signed with your wallet</span>
-              <span>Enter to send · ⌘K to toggle</span>
+              {input.length >= 2400 ? (
+                <span
+                  style={{
+                    color: input.length >= 2700
+                      ? "var(--bad)"
+                      : "var(--ink-faint)",
+                  }}
+                >
+                  {input.length}/2800
+                </span>
+              ) : (
+                <span>Enter to send · ⌘K to toggle</span>
+              )}
             </div>
           </div>
         )}
