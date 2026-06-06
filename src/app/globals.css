@@ -3,8 +3,8 @@
 /* Wire Tailwind's `dark:` variant to our manual theme toggle.
    By default Tailwind 4 uses prefers-color-scheme; we override so
    any `dark:bg-foo` class triggers on html[data-theme="dark"]
-   regardless of OS preference. */
-@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+   regardless of OS preference. Tailwind 4 uses @custom-variant. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* Ensure wallet modal is always visible above everything */
 .wallet-adapter-modal-wrapper {
