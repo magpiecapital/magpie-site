@@ -205,7 +205,7 @@ export function MobileNav() {
       {/* Hamburger button — larger touch target on mobile */}
       <button
         onClick={() => setOpen(true)}
-        className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--ink-soft)] transition hover:bg-[var(--surface)] active:bg-[var(--surface)] md:hidden"
+        className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--ink-soft)] transition hover:bg-[var(--surface)] active:bg-[var(--surface)] xl:hidden"
         aria-label="Open menu"
       >
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

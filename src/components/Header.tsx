@@ -49,8 +49,10 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Center: desktop nav links */}
-        <nav className="hidden items-center gap-5 lg:flex">
+        {/* Center: desktop nav links. xl: breakpoint so at narrower desktop
+            sizes the nav doesn't fight for space with the wordmark + right
+            cluster (use the hamburger drawer there). */}
+        <nav className="hidden items-center gap-4 xl:flex xl:ml-8">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
