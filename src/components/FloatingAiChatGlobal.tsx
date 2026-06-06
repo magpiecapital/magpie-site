@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -253,6 +254,7 @@ const DEFAULT_BOT_API = "https://magpie-bot-production.up.railway.app";
 export default function FloatingAiChatGlobal() {
   const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || DEFAULT_BOT_API;
   const { publicKey, signMessage, connected } = useWallet();
+  const { setVisible: setWalletModalVisible } = useWalletModal();
   const walletStr = publicKey?.toBase58() ?? null;
   const pathname = usePathname();
 
@@ -746,7 +748,22 @@ export default function FloatingAiChatGlobal() {
               <p className="mt-2">
                 Connect a Solana wallet to chat. I help with loans, repayments, the protocol — and I'll happily get sidetracked if you want.
               </p>
-              <p className="mt-2 text-xs" style={{ color: "var(--ink-faint)" }}>
+              <button
+                onClick={() => setWalletModalVisible(true)}
+                className="mt-3 inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition"
+                style={{
+                  background: "var(--accent)",
+                  color: "var(--accent-ink, #0a0a0a)",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" />
+                  <path d="M3 5v14a2 2 0 0 0 2 2h16v-5" />
+                  <path d="M18 12a2 2 0 0 0 0 4h4v-4Z" />
+                </svg>
+                Connect Wallet
+              </button>
+              <p className="mt-3 text-xs" style={{ color: "var(--ink-faint)" }}>
                 Each message is signed with your wallet.
               </p>
             </div>
