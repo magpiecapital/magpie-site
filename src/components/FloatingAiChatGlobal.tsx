@@ -1,20 +1,15 @@
 "use client";
 
 /**
- * Site-wide floating AI chat.
+ * Site-wide floating AI chat — meet Pip.
  *
- * Renders the same chat button on every page. Has three states based
- * on user context:
+ * Pip is Magpie's resident agent: warm, conversational, sharp on
+ * protocol mechanics, world-aware enough to be human. Renders on
+ * every page; works for not-connected / not-linked / linked users
+ * with progressively more functionality.
  *
- *   1. No wallet connected     → button still visible. Panel prompts to
- *                                connect Phantom.
- *   2. Connected, not linked   → button visible. Panel explains /link.
- *   3. Connected + linked      → full chat experience, signs each
- *                                message via Phantom.
- *
- * Lives at the root layout so no per-page wrapper / transform / overflow
- * can hide it. Positioned with safe-area-inset so it clears iOS home
- * indicators and Android nav bars.
+ * Backed by /api/v1/ai/chat (signed message per question) — same
+ * AI service the bot uses for /support, so behavior is unified.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -22,6 +17,24 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { siteAiChat, siteAiReset } from "@/lib/solana/site-ai-chat";
 
 type Turn = { role: "user" | "agent"; text: string };
+
+const AGENT_NAME = "Pip";
+
+function PipAvatar({ size = 28 }: { size?: number }) {
+  // Stylized magpie silhouette — black + white bird with a touch of
+  // amber for the brand accent. Inline SVG so it's instant.
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-full bg-[var(--accent,#f7c948)] text-[var(--accent-ink,#1a1500)] shrink-0"
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    >
+      <svg width={size * 0.62} height={size * 0.62} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19.5 7c-.7-1.1-2.3-1-3 0l-1.4 1.8c-.6-.5-1.3-.8-2.1-.8-.7 0-1.4.2-2 .5L5.7 5.2c-.4-.3-1 .1-.8.6L7 11c-1.2.7-2 2-2 3.5C5 16.4 6.5 18 8.4 18h7.1c2.5 0 4.5-2 4.5-4.5 0-1.2-.5-2.3-1.2-3.1L19.5 9c.4-.5.4-1.5 0-2zm-3.4 5.8c-.5 0-1-.4-1-1s.5-1 1-1 1 .4 1 1-.5 1-1 1z" />
+      </svg>
+    </span>
+  );
+}
 
 export default function FloatingAiChatGlobal() {
   const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || "";
@@ -35,6 +48,7 @@ export default function FloatingAiChatGlobal() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Resolve linked status when the wallet is connected.
   useEffect(() => {
@@ -62,7 +76,15 @@ export default function FloatingAiChatGlobal() {
   useEffect(() => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [turns]);
+  }, [turns, busy]);
+
+  // Focus textarea when panel opens.
+  useEffect(() => {
+    if (open && linked === true) {
+      const t = setTimeout(() => textareaRef.current?.focus(), 100);
+      return () => clearTimeout(t);
+    }
+  }, [open, linked]);
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
@@ -108,42 +130,63 @@ export default function FloatingAiChatGlobal() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "Close AI chat" : "Open AI chat"}
-        className="fixed right-4 sm:right-6 z-[60] flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent,#7a5cff)] text-white shadow-lg hover:scale-105 transition-all"
+        aria-label={open ? `Close ${AGENT_NAME}` : `Open ${AGENT_NAME}`}
+        className="fixed right-4 sm:right-6 z-[60] flex h-14 w-14 items-center justify-center rounded-full shadow-lg hover:scale-105 active:scale-95 transition-transform"
         style={{
           bottom: "max(env(safe-area-inset-bottom, 1rem), 1rem)",
-          backgroundColor: "var(--accent, #7a5cff)",
+          background: "var(--accent, #f7c948)",
+          color: "var(--accent-ink, #1a1500)",
+          boxShadow: "var(--shadow-amber, 0 16px 40px -16px rgba(247, 201, 72, 0.6))",
         }}
       >
         {open ? (
-          <span className="text-2xl leading-none">×</span>
-        ) : (
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
+            <path d="M18 6L6 18M6 6l12 12" />
           </svg>
+        ) : (
+          <PipAvatar size={42} />
         )}
       </button>
 
       {/* Panel */}
       {open && (
         <div
-          className="fixed right-4 sm:right-6 z-[60] flex w-[calc(100vw-2rem)] max-w-[400px] flex-col rounded-2xl border border-[var(--hairline,rgba(255,255,255,0.1))] bg-[var(--bg,#fff)] shadow-2xl"
+          className="fixed right-4 sm:right-6 z-[60] flex flex-col rounded-2xl border shadow-2xl overflow-hidden"
           style={{
-            bottom: "max(env(safe-area-inset-bottom, 4.5rem), 4.5rem)",
+            bottom: "max(env(safe-area-inset-bottom, 5.5rem), 5.5rem)",
+            // Mobile: nearly full width. Tablet+: a comfortable chat-app size.
+            width: "calc(100vw - 2rem)",
+            maxWidth: "min(480px, calc(100vw - 2rem))",
+            height: "min(640px, calc(100vh - 8rem))",
+            background: "var(--bg-elevated, var(--bg, #fff))",
+            borderColor: "var(--hairline, rgba(0,0,0,0.1))",
           }}
         >
-          <div className="flex items-center justify-between border-b border-[var(--hairline,rgba(255,255,255,0.1))] px-4 py-3">
-            <div>
-              <div className="text-sm font-semibold">Ask Magpie</div>
-              <div className="text-[10px] text-[var(--ink-soft,#888)]">
-                AI agent · doesn't open a ticket
+          {/* Header */}
+          <div
+            className="flex items-center justify-between gap-3 border-b px-4 py-3"
+            style={{
+              borderColor: "var(--hairline, rgba(0,0,0,0.1))",
+              background: "var(--surface, rgba(0,0,0,0.02))",
+            }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <PipAvatar size={36} />
+              <div className="min-w-0">
+                <div className="text-sm font-semibold leading-tight" style={{ color: "var(--ink)" }}>
+                  {AGENT_NAME}
+                </div>
+                <div className="text-[11px] leading-tight" style={{ color: "var(--ink-soft)" }}>
+                  Magpie's resident agent · always here
+                </div>
               </div>
             </div>
             {linked === true && turns.length > 0 && (
               <button
                 onClick={handleReset}
                 disabled={busy}
-                className="text-[10px] text-[var(--ink-soft,#888)] hover:opacity-80 underline disabled:opacity-50"
+                className="text-[11px] underline hover:opacity-80 disabled:opacity-50"
+                style={{ color: "var(--ink-soft)" }}
               >
                 Reset
               </button>
@@ -151,89 +194,191 @@ export default function FloatingAiChatGlobal() {
           </div>
 
           {/* Body */}
-          <div ref={scrollRef} className="max-h-[420px] min-h-[180px] overflow-y-auto px-4 py-3 space-y-3">
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+            style={{ background: "var(--bg, #fff)" }}
+          >
             {!connected && (
-              <div className="text-xs leading-relaxed text-[var(--ink-soft,#666)]">
-                <p>Connect a Solana wallet (Phantom etc.) to chat with the Magpie AI agent.</p>
+              <div
+                className="rounded-xl border px-4 py-3 text-sm leading-relaxed"
+                style={{
+                  borderColor: "var(--hairline)",
+                  background: "var(--surface)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                <p style={{ color: "var(--ink)" }}>
+                  Hi! I'm <span className="font-semibold">{AGENT_NAME}</span>. 👋
+                </p>
                 <p className="mt-2">
-                  Each message is signed with your wallet for security — you'll see a sign prompt for every question.
+                  Connect a Solana wallet to chat. I can help with loans, repayments, the protocol — or just shoot the breeze.
+                </p>
+                <p className="mt-2 text-xs">
+                  Each message is signed with your wallet for security.
                 </p>
               </div>
             )}
 
             {connected && linked === false && (
-              <div className="text-xs leading-relaxed text-[var(--ink-soft,#666)]">
-                <p className="font-semibold text-[var(--ink,inherit)]">
-                  Wallet connected, but not linked to a Magpie account.
+              <div
+                className="rounded-xl border px-4 py-3 text-sm leading-relaxed"
+                style={{
+                  borderColor: "var(--hairline)",
+                  background: "var(--surface)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                <p style={{ color: "var(--ink)" }} className="font-semibold">
+                  Wallet connected — one more step.
                 </p>
                 <p className="mt-2">
-                  Link your wallet to chat:
+                  Link your wallet to a Magpie account so I know who I'm talking to:
                 </p>
-                <ol className="mt-2 list-decimal pl-5 space-y-1">
+                <ol className="mt-2 list-decimal pl-5 space-y-1 text-xs">
                   <li>
-                    Open{" "}
-                    <Link href="/dashboard" className="font-medium text-[var(--accent,#7a5cff)] underline">
+                    Go to{" "}
+                    <Link href="/dashboard" className="font-medium underline" style={{ color: "var(--accent-deep)" }}>
                       magpie.capital/dashboard
                     </Link>{" "}
                     and tap <em>Link to Telegram</em>
                   </li>
                   <li>
-                    Paste the code into{" "}
+                    Paste the code in{" "}
                     <a
                       href="https://t.me/magpie_capital_bot"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-medium text-[var(--accent,#7a5cff)] underline"
+                      className="font-medium underline"
+                      style={{ color: "var(--accent-deep)" }}
                     >
                       @magpie_capital_bot
                     </a>{" "}
-                    as <code className="rounded bg-black/5 px-1">/link &lt;code&gt;</code>
+                    as{" "}
+                    <code
+                      className="rounded px-1"
+                      style={{ background: "var(--hairline)", color: "var(--ink)" }}
+                    >
+                      /link &lt;code&gt;
+                    </code>
                   </li>
                 </ol>
               </div>
             )}
 
             {connected && linked === null && (
-              <div className="text-xs text-[var(--ink-soft,#666)]">Checking your account…</div>
+              <div className="text-sm" style={{ color: "var(--ink-soft)" }}>
+                Checking your account…
+              </div>
             )}
 
             {connected && linked === true && turns.length === 0 && (
-              <div className="text-xs text-[var(--ink-soft,#666)] leading-relaxed">
-                Ask anything about your loans, credit score, $MAGPIE rewards, or how the protocol works. Each message is signed with your wallet.
+              <div className="space-y-3">
+                <div className="flex gap-2.5">
+                  <PipAvatar size={28} />
+                  <div
+                    className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed max-w-[85%]"
+                    style={{
+                      background: "var(--surface)",
+                      color: "var(--ink)",
+                    }}
+                  >
+                    Hey! 👋 I'm <span className="font-semibold">{AGENT_NAME}</span>, Magpie's resident agent.
+                    <br />
+                    <br />
+                    Ask me anything — your loans, credit score, $MAGPIE, how the protocol works, or just chat. I speak whatever language you write in, and broken English is totally fine, I'll figure out what you mean.
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {[
+                    "What's my credit score?",
+                    "Why did my loan get liquidated?",
+                    "How do referral rewards work?",
+                  ].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => setInput(suggestion)}
+                      className="rounded-full border px-3 py-1.5 text-xs hover:opacity-80 transition-opacity"
+                      style={{
+                        borderColor: "var(--hairline)",
+                        color: "var(--ink-soft)",
+                        background: "var(--bg-elevated)",
+                      }}
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
             {turns.map((t, i) => (
-              <div
-                key={i}
-                className={`rounded-md px-3 py-2 text-xs leading-relaxed ${
-                  t.role === "user"
-                    ? "ml-6 border border-[var(--hairline,rgba(0,0,0,0.1))] bg-black/[0.02]"
-                    : "mr-6 border border-[var(--accent,#7a5cff)]/25 bg-[var(--accent,#7a5cff)]/10"
-                }`}
-              >
-                <div className="whitespace-pre-wrap">{t.text}</div>
+              <div key={i} className={`flex gap-2.5 ${t.role === "user" ? "flex-row-reverse" : ""}`}>
+                {t.role === "agent" && <PipAvatar size={28} />}
+                <div
+                  className={`rounded-2xl px-4 py-3 text-sm leading-relaxed max-w-[80%] ${
+                    t.role === "user" ? "rounded-tr-sm" : "rounded-tl-sm"
+                  }`}
+                  style={
+                    t.role === "user"
+                      ? {
+                          background: "var(--accent)",
+                          color: "var(--accent-ink)",
+                        }
+                      : {
+                          background: "var(--surface)",
+                          color: "var(--ink)",
+                        }
+                  }
+                >
+                  <div className="whitespace-pre-wrap">{t.text}</div>
+                </div>
               </div>
             ))}
 
             {busy && (
-              <div className="mr-6 rounded-md border border-[var(--accent,#7a5cff)]/25 bg-[var(--accent,#7a5cff)]/10 px-3 py-2 text-xs text-[var(--ink-soft,#666)]">
-                Thinking…
+              <div className="flex gap-2.5">
+                <PipAvatar size={28} />
+                <div
+                  className="rounded-2xl rounded-tl-sm px-4 py-3"
+                  style={{ background: "var(--surface)" }}
+                >
+                  <div className="flex gap-1.5">
+                    <span className="h-2 w-2 rounded-full animate-bounce" style={{ background: "var(--ink-faint)", animationDelay: "0ms" }} />
+                    <span className="h-2 w-2 rounded-full animate-bounce" style={{ background: "var(--ink-faint)", animationDelay: "150ms" }} />
+                    <span className="h-2 w-2 rounded-full animate-bounce" style={{ background: "var(--ink-faint)", animationDelay: "300ms" }} />
+                  </div>
+                </div>
               </div>
             )}
           </div>
 
           {error && (
-            <div className="border-t border-[var(--hairline,rgba(0,0,0,0.1))] px-4 py-2 text-[11px] text-red-500">
+            <div
+              className="border-t px-4 py-2 text-xs"
+              style={{
+                borderColor: "var(--hairline)",
+                background: "rgba(184, 58, 58, 0.08)",
+                color: "var(--bad)",
+              }}
+            >
               {error}
             </div>
           )}
 
           {/* Composer */}
           {linked === true && (
-            <div className="border-t border-[var(--hairline,rgba(0,0,0,0.1))] p-3">
+            <div
+              className="border-t p-3"
+              style={{
+                borderColor: "var(--hairline)",
+                background: "var(--bg-elevated, var(--bg))",
+              }}
+            >
               <div className="flex items-end gap-2">
                 <textarea
+                  ref={textareaRef}
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -242,22 +387,36 @@ export default function FloatingAiChatGlobal() {
                       handleSend();
                     }
                   }}
-                  placeholder="Ask a question…"
-                  rows={2}
+                  placeholder={`Message ${AGENT_NAME}…`}
+                  rows={1}
                   maxLength={2800}
                   disabled={busy}
-                  className="flex-1 resize-none rounded-md border border-[var(--hairline,rgba(0,0,0,0.1))] bg-white/5 px-3 py-2 text-xs placeholder:text-[var(--ink-soft,#aaa)] disabled:opacity-50"
+                  className="flex-1 resize-none rounded-xl border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 disabled:opacity-50"
+                  style={{
+                    borderColor: "var(--hairline)",
+                    background: "var(--bg)",
+                    color: "var(--ink)",
+                    minHeight: "44px",
+                    maxHeight: "120px",
+                  }}
                 />
                 <button
                   onClick={handleSend}
                   disabled={busy || input.trim().length === 0}
-                  className="shrink-0 rounded-md bg-[var(--accent,#7a5cff)] px-3 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                  aria-label="Send message"
+                  className="shrink-0 flex h-11 w-11 items-center justify-center rounded-xl font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-opacity hover:opacity-90"
+                  style={{
+                    background: "var(--accent)",
+                    color: "var(--accent-ink)",
+                  }}
                 >
-                  Send
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
+                  </svg>
                 </button>
               </div>
-              <div className="mt-1 text-[10px] text-[var(--ink-soft,#aaa)]">
-                Enter to send · Shift+Enter for newline
+              <div className="mt-1.5 text-[10px] px-1" style={{ color: "var(--ink-faint)" }}>
+                Enter to send · Shift+Enter for newline · Signed with your wallet
               </div>
             </div>
           )}
