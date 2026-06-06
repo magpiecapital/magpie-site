@@ -265,31 +265,35 @@ export default function FloatingAiChatGlobal() {
   }, [open]);
 
   /* ── Send + reset ── */
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
-    if (!text || !walletStr || !signMessage || linked !== true) return;
+  // Core send logic, accepts the message text directly. Used by:
+  //   - handleSend (typed message from the textarea)
+  //   - suggestion chips (one-click send without going through input)
+  const sendMessage = useCallback(async (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed || !walletStr || !signMessage || linked !== true || busy) return;
     setError(null);
     setBusy(true);
-    const userTurn: Turn = { role: "user", text, at: Date.now() };
-    setTurns((t) => [...t, userTurn]);
     setInput("");
+    setTurns((t) => [...t, { role: "user", text: trimmed, at: Date.now() }]);
     try {
       const r = await siteAiChat({
         botApiUrl,
         signerPubkey: walletStr,
         signMessage,
-        message: text,
+        message: trimmed,
         pageContext: pathname || undefined,
       });
       setTurns((t) => [...t, { role: "agent", text: r.response, at: Date.now() }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setTurns((t) => t.slice(0, -1));
-      setInput(text);
+      setInput(trimmed);
     } finally {
       setBusy(false);
     }
-  }, [input, walletStr, signMessage, linked, botApiUrl]);
+  }, [walletStr, signMessage, linked, busy, botApiUrl, pathname]);
+
+  const handleSend = useCallback(() => sendMessage(input), [sendMessage, input]);
 
   const handleReset = useCallback(async () => {
     if (!walletStr || !signMessage) return;
@@ -531,11 +535,9 @@ export default function FloatingAiChatGlobal() {
                   <button
                     key={s}
                     type="button"
-                    onClick={() => {
-                      setInput(s);
-                      textareaRef.current?.focus();
-                    }}
-                    className="rounded-full border px-3 py-1 text-[11px] hover:opacity-80 transition-opacity"
+                    onClick={() => sendMessage(s)}
+                    disabled={busy}
+                    className="rounded-full border px-3 py-1 text-[11px] hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{
                       borderColor: "var(--hairline)",
                       color: "var(--ink-soft)",
