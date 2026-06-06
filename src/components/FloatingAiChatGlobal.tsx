@@ -670,8 +670,8 @@ export default function FloatingAiChatGlobal() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label={open ? `Close ${AGENT_NAME}` : `Open ${AGENT_NAME}`}
-        title={`${open ? "Close" : "Open"} ${AGENT_NAME} (⌘K)`}
+        aria-label={open ? `Minimize ${AGENT_NAME}` : `Open ${AGENT_NAME}`}
+        title={`${open ? "Minimize" : "Open"} ${AGENT_NAME} (⌘K)`}
         className="fixed right-4 sm:right-6 z-[60] flex h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-all hover:scale-105"
         style={{
           // Bumps up by the soft-keyboard height on mobile so the
@@ -751,17 +751,30 @@ export default function FloatingAiChatGlobal() {
               </div>
             </div>
           </div>
-          {linked === true && (turns.length > 0 || sessionExpiry) && (
+          <div className="flex items-center gap-3 shrink-0">
+            {linked === true && (turns.length > 0 || sessionExpiry) && (
+              <button
+                onClick={handleReset}
+                disabled={busy}
+                className="text-[11px] underline hover:opacity-80 disabled:opacity-50"
+                style={{ color: "var(--ink-soft)" }}
+                title="Clear chat history + sign out of Pip"
+              >
+                Clear
+              </button>
+            )}
             <button
-              onClick={handleReset}
-              disabled={busy}
-              className="text-[11px] underline hover:opacity-80 disabled:opacity-50"
+              onClick={() => setOpen(false)}
+              aria-label="Minimize Pip"
+              title="Minimize (chat stays where you left it)"
+              className="flex h-8 w-8 items-center justify-center rounded-full hover:opacity-80 active:scale-95 transition-all"
               style={{ color: "var(--ink-soft)" }}
-              title="Clear chat history + sign out of Pip"
             >
-              Clear
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 12h14" />
+              </svg>
             </button>
-          )}
+          </div>
         </div>
 
         {/* Body — iMessage-style tight stack with subtle background.
