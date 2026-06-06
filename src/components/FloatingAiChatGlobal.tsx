@@ -349,10 +349,10 @@ export default function FloatingAiChatGlobal() {
           )}
         </div>
 
-        {/* Body */}
+        {/* Body — iMessage-style tight stack with subtle background */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+          className="flex-1 overflow-y-auto px-4 py-3"
           style={{ background: "var(--bg)" }}
         >
           {!connected && (
@@ -425,21 +425,22 @@ export default function FloatingAiChatGlobal() {
 
           {connected && linked === true && turns.length === 0 && (
             <div className="space-y-3 pip-turn">
-              <div className="flex gap-2.5">
-                <PipAvatar size={28} />
+              <div className="flex gap-2 mt-2">
+                <div className="w-7 shrink-0">
+                  <PipAvatar size={26} />
+                </div>
                 <div
-                  className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed max-w-[85%]"
+                  className="rounded-3xl rounded-bl-md px-3.5 py-2 text-[13.5px] leading-snug max-w-[82%]"
                   style={{
                     background: "var(--surface)",
                     color: "var(--ink)",
+                    boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
                   }}
                 >
-                  Hey, I&apos;m <span className="font-semibold">{AGENT_NAME}</span>.
-                  <br />
-                  Ask me anything — loans, credit, $MAGPIE, how the protocol works, or just chat. I&apos;ll figure out what you mean even if your English is rough, and I&apos;ll reply in whatever language you write in.
+                  Hey, I&apos;m <span className="font-semibold">{AGENT_NAME}</span>. Here to help with anything Magpie — loans, your credit, $MAGPIE, the protocol. Got something specific?
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2 pt-1 ml-10">
+              <div className="flex flex-wrap gap-1.5 pt-1 ml-9">
                 {suggestions.map((s) => (
                   <button
                     key={s}
@@ -448,7 +449,7 @@ export default function FloatingAiChatGlobal() {
                       setInput(s);
                       textareaRef.current?.focus();
                     }}
-                    className="rounded-full border px-3 py-1.5 text-xs hover:opacity-80 transition-opacity"
+                    className="rounded-full border px-3 py-1 text-[11px] hover:opacity-80 transition-opacity"
                     style={{
                       borderColor: "var(--hairline)",
                       color: "var(--ink-soft)",
@@ -462,48 +463,72 @@ export default function FloatingAiChatGlobal() {
             </div>
           )}
 
-          {turns.map((t, i) => (
-            <div
-              key={i}
-              className={`pip-turn flex gap-2.5 ${t.role === "user" ? "flex-row-reverse" : ""}`}
-            >
-              {t.role === "agent" && <PipAvatar size={28} />}
+          {turns.map((t, i) => {
+            // iMessage-style grouping: consecutive messages from the
+            // same sender stack tightly + only the first one shows
+            // the avatar. Feels like real text threads.
+            const prev = turns[i - 1];
+            const isFirstOfGroup = !prev || prev.role !== t.role;
+            const next = turns[i + 1];
+            const isLastOfGroup = !next || next.role !== t.role;
+            return (
               <div
-                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed max-w-[82%] ${
-                  t.role === "user" ? "rounded-tr-sm" : "rounded-tl-sm"
+                key={i}
+                className={`pip-turn flex gap-2 ${t.role === "user" ? "flex-row-reverse" : ""} ${
+                  isFirstOfGroup ? "mt-2" : "mt-0.5"
                 }`}
-                style={
-                  t.role === "user"
-                    ? {
-                        background: "var(--accent)",
-                        color: "var(--accent-ink)",
-                      }
-                    : {
-                        background: "var(--surface)",
-                        color: "var(--ink)",
-                      }
-                }
               >
-                {t.role === "user" ? (
-                  <div className="whitespace-pre-wrap">{t.text}</div>
-                ) : (
-                  <MarkdownBubble text={t.text} />
+                {t.role === "agent" && (
+                  <div className="w-7 shrink-0">
+                    {isFirstOfGroup && <PipAvatar size={26} />}
+                  </div>
                 )}
+                <div
+                  className={`px-3.5 py-2 text-[13.5px] leading-snug max-w-[80%] ${
+                    t.role === "user"
+                      ? `rounded-3xl ${isLastOfGroup ? "rounded-br-md" : ""}`
+                      : `rounded-3xl ${isLastOfGroup ? "rounded-bl-md" : ""}`
+                  }`}
+                  style={
+                    t.role === "user"
+                      ? {
+                          background: "var(--accent)",
+                          color: "var(--accent-ink)",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+                        }
+                      : {
+                          background: "var(--surface)",
+                          color: "var(--ink)",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                        }
+                  }
+                >
+                  {t.role === "user" ? (
+                    <div className="whitespace-pre-wrap">{t.text}</div>
+                  ) : (
+                    <MarkdownBubble text={t.text} />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {busy && (
-            <div className="pip-turn flex gap-2.5">
-              <PipAvatar size={28} pulsing />
+            <div className="pip-turn flex gap-2 mt-2">
+              <div className="w-7 shrink-0">
+                <PipAvatar size={26} pulsing />
+              </div>
               <div
-                className="rounded-2xl rounded-tl-sm px-4 py-3"
-                style={{ background: "var(--surface)" }}
+                className="rounded-3xl rounded-bl-md px-4 py-2.5"
+                style={{
+                  background: "var(--surface)",
+                  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                }}
               >
                 <div className="flex gap-1.5">
-                  <span className="h-2 w-2 rounded-full pip-dot-1" style={{ background: "var(--ink-faint)" }} />
-                  <span className="h-2 w-2 rounded-full pip-dot-2" style={{ background: "var(--ink-faint)" }} />
-                  <span className="h-2 w-2 rounded-full pip-dot-3" style={{ background: "var(--ink-faint)" }} />
+                  <span className="h-1.5 w-1.5 rounded-full pip-dot-1" style={{ background: "var(--ink-faint)" }} />
+                  <span className="h-1.5 w-1.5 rounded-full pip-dot-2" style={{ background: "var(--ink-faint)" }} />
+                  <span className="h-1.5 w-1.5 rounded-full pip-dot-3" style={{ background: "var(--ink-faint)" }} />
                 </div>
               </div>
             </div>
