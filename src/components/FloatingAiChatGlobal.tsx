@@ -24,7 +24,7 @@ import { usePathname } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { siteAiChat, siteAiReset } from "@/lib/solana/site-ai-chat";
+import { siteAiChat, siteAiReset, clearCachedSession } from "@/lib/solana/site-ai-chat";
 
 type Turn = { role: "user" | "agent"; text: string; at: number };
 
@@ -303,12 +303,29 @@ export default function FloatingAiChatGlobal() {
       await siteAiReset({ botApiUrl, signerPubkey: walletStr, signMessage });
       setTurns([]);
       if (storageKey) localStorage.removeItem(storageKey);
+      // Also clear the Pip session token so the next message uses a
+      // fresh sign-in. Optional but matches user expectation of
+      // "Clear = everything resets".
+      clearCachedSession(walletStr);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
   }, [walletStr, signMessage, botApiUrl, storageKey]);
+
+  /* ── Copy-to-clipboard for agent messages ── */
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const handleCopy = useCallback((idx: number, text: string) => {
+    if (typeof navigator === "undefined" || !navigator.clipboard) return;
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setCopiedIdx(idx);
+        setTimeout(() => setCopiedIdx((c) => (c === idx ? null : c)), 1500);
+      },
+      () => { /* clipboard blocked */ },
+    );
+  }, []);
 
   /* ── Suggestions tailored per state ── */
   const suggestions = useMemo(() => {
@@ -528,6 +545,9 @@ export default function FloatingAiChatGlobal() {
                   }}
                 >
                   Hey, I&apos;m <span className="font-semibold">{AGENT_NAME}</span>. Here to help with anything Magpie — loans, your credit, $MAGPIE, the protocol. Got something specific?
+                  <span className="mt-1.5 block text-[11px]" style={{ color: "var(--ink-faint)" }}>
+                    First message asks Phantom to sign in once · 24h session after that
+                  </span>
                 </div>
               </div>
               <div className="flex flex-wrap gap-1.5 pt-1 ml-9">
@@ -562,7 +582,7 @@ export default function FloatingAiChatGlobal() {
             return (
               <div
                 key={i}
-                className={`pip-turn flex gap-2 ${t.role === "user" ? "flex-row-reverse" : ""} ${
+                className={`pip-turn flex gap-2 group ${t.role === "user" ? "flex-row-reverse" : ""} ${
                   isFirstOfGroup ? "mt-2" : "mt-0.5"
                 }`}
               >
@@ -571,30 +591,58 @@ export default function FloatingAiChatGlobal() {
                     {isFirstOfGroup && <PipAvatar size={26} />}
                   </div>
                 )}
-                <div
-                  className={`px-3.5 py-2 text-[13.5px] leading-snug max-w-[80%] ${
-                    t.role === "user"
-                      ? `rounded-3xl ${isLastOfGroup ? "rounded-br-md" : ""}`
-                      : `rounded-3xl ${isLastOfGroup ? "rounded-bl-md" : ""}`
-                  }`}
-                  style={
-                    t.role === "user"
-                      ? {
-                          background: "var(--accent)",
-                          color: "var(--accent-ink)",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
-                        }
-                      : {
-                          background: "var(--surface)",
-                          color: "var(--ink)",
-                          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-                        }
-                  }
-                >
-                  {t.role === "user" ? (
-                    <div className="whitespace-pre-wrap">{t.text}</div>
-                  ) : (
-                    <MarkdownBubble text={t.text} />
+                <div className="relative max-w-[80%]">
+                  <div
+                    className={`px-3.5 py-2 text-[13.5px] leading-snug ${
+                      t.role === "user"
+                        ? `rounded-3xl ${isLastOfGroup ? "rounded-br-md" : ""}`
+                        : `rounded-3xl ${isLastOfGroup ? "rounded-bl-md" : ""}`
+                    }`}
+                    style={
+                      t.role === "user"
+                        ? {
+                            background: "var(--accent)",
+                            color: "var(--accent-ink)",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.06)",
+                          }
+                        : {
+                            background: "var(--surface)",
+                            color: "var(--ink)",
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                          }
+                    }
+                  >
+                    {t.role === "user" ? (
+                      <div className="whitespace-pre-wrap">{t.text}</div>
+                    ) : (
+                      <MarkdownBubble text={t.text} />
+                    )}
+                  </div>
+                  {/* Copy button — appears on hover, only on Pip's messages */}
+                  {t.role === "agent" && (
+                    <button
+                      onClick={() => handleCopy(i, t.text)}
+                      aria-label="Copy message"
+                      title={copiedIdx === i ? "Copied!" : "Copy"}
+                      className="absolute -right-1 -bottom-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-full h-6 w-6 flex items-center justify-center text-[10px]"
+                      style={{
+                        background: "var(--bg-elevated)",
+                        color: "var(--ink-soft)",
+                        border: "1px solid var(--hairline)",
+                        boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                      }}
+                    >
+                      {copiedIdx === i ? (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M20 6L9 17l-5-5" />
+                        </svg>
+                      ) : (
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        </svg>
+                      )}
+                    </button>
                   )}
                 </div>
               </div>
