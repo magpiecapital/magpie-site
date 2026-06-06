@@ -37,7 +37,7 @@ function checkColor(status: string): string {
   if (status === "warming-up") return "border-amber-500/40 bg-amber-500/10 text-amber-300";
   if (status === "stale") return "border-amber-500/40 bg-amber-500/10 text-amber-300";
   if (status === "fail") return "border-red-500/40 bg-red-500/10 text-red-300";
-  return "border-white/20 bg-white/5 text-white/60";
+  return "border-[var(--hairline)]/20 bg-[var(--surface)]/5 text-[var(--ink)]/60";
 }
 
 export default function StatusClient() {
@@ -84,22 +84,22 @@ export default function StatusClient() {
       ? "text-emerald-300"
       : data?.status === "degraded"
         ? "text-amber-300"
-        : "text-white/60";
+        : "text-[var(--ink)]/60";
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <Header />
       <main className="mx-auto max-w-3xl px-6 pb-24 pt-24">
         <div className="mb-10">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/40">Status</div>
+          <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink)]/40">Status</div>
           <h1 className={`mt-3 font-display text-4xl font-semibold tracking-tight md:text-5xl ${overallColor}`}>
             {overall}
           </h1>
-          <p className="mt-4 max-w-2xl text-sm text-white/60 leading-relaxed">
+          <p className="mt-4 max-w-2xl text-sm text-[var(--ink)]/60 leading-relaxed">
             Live snapshot of the Magpie bot + API health. Pulls /api/v1/health every 20 seconds.
           </p>
           {fetchedAt && (
-            <p className="mt-2 text-[11px] text-white/40">
+            <p className="mt-2 text-[11px] text-[var(--ink)]/40">
               Last checked {fetchedAt.toLocaleTimeString()}
               {data?.uptimeMs != null && (
                 <> · Uptime {fmtDuration(data.uptimeMs)}</>
@@ -121,12 +121,12 @@ export default function StatusClient() {
               return (
                 <div
                   key={name}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-white/10 bg-white/5 px-4 py-3"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-[var(--hairline)]/10 bg-[var(--surface)]/5 px-4 py-3"
                 >
                   <div>
-                    <div className="text-sm font-medium text-white">{name}</div>
+                    <div className="text-sm font-medium text-[var(--ink)]">{name}</div>
                     {hb?.lastCycleAt && (
-                      <div className="mt-0.5 text-[11px] text-white/40">
+                      <div className="mt-0.5 text-[11px] text-[var(--ink)]/40">
                         Last cycle: {new Date(hb.lastCycleAt).toLocaleString()}
                         {hb.ageMs != null && <> · {fmtDuration(hb.ageMs)} ago</>}
                       </div>
@@ -151,10 +151,10 @@ export default function StatusClient() {
             )}
           </div>
         ) : !error ? (
-          <div className="rounded-lg border border-white/10 bg-white/5 p-6 text-sm text-white/50">Loading…</div>
+          <div className="rounded-lg border border-[var(--hairline)]/10 bg-[var(--surface)]/5 p-6 text-sm text-[var(--ink)]/50">Loading…</div>
         ) : null}
 
-        <p className="mt-10 text-xs text-white/40">
+        <p className="mt-10 text-xs text-[var(--ink)]/40">
           If something here is red and you're affected, run /support in @magpie_capital_bot and the team will pick it up immediately.
         </p>
       </main>

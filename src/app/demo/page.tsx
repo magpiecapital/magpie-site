@@ -332,19 +332,19 @@ export default function DemoPage() {
 
           {/* Right: Vault Console */}
           <div className="order-1 md:order-2 md:sticky md:top-28">
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#0e1621] shadow-lg">
+            <div className="overflow-hidden rounded-2xl border border-[var(--bg-elevated)]/10 bg-[#0e1621] shadow-lg">
               {/* Console header */}
-              <div className="flex items-center justify-between border-b border-white/5 bg-[#17212b] px-5 py-3">
-                <span className="font-mono text-[11px] font-semibold text-white/80">Agent Vault Protocol</span>
-                <span className="flex items-center gap-1.5 text-[10px] text-white/40">
+              <div className="flex items-center justify-between border-b border-[var(--bg-elevated)]/5 bg-[#17212b] px-5 py-3">
+                <span className="font-mono text-[11px] font-semibold text-[var(--bg-elevated)]/80">Agent Vault Protocol</span>
+                <span className="flex items-center gap-1.5 text-[10px] text-[var(--bg-elevated)]/40">
                   <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#22c55e]" />
                   Simulation
                 </span>
               </div>
 
               {/* Vault state card */}
-              <div className="border-b border-white/5 px-5 py-4">
-                <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Vault State</div>
+              <div className="border-b border-[var(--bg-elevated)]/5 px-5 py-4">
+                <div className="mb-2 text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--bg-elevated)]/30">Vault State</div>
                 {vault.exists ? (
                   <div className="space-y-1 font-mono text-[11px] leading-relaxed">
                     <Row label="Owner" value={OWNER_KEY} />
@@ -355,14 +355,14 @@ export default function DemoPage() {
                     <Row label="Per-tx" value={`◎ ${vault.spendLimit.toFixed(1)} max`} />
                     <Row label="Session" value="23h 59m remaining" />
                     <div className="flex justify-between">
-                      <span className="text-white/40">Status</span>
+                      <span className="text-[var(--bg-elevated)]/40">Status</span>
                       <span className={`font-semibold ${vault.isActive ? "text-[#22c55e]" : "text-[#ef4444]"}`}>
                         {vault.isActive ? "● ACTIVE" : "● REVOKED"}
                       </span>
                     </div>
                   </div>
                 ) : (
-                  <div className="py-6 text-center font-mono text-[11px] text-white/20">
+                  <div className="py-6 text-center font-mono text-[11px] text-[var(--bg-elevated)]/20">
                     No vault created yet
                   </div>
                 )}
@@ -370,9 +370,9 @@ export default function DemoPage() {
 
               {/* Security checks (only for spend steps) */}
               {(activeStep === 1 || activeStep === 2) && phase !== "init" && (
-                <div className="border-b border-white/5 px-5 py-4">
+                <div className="border-b border-[var(--bg-elevated)]/5 px-5 py-4">
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Security Checks</span>
+                    <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--bg-elevated)]/30">Security Checks</span>
                     <span className="font-mono text-[10px] text-[var(--accent)]">agent_spend()</span>
                   </div>
                   <div className="space-y-1.5">
@@ -383,8 +383,8 @@ export default function DemoPage() {
                           checks[i] === "pass" ? "text-[#22c55e]"
                           : checks[i] === "fail" ? "text-[#ef4444] vault-shake"
                           : checks[i] === "checking" ? "text-[var(--accent)]"
-                          : checks[i] === "skipped" ? "text-white/15"
-                          : "text-white/25"
+                          : checks[i] === "skipped" ? "text-[var(--bg-elevated)]/15"
+                          : "text-[var(--bg-elevated)]/25"
                         }`}
                       >
                         <span className="w-4 text-center">
@@ -403,7 +403,7 @@ export default function DemoPage() {
               {/* Transaction result */}
               <div className="px-5 py-4">
                 {phase === "init" && (
-                  <div className="py-3 text-center font-mono text-[11px] text-white/20">
+                  <div className="py-3 text-center font-mono text-[11px] text-[var(--bg-elevated)]/20">
                     Waiting...
                   </div>
                 )}
@@ -428,7 +428,7 @@ export default function DemoPage() {
                           <div className={`font-mono text-[12px] font-bold ${last.status === "success" ? "text-[#22c55e]" : "text-[#ef4444]"}`}>
                             {last.status === "success" ? "✓ CONFIRMED" : "✗ REVERTED"}
                           </div>
-                          <div className="font-mono text-[11px] text-white/50">
+                          <div className="font-mono text-[11px] text-[var(--bg-elevated)]/50">
                             {last.detail}
                           </div>
                           {last.error && (
@@ -439,7 +439,7 @@ export default function DemoPage() {
                           {last.amount && (
                             <div className="font-mono text-[11px] text-[var(--accent)]">{last.amount}</div>
                           )}
-                          <div className="font-mono text-[10px] text-white/25">
+                          <div className="font-mono text-[10px] text-[var(--bg-elevated)]/25">
                             sig: {last.sig}
                           </div>
                         </>
@@ -451,23 +451,23 @@ export default function DemoPage() {
                 {/* Summary step: full tx log */}
                 {activeStep === 4 && (
                   <div className="space-y-3">
-                    <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/30">Transaction Log</div>
+                    <div className="text-[9px] font-bold uppercase tracking-[0.2em] text-[var(--bg-elevated)]/30">Transaction Log</div>
                     {txLog.map((tx, i) => (
                       <div key={i} className="border-l-2 pl-3" style={{ borderColor: tx.status === "success" ? "#22c55e" : "#ef4444" }}>
                         <div className="flex items-center gap-2">
                           <span className={`font-mono text-[11px] font-semibold ${tx.status === "success" ? "text-[#22c55e]" : "text-[#ef4444]"}`}>
                             {tx.status === "success" ? "✓" : "✗"}
                           </span>
-                          <span className="font-mono text-[11px] text-white/70">{tx.instruction}</span>
+                          <span className="font-mono text-[11px] text-[var(--bg-elevated)]/70">{tx.instruction}</span>
                         </div>
-                        <div className="font-mono text-[10px] text-white/40">{tx.detail}</div>
+                        <div className="font-mono text-[10px] text-[var(--bg-elevated)]/40">{tx.detail}</div>
                         {tx.error && <div className="font-mono text-[10px] text-[#ef4444]">{tx.error}</div>}
                         {tx.amount && <div className="font-mono text-[10px] text-[var(--accent)]">{tx.amount}</div>}
                       </div>
                     ))}
                     {txLog.length > 0 && (
-                      <div className="mt-4 rounded-lg bg-white/5 p-3 text-center">
-                        <div className="font-mono text-[11px] text-white/50">
+                      <div className="mt-4 rounded-lg bg-[var(--bg-elevated)]/5 p-3 text-center">
+                        <div className="font-mono text-[11px] text-[var(--bg-elevated)]/50">
                           {txLog.filter((t) => t.status === "success").length} confirmed · {txLog.filter((t) => t.status === "error").length} reverted · All enforced on-chain
                         </div>
                       </div>
@@ -480,20 +480,20 @@ export default function DemoPage() {
         </div>
 
         {/* Bottom CTA */}
-        <div className="relative mt-24 overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--ink)] p-10 text-center text-white md:p-16">
+        <div className="relative mt-24 overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--ink)] p-10 text-center text-[var(--bg-elevated)] md:p-16">
           <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-[var(--accent)]/20 blur-3xl" />
           <div className="relative">
             <h2 className="font-display text-3xl font-medium tracking-[-0.03em] md:text-5xl">
               Ready to <span className="italic text-[var(--accent)]">build</span>?
             </h2>
-            <p className="mx-auto mt-4 max-w-md text-white/70">
+            <p className="mx-auto mt-4 max-w-md text-[var(--bg-elevated)]/70">
               17 instructions. SOL + SPL tokens. CPI composable. 53 tests passing.
             </p>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Link href="/vault" className="btn-accent text-lg">
                 Explore the protocol <span aria-hidden>→</span>
               </Link>
-              <a href="https://github.com/magpiecapital/magpie-bot" target="_blank" rel="noopener noreferrer" className="btn-ghost text-lg !text-white !border-white/20 hover:!border-white/50">
+              <a href="https://github.com/magpiecapital/magpie-bot" target="_blank" rel="noopener noreferrer" className="btn-ghost text-lg !text-[var(--bg-elevated)] !border-[var(--bg-elevated)]/20 hover:!border-[var(--bg-elevated)]/50">
                 View on GitHub <span aria-hidden>���</span>
               </a>
             </div>
@@ -509,8 +509,8 @@ export default function DemoPage() {
 function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="flex justify-between">
-      <span className="text-white/40">{label}</span>
-      <span className={accent ? "text-[var(--accent)] font-semibold" : "text-white/70"}>{value}</span>
+      <span className="text-[var(--bg-elevated)]/40">{label}</span>
+      <span className={accent ? "text-[var(--accent)] font-semibold" : "text-[var(--bg-elevated)]/70"}>{value}</span>
     </div>
   );
 }

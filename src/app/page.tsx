@@ -481,11 +481,11 @@ export default async function Home() {
           {/* Protocol code snippet */}
           <Reveal delay={200}>
             <div className="mt-12 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[#0e1621]">
-              <div className="flex items-center justify-between border-b border-white/5 bg-[#17212b] px-5 py-3">
-                <span className="font-mono text-[11px] font-semibold text-white/80">magpie-lending</span>
-                <span className="text-[10px] text-white/40">Anchor program on Solana</span>
+              <div className="flex items-center justify-between border-b border-[var(--bg-elevated)]/5 bg-[#17212b] px-5 py-3">
+                <span className="font-mono text-[11px] font-semibold text-[var(--bg-elevated)]/80">magpie-lending</span>
+                <span className="text-[10px] text-[var(--bg-elevated)]/40">Anchor program on Solana</span>
               </div>
-              <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-relaxed text-white/70 sm:p-5 sm:text-[12px]">
+              <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-relaxed text-[var(--bg-elevated)]/70 sm:p-5 sm:text-[12px]">
 {`// Permissionless liquidation — any wallet can be a keeper
 pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
     let pool = &ctx.accounts.pool;
@@ -863,12 +863,12 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
         </div>
         <div className="relative mx-auto max-w-6xl px-5 py-16 text-center sm:px-6 md:py-40">
           <Mark size={64} className="mx-auto mb-8 hop sm:mb-10" />
-          <h2 className="font-display mx-auto max-w-4xl text-4xl font-medium tracking-[-0.04em] text-white sm:text-6xl md:text-8xl">
+          <h2 className="font-display mx-auto max-w-4xl text-4xl font-medium tracking-[-0.04em] text-[var(--bg-elevated)] sm:text-6xl md:text-8xl">
             Your bags.
             <br />
             <span className="italic text-[var(--accent)]">Your liquidity.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-lg text-base text-white/70 sm:mt-6 sm:text-lg">
+          <p className="mx-auto mt-4 max-w-lg text-base text-[var(--bg-elevated)]/70 sm:mt-6 sm:text-lg">
             Borrow SOL. Earn yield. Build your credit score. All permissionless, all on Solana.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-12 sm:gap-4 md:flex-row">
@@ -878,13 +878,13 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
             </a>
             <Link
               href="/earn"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
             >
               Earn yield
             </Link>
             <Link
               href="/tokens"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
             >
               Browse tokens
             </Link>
@@ -892,7 +892,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
               href={X_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
             >
               Follow on 𝕏
             </a>

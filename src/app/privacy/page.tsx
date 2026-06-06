@@ -57,17 +57,17 @@ const SECTIONS = [
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <Header />
       <main className="mx-auto max-w-3xl px-6 pb-24 pt-24">
         <div className="mb-10">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/40">Privacy & data</div>
+          <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink)]/40">Privacy & data</div>
           <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight md:text-5xl">
             What we know about you
           </h1>
-          <p className="mt-4 max-w-2xl text-sm text-white/60 leading-relaxed">
+          <p className="mt-4 max-w-2xl text-sm text-[var(--ink)]/60 leading-relaxed">
             Plain English. No dark patterns. If a question isn't answered here, ask the AI agent on{" "}
-            <Link href="/dashboard" className="underline hover:text-white">
+            <Link href="/dashboard" className="underline hover:text-[var(--ink)]">
               the dashboard
             </Link>{" "}
             or message the team via /support in the bot.
@@ -77,12 +77,12 @@ export default function PrivacyPage() {
         <div className="space-y-10">
           {SECTIONS.map((s) => (
             <section key={s.h}>
-              <h2 className="font-display text-xl font-semibold tracking-tight text-white">{s.h}</h2>
+              <h2 className="font-display text-xl font-semibold tracking-tight text-[var(--ink)]">{s.h}</h2>
               <ul className="mt-4 space-y-3">
                 {s.items.map(([title, body]) => (
-                  <li key={title} className="rounded-lg border border-white/10 bg-white/5 p-4">
-                    <div className="text-sm font-medium text-white">{title}</div>
-                    <div className="mt-1 text-sm text-white/60 leading-relaxed">{body}</div>
+                  <li key={title} className="rounded-lg border border-[var(--hairline)]/10 bg-[var(--surface)]/5 p-4">
+                    <div className="text-sm font-medium text-[var(--ink)]">{title}</div>
+                    <div className="mt-1 text-sm text-[var(--ink)]/60 leading-relaxed">{body}</div>
                   </li>
                 ))}
               </ul>
@@ -90,19 +90,19 @@ export default function PrivacyPage() {
           ))}
         </div>
 
-        <div className="mt-12 rounded-lg border border-white/10 bg-white/5 p-5 text-sm text-white/70">
-          <div className="font-semibold text-white">Questions?</div>
+        <div className="mt-12 rounded-lg border border-[var(--hairline)]/10 bg-[var(--surface)]/5 p-5 text-sm text-[var(--ink)]/70">
+          <div className="font-semibold text-[var(--ink)]">Questions?</div>
           <div className="mt-1 leading-relaxed">
             Ask the floating AI chat on{" "}
-            <Link href="/dashboard" className="underline hover:text-white">
+            <Link href="/dashboard" className="underline hover:text-[var(--ink)]">
               your dashboard
             </Link>
-            , or run <code className="rounded bg-white/10 px-1">/privacy</code> in{" "}
+            , or run <code className="rounded bg-[var(--surface)]/10 px-1">/privacy</code> in{" "}
             <a
               href="https://t.me/magpie_capital_bot"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-white"
+              className="underline hover:text-[var(--ink)]"
             >
               @magpie_capital_bot
             </a>{" "}

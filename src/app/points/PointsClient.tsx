@@ -729,12 +729,12 @@ export default function PointsClient() {
           <div className="absolute -left-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--accent-deep)]/15 blur-3xl drift" />
         </div>
         <div className="relative mx-auto max-w-6xl px-6 py-28 text-center md:py-36">
-          <h2 className="font-display mx-auto max-w-4xl text-5xl font-medium tracking-[-0.04em] text-white md:text-7xl">
+          <h2 className="font-display mx-auto max-w-4xl text-5xl font-medium tracking-[-0.04em] text-[var(--bg-elevated)] md:text-7xl">
             Start earning points
             <br />
             <span className="italic text-[var(--accent)]">today.</span>
           </h2>
-          <p className="mx-auto mt-6 max-w-lg text-lg text-white/70">
+          <p className="mx-auto mt-6 max-w-lg text-lg text-[var(--bg-elevated)]/70">
             Every loan is an opportunity. Bigger loans, faster repayments, and streaks all stack in your favor.
           </p>
           <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
@@ -744,7 +744,7 @@ export default function PointsClient() {
             </a>
             <Link
               href="/credit"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
             >
               View credit system
             </Link>

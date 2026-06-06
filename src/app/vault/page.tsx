@@ -599,19 +599,19 @@ await agent.spendToken(vaultAddress, apiProviderAta, 5_000_000);`}</code>
       </section>
 
       {/* ── CTA ── */}
-      <section className="relative overflow-hidden bg-[var(--ink)] text-white">
+      <section className="relative overflow-hidden bg-[var(--ink)] text-[var(--bg-elevated)]">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[var(--accent)]/20 blur-3xl drift" />
           <div className="absolute -left-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--accent-deep)]/15 blur-3xl drift" />
         </div>
         <div className="relative mx-auto max-w-6xl px-6 py-28 text-center md:py-40">
           <Reveal>
-            <h2 className="font-display mx-auto max-w-4xl text-5xl font-medium tracking-[-0.04em] text-white md:text-8xl">
+            <h2 className="font-display mx-auto max-w-4xl text-5xl font-medium tracking-[-0.04em] text-[var(--bg-elevated)] md:text-8xl">
               Give agents
               <br />
               <span className="italic text-[var(--accent)]">financial rails.</span>
             </h2>
-            <p className="mx-auto mt-6 max-w-xl text-lg text-white/60 leading-relaxed">
+            <p className="mx-auto mt-6 max-w-xl text-lg text-[var(--bg-elevated)]/60 leading-relaxed">
               On-chain spending policies. Session keys. Audit trails. The guardrails the agent economy needs — live on Solana mainnet.
             </p>
           </Reveal>
@@ -623,20 +623,20 @@ await agent.spendToken(vaultAddress, apiProviderAta, 5_000_000);`}</code>
               </a>
               <Link
                 href={DOCS_URL}
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
               >
                 Documentation
               </Link>
               <a
                 href={`https://explorer.solana.com/address/${PROGRAM_ID}`}
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+                className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
               >
                 Explorer
               </a>
             </div>
           </Reveal>
           <Reveal delay={200}>
-            <div className="mt-10 font-mono text-xs text-white/30">
+            <div className="mt-10 font-mono text-xs text-[var(--bg-elevated)]/30">
               {PROGRAM_ID}
             </div>
           </Reveal>

@@ -217,7 +217,7 @@ export default function Page() {
           <div className="absolute -left-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--accent-deep)]/15 blur-3xl drift" />
         </div>
         <div className="relative mx-auto max-w-4xl px-6 py-20 text-center md:py-28">
-          <h2 className="font-display text-4xl font-medium tracking-[-0.03em] text-white md:text-6xl">
+          <h2 className="font-display text-4xl font-medium tracking-[-0.03em] text-[var(--bg-elevated)] md:text-6xl">
             Built for the bags <span className="italic text-[var(--accent)]">other lenders</span> won&apos;t touch.
           </h2>
           <div className="mt-10 flex flex-col items-center gap-4 md:flex-row md:justify-center">
@@ -225,7 +225,7 @@ export default function Page() {
               Start in Telegram
               <span aria-hidden>→</span>
             </a>
-            <Link href="/calculate" className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10">
+            <Link href="/calculate" className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10">
               See what your bag is worth
             </Link>
           </div>

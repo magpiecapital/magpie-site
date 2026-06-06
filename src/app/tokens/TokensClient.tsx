@@ -373,7 +373,7 @@ export default function TokensClient() {
               <span className="hidden sm:inline">{tab.smLabel}</span>
               <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
                 categoryFilter === tab.key
-                  ? "bg-white/15 text-[var(--bg-elevated)]"
+                  ? "bg-[var(--bg-elevated)]/15 text-[var(--bg-elevated)]"
                   : "bg-[var(--surface)] text-[var(--ink-faint)]"
               }`}>
                 {tab.count}
@@ -601,7 +601,7 @@ export default function TokensClient() {
                           href={TELEGRAM_URL}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center rounded-lg bg-[var(--accent)] px-2.5 py-1.5 text-xs font-semibold text-black transition hover:brightness-110"
+                          className="inline-flex items-center rounded-lg bg-[var(--accent)] px-2.5 py-1.5 text-xs font-semibold text-[var(--ink)] transition hover:brightness-110"
                         >
                           Borrow
                         </a>
@@ -640,7 +640,7 @@ export default function TokensClient() {
       </section>
 
       {/* ── CTA ── */}
-      <section className="relative overflow-hidden bg-[var(--ink)] text-white">
+      <section className="relative overflow-hidden bg-[var(--ink)] text-[var(--bg-elevated)]">
         <div className="pointer-events-none absolute inset-0 opacity-30">
           <div
             className="absolute -top-40 -left-40 h-[500px] w-[500px] rounded-full"
@@ -654,7 +654,7 @@ export default function TokensClient() {
           <h2 className="font-display text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">
             Ready to borrow against your bags?
           </h2>
-          <p className="mx-auto mt-4 max-w-lg text-white/60">
+          <p className="mx-auto mt-4 max-w-lg text-[var(--bg-elevated)]/60">
             Open the Telegram bot, deposit collateral, and get SOL in seconds.
           </p>
           <a
@@ -718,17 +718,21 @@ function StatCard({ label, value, accent, onClick }: { label: string; value: str
           : accent === "gold"
             ? "border-[rgba(180,155,90,0.3)] bg-[rgba(180,155,90,0.08)]"
             : "border-[var(--hairline)] bg-[var(--bg-elevated)]";
+  // For accent="ink" cards: the bg is var(--ink) which inverts between
+  // themes. The text needs to invert with it, so we use var(--bg-elevated)
+  // (the opposite of ink in both modes). Hardcoded text-[var(--bg-elevated)] was the bug
+  // — in dark mode --ink becomes off-white, making white-on-white.
   const labelClass =
-    accent === "ink" ? "text-white/50"
+    accent === "ink" ? "text-[var(--bg-elevated)]/55"
       : accent === "amber" ? "text-[var(--accent-deep)]"
-      : accent === "blue" ? "text-[rgb(46,76,140)]"
-      : accent === "gold" ? "text-[rgb(130,105,40)]"
+      : accent === "blue" ? "text-[rgb(46,76,140)] dark:text-[rgb(149,179,233)]"
+      : accent === "gold" ? "text-[rgb(130,105,40)] dark:text-[rgb(220,194,128)]"
       : "text-[var(--ink-soft)]";
   const valueClass =
-    accent === "ink" ? "text-white"
+    accent === "ink" ? "text-[var(--bg-elevated)]"
       : accent === "amber" ? "text-[var(--accent-deep)]"
-      : accent === "blue" ? "text-[rgb(46,76,140)]"
-      : accent === "gold" ? "text-[rgb(130,105,40)]"
+      : accent === "blue" ? "text-[rgb(46,76,140)] dark:text-[rgb(180,205,245)]"
+      : accent === "gold" ? "text-[rgb(130,105,40)] dark:text-[rgb(230,210,160)]"
       : "";
   return (
     <Tag
@@ -874,7 +878,7 @@ function SubmitResultCard({ result, onReset }: { result: SubmitResult; onReset: 
     return (
       <div className="mt-6 rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-6">
         <div className="flex items-center gap-3 mb-4">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-black text-lg font-bold">&#10003;</span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-[var(--ink)] text-lg font-bold">&#10003;</span>
           <div>
             <div className="font-semibold text-lg">{result.symbol} &mdash; Approved!</div>
             <div className="text-sm text-[var(--ink-soft)]">{result.name}</div>

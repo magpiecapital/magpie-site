@@ -448,12 +448,12 @@ export default function SecurityPage() {
         </div>
         <div className="relative mx-auto max-w-6xl px-6 py-28 text-center md:py-40">
           <Mark size={80} className="mx-auto mb-10 hop" />
-          <h2 className="font-display mx-auto max-w-4xl text-4xl font-medium tracking-[-0.04em] text-white md:text-6xl lg:text-7xl">
+          <h2 className="font-display mx-auto max-w-4xl text-4xl font-medium tracking-[-0.04em] text-[var(--bg-elevated)] md:text-6xl lg:text-7xl">
             Security is not a feature.
             <br />
             <span className="italic text-[var(--accent)]">It&apos;s the foundation.</span>
           </h2>
-          <p className="mx-auto mt-6 max-w-lg text-lg text-white/70">
+          <p className="mx-auto mt-6 max-w-lg text-lg text-[var(--bg-elevated)]/70">
             Your bags deserve the highest standard of protection.
           </p>
           <div className="mt-12">

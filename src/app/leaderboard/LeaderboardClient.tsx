@@ -24,7 +24,7 @@ function tierClass(tier: string): { label: string; cls: string } {
   return (
     TIER_BADGE[tier?.toLowerCase()] ?? {
       label: tier || "—",
-      cls: "border-white/20 bg-white/5 text-white/60",
+      cls: "border-[var(--hairline)]/20 bg-[var(--surface)]/5 text-[var(--ink)]/60",
     }
   );
 }
@@ -56,19 +56,19 @@ export default function LeaderboardClient() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <Header />
       <main className="mx-auto max-w-4xl px-6 pb-24 pt-24">
         <div className="mb-10">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/40">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink)]/40">
             Credit · top 20
           </div>
           <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight md:text-5xl">
             Leaderboard
           </h1>
-          <p className="mt-4 max-w-2xl text-sm text-white/60 leading-relaxed">
+          <p className="mt-4 max-w-2xl text-sm text-[var(--ink)]/60 leading-relaxed">
             The top Magpie borrowers ranked by on-chain credit score. Every on-time repayment moves you up.{" "}
-            <Link href="/credit" className="underline hover:text-white">
+            <Link href="/credit" className="underline hover:text-[var(--ink)]">
               How the score works →
             </Link>
           </p>
@@ -81,26 +81,26 @@ export default function LeaderboardClient() {
         )}
 
         {!rows && !error && (
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-white/50">
+          <div className="rounded-2xl border border-[var(--hairline)]/10 bg-[var(--surface)]/5 p-6 text-sm text-[var(--ink)]/50">
             Loading…
           </div>
         )}
 
         {rows && rows.length === 0 && (
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6 text-sm text-white/50">
+          <div className="rounded-2xl border border-[var(--hairline)]/10 bg-[var(--surface)]/5 p-6 text-sm text-[var(--ink)]/50">
             No scored borrowers yet — be the first.
           </div>
         )}
 
         {rows && rows.length > 0 && (
-          <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-            <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 border-b border-white/10 bg-white/5 px-5 py-3 text-[10px] uppercase tracking-[0.18em] text-white/40">
+          <div className="overflow-hidden rounded-2xl border border-[var(--hairline)]/10 bg-[var(--surface)]/5">
+            <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 border-b border-[var(--hairline)]/10 bg-[var(--surface)]/5 px-5 py-3 text-[10px] uppercase tracking-[0.18em] text-[var(--ink)]/40">
               <div>#</div>
               <div>Borrower</div>
               <div className="text-right">Loans</div>
               <div className="text-right">Score</div>
             </div>
-            <div className="divide-y divide-white/5">
+            <div className="divide-y divide-[var(--hairline)]/5">
               {rows.map((r, i) => {
                 const tier = tierClass(r.tier);
                 return (
@@ -108,19 +108,19 @@ export default function LeaderboardClient() {
                     key={i}
                     className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-5 py-3.5"
                   >
-                    <div className="w-6 text-right font-mono text-sm text-white/40 tabular">
+                    <div className="w-6 text-right font-mono text-sm text-[var(--ink)]/40 tabular">
                       {i + 1}
                     </div>
                     <div className="flex min-w-0 items-center gap-2">
-                      <span className="truncate text-sm text-white/90">{r.username}</span>
+                      <span className="truncate text-sm text-[var(--ink)]/90">{r.username}</span>
                       <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] ${tier.cls}`}>
                         {tier.label}
                       </span>
                     </div>
-                    <div className="text-right font-mono text-xs text-white/50 tabular">
+                    <div className="text-right font-mono text-xs text-[var(--ink)]/50 tabular">
                       {r.loans_scored}
                     </div>
-                    <div className="text-right font-mono text-base font-semibold tabular text-white">
+                    <div className="text-right font-mono text-base font-semibold tabular text-[var(--ink)]">
                       {r.score}
                     </div>
                   </div>
@@ -130,7 +130,7 @@ export default function LeaderboardClient() {
           </div>
         )}
 
-        <p className="mt-6 text-xs text-white/40">
+        <p className="mt-6 text-xs text-[var(--ink)]/40">
           Identifiers shown are Telegram handles where available; users without one appear as “anonymous”. The wallet behind each entry stays private.
         </p>
       </main>

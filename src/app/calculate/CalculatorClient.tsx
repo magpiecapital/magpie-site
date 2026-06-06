@@ -622,10 +622,10 @@ export default function CalculatorClient() {
         </div>
         <div className="relative mx-auto max-w-6xl px-6 py-24 text-center md:py-32">
           <Mark size={64} className="mx-auto mb-8 hop" />
-          <h2 className="font-display mx-auto max-w-3xl text-5xl font-medium tracking-[-0.04em] text-white md:text-7xl">
+          <h2 className="font-display mx-auto max-w-3xl text-5xl font-medium tracking-[-0.04em] text-[var(--bg-elevated)] md:text-7xl">
             Ready to <span className="italic text-[var(--accent)]">borrow?</span>
           </h2>
-          <p className="mx-auto mt-5 max-w-md text-lg text-white/70">
+          <p className="mx-auto mt-5 max-w-md text-lg text-[var(--bg-elevated)]/70">
             Open the bot, pick your tier, and get SOL in under 30 seconds.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row">
@@ -635,7 +635,7 @@ export default function CalculatorClient() {
             </a>
             <Link
               href="/tokens"
-              className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-[0.9rem] text-base font-semibold text-white backdrop-blur transition hover:border-white/30 hover:bg-white/10"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
             >
               Browse approved tokens
             </Link>
