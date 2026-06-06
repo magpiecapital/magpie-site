@@ -431,13 +431,13 @@ export default function FloatingAiChatGlobal() {
               </div>
             </div>
           </div>
-          {linked === true && turns.length > 0 && (
+          {linked === true && (turns.length > 0 || sessionExpiry) && (
             <button
               onClick={handleReset}
               disabled={busy}
               className="text-[11px] underline hover:opacity-80 disabled:opacity-50"
               style={{ color: "var(--ink-soft)" }}
-              title="Clear conversation history"
+              title="Clear chat history + sign out of Pip"
             >
               Clear
             </button>
