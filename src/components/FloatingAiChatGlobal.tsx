@@ -275,6 +275,11 @@ export default function FloatingAiChatGlobal() {
   // of the viewport the on-screen keyboard is occluding. We bump the
   // panel up by that amount so the input stays above the keys.
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  // Rotating placeholder index — cycles through page-aware example
+  // prompts when the composer is empty + unfocused. Gives users a
+  // gentle nudge toward useful queries without being pushy.
+  const [placeholderIdx, setPlaceholderIdx] = useState(0);
+  const [textareaFocused, setTextareaFocused] = useState(false);
 
   /* ── Storage key scoped to wallet pubkey ── */
   const storageKey = useMemo(
@@ -641,6 +646,23 @@ export default function FloatingAiChatGlobal() {
       "Walk me through the protocol",
     ];
   }, [pathname]);
+
+  /* ── Rotating placeholder: cycle through context-aware prompts
+       every 4s when the composer is empty + unfocused. Freezes
+       the instant the user focuses or types. */
+  useEffect(() => {
+    if (!open || textareaFocused || input.length > 0) return;
+    const id = setInterval(() => {
+      setPlaceholderIdx((i) => (i + 1) % Math.max(1, suggestions.length));
+    }, 4000);
+    return () => clearInterval(id);
+  }, [open, textareaFocused, input.length, suggestions.length]);
+  // Compute the placeholder text. Falls back to a generic prompt
+  // when unfocused state is unstable.
+  const composerPlaceholder = useMemo(() => {
+    if (textareaFocused || input.length > 0) return `Message ${AGENT_NAME}…`;
+    return suggestions[placeholderIdx % suggestions.length] ?? `Message ${AGENT_NAME}…`;
+  }, [textareaFocused, input.length, suggestions, placeholderIdx]);
 
   return (
     <>
@@ -1124,11 +1146,13 @@ export default function FloatingAiChatGlobal() {
                     }
                   }
                 }}
-                placeholder={`Message ${AGENT_NAME}…`}
+                placeholder={composerPlaceholder}
                 rows={1}
                 maxLength={2800}
                 disabled={busy}
                 aria-label={`Message ${AGENT_NAME}`}
+                onFocus={() => setTextareaFocused(true)}
+                onBlur={() => setTextareaFocused(false)}
                 className="flex-1 resize-none rounded-xl border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 disabled:opacity-50"
                 style={{
                   borderColor: "var(--hairline)",
