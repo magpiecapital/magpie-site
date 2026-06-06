@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { GiftIcon } from "@/components/icons";
+import { Header } from "@/components/Header";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const REWARD_PCT = 5;
@@ -73,6 +74,7 @@ export default function ReferClient() {
 
   return (
     <main className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
+      <Header />
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="mx-auto max-w-6xl px-5 pt-14 pb-12 sm:px-6 md:pt-24 md:pb-20">
