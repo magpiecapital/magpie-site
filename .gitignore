@@ -7,3 +7,6 @@ out
 *.log
 .vercel
 *.tsbuildinfo
+
+# Operator-private drafts (Phantom registry submission, etc.) — never ship.
+private/
