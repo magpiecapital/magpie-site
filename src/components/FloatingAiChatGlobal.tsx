@@ -286,6 +286,9 @@ export default function FloatingAiChatGlobal() {
   // null = not loaded yet / no data; [] = explicitly empty (no loans).
   type LoanSummary = { loan_id: string; symbol: string | null; health: number | null; hours_to_due: number; status: string };
   const [loanSummary, setLoanSummary] = useState<LoanSummary[] | null>(null);
+  // Bumped after a successful action card so the loan summary re-fetches
+  // and chips/badge reflect the new state immediately.
+  const [loanRefreshTick, setLoanRefreshTick] = useState(0);
   // Rotating placeholder index — cycles through page-aware example
   // prompts when the composer is empty + unfocused. Gives users a
   // gentle nudge toward useful queries without being pushy.
@@ -367,7 +370,7 @@ export default function FloatingAiChatGlobal() {
       }
     })();
     return () => { cancelled = true; controller.abort(); };
-  }, [open, walletStr, linked, botApiUrl]);
+  }, [open, walletStr, linked, botApiUrl, loanRefreshTick]);
 
   /* ── Resolve linked status (with timeout + error state + retry) ── */
   useEffect(() => {
@@ -1200,6 +1203,10 @@ export default function FloatingAiChatGlobal() {
                         ...arr,
                         { role: "system", text: msg, at: Date.now() },
                       ]);
+                      // Refresh the loan summary so chips + badge reflect
+                      // post-action state (e.g. a repaid loan disappears
+                      // from "due soon" warnings).
+                      setLoanRefreshTick((n) => n + 1);
                     }}
                   />
                 )}
