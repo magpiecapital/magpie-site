@@ -280,6 +280,12 @@ export default function FloatingAiChatGlobal() {
   // of the viewport the on-screen keyboard is occluding. We bump the
   // panel up by that amount so the input stays above the keys.
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  // State-aware suggestion chips: when Pip opens with the user linked,
+  // fetch their loan summary so the empty-state prompts can reflect
+  // their actual situation (urgent due dates, tight health, no loans).
+  // null = not loaded yet / no data; [] = explicitly empty (no loans).
+  type LoanSummary = { loan_id: string; symbol: string | null; health: number | null; hours_to_due: number; status: string };
+  const [loanSummary, setLoanSummary] = useState<LoanSummary[] | null>(null);
   // Rotating placeholder index — cycles through page-aware example
   // prompts when the composer is empty + unfocused. Gives users a
   // gentle nudge toward useful queries without being pushy.
@@ -323,6 +329,45 @@ export default function FloatingAiChatGlobal() {
       /* quota / blocked — silently skip */
     }
   }, [turns, storageKey]);
+
+  /* ── Fetch loan summary when Pip opens (for state-aware suggestions).
+       Lightweight: one /api/v1/loans call when the panel first opens
+       and the user is linked. Re-fetches each open so it stays fresh.
+       Failures silently fall back to the generic per-page chips. */
+  useEffect(() => {
+    if (!open || !walletStr || linked !== true || !botApiUrl) return;
+    let cancelled = false;
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), 5000);
+    (async () => {
+      try {
+        const r = await fetch(`${botApiUrl}/api/v1/loans?wallet=${walletStr}`, { signal: controller.signal });
+        const j = await r.json();
+        if (cancelled) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const active = (j.active ?? []).map((l: any) => {
+          const dueIso = l.timestamps?.due_at;
+          const hours = dueIso ? (new Date(dueIso).getTime() - Date.now()) / 3_600_000 : 999;
+          return {
+            loan_id: String(l.loan_id),
+            symbol: l.collateral?.symbol ?? null,
+            // Health isn't exposed by /loans; left null so the chip
+            // logic ignores it. (Future improvement: dedicated endpoint
+            // or piggyback on-chain read here.)
+            health: null,
+            hours_to_due: hours,
+            status: l.status ?? "active",
+          };
+        });
+        setLoanSummary(active);
+      } catch {
+        if (!cancelled) setLoanSummary([]); // treat as no-data; chips fall back to defaults
+      } finally {
+        clearTimeout(t);
+      }
+    })();
+    return () => { cancelled = true; controller.abort(); };
+  }, [open, walletStr, linked, botApiUrl]);
 
   /* ── Resolve linked status (with timeout + error state + retry) ── */
   useEffect(() => {
@@ -566,12 +611,52 @@ export default function FloatingAiChatGlobal() {
     );
   }, []);
 
-  /* ── Suggestions adapt to the current page ── */
+  /* ── Suggestions adapt to the user's actual state first, then page ── */
   const suggestions = useMemo(() => {
+    // STATE-AWARE: if we've fetched the user's loan summary, prefer
+    // chips that reflect their actual situation. These beat any
+    // per-page generic prompts because they answer "what should I
+    // think about RIGHT NOW".
+    if (loanSummary && loanSummary.length > 0) {
+      const stateChips: string[] = [];
+      // Urgent due (< 24h)
+      const urgent = loanSummary
+        .filter((l) => l.status === "active" && l.hours_to_due < 24)
+        .sort((a, b) => a.hours_to_due - b.hours_to_due)[0];
+      if (urgent) {
+        const shortId = urgent.loan_id.slice(-4);
+        if (urgent.hours_to_due < 0) {
+          stateChips.push(`Loan #${shortId} is past due — what now?`);
+        } else {
+          stateChips.push(`Loan #${shortId} due in ${Math.max(1, Math.round(urgent.hours_to_due))}h — extend or repay?`);
+        }
+      }
+      // Tight health (< 1.30)
+      const risky = loanSummary
+        .filter((l) => l.status === "active" && l.health != null && l.health < 1.30)
+        .sort((a, b) => (a.health ?? 99) - (b.health ?? 99))[0];
+      if (risky) {
+        stateChips.push(`Stabilize loan #${risky.loan_id.slice(-4)} (health ${risky.health!.toFixed(2)}x)`);
+      }
+      // General active-loan prompts
+      stateChips.push("Show me all my loans");
+      if (stateChips.length < 4) stateChips.push("What's my best move right now?");
+      return stateChips.slice(0, 4);
+    }
+    // No active loans → push toward borrowing OR yield earning.
+    if (loanSummary && loanSummary.length === 0 && walletStr) {
+      return [
+        "What can I borrow against?",
+        "Best way to earn yield right now?",
+        "Walk me through how Magpie works",
+        "What's my credit score?",
+      ];
+    }
+
+    // Fallback: per-page generic prompts (when state isn't loaded yet
+    // or wallet isn't connected). Same as before — these were always
+    // safe defaults.
     const path = pathname || "/";
-    // Per-page starter prompts. Picked to be specific enough to feel
-    // smart but generic enough to work for any user. Pip's tool
-    // access fills in the personal details.
     if (path.startsWith("/credit")) {
       return [
         "What's my credit score?",
@@ -656,7 +741,7 @@ export default function FloatingAiChatGlobal() {
       "What can I borrow right now?",
       "Walk me through the protocol",
     ];
-  }, [pathname]);
+  }, [pathname, loanSummary, walletStr]);
 
   /* ── Rotating placeholder: cycle through context-aware prompts
        every 4s when the composer is empty + unfocused. Freezes
