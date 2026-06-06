@@ -254,6 +254,10 @@ export default function FloatingAiChatGlobal() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
+  // Soft keyboard offset on mobile — visualViewport tells us how much
+  // of the viewport the on-screen keyboard is occluding. We bump the
+  // panel up by that amount so the input stays above the keys.
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   /* ── Storage key scoped to wallet pubkey ── */
   const storageKey = useMemo(
@@ -411,6 +415,32 @@ export default function FloatingAiChatGlobal() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  /* ── Soft-keyboard offset (mobile) ──
+     When iOS / Android opens the on-screen keyboard, fixed-position
+     elements normally stay anchored to the visual viewport edge,
+     which means our chat panel can end up partially HIDDEN behind
+     the keyboard. visualViewport exposes the un-covered area; we
+     compute the difference and use it to push the panel up. */
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const vv = window.visualViewport;
+    if (!vv) return;
+    const updateOffset = () => {
+      // The keyboard takes up the difference between the window
+      // height and the visualViewport height (plus the viewport's
+      // own offsetTop). When keyboard is closed, this is ~0.
+      const offset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setKeyboardOffset(offset);
+    };
+    updateOffset();
+    vv.addEventListener("resize", updateOffset);
+    vv.addEventListener("scroll", updateOffset);
+    return () => {
+      vv.removeEventListener("resize", updateOffset);
+      vv.removeEventListener("scroll", updateOffset);
+    };
   }, [open]);
 
   /* ── Send + reset ── */
@@ -589,9 +619,11 @@ export default function FloatingAiChatGlobal() {
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? `Close ${AGENT_NAME}` : `Open ${AGENT_NAME}`}
         title={`${open ? "Close" : "Open"} ${AGENT_NAME} (⌘K)`}
-        className="fixed right-4 sm:right-6 z-[60] flex h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform hover:scale-105"
+        className="fixed right-4 sm:right-6 z-[60] flex h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-all hover:scale-105"
         style={{
-          bottom: "max(env(safe-area-inset-bottom, 1rem), 1rem)",
+          // Bumps up by the soft-keyboard height on mobile so the
+          // button stays reachable above the keys.
+          bottom: `calc(max(env(safe-area-inset-bottom, 1rem), 1rem) + ${keyboardOffset}px)`,
           background: open ? "var(--ink)" : "transparent",
           color: open ? "var(--bg-elevated)" : "inherit",
           border: open ? "none" : "none",
@@ -611,10 +643,16 @@ export default function FloatingAiChatGlobal() {
       <div
         className={`fixed right-4 sm:right-6 z-[60] flex flex-col rounded-2xl border shadow-2xl overflow-hidden pip-panel ${open ? "pip-panel-open" : ""}`}
         style={{
-          bottom: "max(env(safe-area-inset-bottom, 5.5rem), 5.5rem)",
+          // Bottom anchor lifts above the soft keyboard when it opens
+          // (visualViewport offset), and clears the iOS home indicator
+          // when it's closed. Both contribute to bottom: padding,
+          // floating-button + clearance, keyboard.
+          bottom: `calc(max(env(safe-area-inset-bottom, 5.5rem), 5.5rem) + ${keyboardOffset}px)`,
           width: "calc(100vw - 2rem)",
           maxWidth: "min(480px, calc(100vw - 2rem))",
-          height: "min(640px, calc(100vh - 8rem))",
+          // Cap the panel height so it never overflows the visible
+          // viewport when the keyboard is open.
+          height: `min(640px, calc(100vh - 8rem - ${keyboardOffset}px))`,
           background: "var(--bg-elevated, var(--bg))",
           borderColor: "var(--hairline)",
           pointerEvents: open ? "auto" : "none",
