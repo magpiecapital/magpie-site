@@ -268,10 +268,11 @@ export default async function Home() {
               feels intentional even on a cold cache. */}
           <LiveProtocolTicker />
 
-          {/* Floating mark */}
+          {/* Floating mark — large hero placement. Stays as the
+              original black silhouette in both themes per design. */}
           <div className="pointer-events-none absolute right-8 top-32 hidden opacity-90 lg:block">
             <div className="hop">
-              <Mark size={240} />
+              <Mark size={240} variant="static" />
             </div>
           </div>
         </div>
