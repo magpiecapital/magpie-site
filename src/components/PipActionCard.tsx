@@ -19,6 +19,25 @@ function fmtSol(s: string): string {
   return String(parseFloat(s));
 }
 
+/** Convert a raw token amount + decimals into a friendly display
+ *  string. e.g. "14160345328" with decimals=6 → "14,160.35".        */
+function fmtTokenAmount(rawStr: string, decimals: number): string {
+  try {
+    const raw = BigInt(rawStr);
+    const divisor = 10n ** BigInt(Math.max(0, decimals));
+    const whole = raw / divisor;
+    const frac = raw % divisor;
+    const wholeStr = whole.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    if (decimals === 0 || frac === 0n) return wholeStr;
+    // 2 sig figs of fractional for display (more for very small)
+    const fracDigits = Number(whole) < 1 ? Math.min(decimals, 6) : 2;
+    const fracStr = frac.toString().padStart(decimals, "0").slice(0, fracDigits).replace(/0+$/, "");
+    return fracStr ? `${wholeStr}.${fracStr}` : wholeStr;
+  } catch {
+    return rawStr;
+  }
+}
+
 const DEFAULT_BOT_API = "https://magpie-bot-production.up.railway.app";
 
 export function PipActionCard({
@@ -181,7 +200,10 @@ export function PipActionCard({
       <Card title={`Repay loan #${action.loan_id.slice(-6)}`} kind="repay">
         <Row label="Owed" value={`${fmtSol(action.owed_sol)} SOL`} mono />
         <Row label="Fee included" value={`${fmtSol(action.fee_sol)} SOL`} mono muted />
-        <Row label="Collateral returns" value={action.collateral_symbol ?? "—"} />
+        <Row
+          label="You get back"
+          value={`${fmtTokenAmount(action.collateral_amount_raw, action.collateral_decimals)} ${action.collateral_symbol ?? ""}`.trim()}
+        />
         <Row
           label="Due"
           value={action.past_due ? "past due" : `in ${action.hours_to_due}h`}
@@ -203,7 +225,19 @@ export function PipActionCard({
   if (action.type === "topup") {
     return (
       <Card title={`Top up loan #${action.loan_id.slice(-6)}`} kind="add collateral">
-        <Row label="Adding" value={`${action.extra_ui_amount} ${action.collateral_symbol ?? "tokens"}`} />
+        <Row label="Current collateral" value={`${fmtTokenAmount(action.current_collateral_raw, action.collateral_decimals)} ${action.collateral_symbol ?? ""}`.trim()} muted />
+        <Row label="Adding" value={`+ ${action.extra_ui_amount} ${action.collateral_symbol ?? "tokens"}`} mono />
+        <Row
+          label="New total"
+          value={(() => {
+            try {
+              const total = (BigInt(action.current_collateral_raw) + BigInt(action.extra_amount_raw)).toString();
+              return `${fmtTokenAmount(total, action.collateral_decimals)} ${action.collateral_symbol ?? ""}`.trim();
+            } catch {
+              return "—";
+            }
+          })()}
+        />
         <Row label="Effect" value="Lowers LTV, raises health" muted />
         <Footer
           busy={busy}
