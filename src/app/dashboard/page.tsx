@@ -273,6 +273,10 @@ function TokenIcon({ mint, symbol, size = 28 }: { mint: string; symbol: string; 
       alt={symbol}
       width={size}
       height={size}
+      // loading="lazy" defers offscreen icons; decoding="async" keeps
+      // image decode off the main render thread on mobile.
+      loading="lazy"
+      decoding="async"
       className="shrink-0 rounded-full"
       style={{ width: size, height: size }}
       onError={() => setFailed(true)}
