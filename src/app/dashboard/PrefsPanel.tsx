@@ -179,7 +179,7 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
         Auto-Protect & notifications
       </div>
 
-      {siteLock?.locked && siteLock.until && (
+      {siteLock?.locked && siteLock.until ? (
         <div className="mt-3 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600">
           <div className="font-semibold">🔒 Site signed actions are locked</div>
           <div className="mt-0.5 text-amber-700">
@@ -196,6 +196,21 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
             </a>{" "}
             to clear it.
           </div>
+        </div>
+      ) : (
+        <div className="mt-3 rounded-md border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 text-[10px] text-[var(--d-ink-faint)]">
+          🛡 If you ever suspect your Phantom seed is compromised, run{" "}
+          <code className="rounded bg-[var(--d-surface-hover)]/40 px-1">/lock 24</code>{" "}
+          in{" "}
+          <a
+            href="https://t.me/magpie_capital_bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-[var(--d-accent-deep)]"
+          >
+            @magpie_capital_bot
+          </a>
+          . Locks every site signed action for 24h on a separate auth surface.
         </div>
       )}
 
