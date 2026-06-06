@@ -31,7 +31,14 @@ import {
   getCachedSessionExpiry,
 } from "@/lib/solana/site-ai-chat";
 
-type Turn = { role: "user" | "agent"; text: string; at: number };
+type Turn = {
+  role: "user" | "agent";
+  text: string;
+  at: number;
+  /** When true, the bubble animates the text in word-by-word (used
+   *  for freshly-arrived agent responses to feel like streaming). */
+  streaming?: boolean;
+};
 
 const AGENT_NAME = "Pip";
 const STORAGE_PREFIX = "magpie-pip-chat:";
@@ -65,6 +72,57 @@ function PipAvatar({ size = 32, pulsing = false }: { size?: number; pulsing?: bo
         }
       `}</style>
     </span>
+  );
+}
+
+/* ─────────────── Streaming bubble ───────────────
+   Animates an agent response in word-by-word, then swaps to full
+   markdown rendering once complete. Gives the "feels-like-streaming"
+   UX without requiring real SSE on the backend. */
+function StreamingBubble({
+  text,
+  onComplete,
+}: {
+  text: string;
+  onComplete: () => void;
+}) {
+  const [visibleChars, setVisibleChars] = useState(0);
+
+  useEffect(() => {
+    setVisibleChars(0);
+    if (!text) return;
+    // ~16ms per char gives a snappy stream that finishes a 200-char
+    // response in ~3s. Short messages still feel fast.
+    const interval = setInterval(() => {
+      setVisibleChars((c) => {
+        // Speed up gradually so long messages don't drag.
+        const step = Math.max(2, Math.ceil(c / 50));
+        const next = c + step;
+        if (next >= text.length) {
+          clearInterval(interval);
+          // Defer the onComplete callback to the next tick so we
+          // don't dispatch a state update during render.
+          setTimeout(onComplete, 0);
+          return text.length;
+        }
+        return next;
+      });
+    }, 16);
+    return () => clearInterval(interval);
+  }, [text, onComplete]);
+
+  const partial = text.slice(0, visibleChars);
+  return (
+    <div className="whitespace-pre-wrap">
+      {partial}
+      {visibleChars < text.length && (
+        <span
+          className="inline-block w-[2px] h-[1em] align-middle ml-0.5 animate-pulse"
+          style={{ background: "var(--ink-soft)" }}
+          aria-hidden="true"
+        />
+      )}
+    </div>
   );
 }
 
@@ -174,7 +232,12 @@ export default function FloatingAiChatGlobal() {
   useEffect(() => {
     if (!storageKey) return;
     try {
-      localStorage.setItem(storageKey, JSON.stringify(turns.slice(-MAX_PERSISTED_TURNS)));
+      // Strip the in-flight `streaming` flag before persisting — we
+      // never want to re-stream messages from disk on reload.
+      const sanitized = turns.slice(-MAX_PERSISTED_TURNS).map((t) =>
+        t.streaming ? { ...t, streaming: false } : t,
+      );
+      localStorage.setItem(storageKey, JSON.stringify(sanitized));
     } catch {
       /* quota / blocked — silently skip */
     }
@@ -288,7 +351,7 @@ export default function FloatingAiChatGlobal() {
         message: trimmed,
         pageContext: pathname || undefined,
       });
-      setTurns((t) => [...t, { role: "agent", text: r.response, at: Date.now() }]);
+      setTurns((t) => [...t, { role: "agent", text: r.response, at: Date.now(), streaming: true }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setTurns((t) => t.slice(0, -1));
@@ -639,6 +702,17 @@ export default function FloatingAiChatGlobal() {
                   >
                     {t.role === "user" ? (
                       <div className="whitespace-pre-wrap">{t.text}</div>
+                    ) : t.streaming ? (
+                      <StreamingBubble
+                        text={t.text}
+                        onComplete={() => {
+                          setTurns((arr) => {
+                            const copy = arr.slice();
+                            if (copy[i]?.streaming) copy[i] = { ...copy[i], streaming: false };
+                            return copy;
+                          });
+                        }}
+                      />
                     ) : (
                       <MarkdownBubble text={t.text} />
                     )}
