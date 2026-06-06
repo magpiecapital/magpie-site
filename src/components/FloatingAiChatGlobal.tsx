@@ -266,6 +266,7 @@ export default function FloatingAiChatGlobal() {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [busyElapsed, setBusyElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -402,6 +403,20 @@ export default function FloatingAiChatGlobal() {
     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     setShowScrollDown(false);
   }, []);
+
+  /* ── Track busy elapsed time so we can show a "still thinking" hint
+       when a request is taking unusually long. */
+  useEffect(() => {
+    if (!busy) {
+      setBusyElapsed(0);
+      return;
+    }
+    const startedAt = Date.now();
+    const id = setInterval(() => {
+      setBusyElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [busy]);
 
   /* ── Focus textarea when panel opens ── */
   useEffect(() => {
@@ -1005,7 +1020,7 @@ export default function FloatingAiChatGlobal() {
           })}
 
           {busy && (
-            <div className="pip-turn flex gap-2 mt-2">
+            <div className="pip-turn flex gap-2 mt-2 items-end">
               <div className="w-7 shrink-0">
                 <PipAvatar size={26} pulsing />
               </div>
@@ -1022,6 +1037,18 @@ export default function FloatingAiChatGlobal() {
                   <span className="h-1.5 w-1.5 rounded-full pip-dot-3" style={{ background: "var(--ink-faint)" }} />
                 </div>
               </div>
+              {/* Slow-network reassurance: kicks in around 5s, escalates
+                  past 12s. Stays subtle — italic ink-faint, no panic. */}
+              {busyElapsed >= 5 && (
+                <div
+                  className="text-[11px] italic pb-1.5"
+                  style={{ color: "var(--ink-faint)" }}
+                >
+                  {busyElapsed >= 12
+                    ? "this is taking a bit longer than usual…"
+                    : "still thinking…"}
+                </div>
+              )}
             </div>
           )}
         </div>
