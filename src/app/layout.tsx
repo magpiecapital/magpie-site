@@ -107,6 +107,26 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${fraunces.variable}`}>
       <head>
+        {/* Theme initializer — runs BEFORE React hydration so users
+            never see a flash of the wrong theme. Reads localStorage
+            "magpie-theme" (set by ThemeToggle), falls back to OS
+            prefers-color-scheme on first visit. Sets html[data-theme]
+            which globals.css uses to switch every CSS variable. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var stored = localStorage.getItem("magpie-theme");
+                  var theme = stored === "dark" || stored === "light"
+                    ? stored
+                    : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+                  document.documentElement.setAttribute("data-theme", theme);
+                } catch (e) { /* localStorage blocked — default light */ }
+              })();
+            `,
+          }}
+        />
         {/* Buffer polyfill — MUST load before any Solana JS. Synchronous script. */}
         <Script src="/buffer-polyfill.js" strategy="beforeInteractive" />
         {/* Connect early to the third-party services we hit on dashboard load. */}

@@ -41,6 +41,45 @@
   --shadow-amber: 0 16px 40px -16px rgba(247, 201, 72, 0.6);
 }
 
+/* ─────────────────────────────────────────────────────────────────
+   Dark mode — applied site-wide when html[data-theme="dark"] is set.
+   The theme toggle in the header (and pre-hydration script in
+   layout.tsx) write this attribute. Pages that already use the
+   --bg / --ink / --accent variables get dark mode for free.
+   ───────────────────────────────────────────────────────────────── */
+html[data-theme="dark"] {
+  --bg: #0b0b0d;              /* near-black, warmer than pure */
+  --bg-elevated: #15151a;
+  --ink: #f4f1e6;             /* warm off-white */
+  --ink-soft: #b8b3a4;
+  --ink-faint: #6e6a60;
+  --hairline: #26252a;
+  --hairline-strong: #34323a;
+  --surface: #1a1a20;
+  --surface-strong: #22222a;
+
+  --accent: #f7c948;          /* keep the amber — it's the brand */
+  --accent-hover: #ffd668;
+  --accent-dim: #3b3520;
+  --accent-deep: #ffd668;     /* brighter on dark for contrast */
+  --accent-ink: #1a1500;
+
+  --good: #f4f1e6;
+  --warn: #d9844f;
+  --bad: #d44a4a;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 12px 32px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 20px 60px -20px rgba(0, 0, 0, 0.7);
+  --shadow-amber: 0 16px 40px -16px rgba(247, 201, 72, 0.4);
+}
+
+/* Smooth the theme flip — but only the colors. Layout properties
+   shouldn't animate or they create the "elastic" feel on toggle. */
+html, body, [class*="bg-"], [class*="border-"], [class*="text-"] {
+  transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--ink);
@@ -80,6 +119,21 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   letter-spacing: -0.011em;
+}
+
+/* Dark-mode body gradient — warm dim spotlights instead of silver. */
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 900px 600px at 15% 10%, rgba(247, 201, 72, 0.06), transparent 70%),
+    radial-gradient(ellipse 800px 600px at 85% 70%, rgba(247, 201, 72, 0.04), transparent 70%),
+    radial-gradient(ellipse 1000px 700px at 50% 120%, rgba(180, 180, 200, 0.03), transparent 70%),
+    var(--bg);
+}
+
+/* Mute the scattered-coins layer in dark mode so it doesn't read as
+   stark white dots on near-black. */
+html[data-theme="dark"] body::after {
+  opacity: 0.12;
 }
 
 /* Subtle grain texture for warmth */

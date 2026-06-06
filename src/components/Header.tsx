@@ -5,6 +5,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { Wordmark, Mark } from "@/components/Logo";
 import { MobileNav } from "@/components/MobileNav";
 import { ConnectWallet } from "@/components/ConnectWallet";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 // Creator wallet — must match LENDER_PUBKEY on the bot. The Admin nav
@@ -86,6 +87,7 @@ export function Header() {
               ★ <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
+          <ThemeToggle />
           <ConnectWallet variant="ghost" className="hidden md:flex" />
           <a
             href={TELEGRAM_URL}
