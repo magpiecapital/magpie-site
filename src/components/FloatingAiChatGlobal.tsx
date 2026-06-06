@@ -124,6 +124,7 @@ export default function FloatingAiChatGlobal() {
 
   // linked: null = checking, true/false = resolved, "error" = network failure
   const [linked, setLinked] = useState<boolean | "error" | null>(null);
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [linkCheckCount, setLinkCheckCount] = useState(0); // bump to retry
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -170,16 +171,17 @@ export default function FloatingAiChatGlobal() {
   useEffect(() => {
     if (!walletStr) {
       setLinked(null);
+      setLinkError(null);
       return;
     }
     if (!botApiUrl) {
-      // No bot URL configured — surface so the user isn't stuck on a
-      // forever "Checking…" spinner. Treated like a network error.
       setLinked("error");
+      setLinkError("NEXT_PUBLIC_BOT_API_URL not configured");
       return;
     }
     let cancelled = false;
     setLinked(null);
+    setLinkError(null);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     (async () => {
@@ -189,7 +191,10 @@ export default function FloatingAiChatGlobal() {
         });
         clearTimeout(timeoutId);
         if (!r.ok) {
-          if (!cancelled) setLinked("error");
+          if (!cancelled) {
+            setLinked("error");
+            setLinkError(`HTTP ${r.status} from ${botApiUrl}`);
+          }
           return;
         }
         const j = await r.json();
@@ -197,8 +202,10 @@ export default function FloatingAiChatGlobal() {
       } catch (e) {
         clearTimeout(timeoutId);
         if (!cancelled) {
-          console.warn("[pip] link/status fetch failed:", e);
+          const msg = e instanceof Error ? e.message : String(e);
+          console.warn("[pip] link/status fetch failed:", e, "url:", botApiUrl);
           setLinked("error");
+          setLinkError(`${msg} (url: ${botApiUrl || "<empty>"})`);
         }
       }
     })();
@@ -472,6 +479,14 @@ export default function FloatingAiChatGlobal() {
               <p className="mt-2 text-xs">
                 Looks like a network hiccup or the bot is restarting. Pip will be back in a second.
               </p>
+              {linkError && (
+                <p
+                  className="mt-2 font-mono text-[10px] break-all"
+                  style={{ color: "var(--ink-faint)" }}
+                >
+                  {linkError}
+                </p>
+              )}
               <button
                 onClick={retryLinkCheck}
                 className="mt-3 rounded-full border px-3 py-1.5 text-[11px] font-medium hover:opacity-80"
