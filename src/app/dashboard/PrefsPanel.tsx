@@ -286,7 +286,9 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
         <div>
           <div className="text-xs font-medium text-[var(--d-ink)]">Export my data</div>
           <div className="mt-0.5 text-[10px] text-[var(--d-ink-faint)]">
-            Download a JSON file of everything Magpie holds for your account.
+            Download a JSON file of everything Magpie holds for your account. Also available as{" "}
+            <code className="rounded bg-[var(--d-surface-hover)]/40 px-1">/exportdata</code>{" "}
+            in TG.
           </div>
         </div>
         <button
