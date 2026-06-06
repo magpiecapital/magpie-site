@@ -1,41 +1,120 @@
 "use client";
 
 /**
- * Site-wide floating AI chat — meet Pip.
+ * Pip — Magpie's resident AI agent.
  *
- * Pip is Magpie's resident agent: warm, conversational, sharp on
- * protocol mechanics, world-aware enough to be human. Renders on
- * every page; works for not-connected / not-linked / linked users
- * with progressively more functionality.
+ * Site-wide floating chat. Polished to feel like a real chat app:
  *
- * Backed by /api/v1/ai/chat (signed message per question) — same
- * AI service the bot uses for /support, so behavior is unified.
+ *   • Markdown in agent responses (bullets, bold, links, code)
+ *   • Chat history persists across page navigation + sessions
+ *     (per linked-wallet pubkey, scoped via localStorage)
+ *   • Keyboard shortcuts: Cmd/Ctrl+K to open, Esc to close
+ *   • Smooth open/close + message-arrival animations
+ *   • Auto-grow textarea
+ *   • Avatar pulses while Pip is thinking
+ *   • Graceful states for not-connected and not-linked users
+ *
+ * Backed by /api/v1/ai/chat (signed Ed25519 per message). The
+ * agent's tools, knowledge, and persona live in the bot's
+ * src/services/ai-support.js system prompt.
  */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { siteAiChat, siteAiReset } from "@/lib/solana/site-ai-chat";
 
-type Turn = { role: "user" | "agent"; text: string };
+type Turn = { role: "user" | "agent"; text: string; at: number };
 
 const AGENT_NAME = "Pip";
+const STORAGE_PREFIX = "magpie-pip-chat:";
+const MAX_PERSISTED_TURNS = 50;
 
-function PipAvatar({ size = 28 }: { size?: number }) {
-  // Stylized magpie silhouette — black + white bird with a touch of
-  // amber for the brand accent. Inline SVG so it's instant.
+/* ─────────────── Avatar ─────────────── */
+function PipAvatar({ size = 32, pulsing = false }: { size?: number; pulsing?: boolean }) {
   return (
     <span
-      className="inline-flex items-center justify-center rounded-full bg-[var(--accent,#f7c948)] text-[var(--accent-ink,#1a1500)] shrink-0"
-      style={{ width: size, height: size }}
+      className={`relative inline-flex items-center justify-center rounded-full shrink-0 overflow-hidden ${pulsing ? "pip-avatar-pulse" : ""}`}
+      style={{
+        width: size,
+        height: size,
+        background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-deep) 100%)",
+        color: "var(--accent-ink)",
+        boxShadow: "inset 0 -2px 4px rgba(0,0,0,0.12), inset 0 1px 1px rgba(255,255,255,0.4)",
+      }}
       aria-hidden="true"
     >
-      <svg width={size * 0.62} height={size * 0.62} viewBox="0 0 24 24" fill="currentColor">
-        <path d="M19.5 7c-.7-1.1-2.3-1-3 0l-1.4 1.8c-.6-.5-1.3-.8-2.1-.8-.7 0-1.4.2-2 .5L5.7 5.2c-.4-.3-1 .1-.8.6L7 11c-1.2.7-2 2-2 3.5C5 16.4 6.5 18 8.4 18h7.1c2.5 0 4.5-2 4.5-4.5 0-1.2-.5-2.3-1.2-3.1L19.5 9c.4-.5.4-1.5 0-2zm-3.4 5.8c-.5 0-1-.4-1-1s.5-1 1-1 1 .4 1 1-.5 1-1 1z" />
+      <svg width={size * 0.7} height={size * 0.7} viewBox="0 0 32 32" fill="currentColor">
+        {/* Stylized magpie head — distinctive silhouette */}
+        <path d="M22 6c-3 0-5.5 2-6.5 4.7L13 11c-3.5-.3-7 2-7 5.7 0 2.5 1.7 4.7 4 5.5v1.5c0 .8.7 1.5 1.5 1.5s1.5-.7 1.5-1.5v-1h6.5c4.1 0 7.5-3.4 7.5-7.5 0-1 .8-1.7 1.7-1.7.2 0 .5-.2.5-.5s-.2-.5-.5-.5C25.6 12 24 10.4 24 8.5c0-1.4 1-2.5 2.3-2.5h.2c.3 0 .5-.2.5-.5s-.2-.5-.5-.5L22 6zm-3 3.5c.6 0 1 .4 1 1s-.4 1-1 1-1-.4-1-1 .4-1 1-1z" />
       </svg>
+      <style jsx>{`
+        @keyframes pip-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.06); }
+        }
+        :global(.pip-avatar-pulse) {
+          animation: pip-pulse 1.4s ease-in-out infinite;
+        }
+      `}</style>
     </span>
   );
 }
 
+/* ─────────────── Markdown bubble ─────────────── */
+function MarkdownBubble({ text }: { text: string }) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        // Inline + block styling that matches Pip's bubble. We keep
+        // the bubble div outside; this just styles the content within.
+        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+        ul: ({ children }) => <ul className="mb-2 last:mb-0 ml-5 list-disc space-y-1">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-2 last:mb-0 ml-5 list-decimal space-y-1">{children}</ol>,
+        li: ({ children }) => <li className="leading-snug">{children}</li>,
+        a: ({ href, children }) => (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline font-medium"
+            style={{ color: "var(--accent-deep)" }}
+          >
+            {children}
+          </a>
+        ),
+        strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+        em: ({ children }) => <em className="italic">{children}</em>,
+        code: ({ children }) => (
+          <code
+            className="rounded px-1 py-0.5 font-mono text-[0.9em]"
+            style={{ background: "rgba(0,0,0,0.06)" }}
+          >
+            {children}
+          </code>
+        ),
+        pre: ({ children }) => (
+          <pre
+            className="my-2 overflow-x-auto rounded-md p-2 font-mono text-[0.85em] leading-snug"
+            style={{ background: "rgba(0,0,0,0.06)" }}
+          >
+            {children}
+          </pre>
+        ),
+        h1: ({ children }) => <div className="font-semibold text-base mb-1">{children}</div>,
+        h2: ({ children }) => <div className="font-semibold text-sm mb-1">{children}</div>,
+        h3: ({ children }) => <div className="font-semibold text-sm mb-1">{children}</div>,
+        hr: () => <hr className="my-2 opacity-30" />,
+      }}
+    >
+      {text}
+    </ReactMarkdown>
+  );
+}
+
+/* ─────────────── Main ─────────────── */
 export default function FloatingAiChatGlobal() {
   const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || "";
   const { publicKey, signMessage, connected } = useWallet();
@@ -50,7 +129,40 @@ export default function FloatingAiChatGlobal() {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  // Resolve linked status when the wallet is connected.
+  /* ── Storage key scoped to wallet pubkey ── */
+  const storageKey = useMemo(
+    () => (walletStr ? `${STORAGE_PREFIX}${walletStr}` : null),
+    [walletStr],
+  );
+
+  /* ── Load persisted history when wallet connects ── */
+  useEffect(() => {
+    if (!storageKey) {
+      setTurns([]);
+      return;
+    }
+    try {
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setTurns(parsed.slice(-MAX_PERSISTED_TURNS));
+      }
+    } catch {
+      /* corrupt entry — ignore */
+    }
+  }, [storageKey]);
+
+  /* ── Persist on changes ── */
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(turns.slice(-MAX_PERSISTED_TURNS)));
+    } catch {
+      /* quota / blocked — silently skip */
+    }
+  }, [turns, storageKey]);
+
+  /* ── Resolve linked status ── */
   useEffect(() => {
     if (!walletStr || !botApiUrl) {
       setLinked(null);
@@ -63,35 +175,55 @@ export default function FloatingAiChatGlobal() {
         if (!r.ok) return;
         const j = await r.json();
         if (!cancelled) setLinked(!!j.linked);
-      } catch {
-        /* silent */
-      }
+      } catch { /* silent */ }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [walletStr, botApiUrl]);
 
-  // Auto-scroll on new messages.
+  /* ── Auto-scroll ── */
   useEffect(() => {
     if (!scrollRef.current) return;
     scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [turns, busy]);
 
-  // Focus textarea when panel opens.
+  /* ── Focus textarea when panel opens ── */
   useEffect(() => {
     if (open && linked === true) {
-      const t = setTimeout(() => textareaRef.current?.focus(), 100);
+      const t = setTimeout(() => textareaRef.current?.focus(), 120);
       return () => clearTimeout(t);
     }
   }, [open, linked]);
 
+  /* ── Auto-resize textarea ── */
+  useEffect(() => {
+    const t = textareaRef.current;
+    if (!t) return;
+    t.style.height = "auto";
+    t.style.height = Math.min(t.scrollHeight, 120) + "px";
+  }, [input]);
+
+  /* ── Keyboard shortcuts: Cmd/Ctrl+K to open, Esc to close ── */
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setOpen((v) => !v);
+      } else if (e.key === "Escape" && open) {
+        setOpen(false);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  /* ── Send + reset ── */
   const handleSend = useCallback(async () => {
     const text = input.trim();
     if (!text || !walletStr || !signMessage || linked !== true) return;
     setError(null);
     setBusy(true);
-    setTurns((t) => [...t, { role: "user", text }]);
+    const userTurn: Turn = { role: "user", text, at: Date.now() };
+    setTurns((t) => [...t, userTurn]);
     setInput("");
     try {
       const r = await siteAiChat({
@@ -100,7 +232,7 @@ export default function FloatingAiChatGlobal() {
         signMessage,
         message: text,
       });
-      setTurns((t) => [...t, { role: "agent", text: r.response }]);
+      setTurns((t) => [...t, { role: "agent", text: r.response, at: Date.now() }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setTurns((t) => t.slice(0, -1));
@@ -117,26 +249,39 @@ export default function FloatingAiChatGlobal() {
     try {
       await siteAiReset({ botApiUrl, signerPubkey: walletStr, signMessage });
       setTurns([]);
+      if (storageKey) localStorage.removeItem(storageKey);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
-  }, [walletStr, signMessage, botApiUrl]);
+  }, [walletStr, signMessage, botApiUrl, storageKey]);
+
+  /* ── Suggestions tailored per state ── */
+  const suggestions = useMemo(() => {
+    return [
+      "What's my credit score?",
+      "Why did my health drop?",
+      "How do referral rewards work?",
+      "Show me my active loans",
+    ];
+  }, []);
 
   return (
     <>
-      {/* Button — always visible */}
+      {/* Floating button */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? `Close ${AGENT_NAME}` : `Open ${AGENT_NAME}`}
-        className="fixed right-4 sm:right-6 z-[60] flex h-14 w-14 items-center justify-center rounded-full shadow-lg hover:scale-105 active:scale-95 transition-transform"
+        title={`${open ? "Close" : "Open"} ${AGENT_NAME} (⌘K)`}
+        className="fixed right-4 sm:right-6 z-[60] flex h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform hover:scale-105"
         style={{
           bottom: "max(env(safe-area-inset-bottom, 1rem), 1rem)",
-          background: "var(--accent, #f7c948)",
-          color: "var(--accent-ink, #1a1500)",
-          boxShadow: "var(--shadow-amber, 0 16px 40px -16px rgba(247, 201, 72, 0.6))",
+          background: open ? "var(--ink)" : "transparent",
+          color: open ? "var(--bg-elevated)" : "inherit",
+          border: open ? "none" : "none",
+          boxShadow: open ? "var(--shadow-md)" : "var(--shadow-amber, 0 16px 40px -16px rgba(247, 201, 72, 0.55))",
         }}
       >
         {open ? (
@@ -144,284 +289,328 @@ export default function FloatingAiChatGlobal() {
             <path d="M18 6L6 18M6 6l12 12" />
           </svg>
         ) : (
-          <PipAvatar size={42} />
+          <PipAvatar size={56} pulsing={busy && !open} />
         )}
       </button>
 
       {/* Panel */}
-      {open && (
+      <div
+        className={`fixed right-4 sm:right-6 z-[60] flex flex-col rounded-2xl border shadow-2xl overflow-hidden pip-panel ${open ? "pip-panel-open" : ""}`}
+        style={{
+          bottom: "max(env(safe-area-inset-bottom, 5.5rem), 5.5rem)",
+          width: "calc(100vw - 2rem)",
+          maxWidth: "min(480px, calc(100vw - 2rem))",
+          height: "min(640px, calc(100vh - 8rem))",
+          background: "var(--bg-elevated, var(--bg))",
+          borderColor: "var(--hairline)",
+          pointerEvents: open ? "auto" : "none",
+        }}
+        aria-hidden={!open}
+      >
+        {/* Header */}
         <div
-          className="fixed right-4 sm:right-6 z-[60] flex flex-col rounded-2xl border shadow-2xl overflow-hidden"
+          className="flex items-center justify-between gap-3 border-b px-4 py-3 shrink-0"
           style={{
-            bottom: "max(env(safe-area-inset-bottom, 5.5rem), 5.5rem)",
-            // Mobile: nearly full width. Tablet+: a comfortable chat-app size.
-            width: "calc(100vw - 2rem)",
-            maxWidth: "min(480px, calc(100vw - 2rem))",
-            height: "min(640px, calc(100vh - 8rem))",
-            background: "var(--bg-elevated, var(--bg, #fff))",
-            borderColor: "var(--hairline, rgba(0,0,0,0.1))",
+            borderColor: "var(--hairline)",
+            background: "var(--surface)",
           }}
         >
-          {/* Header */}
-          <div
-            className="flex items-center justify-between gap-3 border-b px-4 py-3"
-            style={{
-              borderColor: "var(--hairline, rgba(0,0,0,0.1))",
-              background: "var(--surface, rgba(0,0,0,0.02))",
-            }}
-          >
-            <div className="flex items-center gap-3 min-w-0">
-              <PipAvatar size={36} />
-              <div className="min-w-0">
-                <div className="text-sm font-semibold leading-tight" style={{ color: "var(--ink)" }}>
-                  {AGENT_NAME}
-                </div>
-                <div className="text-[11px] leading-tight" style={{ color: "var(--ink-soft)" }}>
-                  Magpie's resident agent · always here
-                </div>
+          <div className="flex items-center gap-3 min-w-0">
+            <PipAvatar size={36} pulsing={busy} />
+            <div className="min-w-0">
+              <div className="text-sm font-semibold leading-tight" style={{ color: "var(--ink)" }}>
+                {AGENT_NAME}
+              </div>
+              <div className="text-[11px] leading-tight flex items-center gap-1" style={{ color: "var(--ink-soft)" }}>
+                {busy ? (
+                  <>
+                    <span className="inline-block h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: "var(--accent-deep)" }} />
+                    thinking…
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: "#22c55e" }} />
+                    online · always here
+                  </>
+                )}
               </div>
             </div>
-            {linked === true && turns.length > 0 && (
-              <button
-                onClick={handleReset}
-                disabled={busy}
-                className="text-[11px] underline hover:opacity-80 disabled:opacity-50"
-                style={{ color: "var(--ink-soft)" }}
-              >
-                Reset
-              </button>
-            )}
           </div>
+          {linked === true && turns.length > 0 && (
+            <button
+              onClick={handleReset}
+              disabled={busy}
+              className="text-[11px] underline hover:opacity-80 disabled:opacity-50"
+              style={{ color: "var(--ink-soft)" }}
+              title="Clear conversation history"
+            >
+              Clear
+            </button>
+          )}
+        </div>
 
-          {/* Body */}
-          <div
-            ref={scrollRef}
-            className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
-            style={{ background: "var(--bg, #fff)" }}
-          >
-            {!connected && (
-              <div
-                className="rounded-xl border px-4 py-3 text-sm leading-relaxed"
-                style={{
-                  borderColor: "var(--hairline)",
-                  background: "var(--surface)",
-                  color: "var(--ink-soft)",
-                }}
-              >
-                <p style={{ color: "var(--ink)" }}>
-                  Hi! I'm <span className="font-semibold">{AGENT_NAME}</span>. 👋
-                </p>
-                <p className="mt-2">
-                  Connect a Solana wallet to chat. I can help with loans, repayments, the protocol — or just shoot the breeze.
-                </p>
-                <p className="mt-2 text-xs">
-                  Each message is signed with your wallet for security.
-                </p>
-              </div>
-            )}
-
-            {connected && linked === false && (
-              <div
-                className="rounded-xl border px-4 py-3 text-sm leading-relaxed"
-                style={{
-                  borderColor: "var(--hairline)",
-                  background: "var(--surface)",
-                  color: "var(--ink-soft)",
-                }}
-              >
-                <p style={{ color: "var(--ink)" }} className="font-semibold">
-                  Wallet connected — one more step.
-                </p>
-                <p className="mt-2">
-                  Link your wallet to a Magpie account so I know who I'm talking to:
-                </p>
-                <ol className="mt-2 list-decimal pl-5 space-y-1 text-xs">
-                  <li>
-                    Go to{" "}
-                    <Link href="/dashboard" className="font-medium underline" style={{ color: "var(--accent-deep)" }}>
-                      magpie.capital/dashboard
-                    </Link>{" "}
-                    and tap <em>Link to Telegram</em>
-                  </li>
-                  <li>
-                    Paste the code in{" "}
-                    <a
-                      href="https://t.me/magpie_capital_bot"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium underline"
-                      style={{ color: "var(--accent-deep)" }}
-                    >
-                      @magpie_capital_bot
-                    </a>{" "}
-                    as{" "}
-                    <code
-                      className="rounded px-1"
-                      style={{ background: "var(--hairline)", color: "var(--ink)" }}
-                    >
-                      /link &lt;code&gt;
-                    </code>
-                  </li>
-                </ol>
-              </div>
-            )}
-
-            {connected && linked === null && (
-              <div className="text-sm" style={{ color: "var(--ink-soft)" }}>
-                Checking your account…
-              </div>
-            )}
-
-            {connected && linked === true && turns.length === 0 && (
-              <div className="space-y-3">
-                <div className="flex gap-2.5">
-                  <PipAvatar size={28} />
-                  <div
-                    className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed max-w-[85%]"
-                    style={{
-                      background: "var(--surface)",
-                      color: "var(--ink)",
-                    }}
-                  >
-                    Hey! 👋 I'm <span className="font-semibold">{AGENT_NAME}</span>, Magpie's resident agent.
-                    <br />
-                    <br />
-                    Ask me anything — your loans, credit score, $MAGPIE, how the protocol works, or just chat. I speak whatever language you write in, and broken English is totally fine, I'll figure out what you mean.
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {[
-                    "What's my credit score?",
-                    "Why did my loan get liquidated?",
-                    "How do referral rewards work?",
-                  ].map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => setInput(suggestion)}
-                      className="rounded-full border px-3 py-1.5 text-xs hover:opacity-80 transition-opacity"
-                      style={{
-                        borderColor: "var(--hairline)",
-                        color: "var(--ink-soft)",
-                        background: "var(--bg-elevated)",
-                      }}
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {turns.map((t, i) => (
-              <div key={i} className={`flex gap-2.5 ${t.role === "user" ? "flex-row-reverse" : ""}`}>
-                {t.role === "agent" && <PipAvatar size={28} />}
-                <div
-                  className={`rounded-2xl px-4 py-3 text-sm leading-relaxed max-w-[80%] ${
-                    t.role === "user" ? "rounded-tr-sm" : "rounded-tl-sm"
-                  }`}
-                  style={
-                    t.role === "user"
-                      ? {
-                          background: "var(--accent)",
-                          color: "var(--accent-ink)",
-                        }
-                      : {
-                          background: "var(--surface)",
-                          color: "var(--ink)",
-                        }
-                  }
-                >
-                  <div className="whitespace-pre-wrap">{t.text}</div>
-                </div>
-              </div>
-            ))}
-
-            {busy && (
-              <div className="flex gap-2.5">
-                <PipAvatar size={28} />
-                <div
-                  className="rounded-2xl rounded-tl-sm px-4 py-3"
-                  style={{ background: "var(--surface)" }}
-                >
-                  <div className="flex gap-1.5">
-                    <span className="h-2 w-2 rounded-full animate-bounce" style={{ background: "var(--ink-faint)", animationDelay: "0ms" }} />
-                    <span className="h-2 w-2 rounded-full animate-bounce" style={{ background: "var(--ink-faint)", animationDelay: "150ms" }} />
-                    <span className="h-2 w-2 rounded-full animate-bounce" style={{ background: "var(--ink-faint)", animationDelay: "300ms" }} />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {error && (
+        {/* Body */}
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+          style={{ background: "var(--bg)" }}
+        >
+          {!connected && (
             <div
-              className="border-t px-4 py-2 text-xs"
+              className="rounded-xl border px-4 py-3 text-sm leading-relaxed"
               style={{
                 borderColor: "var(--hairline)",
-                background: "rgba(184, 58, 58, 0.08)",
-                color: "var(--bad)",
+                background: "var(--surface)",
+                color: "var(--ink-soft)",
               }}
             >
-              {error}
+              <p style={{ color: "var(--ink)" }}>
+                Hey, I'm <span className="font-semibold">{AGENT_NAME}</span>.
+              </p>
+              <p className="mt-2">
+                Connect a Solana wallet to chat. I help with loans, repayments, the protocol — and I'll happily get sidetracked if you want.
+              </p>
+              <p className="mt-2 text-xs" style={{ color: "var(--ink-faint)" }}>
+                Each message is signed with your wallet.
+              </p>
             </div>
           )}
 
-          {/* Composer */}
-          {linked === true && (
+          {connected && linked === false && (
             <div
-              className="border-t p-3"
+              className="rounded-xl border px-4 py-3 text-sm leading-relaxed"
               style={{
                 borderColor: "var(--hairline)",
-                background: "var(--bg-elevated, var(--bg))",
+                background: "var(--surface)",
+                color: "var(--ink-soft)",
               }}
             >
-              <div className="flex items-end gap-2">
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      handleSend();
-                    }
-                  }}
-                  placeholder={`Message ${AGENT_NAME}…`}
-                  rows={1}
-                  maxLength={2800}
-                  disabled={busy}
-                  className="flex-1 resize-none rounded-xl border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 disabled:opacity-50"
+              <p style={{ color: "var(--ink)" }} className="font-semibold">
+                Almost there — link your wallet to chat.
+              </p>
+              <ol className="mt-2 list-decimal pl-5 space-y-1 text-xs">
+                <li>
+                  Go to{" "}
+                  <Link href="/dashboard" className="font-medium underline" style={{ color: "var(--accent-deep)" }}>
+                    magpie.capital/dashboard
+                  </Link>{" "}
+                  and tap <em>Link to Telegram</em>
+                </li>
+                <li>
+                  Paste the code in{" "}
+                  <a
+                    href="https://t.me/magpie_capital_bot"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-medium underline"
+                    style={{ color: "var(--accent-deep)" }}
+                  >
+                    @magpie_capital_bot
+                  </a>{" "}
+                  as{" "}
+                  <code className="rounded px-1" style={{ background: "var(--hairline)", color: "var(--ink)" }}>
+                    /link &lt;code&gt;
+                  </code>
+                </li>
+              </ol>
+            </div>
+          )}
+
+          {connected && linked === null && (
+            <div className="flex items-center gap-2 text-sm" style={{ color: "var(--ink-soft)" }}>
+              <span className="inline-block h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: "var(--ink-faint)" }} />
+              Checking your account…
+            </div>
+          )}
+
+          {connected && linked === true && turns.length === 0 && (
+            <div className="space-y-3 pip-turn">
+              <div className="flex gap-2.5">
+                <PipAvatar size={28} />
+                <div
+                  className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm leading-relaxed max-w-[85%]"
                   style={{
-                    borderColor: "var(--hairline)",
-                    background: "var(--bg)",
+                    background: "var(--surface)",
                     color: "var(--ink)",
-                    minHeight: "44px",
-                    maxHeight: "120px",
-                  }}
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={busy || input.trim().length === 0}
-                  aria-label="Send message"
-                  className="shrink-0 flex h-11 w-11 items-center justify-center rounded-xl font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-opacity hover:opacity-90"
-                  style={{
-                    background: "var(--accent)",
-                    color: "var(--accent-ink)",
                   }}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                    <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
-                  </svg>
-                </button>
+                  Hey, I&apos;m <span className="font-semibold">{AGENT_NAME}</span>.
+                  <br />
+                  Ask me anything — loans, credit, $MAGPIE, how the protocol works, or just chat. I&apos;ll figure out what you mean even if your English is rough, and I&apos;ll reply in whatever language you write in.
+                </div>
               </div>
-              <div className="mt-1.5 text-[10px] px-1" style={{ color: "var(--ink-faint)" }}>
-                Enter to send · Shift+Enter for newline · Signed with your wallet
+              <div className="flex flex-wrap gap-2 pt-1 ml-10">
+                {suggestions.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => {
+                      setInput(s);
+                      textareaRef.current?.focus();
+                    }}
+                    className="rounded-full border px-3 py-1.5 text-xs hover:opacity-80 transition-opacity"
+                    style={{
+                      borderColor: "var(--hairline)",
+                      color: "var(--ink-soft)",
+                      background: "var(--bg-elevated)",
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {turns.map((t, i) => (
+            <div
+              key={i}
+              className={`pip-turn flex gap-2.5 ${t.role === "user" ? "flex-row-reverse" : ""}`}
+            >
+              {t.role === "agent" && <PipAvatar size={28} />}
+              <div
+                className={`rounded-2xl px-4 py-3 text-sm leading-relaxed max-w-[82%] ${
+                  t.role === "user" ? "rounded-tr-sm" : "rounded-tl-sm"
+                }`}
+                style={
+                  t.role === "user"
+                    ? {
+                        background: "var(--accent)",
+                        color: "var(--accent-ink)",
+                      }
+                    : {
+                        background: "var(--surface)",
+                        color: "var(--ink)",
+                      }
+                }
+              >
+                {t.role === "user" ? (
+                  <div className="whitespace-pre-wrap">{t.text}</div>
+                ) : (
+                  <MarkdownBubble text={t.text} />
+                )}
+              </div>
+            </div>
+          ))}
+
+          {busy && (
+            <div className="pip-turn flex gap-2.5">
+              <PipAvatar size={28} pulsing />
+              <div
+                className="rounded-2xl rounded-tl-sm px-4 py-3"
+                style={{ background: "var(--surface)" }}
+              >
+                <div className="flex gap-1.5">
+                  <span className="h-2 w-2 rounded-full pip-dot-1" style={{ background: "var(--ink-faint)" }} />
+                  <span className="h-2 w-2 rounded-full pip-dot-2" style={{ background: "var(--ink-faint)" }} />
+                  <span className="h-2 w-2 rounded-full pip-dot-3" style={{ background: "var(--ink-faint)" }} />
+                </div>
               </div>
             </div>
           )}
         </div>
-      )}
+
+        {error && (
+          <div
+            className="border-t px-4 py-2 text-xs flex items-center justify-between gap-2"
+            style={{
+              borderColor: "var(--hairline)",
+              background: "rgba(184, 58, 58, 0.08)",
+              color: "var(--bad)",
+            }}
+          >
+            <span className="truncate">{error}</span>
+            <button onClick={() => setError(null)} className="underline shrink-0">dismiss</button>
+          </div>
+        )}
+
+        {/* Composer */}
+        {linked === true && (
+          <div
+            className="border-t p-3 shrink-0"
+            style={{
+              borderColor: "var(--hairline)",
+              background: "var(--bg-elevated, var(--bg))",
+            }}
+          >
+            <div className="flex items-end gap-2">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
+                placeholder={`Message ${AGENT_NAME}…`}
+                rows={1}
+                maxLength={2800}
+                disabled={busy}
+                className="flex-1 resize-none rounded-xl border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 disabled:opacity-50"
+                style={{
+                  borderColor: "var(--hairline)",
+                  background: "var(--bg)",
+                  color: "var(--ink)",
+                  minHeight: "44px",
+                  maxHeight: "120px",
+                }}
+              />
+              <button
+                onClick={handleSend}
+                disabled={busy || input.trim().length === 0}
+                aria-label="Send message"
+                className="shrink-0 flex h-11 w-11 items-center justify-center rounded-xl font-semibold disabled:opacity-30 disabled:cursor-not-allowed transition-all hover:opacity-90 active:scale-95"
+                style={{
+                  background: "var(--accent)",
+                  color: "var(--accent-ink)",
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M2 21l21-9L2 3v7l15 2-15 2v7z" />
+                </svg>
+              </button>
+            </div>
+            <div
+              className="mt-1.5 flex items-center justify-between text-[10px] px-1"
+              style={{ color: "var(--ink-faint)" }}
+            >
+              <span>Signed with your wallet</span>
+              <span>Enter to send · ⌘K to toggle</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Animations */}
+      <style jsx global>{`
+        .pip-panel {
+          opacity: 0;
+          transform: translateY(8px) scale(0.98);
+          transition: opacity 180ms ease, transform 180ms ease;
+        }
+        .pip-panel.pip-panel-open {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        @keyframes pip-turn-in {
+          from { opacity: 0; transform: translateY(6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .pip-turn {
+          animation: pip-turn-in 200ms ease-out;
+        }
+        @keyframes pip-bounce {
+          0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+          40% { transform: scale(1); opacity: 1; }
+        }
+        .pip-dot-1, .pip-dot-2, .pip-dot-3 {
+          animation: pip-bounce 1.2s ease-in-out infinite;
+        }
+        .pip-dot-2 { animation-delay: 0.15s; }
+        .pip-dot-3 { animation-delay: 0.30s; }
+      `}</style>
     </>
   );
 }
