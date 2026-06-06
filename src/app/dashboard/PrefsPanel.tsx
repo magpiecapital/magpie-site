@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { siteSetPref, type PrefKey } from "@/lib/solana/site-prefs";
 import { siteMeExport } from "@/lib/solana/site-export";
+import { useDashboardData } from "./DashboardContext";
 
 interface PrefsState {
   auto_protect: boolean;
@@ -84,6 +85,7 @@ const TOGGLES: { key: PrefKey; label: string; sublabel: string }[] = [
 export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
   const { publicKey, signMessage } = useWallet();
   const walletStr = publicKey?.toBase58() ?? null;
+  const ctx = useDashboardData();
 
   const [linked, setLinked] = useState<boolean | null>(null);
   const [prefs, setPrefs] = useState<PrefsState | null>(null);
@@ -93,7 +95,17 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Mirror shared context into local state when available.
+  useEffect(() => {
+    if (!ctx?.data) return;
+    setLinked(!!ctx.data.linked);
+    if (ctx.data.prefs) setPrefs(ctx.data.prefs);
+    if (ctx.data.site_lock) setSiteLock(ctx.data.site_lock);
+  }, [ctx?.data]);
+
   const load = useCallback(async () => {
+    // For the recent_actions feed we always hit /prefs directly — the
+    // consolidated /dashboard payload doesn't include it. Cheap call.
     if (!walletStr || !botApiUrl) return;
     try {
       const r = await fetch(`${botApiUrl}/api/v1/prefs?wallet=${walletStr}`);

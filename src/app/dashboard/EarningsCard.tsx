@@ -15,6 +15,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useDashboardData } from "./DashboardContext";
 
 interface Bucket {
   lifetime_lamports: string;
@@ -60,10 +61,35 @@ function fmtSol(n: number): string {
 export default function EarningsCard({ botApiUrl }: { botApiUrl: string }) {
   const { publicKey } = useWallet();
   const walletStr = publicKey?.toBase58() ?? null;
+  const ctx = useDashboardData();
 
   const [data, setData] = useState<Earnings | null>(null);
 
+  // Prefer the consolidated /api/v1/dashboard payload if the provider
+  // already fetched it. Falls back to per-endpoint fetches when the
+  // context isn't mounted (e.g. component used outside the provider).
   useEffect(() => {
+    if (ctx?.data?.earnings) {
+      const e = ctx.data.earnings;
+      // The consolidated endpoint uses {lifetime, paid, pending} keys.
+      // The legacy per-endpoint shape uses {lifetime_lamports, paid_lamports, ...}.
+      // Normalize to the legacy keys the existing UI expects.
+      const norm = (b: { lifetime: string; paid: string; pending: string } | undefined) =>
+        b
+          ? {
+              lifetime_lamports: b.lifetime,
+              paid_lamports: b.paid,
+              pending_lamports: b.pending,
+            }
+          : null;
+      setData({
+        referral: norm(e.referral),
+        holder: norm(e.holder),
+        lp: norm(e.lp),
+      });
+      return;
+    }
+
     if (!walletStr || !botApiUrl) return;
     let cancelled = false;
     (async () => {
@@ -89,7 +115,7 @@ export default function EarningsCard({ botApiUrl }: { botApiUrl: string }) {
     return () => {
       cancelled = true;
     };
-  }, [walletStr, botApiUrl]);
+  }, [walletStr, botApiUrl, ctx?.data]);
 
   if (!data) return null;
 

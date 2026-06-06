@@ -18,6 +18,7 @@ import ActivityFeed from "./ActivityFeed";
 import EarningsCard from "./EarningsCard";
 import FloatingAiChat from "./FloatingAiChat";
 import SiteStatusBanner from "./SiteStatusBanner";
+import { DashboardProvider } from "./DashboardContext";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
@@ -1905,6 +1906,7 @@ export default function DashboardPage() {
             <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
 
               {/* ─── LEFT COLUMN (8/12) ─── */}
+              <DashboardProvider botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}>
               <div className="xl:col-span-8 flex flex-col gap-6">
 
                 {/* Global site-disabled banner — visible to everyone when the operator has flipped the kill-switch. */}
@@ -2419,6 +2421,7 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
+              </DashboardProvider>
 
               {/* ─── RIGHT COLUMN (4/12) ─── */}
               <div className="xl:col-span-4 flex flex-col gap-6">

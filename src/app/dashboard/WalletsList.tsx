@@ -15,6 +15,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { siteSetActiveWallet } from "@/lib/solana/site-wallets";
+import { useDashboardData } from "./DashboardContext";
 
 interface WalletRow {
   id: number;
@@ -35,6 +36,7 @@ function sourceLabel(s: string): string {
 export default function WalletsList({ botApiUrl }: { botApiUrl: string }) {
   const { publicKey, signMessage } = useWallet();
   const walletStr = publicKey?.toBase58() ?? null;
+  const ctx = useDashboardData();
 
   const [wallets, setWallets] = useState<WalletRow[] | null>(null);
   const [linked, setLinked] = useState<boolean | null>(null);
@@ -42,7 +44,22 @@ export default function WalletsList({ botApiUrl }: { botApiUrl: string }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  // If the shared context already has the data, use it. Falls back to
+  // per-widget fetch when the provider isn't mounted.
+  useEffect(() => {
+    if (ctx?.data) {
+      setLinked(!!ctx.data.linked);
+      setWallets(Array.isArray(ctx.data.wallets) ? ctx.data.wallets : []);
+    }
+  }, [ctx?.data]);
+
   const load = useCallback(async () => {
+    // If the provider exists, ask it to refresh (cheaper than us
+    // hitting the API directly — shared cache).
+    if (ctx?.refresh) {
+      await ctx.refresh();
+      return;
+    }
     if (!walletStr || !botApiUrl) return;
     try {
       const r = await fetch(`${botApiUrl}/api/v1/wallets?wallet=${walletStr}`);
@@ -53,11 +70,13 @@ export default function WalletsList({ botApiUrl }: { botApiUrl: string }) {
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
-  }, [walletStr, botApiUrl]);
+  }, [walletStr, botApiUrl, ctx]);
 
   useEffect(() => {
+    // Only fall back to direct fetch if provider isn't supplying data.
+    if (ctx?.data) return;
     load();
-  }, [load]);
+  }, [load, ctx?.data]);
 
   async function handleSetActive(target: WalletRow) {
     if (!walletStr || !signMessage) {
