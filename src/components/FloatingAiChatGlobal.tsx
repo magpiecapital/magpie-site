@@ -31,14 +31,19 @@ import {
   clearCachedSession,
   getCachedSessionExpiry,
 } from "@/lib/solana/site-ai-chat";
+import type { ProposedAction } from "@/lib/solana/site-ai-chat";
+import { PipActionCard } from "@/components/PipActionCard";
 
 type Turn = {
-  role: "user" | "agent";
+  role: "user" | "agent" | "system";
   text: string;
   at: number;
   /** When true, the bubble animates the text in word-by-word (used
    *  for freshly-arrived agent responses to feel like streaming). */
   streaming?: boolean;
+  /** Optional action proposal Pip attached to this turn. Rendered as
+   *  an inline confirm card below the text bubble. */
+  proposedAction?: ProposedAction | null;
 };
 
 const AGENT_NAME = "Pip";
@@ -498,7 +503,13 @@ export default function FloatingAiChatGlobal() {
         message: trimmed,
         pageContext: pathname || undefined,
       });
-      setTurns((t) => [...t, { role: "agent", text: r.response, at: Date.now(), streaming: true }]);
+      setTurns((t) => [...t, {
+        role: "agent",
+        text: r.response,
+        at: Date.now(),
+        streaming: true,
+        proposedAction: r.proposedAction ?? null,
+      }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setTurns((t) => t.slice(0, -1));
@@ -964,6 +975,19 @@ export default function FloatingAiChatGlobal() {
             const showTimeBreak =
               isFirstOfGroup &&
               (!prev || (t.at - prev.at) > 10 * 60 * 1000);
+            // System turns are tx-result confirmations from action cards —
+            // rendered as a centered subtle note, not a bubble.
+            if (t.role === "system") {
+              return (
+                <div
+                  key={i}
+                  className="text-center my-2 text-[11px] px-3 py-1.5 mx-auto max-w-[90%]"
+                  style={{ color: "var(--ink-soft)" }}
+                >
+                  <MarkdownBubble text={t.text} />
+                </div>
+              );
+            }
             return (
               <div key={i}>
                 {showTimeBreak && (
@@ -1049,6 +1073,19 @@ export default function FloatingAiChatGlobal() {
                     </button>
                   )}
                 </div>
+                {/* Inline action card — Pip proposed an on-chain
+                    action; user signs from here. */}
+                {t.role === "agent" && t.proposedAction && !t.streaming && (
+                  <PipActionCard
+                    action={t.proposedAction}
+                    onResult={(msg) => {
+                      setTurns((arr) => [
+                        ...arr,
+                        { role: "system", text: msg, at: Date.now() },
+                      ]);
+                    }}
+                  />
+                )}
               </div>
               </div>
             );

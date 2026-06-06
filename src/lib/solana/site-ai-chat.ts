@@ -15,11 +15,38 @@ export interface SignMessageFn {
   (message: Uint8Array): Promise<Uint8Array>;
 }
 
+/**
+ * A repay action Pip proposed in this response. The site renders this
+ * as an inline confirm card; the borrower's wallet does the actual
+ * signing. Pip never executes — this is just data.
+ */
+export interface ProposedRepayAction {
+  type: "repay";
+  loan_id: string;
+  loan_pda: string;
+  program_id: string;
+  collateral_mint: string;
+  collateral_symbol: string | null;
+  collateral_amount_raw: string;
+  collateral_decimals: number;
+  owed_lamports: string;
+  owed_sol: string;
+  fee_lamports: string;
+  fee_sol: string;
+  due_at_utc: string;
+  hours_to_due: string;
+  past_due: boolean;
+  expires_at: number;
+}
+
+export type ProposedAction = ProposedRepayAction;
+
 export interface AiChatResult {
   response: string;
   blockedReason?: string | null;
   spendCapped?: boolean;
   escalatedTicketId?: number | null;
+  proposedAction?: ProposedAction | null;
 }
 
 function randomNonceHex(): string {
@@ -290,6 +317,7 @@ export async function siteAiChat(args: {
     blockedReason: body.blocked_reason ?? null,
     spendCapped: !!body.spend_capped,
     escalatedTicketId: body.escalated_ticket_id ?? null,
+    proposedAction: body.proposed_action ?? null,
   };
 }
 
@@ -321,6 +349,7 @@ async function siteAiChatSignedFallback(args: {
     blockedReason: body.blocked_reason ?? null,
     spendCapped: !!body.spend_capped,
     escalatedTicketId: body.escalated_ticket_id ?? null,
+    proposedAction: body.proposed_action ?? null,
   };
 }
 
