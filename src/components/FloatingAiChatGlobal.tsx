@@ -20,6 +20,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -119,8 +120,11 @@ export default function FloatingAiChatGlobal() {
   const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || "";
   const { publicKey, signMessage, connected } = useWallet();
   const walletStr = publicKey?.toBase58() ?? null;
+  const pathname = usePathname();
 
-  const [linked, setLinked] = useState<boolean | null>(null);
+  // linked: null = checking, true/false = resolved, "error" = network failure
+  const [linked, setLinked] = useState<boolean | "error" | null>(null);
+  const [linkCheckCount, setLinkCheckCount] = useState(0); // bump to retry
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState("");
@@ -162,23 +166,52 @@ export default function FloatingAiChatGlobal() {
     }
   }, [turns, storageKey]);
 
-  /* ── Resolve linked status ── */
+  /* ── Resolve linked status (with timeout + error state + retry) ── */
   useEffect(() => {
-    if (!walletStr || !botApiUrl) {
+    if (!walletStr) {
       setLinked(null);
       return;
     }
+    if (!botApiUrl) {
+      // No bot URL configured — surface so the user isn't stuck on a
+      // forever "Checking…" spinner. Treated like a network error.
+      setLinked("error");
+      return;
+    }
     let cancelled = false;
+    setLinked(null);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
     (async () => {
       try {
-        const r = await fetch(`${botApiUrl}/api/v1/link/status?wallet=${walletStr}`);
-        if (!r.ok) return;
+        const r = await fetch(`${botApiUrl}/api/v1/link/status?wallet=${walletStr}`, {
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!r.ok) {
+          if (!cancelled) setLinked("error");
+          return;
+        }
         const j = await r.json();
         if (!cancelled) setLinked(!!j.linked);
-      } catch { /* silent */ }
+      } catch (e) {
+        clearTimeout(timeoutId);
+        if (!cancelled) {
+          console.warn("[pip] link/status fetch failed:", e);
+          setLinked("error");
+        }
+      }
     })();
-    return () => { cancelled = true; };
-  }, [walletStr, botApiUrl]);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [walletStr, botApiUrl, linkCheckCount]);
+
+  const retryLinkCheck = useCallback(() => {
+    setLinkCheckCount((n) => n + 1);
+  }, []);
 
   /* ── Auto-scroll ── */
   useEffect(() => {
@@ -231,6 +264,7 @@ export default function FloatingAiChatGlobal() {
         signerPubkey: walletStr,
         signMessage,
         message: text,
+        pageContext: pathname || undefined,
       });
       setTurns((t) => [...t, { role: "agent", text: r.response, at: Date.now() }]);
     } catch (e) {
@@ -420,6 +454,35 @@ export default function FloatingAiChatGlobal() {
             <div className="flex items-center gap-2 text-sm" style={{ color: "var(--ink-soft)" }}>
               <span className="inline-block h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: "var(--ink-faint)" }} />
               Checking your account…
+            </div>
+          )}
+
+          {connected && linked === "error" && (
+            <div
+              className="rounded-xl border px-4 py-3 text-sm leading-relaxed"
+              style={{
+                borderColor: "var(--hairline)",
+                background: "var(--surface)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              <p style={{ color: "var(--ink)" }} className="font-semibold">
+                Couldn&apos;t reach Magpie just now.
+              </p>
+              <p className="mt-2 text-xs">
+                Looks like a network hiccup or the bot is restarting. Pip will be back in a second.
+              </p>
+              <button
+                onClick={retryLinkCheck}
+                className="mt-3 rounded-full border px-3 py-1.5 text-[11px] font-medium hover:opacity-80"
+                style={{
+                  borderColor: "var(--hairline)",
+                  background: "var(--bg-elevated)",
+                  color: "var(--ink)",
+                }}
+              >
+                Try again
+              </button>
             </div>
           )}
 

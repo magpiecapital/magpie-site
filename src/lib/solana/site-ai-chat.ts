@@ -66,6 +66,9 @@ export async function siteAiChat(args: {
   signerPubkey: string;
   signMessage: SignMessageFn;
   message: string;
+  /** Optional page context — e.g. "/tokens", "/dashboard". Helps
+   *  Pip respond more usefully ("you're on the tokens page, so..."). */
+  pageContext?: string;
 }): Promise<AiChatResult> {
   const body = await postSigned(
     "/api/v1/ai/chat",
@@ -73,6 +76,7 @@ export async function siteAiChat(args: {
       magpie: "ai-chat/v1",
       action: "chat",
       message: args.message,
+      page_context: args.pageContext ?? null,
       nonce: randomNonceHex(),
       issuedAt: new Date().toISOString(),
     },
