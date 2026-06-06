@@ -108,6 +108,12 @@ export function clearCachedSession(pubkey: string): void {
   } catch { /* silent */ }
 }
 
+/** Returns the cached session's expiry timestamp (ms) or null. */
+export function getCachedSessionExpiry(pubkey: string): number | null {
+  const s = readCachedSession(pubkey);
+  return s?.expiresAt ?? null;
+}
+
 /**
  * Mint a fresh Pip session via signed message. Prompts Phantom once.
  * Caches the token in localStorage for re-use.

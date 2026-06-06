@@ -24,7 +24,12 @@ import { usePathname } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { siteAiChat, siteAiReset, clearCachedSession } from "@/lib/solana/site-ai-chat";
+import {
+  siteAiChat,
+  siteAiReset,
+  clearCachedSession,
+  getCachedSessionExpiry,
+} from "@/lib/solana/site-ai-chat";
 
 type Turn = { role: "user" | "agent"; text: string; at: number };
 
@@ -314,6 +319,19 @@ export default function FloatingAiChatGlobal() {
     }
   }, [walletStr, signMessage, botApiUrl, storageKey]);
 
+  /* ── Track cached Pip session for UI status ── */
+  const [sessionExpiry, setSessionExpiry] = useState<number | null>(null);
+  useEffect(() => {
+    if (!walletStr) {
+      setSessionExpiry(null);
+      return;
+    }
+    setSessionExpiry(getCachedSessionExpiry(walletStr));
+    // Re-check every minute so the indicator stays fresh.
+    const id = setInterval(() => setSessionExpiry(getCachedSessionExpiry(walletStr)), 60_000);
+    return () => clearInterval(id);
+  }, [walletStr, turns.length]); // also bumps after each send
+
   /* ── Copy-to-clipboard for agent messages ── */
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const handleCopy = useCallback((idx: number, text: string) => {
@@ -400,7 +418,14 @@ export default function FloatingAiChatGlobal() {
                 ) : (
                   <>
                     <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: "#22c55e" }} />
-                    online · always here
+                    {sessionExpiry
+                      ? `signed in · ${(() => {
+                          const hours = Math.max(0, Math.floor((sessionExpiry - Date.now()) / 3_600_000));
+                          if (hours >= 1) return `${hours}h left`;
+                          const mins = Math.max(1, Math.floor((sessionExpiry - Date.now()) / 60_000));
+                          return `${mins}m left`;
+                        })()}`
+                      : "online · always here"}
                   </>
                 )}
               </div>
