@@ -674,6 +674,9 @@ export default function FloatingAiChatGlobal() {
           pointerEvents: open ? "auto" : "none",
         }}
         aria-hidden={!open}
+        role="dialog"
+        aria-modal="false"
+        aria-label={`${AGENT_NAME} — Magpie's AI agent`}
       >
         {/* Header */}
         <div
@@ -732,6 +735,8 @@ export default function FloatingAiChatGlobal() {
           ref={scrollRef}
           className="absolute inset-0 overflow-y-auto px-4 py-3"
           style={{ background: "var(--bg)" }}
+          aria-live="polite"
+          aria-atomic="false"
         >
           {!connected && (
             <div
@@ -1096,6 +1101,7 @@ export default function FloatingAiChatGlobal() {
                 rows={1}
                 maxLength={2800}
                 disabled={busy}
+                aria-label={`Message ${AGENT_NAME}`}
                 className="flex-1 resize-none rounded-xl border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 disabled:opacity-50"
                 style={{
                   borderColor: "var(--hairline)",
