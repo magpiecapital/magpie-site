@@ -241,15 +241,22 @@ export default function PrefsPanel({ botApiUrl }: { botApiUrl: string }) {
                 aria-checked={on}
                 onClick={() => handleToggle(key)}
                 disabled={busyKey === key}
-                className={`shrink-0 relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
-                  on ? "bg-[var(--d-accent-deep)]" : "bg-[var(--d-border)]"
-                }`}
+                // Wrap a 24x44 visual switch inside a 44x44 hit area so
+                // mobile users can tap reliably (Apple HIG minimum).
+                className="shrink-0 relative flex h-11 w-11 items-center justify-end disabled:opacity-50"
+                aria-label={label}
               >
                 <span
-                  className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                    on ? "translate-x-5" : "translate-x-0.5"
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    on ? "bg-[var(--d-accent-deep)]" : "bg-[var(--d-border)]"
                   }`}
-                />
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                      on ? "translate-x-5" : "translate-x-0.5"
+                    }`}
+                  />
+                </span>
               </button>
             </div>
           );

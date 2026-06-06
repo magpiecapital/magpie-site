@@ -102,7 +102,11 @@ export default function FloatingAiChat({ botApiUrl }: { botApiUrl: string }) {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="Open AI chat"
-        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--d-accent-deep)] text-white shadow-lg hover:bg-[var(--d-accent)] hover:scale-105 transition-all"
+        className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--d-accent-deep)] text-white shadow-lg hover:bg-[var(--d-accent)] hover:scale-105 transition-all"
+        style={{
+          // Respect iOS home indicator + Android nav bar safe areas.
+          bottom: "max(env(safe-area-inset-bottom, 1rem), 1rem)",
+        }}
       >
         {open ? (
           <span className="text-xl leading-none">×</span>
@@ -115,7 +119,12 @@ export default function FloatingAiChat({ botApiUrl }: { botApiUrl: string }) {
 
       {/* Panel */}
       {open && (
-        <div className="fixed bottom-24 right-6 z-40 flex w-[360px] max-w-[calc(100vw-2rem)] flex-col rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] shadow-2xl">
+        <div
+          className="fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-40 flex w-[calc(100vw-2rem)] max-w-[400px] flex-col rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] shadow-2xl"
+          style={{
+            bottom: "max(env(safe-area-inset-bottom, 4.5rem), 4.5rem)",
+          }}
+        >
           <div className="flex items-center justify-between border-b border-[var(--d-border)] px-4 py-3">
             <div>
               <div className="text-sm font-semibold text-[var(--d-ink)]">Ask Magpie</div>
