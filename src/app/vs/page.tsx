@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Magpie vs Marginfi, Kamino, Mango",
     description:
-      "The only Solana lender built for memecoin holders. Telegram-native. Zero liquidations by design.",
+      "The only Solana lender built for memecoin holders. Web dashboard + Telegram bot. Zero liquidations by design.",
   },
 };
 
@@ -36,7 +36,7 @@ const ROWS: Comparison[] = [
   },
   {
     feature: "Interface",
-    magpie: "Telegram bot — borrow in chat",
+    magpie: "Web dashboard + Telegram bot",
     marginfi: "Web app",
     kamino: "Web app",
     mango: "Web app",
@@ -44,7 +44,7 @@ const ROWS: Comparison[] = [
   },
   {
     feature: "Onboarding time",
-    magpie: "<30 seconds (TG account)",
+    magpie: "<30 seconds (web wallet OR TG)",
     marginfi: "Wallet install + bridge + setup",
     kamino: "Wallet install + bridge + setup",
     mango: "Wallet install + bridge + setup",
@@ -129,9 +129,12 @@ export default function Page() {
             the one with a memecoin bag who doesn&apos;t want to sell.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent">
-              Start in Telegram
+            <Link href="/dashboard" className="btn-accent">
+              Start borrowing
               <span aria-hidden>→</span>
+            </Link>
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost">
+              Or use Telegram
             </a>
             <Link href="/stats" className="btn-ghost">View live stats</Link>
           </div>
@@ -202,7 +205,7 @@ export default function Page() {
               <ul className="mt-4 space-y-2 text-sm text-[var(--ink-soft)] leading-relaxed">
                 <li>• You hold memecoins (or $MAGPIE) and want liquidity without selling</li>
                 <li>• You want a flat one-time fee, no variable interest creeping up</li>
-                <li>• You want to borrow in seconds from your phone via Telegram</li>
+                <li>• You want to borrow in seconds — on the web dashboard or in a Telegram chat, your call</li>
                 <li>• You want a built-in auto-protect that prevents liquidation</li>
               </ul>
             </div>
@@ -221,9 +224,12 @@ export default function Page() {
             Built for the bags <span className="italic text-[var(--accent)]">other lenders</span> won&apos;t touch.
           </h2>
           <div className="mt-10 flex flex-col items-center gap-4 md:flex-row md:justify-center">
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-base">
-              Start in Telegram
+            <Link href="/dashboard" className="btn-accent text-base">
+              Open the dashboard
               <span aria-hidden>→</span>
+            </Link>
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10">
+              Or use Telegram
             </a>
             <Link href="/calculate" className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10">
               See what your bag is worth
