@@ -603,14 +603,50 @@ export default function EarnPage() {
           {/* Position card */}
           <div className="mb-6 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 shadow-sm sm:p-8">
             {!connected ? (
-              <div className="text-center py-8">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--accent-dim)]">
-                  <svg className="h-7 w-7 text-[var(--accent-deep)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <div className="text-center py-6">
+                {/* Live numbers up top — the actual hook. Show what depositors
+                    are currently earning before asking the visitor to connect. */}
+                <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--ink-faint)] mb-1">
+                  Pool yield right now
+                </p>
+                <p className="font-display text-5xl font-semibold tracking-tight sm:text-6xl">
+                  {lpApy !== null ? `${lpApy.toFixed(2)}%` : "—"}
+                  <span className="ml-1.5 text-lg text-[var(--ink-soft)]">APY</span>
+                </p>
+                {lpApy === null && (
+                  <p className="mt-1 text-xs text-[var(--ink-faint)]">
+                    APY finalizes after the first full week of fees
+                  </p>
+                )}
+
+                {/* Concrete trust signals: TVL + recent fees. Both come from
+                    on-chain + bot API and are present even when disconnected. */}
+                {pool && (
+                  <div className="mt-5 grid grid-cols-2 gap-3 text-left">
+                    <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Pool TVL</div>
+                      <div className="mt-0.5 font-mono text-base text-[var(--ink)]">
+                        {solStr(pool.totalDeposits, 2)} SOL
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3">
+                      <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Fees · last 7d</div>
+                      <div className="mt-0.5 font-mono text-base text-[var(--ink)]">
+                        {poolApi?.fees
+                          ? `${solStr(Number(poolApi.fees.last_7d_lamports), 3)} SOL`
+                          : "—"}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-6 mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--accent-dim)]">
+                  <svg className="h-5 w-5 text-[var(--accent-deep)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 0 0-2.25-2.25H15a3 3 0 1 1-6 0H5.25A2.25 2.25 0 0 0 3 12m18 0v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 9m18 0V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v3" />
                   </svg>
                 </div>
-                <p className="text-sm font-medium text-[var(--ink)] mb-1">Connect your wallet to start earning</p>
-                <p className="text-xs text-[var(--ink-faint)]">Use the wallet button in the header</p>
+                <p className="mt-3 text-sm font-medium text-[var(--ink)]">Connect your wallet to deposit</p>
+                <p className="text-xs text-[var(--ink-faint)]">Withdraw anytime · no lockup · yield auto-compounds</p>
               </div>
             ) : (
               <>
