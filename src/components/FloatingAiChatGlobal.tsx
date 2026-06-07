@@ -771,7 +771,13 @@ export default function FloatingAiChatGlobal() {
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? `Minimize ${AGENT_NAME}` : `Open ${AGENT_NAME}`}
         title={`${open ? "Minimize" : "Open"} ${AGENT_NAME} (⌘K)`}
-        className="fixed right-4 sm:right-6 z-[60] flex h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-all hover:scale-105"
+        className={`fixed right-4 sm:right-6 z-[60] h-14 w-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-all hover:scale-105 ${
+          // Hide the floating button entirely when the panel is open
+          // — the header's minimize button handles closing, and
+          // hiding the floater lets the panel reach the bottom of
+          // the viewport (no gap where the page peeks through).
+          open ? "hidden" : "flex"
+        }`}
         style={{
           // Bumps up by the soft-keyboard height on mobile so the
           // button stays reachable above the keys.
@@ -827,18 +833,26 @@ export default function FloatingAiChatGlobal() {
 
       {/* Panel */}
       <div
-        className={`fixed right-4 sm:right-6 z-[60] flex flex-col rounded-2xl border shadow-2xl overflow-hidden pip-panel ${open ? "pip-panel-open" : ""}`}
+        className={`fixed left-4 right-4 sm:left-auto sm:right-6 z-[60] flex flex-col rounded-2xl border shadow-2xl overflow-hidden pip-panel ${open ? "pip-panel-open" : ""}`}
         style={{
-          // Bottom anchor lifts above the soft keyboard when it opens
-          // (visualViewport offset), and clears the iOS home indicator
-          // when it's closed. Both contribute to bottom: padding,
-          // floating-button + clearance, keyboard.
-          bottom: `calc(max(env(safe-area-inset-bottom, 5.5rem), 5.5rem) + ${keyboardOffset}px)`,
-          width: "calc(100vw - 2rem)",
+          // Bottom anchor:
+          //   • Mobile (no floating button when open): hug the safe
+          //     area (1rem floor) so the panel reaches the bottom of
+          //     the viewport and the landing page doesn't peek through.
+          //   • Desktop: reserve ~5.5rem so the floating button
+          //     remains visible alongside the panel.
+          //   • visualViewport offset is added on top to lift above
+          //     the on-screen keyboard.
+          bottom: `calc(max(env(safe-area-inset-bottom, 1rem), 1rem) + ${keyboardOffset}px)`,
+          // Width: tight margins on mobile, capped width on desktop.
+          width: "auto",
           maxWidth: "min(480px, calc(100vw - 2rem))",
           // Cap the panel height so it never overflows the visible
-          // viewport when the keyboard is open.
-          height: `min(640px, calc(100vh - 8rem - ${keyboardOffset}px))`,
+          // viewport when the keyboard is open. On mobile, take MORE
+          // height (only 4rem reserved for the top status bar / notch
+          // area); on tall desktop, the 640px cap keeps the panel a
+          // floating card instead of a full-height drawer.
+          height: `min(640px, calc(100vh - 4rem - ${keyboardOffset}px))`,
           background: "var(--bg-elevated, var(--bg))",
           borderColor: "var(--hairline)",
           pointerEvents: open ? "auto" : "none",
