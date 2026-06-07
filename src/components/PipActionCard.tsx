@@ -204,7 +204,7 @@ export function PipActionCard({
         heroLabel="You'll pay"
         heroValue={`${fmtSol(action.owed_sol)} SOL`}
         heroSub={Number(action.fee_sol) > 0 ? `Includes ${fmtSol(action.fee_sol)} SOL fee` : undefined}
-        reward={{ label: "Reclaim", value: collateralLabel, symbol: action.collateral_symbol ?? undefined }}
+        reward={{ label: "Reclaim", value: collateralLabel }}
         meta={[
           {
             label: action.past_due ? "Status" : "Due",
@@ -345,131 +345,101 @@ export function PipActionCard({
 /* ── Shared sub-components ───────────────────────────────────────── */
 
 /**
- * HeroCard: visual hierarchy designed for in-chat action confirms.
- * One LARGE primary number (the cost the user is committing to),
- * a single "you get back" reward chip, and tightly-packed metadata
- * rows beneath. Replaces the flat two-column grid that made every
- * field look equally important.
+ * HeroCard — minimal, mobile-first action confirm.
+ *
+ * Three lines of content max:
+ *   1) Title (small, plain)
+ *   2) Hero amount (big, font-display)
+ *   3) Optional reward / sub-line
+ *
+ * Plus a single full-width primary button. No header strips, no chips,
+ * no metadata grids — the chat bubble above the card already carries
+ * Pip's prose intro, and the card itself is the confirmation moment.
+ * Extra chrome on a 280-320px-wide mobile panel competes with the
+ * primary CTA and was getting flagged as clunky.
+ *
+ * Warning slot is kept (for the partial-repay collateral-locked
+ * notice) — never optional, but rendered with minimal styling.
  */
 function HeroCard({
   title,
-  kind,
   heroLabel,
   heroValue,
-  heroSub,
   reward,
-  meta,
   warning,
   children,
 }: {
   title: string;
-  kind: string;
+  /** @deprecated kept for prop compatibility — unused in the minimal design */
+  kind?: string;
   heroLabel: string;
   heroValue: string;
+  /** @deprecated kept for prop compatibility — unused in the minimal design */
   heroSub?: string;
-  reward?: { label: string; value: string; symbol?: string };
+  reward?: { label: string; value: string };
+  /** @deprecated kept for prop compatibility — unused in the minimal design */
   meta?: Array<{ label: string; value: string; tone?: "neutral" | "danger" | "good" }>;
   warning?: string;
   children: React.ReactNode;
 }) {
-  const toneColor = (tone?: "neutral" | "danger" | "good") =>
-    tone === "danger" ? "var(--bad)" : tone === "good" ? "var(--good, #22c55e)" : "var(--ink-soft)";
   return (
     <div
-      className="rounded-2xl border mt-2 shadow-sm overflow-hidden"
+      className="rounded-2xl border mt-2 px-4 py-4 shadow-sm"
       style={{
         borderColor: "var(--accent)",
         background: "var(--bg-elevated, var(--surface))",
       }}
     >
-      {/* Header strip */}
+      {/* Tiny eyebrow label */}
       <div
-        className="flex items-center justify-between px-4 py-2.5 border-b"
-        style={{
-          borderColor: "color-mix(in srgb, var(--hairline) 60%, transparent)",
-          background: "color-mix(in srgb, var(--accent) 6%, transparent)",
-        }}
+        className="text-[11px] font-medium leading-none mb-1"
+        style={{ color: "var(--ink-faint)" }}
       >
-        <div className="font-semibold text-[13px] leading-tight tracking-tight" style={{ color: "var(--ink)" }}>{title}</div>
-        <div
-          className="text-[10px] uppercase tracking-[0.12em] font-semibold px-2 py-0.5 rounded-full"
-          style={{ color: "var(--accent-ink, #0a0a0a)", background: "var(--accent)" }}
-        >
-          {kind}
-        </div>
+        {title}
       </div>
 
-      {/* Hero amount */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="text-[10px] uppercase tracking-[0.16em] font-medium" style={{ color: "var(--ink-faint)" }}>
-          {heroLabel}
-        </div>
-        <div className="mt-1 font-display text-[26px] font-semibold leading-none tracking-tight" style={{ color: "var(--ink)" }}>
-          {heroValue}
-        </div>
-        {heroSub && (
-          <div className="mt-1.5 text-[11px]" style={{ color: "var(--ink-faint)" }}>{heroSub}</div>
-        )}
+      {/* Hero amount — the one number that matters */}
+      <div
+        className="font-display text-[28px] font-semibold leading-[1.05] tracking-tight"
+        style={{ color: "var(--ink)" }}
+      >
+        {heroValue}
       </div>
 
-      {/* Reward chip — what the user gets back */}
+      {/* Eyebrow above the hero ("You'll pay", "You'll receive", etc.) */}
+      <div
+        className="text-[11px] mt-0.5 mb-2.5"
+        style={{ color: "var(--ink-faint)" }}
+      >
+        {heroLabel}
+      </div>
+
+      {/* Single optional reward line — no chip, just text */}
       {reward && (
-        <div className="mx-4 mb-3 rounded-xl px-3 py-2.5 flex items-center justify-between gap-3"
-          style={{
-            background: "color-mix(in srgb, var(--accent) 10%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
-          }}
-        >
-          <div className="flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-deep, var(--accent))" }} aria-hidden="true">
-              <path d="M20 12v9H4v-9" />
-              <path d="M22 7H2v5h20V7z" />
-              <path d="M12 22V7" />
-              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
-            </svg>
-            <span className="text-[11px] uppercase tracking-[0.14em] font-medium" style={{ color: "var(--ink-soft)" }}>{reward.label}</span>
-          </div>
-          <span className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>
+        <div className="flex items-center justify-between gap-3 mb-3 text-[12.5px]">
+          <span style={{ color: "var(--ink-faint)" }}>{reward.label}</span>
+          <span className="font-semibold text-right" style={{ color: "var(--ink)" }}>
             {reward.value}
           </span>
         </div>
       )}
 
-      {/* Warning callout (e.g. partial repay collateral-locked notice) */}
+      {/* Warning slot — only used for partial-repay's collateral-locked notice */}
       {warning && (
-        <div className="mx-4 mb-3 rounded-xl px-3 py-2 text-[11px] leading-relaxed flex gap-2"
+        <div
+          className="rounded-lg px-2.5 py-2 mb-3 text-[11px] leading-snug"
           style={{
             background: "color-mix(in srgb, var(--bad) 8%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--bad) 25%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--bad) 22%, transparent)",
             color: "var(--ink)",
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5" style={{ color: "var(--bad)" }} aria-hidden="true">
-            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
-            <line x1="12" y1="9" x2="12" y2="13" />
-            <line x1="12" y1="17" x2="12.01" y2="17" />
-          </svg>
-          <span>{warning}</span>
+          {warning}
         </div>
       )}
 
-      {/* Compact metadata rows */}
-      {meta && meta.length > 0 && (
-        <div className="px-4 pb-3 space-y-1">
-          {meta.map((m, i) => (
-            <div key={i} className="flex items-center justify-between text-[11.5px]">
-              <span className="uppercase tracking-[0.12em]" style={{ color: "var(--ink-faint)" }}>{m.label}</span>
-              <span className="font-medium" style={{ color: toneColor(m.tone) }}>{m.value}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Footer (button + status messages) */}
-      <div className="px-4 pb-4 pt-1">
-        {children}
-      </div>
+      {/* Footer (button + status) */}
+      {children}
     </div>
   );
 }

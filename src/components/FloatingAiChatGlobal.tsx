@@ -1121,16 +1121,19 @@ export default function FloatingAiChatGlobal() {
                   </div>
                 )}
               <div
-                className={`pip-turn flex gap-2 group ${t.role === "user" ? "flex-row-reverse" : ""} ${
+                className={`pip-turn flex flex-col group ${
                   isFirstOfGroup ? "mt-2" : "mt-0.5"
                 }`}
+              >
+              <div
+                className={`flex gap-2 ${t.role === "user" ? "flex-row-reverse" : ""}`}
               >
                 {t.role === "agent" && (
                   <div className="w-7 shrink-0">
                     {isFirstOfGroup && <PipAvatar size={26} />}
                   </div>
                 )}
-                <div className="relative max-w-[80%]">
+                <div className="relative max-w-[82%]">
                   <div
                     className={`px-3.5 py-2 text-[13.5px] leading-snug ${
                       t.role === "user"
@@ -1195,9 +1198,13 @@ export default function FloatingAiChatGlobal() {
                     </button>
                   )}
                 </div>
-                {/* Inline action card — Pip proposed an on-chain
-                    action; user signs from here. */}
-                {t.role === "agent" && t.proposedAction && !t.streaming && (
+              </div>
+              {/* Inline action card sits BELOW the bubble, full-width
+                  inside the avatar's column gutter. Keeps the card
+                  legible on narrow mobile widths where putting it
+                  beside the bubble squeezes it to <50% of the panel. */}
+              {t.role === "agent" && t.proposedAction && !t.streaming && (
+                <div className="pl-9 pr-0">
                   <PipActionCard
                     action={t.proposedAction}
                     onResult={(msg) => {
@@ -1211,7 +1218,8 @@ export default function FloatingAiChatGlobal() {
                       setLoanRefreshTick((n) => n + 1);
                     }}
                   />
-                )}
+                </div>
+              )}
               </div>
               </div>
             );
