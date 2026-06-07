@@ -219,6 +219,7 @@ export function PipActionCard({
           doneSig={doneSig}
           error={error}
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Repay"}
+          successVerb="Loan repaid"
           onClick={handleSign}
         />
       </HeroCard>
@@ -254,6 +255,7 @@ export function PipActionCard({
           doneSig={doneSig}
           error={error}
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Top up"}
+          successVerb="Collateral added"
           onClick={handleSign}
         />
       </HeroCard>
@@ -282,6 +284,7 @@ export function PipActionCard({
           doneSig={doneSig}
           error={error}
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Extend"}
+          successVerb="Loan extended"
           onClick={handleSign}
         />
       </HeroCard>
@@ -310,6 +313,7 @@ export function PipActionCard({
           doneSig={doneSig}
           error={error}
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Pay down"}
+          successVerb="Loan paid down"
           onClick={handleSign}
         />
       </HeroCard>
@@ -336,6 +340,7 @@ export function PipActionCard({
         doneSig={doneSig}
         error={error}
         buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Borrow"}
+        successVerb="Loan funded"
         onClick={handleSign}
       />
     </HeroCard>
@@ -450,6 +455,7 @@ function Footer({
   doneSig,
   error,
   buttonLabel,
+  successVerb = "Done",
   onClick,
   /** When true, wrap output so it sits cleanly inside the old 2-col Card grid. */
   inGrid = false,
@@ -459,16 +465,59 @@ function Footer({
   doneSig: string | null;
   error: string | null;
   buttonLabel: string;
+  /** Past-tense verb shown on success ("Repaid", "Borrowed", "Top-up added", etc.). */
+  successVerb?: string;
   onClick: () => void;
   inGrid?: boolean;
 }) {
   if (doneSig) {
+    // Success state: full-width pill with check + past-tense verb,
+    // plus a "View tx" affordance. Feels like a small win instead
+    // of a buried "Done · tx" footnote.
     return (
-      <div className={`text-[12px] flex items-center gap-2 ${inGrid ? "mt-3 col-span-2" : ""}`} style={{ color: "var(--good, #22c55e)" }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M20 6L9 17l-5-5" />
-        </svg>
-        Done · <a href={`https://solscan.io/tx/${doneSig}`} target="_blank" rel="noopener noreferrer" className="underline">tx</a>
+      <div className={inGrid ? "col-span-2 mt-3" : ""}>
+        <div
+          className="w-full rounded-xl py-2.5 px-3 flex items-center justify-between gap-2 pip-card-confirmed"
+          style={{
+            background: "color-mix(in srgb, var(--good, #22c55e) 14%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--good, #22c55e) 35%, transparent)",
+          }}
+        >
+          <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--good, #22c55e)" }}>
+            <span
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full pip-check-pop"
+              style={{ background: "var(--good, #22c55e)", color: "white" }}
+              aria-hidden="true"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 6L9 17l-5-5" />
+              </svg>
+            </span>
+            {successVerb}
+          </div>
+          <a
+            href={`https://solscan.io/tx/${doneSig}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11.5px] font-medium underline-offset-2 hover:underline"
+            style={{ color: "var(--ink-soft)" }}
+          >
+            View tx →
+          </a>
+        </div>
+        <style jsx>{`
+          @keyframes pip-check-pop {
+            0%   { transform: scale(0.6); opacity: 0; }
+            55%  { transform: scale(1.15); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+          }
+          .pip-check-pop { animation: pip-check-pop 360ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+          @keyframes pip-card-confirmed-in {
+            from { opacity: 0; transform: translateY(2px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          .pip-card-confirmed { animation: pip-card-confirmed-in 220ms ease-out; }
+        `}</style>
       </div>
     );
   }
