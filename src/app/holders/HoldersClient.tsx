@@ -231,10 +231,10 @@ export default function HoldersClient() {
               on-chain balances directly — no staking contract, no lockup.
             </Faq>
             <Faq q="How do I receive my SOL?">
-              Automatically. Every 7 days the bot snapshots all $MAGPIE holders and sends
-              each their pro-rata share via on-chain transfer. SOL just appears in the
-              wallet that holds $MAGPIE — no claim button, no signing, no bot account
-              needed.
+              Automatically. On a randomized 5–10 day cadence the protocol snapshots
+              all $MAGPIE holders and sends each their pro-rata share via on-chain
+              transfer. SOL just appears in the wallet that holds $MAGPIE — no claim
+              button, no signing, no bot account needed.
             </Faq>
             <Faq q="When do distributions happen?">
               Periodically. Snapshots fire at random within an internal window — the
