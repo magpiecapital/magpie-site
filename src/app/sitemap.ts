@@ -125,5 +125,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "weekly",
       priority: 0.6,
     },
+    {
+      // Canonical "all four official surfaces" page. High priority
+      // because reviewers + new users land here to verify legitimacy.
+      url: `${SITE_URL}/links`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.95,
+    },
+    {
+      url: `${SITE_URL}/status`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.5,
+    },
+    {
+      url: `${SITE_URL}/privacy`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.4,
+    },
   ];
 }

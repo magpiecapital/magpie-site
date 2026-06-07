@@ -1,0 +1,40 @@
+/* TEAM */
+
+  Magpie Capital — pseudonymous, by design.
+  Site: https://magpie.capital
+  X: @MagpieLoans
+  TG (bot): @magpie_capital_bot
+  TG (community): @magpietalk
+  Source: https://github.com/magpiecapital
+
+
+/* THE PROTOCOL */
+
+  Magpie is a permissionless Solana lending protocol. Users deposit
+  approved memecoins or tokenized stocks as collateral and receive
+  SOL co-signed by the protocol in seconds.
+
+  Custodial-by-export — users can /export their private key at any
+  time and self-custody. Every flow is on-chain verifiable via
+  solscan.io or magpie.capital/stats.
+
+  Loan terms: 2 / 3 / 7 days. LTVs: 20% / 25% / 30%. Zero liquidations
+  to date by design (short terms + low LTV + token-health watcher).
+
+
+/* THE STACK */
+
+  Smart contracts: Anchor (Solana mainnet)
+  Site: Next.js 16 + Tailwind 4 on Vercel
+  Bot: grammY framework + Node.js + PostgreSQL on Railway
+  AI agent (Pip): Anthropic Claude Sonnet 4 / Haiku 4.5
+  Indexing: on-chain events → Postgres, real-time
+  Monitoring: Helius webhooks
+
+
+/* SECURITY */
+
+  Disclosure: https://magpie.capital/security
+  RFC 9116: https://magpie.capital/.well-known/security.txt
+  Bug bounty: yes (see /security for scope + response SLA)
+  No formal third-party audit yet (we say so explicitly — see /security)
