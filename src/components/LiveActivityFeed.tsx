@@ -137,8 +137,25 @@ export function LiveActivityFeed() {
       } catch { /* silent — non-critical */ }
     }
     load();
-    const id = setInterval(load, 15_000);
-    return () => { cancelled = true; clearInterval(id); };
+    // Skip polling when the tab is hidden — saves bandwidth on idle tabs.
+    // Refresh once on visibilitychange so the feed is fresh on return.
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      load();
+    }, 15_000);
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) load();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
+    };
   }, []);
 
   // Initial loading — skeleton rows feel like a solid container before

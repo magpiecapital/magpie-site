@@ -38,10 +38,25 @@ export function LiveProtocolTicker() {
       } catch { /* silent — ticker is non-critical */ }
     }
     load();
-    const id = setInterval(load, 60_000);
+    // Skip polling when the tab is in the background — saves bandwidth
+    // when users keep the site open in a buried tab. Refresh once on
+    // visibilitychange so the data is fresh when they come back.
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      load();
+    }, 60_000);
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) load();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
     return () => {
       cancelled = true;
       clearInterval(id);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
     };
   }, []);
 
