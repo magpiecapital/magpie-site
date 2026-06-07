@@ -38,10 +38,24 @@ export default function SiteStatusBanner({ botApiUrl }: { botApiUrl: string }) {
       }
     }
     load();
-    const id = setInterval(load, 30_000);
+    // Skip when hidden; refresh on return so users see operator
+    // announcements / paused-state promptly when they come back.
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      load();
+    }, 30_000);
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) load();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
     return () => {
       cancelled = true;
       clearInterval(id);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
     };
   }, [botApiUrl]);
 
