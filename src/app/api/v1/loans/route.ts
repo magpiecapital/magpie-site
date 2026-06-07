@@ -237,11 +237,22 @@ export async function GET(req: Request) {
     // loans + collateral are per-wallet.
     const scopedRows = filterLoansForWallet(rows as LoanRow[], wallet);
 
+    // Count active loans on OTHER linked wallets so the dashboard can
+    // surface a "1 loan on another wallet — switch to manage it" hint
+    // without users wondering why their "Active Loans" count looks
+    // wrong. Computed BEFORE we drop the history rows.
+    const allActiveRows = (rows as LoanRow[]).filter((r) => r.status === "active");
+    const scopedActiveRows = scopedRows.filter((r: LoanRow) => r.status === "active");
+    const otherWalletsActiveCount = Math.max(
+      0,
+      allActiveRows.length - scopedActiveRows.length,
+    );
+
     // Batch-fetch prices for every unique collateral mint across the
     // user's active loans so the response carries a live health snapshot.
     // Best-effort: if pricing fails, we still return the loans (no health
     // data — UI degrades to "—" cleanly).
-    const activeRows = scopedRows.filter((r: LoanRow) => r.status === "active");
+    const activeRows = scopedActiveRows;
     const historyRows = scopedRows.filter((r: LoanRow) => r.status !== "active");
     const activeMints = Array.from(new Set(activeRows.map((r: LoanRow) => r.collateral_mint)));
     const priceMap = await fetchPricesInSol(activeMints);
@@ -252,6 +263,7 @@ export async function GET(req: Request) {
         wallet,
         active: activeRows.map((r: LoanRow) => shape(r, priceMap.get(r.collateral_mint) ?? null)),
         history: historyRows.map((r: LoanRow) => shape(r, null)),
+        other_wallets_active_count: otherWalletsActiveCount,
         source: "database",
       },
       { headers: HEADERS },

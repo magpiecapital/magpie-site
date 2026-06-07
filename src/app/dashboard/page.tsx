@@ -731,6 +731,10 @@ export default function DashboardPage() {
   };
   const [activeLoans, setActiveLoans] = useState<Loan[]>([]);
   const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
+  // Active loans that exist on OTHER linked wallets — surface as a hint
+  // so a multi-wallet user understands why "Active Loans" reads 0 when
+  // they know they have one elsewhere.
+  const [otherWalletsActiveCount, setOtherWalletsActiveCount] = useState<number>(0);
   const [loansLoading, setLoansLoading] = useState(false);
 
   // ── Eligible collateral (server-computed intersection) ──
@@ -1287,6 +1291,9 @@ export default function DashboardPage() {
           if (cancelled || !d.ok) return;
           setActiveLoans(d.active ?? []);
           setLoanHistory(d.history ?? []);
+          setOtherWalletsActiveCount(
+            typeof d.other_wallets_active_count === "number" ? d.other_wallets_active_count : 0,
+          );
         })
         .catch(() => { /* keep last good data on transient failure */ })
         .finally(() => { if (!cancelled) setLoansLoading(false); });
@@ -1996,9 +2003,11 @@ export default function DashboardPage() {
 
                 {/* Wallets list — only renders for linked users with 2+ wallets. */}
                 {connected && publicKey && (
-                  <WalletsList
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
-                  />
+                  <div id="section-wallets">
+                    <WalletsList
+                      botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    />
+                  </div>
                 )}
 
                 {/* Auto-Protect + notification prefs — linked users only. */}
@@ -2041,24 +2050,40 @@ export default function DashboardPage() {
                     {loansLoading && activeLoans.length === 0 ? (
                       <SkeletonRows count={3} />
                     ) : activeLoans.length === 0 ? (
-                      <EmptyState
-                        message={
-                          eligibleCollateral.length > 0
-                            ? "No active loans — pick a token in Eligible Collateral below to borrow"
-                            : "No active loans — deposit a supported token to use as collateral"
-                        }
-                        cta={
-                          eligibleCollateral.length > 0
-                            ? { label: "Scroll to collateral", onClick: () => scrollTo("eligible") }
-                            : undefined
-                        }
-                      />
+                      <>
+                        <EmptyState
+                          message={
+                            otherWalletsActiveCount > 0
+                              ? `No active loans on this wallet — ${otherWalletsActiveCount} loan${otherWalletsActiveCount === 1 ? "" : "s"} on another linked wallet`
+                              : eligibleCollateral.length > 0
+                                ? "No active loans — pick a token in Eligible Collateral below to borrow"
+                                : "No active loans — deposit a supported token to use as collateral"
+                          }
+                          cta={
+                            otherWalletsActiveCount > 0
+                              ? { label: "Switch wallets", onClick: () => scrollTo("wallets") }
+                              : eligibleCollateral.length > 0
+                                ? { label: "Scroll to collateral", onClick: () => scrollTo("eligible") }
+                                : undefined
+                          }
+                        />
+                      </>
                     ) : (
                       <div className="overflow-hidden rounded-2xl border border-[var(--d-accent)]/20 bg-[var(--d-bg-card)]">
-                        <div className="border-b border-[var(--d-border)] bg-[var(--d-accent-dim)]/30 px-4 py-3">
+                        <div className="border-b border-[var(--d-border)] bg-[var(--d-accent-dim)]/30 px-4 py-3 flex items-center justify-between flex-wrap gap-2">
                           <span className="text-xs font-medium text-[var(--d-accent-deep)]">
                             {activeLoans.length} loan{activeLoans.length !== 1 ? "s" : ""} outstanding
                           </span>
+                          {otherWalletsActiveCount > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => scrollTo("wallets")}
+                              className="text-[11px] text-[var(--d-ink-faint)] hover:text-[var(--d-ink-soft)] underline underline-offset-2"
+                              title="Switch to that wallet to see + manage those loans"
+                            >
+                              +{otherWalletsActiveCount} on another wallet →
+                            </button>
+                          )}
                         </div>
                         <div className="divide-y divide-[var(--d-border)]">
                           {activeLoans.map((l) => {
