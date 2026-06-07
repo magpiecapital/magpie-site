@@ -9,6 +9,45 @@
  */
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { PublicKey } from "@solana/web3.js";
+import BN from "bn.js";
+
+const PROGRAM_ID = new PublicKey("4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh");
+const PROGRAM_ID_V2 = new PublicKey("7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P");
+
+/** Derive the loan PDA from borrower + loan_id (+ program). Matches
+ *  the bot's seed scheme: ["loan", borrower, loan_id_le_u64]. */
+function deriveLoanPda(borrower: PublicKey, loanId: string, programId: PublicKey): PublicKey {
+  const idBuf = Buffer.alloc(8);
+  new BN(loanId).toArrayLike(Buffer, "le", 8).copy(idBuf);
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("loan"), borrower.toBuffer(), idBuf],
+    programId,
+  );
+  return pda;
+}
+
+/** Keep only loans whose on-chain PDA matches what `wallet` would
+ *  derive — i.e., loans actually borrowed by THIS wallet. Defensive:
+ *  loans we can't verify pass through (don't drop). */
+function filterLoansForWallet<T extends { loan_id: string | number | null; loan_pda: string; program_id?: string | null }>(rows: T[], walletStr: string): T[] {
+  if (!rows.length) return rows;
+  let walletPk: PublicKey;
+  try { walletPk = new PublicKey(walletStr); }
+  catch { return rows; }
+  return rows.filter((r) => {
+    try {
+      if (!r.loan_id || !r.loan_pda) return true;
+      let progId: PublicKey;
+      try { progId = r.program_id ? new PublicKey(r.program_id) : PROGRAM_ID; }
+      catch { progId = PROGRAM_ID; }
+      const derived = deriveLoanPda(walletPk, String(r.loan_id), progId);
+      return derived.toBase58() === r.loan_pda;
+    } catch {
+      return true; // unverifiable → don't drop
+    }
+  });
+}
 
 const HEADERS = {
   "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
@@ -190,12 +229,20 @@ export async function GET(req: Request) {
       [wallet],
     );
 
+    // CRITICAL: scope to ONLY this wallet's loans. The JOIN above
+    // matches on user_id, which means a multi-wallet user gets every
+    // loan across every linked wallet. Filter down to those whose
+    // borrower-derived PDA matches the requesting wallet. Credit /
+    // points / holder rewards remain user-scoped (intentional);
+    // loans + collateral are per-wallet.
+    const scopedRows = filterLoansForWallet(rows as LoanRow[], wallet);
+
     // Batch-fetch prices for every unique collateral mint across the
     // user's active loans so the response carries a live health snapshot.
     // Best-effort: if pricing fails, we still return the loans (no health
     // data — UI degrades to "—" cleanly).
-    const activeRows = rows.filter((r: LoanRow) => r.status === "active");
-    const historyRows = rows.filter((r: LoanRow) => r.status !== "active");
+    const activeRows = scopedRows.filter((r: LoanRow) => r.status === "active");
+    const historyRows = scopedRows.filter((r: LoanRow) => r.status !== "active");
     const activeMints = Array.from(new Set(activeRows.map((r: LoanRow) => r.collateral_mint)));
     const priceMap = await fetchPricesInSol(activeMints);
 
