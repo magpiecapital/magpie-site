@@ -655,16 +655,21 @@ export default function TokensClient() {
             Ready to borrow against your bags?
           </h2>
           <p className="mx-auto mt-4 max-w-lg text-[var(--bg-elevated)]/60">
-            Open the Telegram bot, deposit collateral, and get SOL in seconds.
+            Connect your wallet on the dashboard, deposit collateral, and get SOL in seconds. Or use Telegram if you'd rather chat.
           </p>
-          <a
-            href={TELEGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn-accent mt-8 inline-flex text-base"
-          >
-            Launch on Telegram <span aria-hidden>&#8594;</span>
-          </a>
+          <div className="mt-8 flex flex-col items-center justify-center gap-4 md:flex-row">
+            <Link href="/dashboard" className="btn-accent inline-flex text-base">
+              Open the dashboard <span aria-hidden>&#8594;</span>
+            </Link>
+            <a
+              href={TELEGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
+            >
+              Or use Telegram
+            </a>
+          </div>
         </div>
       </section>
 

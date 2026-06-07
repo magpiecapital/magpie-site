@@ -815,9 +815,12 @@ export default function CreditClient() {
             Every on-time repayment is a step toward better rates, higher LTV, and exclusive access. Your reputation starts now.
           </p>
           <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-lg">
-              Launch on Telegram
+            <Link href="/dashboard" className="btn-accent text-lg">
+              Open the dashboard
               <span aria-hidden>→</span>
+            </Link>
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10">
+              Or use Telegram
             </a>
             <Link
               href="/tokens"
