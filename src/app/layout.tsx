@@ -132,6 +132,73 @@ export default function RootLayout({
             `,
           }}
         />
+        {/*
+          JSON-LD structured data — declares the canonical identity of
+          Magpie Capital to every crawler / preview-renderer / security
+          reviewer that hits the site. Two parallel schemas:
+
+          1. Organization — who we are + every official channel. Helps
+             reviewers cross-check the site against our X / TG / GitHub
+             identities. Critical for false-positive-flag appeals: when
+             a Blowfish reviewer loads magpie.capital, this is the
+             first piece of structured evidence that says "yes, the
+             site, the bot, and @MagpieLoans are all the same project."
+          2. WebSite — gives search engines a canonical entry for the
+             site, with the protocol-defining tagline.
+
+          All info is already public; nothing leaked here.
+        */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": "https://magpie.capital/#organization",
+                  name: "Magpie Capital",
+                  alternateName: "Magpie",
+                  url: "https://magpie.capital",
+                  logo: "https://magpie.capital/icon-512.png",
+                  description:
+                    "Permissionless Solana lending protocol. Borrow SOL against memecoins and tokenized stocks. Custodial-by-export, open source, on-chain verifiable.",
+                  sameAs: [
+                    "https://x.com/MagpieLoans",
+                    "https://t.me/magpie_capital_bot",
+                    "https://t.me/magpietalk",
+                    "https://github.com/magpiecapital",
+                  ],
+                  contactPoint: [
+                    {
+                      "@type": "ContactPoint",
+                      contactType: "security",
+                      url: "https://magpie.capital/security",
+                      areaServed: "Worldwide",
+                      availableLanguage: ["English"],
+                    },
+                    {
+                      "@type": "ContactPoint",
+                      contactType: "customer support",
+                      url: "https://t.me/magpie_capital_bot",
+                      areaServed: "Worldwide",
+                    },
+                  ],
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "https://magpie.capital/#website",
+                  url: "https://magpie.capital",
+                  name: "Magpie Capital",
+                  description:
+                    "Borrow SOL. Keep your bag. Permissionless lending protocol on Solana.",
+                  publisher: { "@id": "https://magpie.capital/#organization" },
+                  inLanguage: "en",
+                },
+              ],
+            }),
+          }}
+        />
         {/* Buffer polyfill — MUST load before any Solana JS. Synchronous script. */}
         <Script src="/buffer-polyfill.js" strategy="beforeInteractive" />
         {/* Connect early to the third-party services we hit on dashboard load. */}

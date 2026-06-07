@@ -434,6 +434,22 @@ export default function SecurityPage() {
                 <p className="mt-4 text-base leading-relaxed text-[var(--ink-soft)]">
                   If you discover a security issue, please report it privately before disclosing publicly. We commit to acknowledging your report within 24 hours, providing an initial assessment within 72 hours, and keeping you informed as we work toward a fix. We will not take legal action against researchers who follow responsible disclosure practices.
                 </p>
+                <div className="mt-6 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] p-4 text-xs text-[var(--ink-soft)]">
+                  <div className="font-semibold uppercase tracking-[0.18em] text-[var(--ink-faint)] mb-2">
+                    For automated security reviewers
+                  </div>
+                  <div className="font-mono">
+                    <a
+                      href="/.well-known/security.txt"
+                      className="underline underline-offset-2 hover:text-[var(--ink)] transition"
+                    >
+                      magpie.capital/.well-known/security.txt
+                    </a>
+                  </div>
+                  <div className="mt-2 text-[var(--ink-faint)]">
+                    RFC 9116 machine-readable disclosure file. Programs in scope: Magpie lending v1 (<span className="font-mono">4FEFPeMH…6wmh</span>) and v2 (<span className="font-mono">7tapneCm…X99P</span>). Both repos open source at <a href="https://github.com/magpiecapital" className="underline underline-offset-2 hover:text-[var(--ink)] transition">github.com/magpiecapital</a>.
+                  </div>
+                </div>
               </div>
             </div>
           </Reveal>

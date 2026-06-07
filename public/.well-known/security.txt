@@ -1,0 +1,32 @@
+# Magpie Capital — Security Disclosure (RFC 9116)
+# https://magpie.capital/security
+#
+# We take security seriously. If you've found a vulnerability, please
+# report it through one of the contacts below. We acknowledge within
+# 24 hours and provide an initial assessment within 72 hours. We do
+# not take legal action against researchers who follow responsible
+# disclosure practices.
+
+Contact: https://t.me/magpie_capital_bot
+Contact: https://magpie.capital/security
+Policy: https://magpie.capital/security
+Acknowledgments: https://magpie.capital/security
+Preferred-Languages: en
+Canonical: https://magpie.capital/.well-known/security.txt
+
+# Scope
+# - The Magpie Capital web application at magpie.capital
+# - The Telegram bot at @magpie_capital_bot
+# - The Anchor program at 4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh
+# - The Anchor program at 7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P
+# - Both repos at https://github.com/magpiecapital
+
+# Source code
+# Both magpie-bot and magpie-site are open source and MIT licensed.
+# Every transaction touching user funds is verifiable on-chain via
+# https://solscan.io or https://magpie.capital/stats.
+
+# This file is signed by virtue of being served over HTTPS from the
+# canonical domain. Validity: rolls forward without expiration. We
+# update this file when contact methods or scope change.
+Expires: 2027-06-07T00:00:00.000Z
