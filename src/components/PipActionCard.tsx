@@ -289,9 +289,15 @@ export function PipActionCard({
             color: "var(--ink)",
           }}
         >
-          <span className="font-semibold">⚠️ Your collateral stays locked.</span>{" "}
-          A partial repay only reduces what you owe — it does <span className="font-semibold">not</span> return any of your{" "}
-          {action.collateral_symbol ?? "collateral"}. To get your tokens back, fully repay the remaining balance.
+          <div>
+            <span className="font-semibold">⚠️ Your collateral stays locked.</span>{" "}
+            A partial repay only reduces what you owe — it does <span className="font-semibold">not</span> return any of your{" "}
+            {action.collateral_symbol ?? "collateral"}. To get your tokens back, fully repay the remaining balance.
+          </div>
+          <div className="mt-1.5 pt-1.5 border-t" style={{ borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)" }}>
+            <span className="font-semibold">Want some {action.collateral_symbol ?? "collateral"} back now?</span>{" "}
+            Use <code className="font-mono">/reborrow</code> in the Telegram bot — it closes this loan (all collateral released), then opens a smaller new loan against just the portion you want kept locked. Net: you walk away with some tokens free + a smaller loan.
+          </div>
         </div>
         <Footer
           busy={busy}
