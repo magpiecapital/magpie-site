@@ -18,8 +18,9 @@
   time and self-custody. Every flow is on-chain verifiable via
   solscan.io or magpie.capital/stats.
 
-  Loan terms: 2 / 3 / 7 days. LTVs: 20% / 25% / 30%. Zero liquidations
-  to date by design (short terms + low LTV + token-health watcher).
+  Loan terms: 2 / 3 / 7 days. LTVs: 20% / 25% / 30%. Sub-1% lifetime
+  liquidation rate by design (short terms + low LTV + token-health
+  watcher). Live count at magpie.capital/stats.
 
 
 /* THE STACK */

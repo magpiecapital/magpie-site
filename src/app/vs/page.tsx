@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Magpie vs Marginfi, Kamino, Mango",
     description:
-      "The only Solana lender built for memecoin holders. Web dashboard + Telegram bot. Zero liquidations by design.",
+      "The only Solana lender built for memecoin holders. Web dashboard + Telegram bot. Sub-1% liquidation rate by design.",
   },
 };
 

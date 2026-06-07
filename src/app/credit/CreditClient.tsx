@@ -155,7 +155,7 @@ const FAQ = [
   },
   {
     q: "How fast can I reach Platinum?",
-    a: "It depends on loan frequency and repayment consistency. Most active users reach Gold within 2–3 months. Platinum requires sustained, high-volume activity with zero liquidations.",
+    a: "It depends on loan frequency and repayment consistency. Most active users reach Gold within 2–3 months. Platinum requires sustained, high-volume activity with a clean repayment history.",
   },
 ];
 

@@ -165,7 +165,7 @@ export default function EmbedClient() {
               <div className="font-display text-4xl font-medium tracking-[-0.03em]">0</div>
               <div className="mt-2 text-sm font-semibold">Custodial risk</div>
               <p className="mt-2 text-sm text-[var(--ink-soft)]">
-                Your community keeps their bag. Magpie is non-custodial, on-chain, and the &quot;0 liquidations ever&quot; track record is live on /stats.
+                Your community keeps their bag. Magpie is non-custodial, on-chain, and the live liquidation rate (sub-1% lifetime) is verifiable on /stats.
               </p>
             </div>
           </div>

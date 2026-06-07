@@ -233,7 +233,7 @@ export default function StatsClient() {
             Borrow against bags. <span className="italic text-[var(--accent)]">Never sell.</span>
           </h2>
           <p className="mx-auto mt-4 max-w-md text-base text-[var(--bg-elevated)]/70">
-            Telegram-native lending on Solana. Zero liquidations by design.
+            Telegram-native lending on Solana. Sub-1% liquidation rate by design.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row">
             <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-base">

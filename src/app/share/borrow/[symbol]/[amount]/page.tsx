@@ -103,7 +103,7 @@ export default async function Page({
           </div>
           <p className="mx-auto mt-4 max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed">
             Lock your tokens as collateral, get SOL instantly. Repay any time before the deadline
-            to reclaim your tokens. Zero liquidations by design — short terms, low LTV, smart
+            to reclaim your tokens. Sub-1% liquidation rate by design — short terms, low LTV, smart
             health monitoring. All on-chain, all non-custodial, all in Telegram.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3 text-xs">
