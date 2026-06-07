@@ -11,7 +11,7 @@ export const revalidate = 60;
 export const metadata: Metadata = {
   title: "Whitepaper | Magpie",
   description:
-    "Magpie Protocol Litepaper — Memecoin-collateralized lending on Solana via Telegram.",
+    "Magpie Protocol Litepaper — Memecoin-collateralized lending on Solana, accessible from both a web dashboard and a Telegram bot.",
 };
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
@@ -171,9 +171,11 @@ export default async function WhitepaperPage() {
           <Reveal>
             <Section id="solution" n="3" title="Solution Overview">
               <P>
-                Magpie is a Telegram-native lending protocol on Solana purpose-built for memecoin
-                holders. The protocol accepts {tokenCount}+ memecoin tokens as collateral and delivers SOL
-                loans in under 10 seconds.
+                Magpie is a memecoin-collateralized lending protocol on Solana, accessible from both
+                a web dashboard (magpie.capital) and a Telegram bot (@magpie_capital_bot). The protocol
+                accepts {tokenCount}+ memecoin tokens as collateral and delivers SOL loans in under 10
+                seconds via the same on-chain Anchor program, regardless of which surface the user
+                enters from.
               </P>
 
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -520,7 +522,8 @@ First Loan      = 500 flat bonus`}</CodeBlock>
             <Section id="conclusion" n="12" title="Conclusion">
               <P>
                 Magpie addresses a $50B+ gap in the Solana DeFi ecosystem by providing the first
-                comprehensive lending solution for memecoin holders. Through Telegram-native UX,
+                comprehensive lending solution for memecoin holders. Through dual-surface UX
+                (a web dashboard for the browser-native and a Telegram bot for the chat-native),
                 conservative risk management, on-chain enforcement, and novel credit/points systems,
                 Magpie makes DeFi accessible to the largest and most active community in crypto
                 &mdash; without asking them to leave their preferred platform.
