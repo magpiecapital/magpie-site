@@ -47,6 +47,7 @@ export function Footer() {
               Telegram — Wallet bot
             </FooterLink>
             <FooterLink href={GITHUB_URL}>GitHub</FooterLink>
+            <FooterLink href="/links">All official links</FooterLink>
           </FooterCol>
         </div>
         <div className="mt-8 flex flex-col items-start justify-between gap-3 border-t border-[var(--hairline)] pt-5 sm:mt-14 sm:gap-4 sm:pt-6 md:flex-row md:items-center">
