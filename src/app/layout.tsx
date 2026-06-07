@@ -86,10 +86,11 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Magpie",
+    title: "Magpie — Borrow SOL against your bags.",
     description: "Permissionless lending protocol on Solana. Borrow SOL against memecoins and tokenized stocks.",
-    site: "@MagpieCapital",
-    creator: "@MagpieCapital",
+    site: "@MagpieLoans",
+    creator: "@MagpieLoans",
+    images: ["/opengraph-image"],
   },
   robots: {
     index: true,
