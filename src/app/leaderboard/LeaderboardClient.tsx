@@ -81,8 +81,29 @@ export default function LeaderboardClient() {
         )}
 
         {!rows && !error && (
-          <div className="rounded-2xl border border-[var(--hairline)]/10 bg-[var(--surface)]/5 p-6 text-sm text-[var(--ink)]/50">
-            Loading…
+          <div className="overflow-hidden rounded-2xl border border-[var(--hairline)]/10 bg-[var(--surface)]/5">
+            <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 border-b border-[var(--hairline)]/10 bg-[var(--surface)]/5 px-5 py-3 text-[10px] uppercase tracking-[0.18em] text-[var(--ink)]/40">
+              <div>#</div>
+              <div>Borrower</div>
+              <div className="text-right">Loans</div>
+              <div className="text-right">Score</div>
+            </div>
+            <div className="divide-y divide-[var(--hairline)]/5">
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                <div
+                  key={i}
+                  className="grid grid-cols-[auto_1fr_auto_auto] items-center gap-4 px-5 py-3.5"
+                >
+                  <div className="h-3 w-4 animate-pulse rounded bg-[var(--ink)]/10" />
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-32 animate-pulse rounded bg-[var(--ink)]/10" />
+                    <div className="h-4 w-14 animate-pulse rounded-full bg-[var(--ink)]/10" />
+                  </div>
+                  <div className="ml-auto h-3 w-6 animate-pulse rounded bg-[var(--ink)]/10" />
+                  <div className="h-4 w-10 animate-pulse rounded bg-[var(--ink)]/10" />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
