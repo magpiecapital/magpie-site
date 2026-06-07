@@ -459,9 +459,10 @@ export default async function DocsPage() {
           <Section id="supported-tokens" title="Supported Tokens" chip="Collateral">
             <P>
               Magpie currently supports <strong>{tokenStats.count}+ Solana tokens</strong> as loan
-              collateral. Anyone can submit a new token via{" "}
-              <span className="font-mono">/submit</span> in the bot — the screener runs
-              a 6-layer safety audit + market evaluation and returns one of three outcomes.
+              collateral. Anyone can submit a new token — either via{" "}
+              <span className="font-mono">/submit</span> in the bot or at{" "}
+              <a href="/submit" className="font-medium text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">magpie.capital/submit</a>.
+              The screener runs a 6-layer safety audit + market evaluation and returns one of three outcomes.
             </P>
 
             <H3>Submission outcomes</H3>
