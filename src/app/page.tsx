@@ -45,7 +45,7 @@ const THREE_SIDES = (tokenCount: number) => [
   {
     chip: "Borrow",
     title: `${tokenCount} tokens accepted`,
-    desc: "Pledge memecoins or tokenized stocks, pick a tier, get SOL in seconds. Non-custodial, on-chain, delivered in a Telegram chat.",
+    desc: "Pledge memecoins or tokenized stocks, pick a tier, get SOL in seconds. Non-custodial, on-chain, available from the dashboard or your Telegram chat.",
     href: "/tokens",
     cta: "Browse tokens",
   },
@@ -132,8 +132,8 @@ const PILLARS = [
     body: "Anyone can supply liquidity. Anyone can run a keeper. Anyone can build on top. No gatekeepers, no whitelists, open protocol.",
   },
   {
-    title: "Telegram-native",
-    body: "No new app. No extension. No seed phrase in a browser tab. Borrow SOL in a chat — the whole flow takes under 30 seconds.",
+    title: "Two front doors",
+    body: "Use the dashboard for the full-featured web experience, or the Telegram bot for one-tap loans on your phone. Same on-chain program, same wallet — pick whichever fits the moment.",
   },
 ];
 
@@ -216,7 +216,7 @@ export default async function Home() {
           </h1>
 
           <p className="fade-up fade-up-2 mt-5 max-w-xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-8 sm:text-xl">
-            Permissionless lending protocol on Solana. Pledge memecoins or tokenized stocks as collateral, get SOL in seconds — all in a Telegram chat. Every repayment builds your on-chain credit score.
+            Permissionless lending protocol on Solana. Pledge memecoins or tokenized stocks as collateral, get SOL in seconds. Borrow and manage from the dashboard or your Telegram chat — same on-chain program, your call. Every repayment builds your on-chain credit score.
           </p>
 
           <div className="fade-up fade-up-3 mt-8 flex flex-wrap items-center gap-3 sm:mt-10 sm:gap-4">
@@ -620,7 +620,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
               </h2>
             </div>
             <p className="max-w-md text-base text-[var(--ink-soft)] leading-relaxed sm:text-lg">
-              The Telegram bot wraps the on-chain program in a conversational interface. Pledge collateral, receive SOL, repay on your schedule.
+              Pledge collateral, receive SOL, repay on your schedule. Walk through the flow in either the Telegram bot or the dashboard — same on-chain program, same outcome.
             </p>
           </div>
         </Reveal>
@@ -649,9 +649,12 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
           </Reveal>
           <Reveal className="order-1 md:order-2" delay={150}>
             <PhoneMock />
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center flex flex-col gap-2 sm:flex-row sm:justify-center sm:gap-5">
+              <Link href="/dashboard" className="text-sm font-medium text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline">
+                Try it on the dashboard →
+              </Link>
               <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline">
-                Try it live on Telegram →
+                Or try it on Telegram →
               </a>
             </div>
           </Reveal>
