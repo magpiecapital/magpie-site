@@ -418,8 +418,8 @@ function CustomizePanel({
         <div className="h-full border-l border-[var(--d-border)] p-6 flex flex-col" style={{ background: "var(--d-bg-panel)" }}>
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-display text-lg font-medium">Customize</h3>
-            <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-[var(--d-surface-hover)]">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--d-ink-soft)" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            <button onClick={onClose} aria-label="Close customize panel" className="flex h-7 w-7 items-center justify-center rounded-lg transition hover:bg-[var(--d-surface-hover)]">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--d-ink-soft)" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
           <p className="text-xs text-[var(--d-ink-soft)] mb-5">Toggle sections on or off. Saved locally.</p>
@@ -486,8 +486,8 @@ function MobileMenu({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[var(--d-border)] px-5 py-4">
           <Wordmark size={22} />
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)]">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+          <button onClick={onClose} aria-label="Close menu" className="flex h-8 w-8 items-center justify-center rounded-lg text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)]">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
           </button>
         </div>
 
@@ -499,11 +499,15 @@ function MobileMenu({
               <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--d-accent)]" />
             </span>
             <span className="text-xs text-[var(--d-ink-soft)] tracking-wide">{wallet}</span>
-            <button onClick={onCopy} className="flex h-5 w-5 items-center justify-center rounded text-[var(--d-ink-faint)]">
+            <button
+              onClick={onCopy}
+              aria-label={copied ? "Wallet address copied" : "Copy wallet address"}
+              className="flex h-5 w-5 items-center justify-center rounded text-[var(--d-ink-faint)]"
+            >
               {copied ? (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-accent)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-accent)" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"><polyline points="20 6 9 17 4 12" /></svg>
               ) : (
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
               )}
             </button>
           </div>
@@ -1684,7 +1688,7 @@ export default function DashboardPage() {
                   View tx
                 </a>
               </div>
-              <button onClick={() => setRepaySuccessSig(null)} className="absolute top-2 right-2 text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]">×</button>
+              <button onClick={() => setRepaySuccessSig(null)} aria-label="Dismiss success notice" className="absolute top-2 right-2 text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]">×</button>
             </>
           )}
           {repayError && (
@@ -1692,7 +1696,7 @@ export default function DashboardPage() {
               <div className="text-sm font-semibold text-red-500">Repay failed</div>
               <div className="mt-1 text-xs text-[var(--d-ink-soft)] break-words">{repayError.slice(0, 200)}</div>
               <p className="mt-2 text-[11px] text-[var(--d-ink-faint)]">Your funds are safe. Try again, or use /repay in Telegram.</p>
-              <button onClick={() => setRepayError(null)} className="absolute top-2 right-2 text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]">×</button>
+              <button onClick={() => setRepayError(null)} aria-label="Dismiss error notice" className="absolute top-2 right-2 text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]">×</button>
             </>
           )}
         </div>
@@ -1726,7 +1730,7 @@ export default function DashboardPage() {
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--d-accent)]" />
                   </span>
                   <span className="text-xs text-[var(--d-ink-soft)] tracking-wide">{walletDisplay}</span>
-                  <button onClick={handleCopy} className="flex h-5 w-5 items-center justify-center rounded transition hover:bg-[var(--hairline)]" title="Copy">
+                  <button onClick={handleCopy} aria-label={copied ? "Wallet address copied" : "Copy wallet address"} className="flex h-5 w-5 items-center justify-center rounded transition hover:bg-[var(--hairline)]" title="Copy">
                     {copied ? (
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--d-accent)" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>
                     ) : (
@@ -1780,6 +1784,7 @@ export default function DashboardPage() {
             {/* Theme toggle */}
             <button
               onClick={toggleTheme}
+              aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               className="flex h-8 w-8 items-center justify-center rounded-xl border border-[var(--d-border)] text-[var(--d-ink-soft)] transition hover:border-[var(--d-border-strong)] hover:bg-[var(--d-surface-hover)] hover:text-[var(--d-ink)]"
               title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
             >
@@ -1795,15 +1800,16 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setCustomizeOpen(true)}
+              aria-label="Customize dashboard sections"
               className="flex items-center gap-1.5 rounded-xl border border-[var(--d-border)] px-3 py-1.5 text-xs text-[var(--d-ink-soft)] transition hover:border-[var(--d-border-strong)] hover:bg-[var(--d-surface-hover)]"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
               <span className="hidden sm:inline">Customize</span>
             </button>
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 rounded-xl bg-[var(--d-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" /></svg>
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" aria-label="Open Magpie Telegram bot in a new tab" className="flex items-center gap-1.5 rounded-xl bg-[var(--d-accent)] px-3 py-1.5 text-xs font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" /></svg>
               <span className="hidden sm:inline">Open Bot</span>
             </a>
           </div>
