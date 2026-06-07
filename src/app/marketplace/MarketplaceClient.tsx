@@ -197,7 +197,7 @@ export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-[var(--ink-soft)]">
             Magpie lends you SOL instantly. Deposit your memecoins as collateral, pick a loan tier,
-            and receive SOL in seconds — all through Telegram. No counterparty risk, no middlemen.
+            and receive SOL in seconds — from the dashboard or a Telegram chat. No counterparty risk, no middlemen.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <a
@@ -322,7 +322,7 @@ export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
             How to request a loan
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-center text-[var(--ink-soft)]">
-            The entire process happens in Telegram. Five steps, under a minute.
+            Five steps, under a minute. Walk through them in the Telegram bot or the dashboard — same on-chain program.
           </p>
 
           <div className="mt-10 grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
@@ -446,20 +446,29 @@ export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
             Ready to borrow?
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-[var(--ink-soft)]">
-            Open the Telegram bot, connect your wallet, and get SOL in under a minute.
+            Connect your wallet on the dashboard or open the Telegram bot, and get SOL in under a minute.
             Your memecoins stay on-chain as collateral until you repay.
           </p>
-          <a
-            href={TELEGRAM_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-8 py-3.5 text-base font-semibold text-[var(--accent-ink,#0a0a0a)] transition hover:bg-[var(--accent-hover,#e6b830)]"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" />
-            </svg>
-            Open Telegram Bot
-          </a>
+          <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-8 py-3.5 text-base font-semibold text-[var(--accent-ink,#0a0a0a)] transition hover:bg-[var(--accent-hover,#e6b830)]"
+            >
+              Open the dashboard
+              <span aria-hidden>→</span>
+            </Link>
+            <a
+              href={TELEGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-6 py-3.5 text-base font-semibold text-[var(--ink-soft)] transition hover:border-[var(--ink-faint)] hover:text-[var(--ink)]"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" />
+              </svg>
+              Or use Telegram
+            </a>
+          </div>
           <div className="mt-4 flex justify-center gap-4 text-xs text-[var(--ink-faint)]">
             <Link href="/docs" className="hover:text-[var(--ink-soft)]">API Docs</Link>
             <span>&middot;</span>
