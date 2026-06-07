@@ -11,6 +11,20 @@
  */
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { PublicKey } from "@solana/web3.js";
+import BN from "bn.js";
+
+const PROGRAM_ID = new PublicKey("4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh");
+
+function deriveLoanPda(borrower: PublicKey, loanId: string, programId: PublicKey): PublicKey {
+  const idBuf = Buffer.alloc(8);
+  new BN(loanId).toArrayLike(Buffer, "le", 8).copy(idBuf);
+  const [pda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("loan"), borrower.toBuffer(), idBuf],
+    programId,
+  );
+  return pda;
+}
 
 const HEADERS = {
   "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
@@ -135,11 +149,54 @@ export async function GET(req: Request) {
       [wallet, limit],
     );
 
+    // Wallet-scope the credit_event subset (borrow/repay/topup/extend
+    // events tied to a specific loan). Referrals + holder rewards stay
+    // user-scoped (consolidated benefits per the operator policy).
+    //
+    // To filter: fetch the user's loans that THIS wallet borrowed (by
+    // PDA derivation), build a Set of loan db-ids, drop any credit_event
+    // whose loan_id isn't in the set.
+    let scopedRows: UnifiedRow[] = rows as UnifiedRow[];
+    try {
+      let walletPk: PublicKey;
+      try { walletPk = new PublicKey(wallet); } catch { walletPk = null as unknown as PublicKey; }
+      if (walletPk) {
+        const { rows: loanRows } = await query(
+          `SELECT l.id, l.loan_id, l.loan_pda, l.program_id
+             FROM loans l
+             JOIN wallets w ON w.user_id = l.user_id
+            WHERE w.public_key = $1`,
+          [wallet],
+        );
+        const scopedLoanIds = new Set<string>();
+        for (const lr of loanRows as Array<{ id: number; loan_id: string | number; loan_pda: string; program_id: string | null }>) {
+          if (!lr.loan_id || !lr.loan_pda) { scopedLoanIds.add(String(lr.id)); continue; }
+          try {
+            let progId: PublicKey;
+            try { progId = lr.program_id ? new PublicKey(lr.program_id) : PROGRAM_ID; }
+            catch { progId = PROGRAM_ID; }
+            const derived = deriveLoanPda(walletPk, String(lr.loan_id), progId);
+            if (derived.toBase58() === lr.loan_pda) scopedLoanIds.add(String(lr.id));
+          } catch {
+            scopedLoanIds.add(String(lr.id)); // unverifiable → keep
+          }
+        }
+        scopedRows = (rows as UnifiedRow[]).filter((r) => {
+          // Only credit_event rows are loan-tied. Keep all other sources.
+          if (r.source !== "credit_event") return true;
+          if (r.loan_id == null) return true;
+          return scopedLoanIds.has(String(r.loan_id));
+        });
+      }
+    } catch (err) {
+      console.warn("[api/activity] wallet-scope failed; returning user-wide:", (err as Error).message);
+    }
+
     return NextResponse.json(
       {
         ok: true,
         wallet,
-        events: rows.map((r: UnifiedRow) => ({
+        events: scopedRows.map((r: UnifiedRow) => ({
           id: r.id,
           source: r.source,
           type: r.type,
