@@ -22,8 +22,8 @@ export const metadata = {
 function makeFeatures(approvedCount: number) {
   return [
   {
-    title: "Telegram-Native Lending",
-    body: "The first lending protocol that lives entirely in a chat. No dApp, no browser extension, no seed phrase in a tab.",
+    title: "Two Front Doors",
+    body: "Borrow from the web dashboard with your Phantom wallet, or from a Telegram chat with no extension required. Same on-chain program — pick the surface that fits the moment.",
   },
   {
     title: `${approvedCount}+ Memecoin Collateral`,
@@ -85,7 +85,7 @@ const VALUES = [
   },
   {
     title: "Accessibility",
-    body: "If you can use Telegram, you can borrow SOL. No DeFi expertise required.",
+    body: "If you can use Telegram or click a button on a web page, you can borrow SOL. No DeFi expertise required.",
   },
   {
     title: "Security",
@@ -157,7 +157,7 @@ export default async function AboutPage() {
                     Magpie changes this.
                   </p>
                   <p className="mt-4 text-lg leading-relaxed text-[var(--ink-soft)]">
-                    We accept the tokens nobody else will. We deliver SOL in seconds, not hours. And we do it all inside Telegram — where the memecoin community already lives.
+                    We accept the tokens nobody else will. We deliver SOL in seconds, not hours. And we meet you where you already are — on a web dashboard if you live in a browser tab, in a Telegram chat if you live on your phone.
                   </p>
                 </div>
               </div>
@@ -345,9 +345,12 @@ export default async function AboutPage() {
             Your bags are sitting idle. Put them to work.
           </p>
           <div className="mt-12 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-lg">
-              Launch on Telegram
+            <Link href="/dashboard" className="btn-accent text-lg">
+              Open the dashboard
               <span aria-hidden>→</span>
+            </Link>
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10">
+              Or use Telegram
             </a>
             <a
               href={GITHUB_URL}
