@@ -19,6 +19,77 @@ interface Entry {
 
 const ENTRIES: Entry[] = [
   {
+    date: "June 6, 2026",
+    tag: "Improvement",
+    title: "Protocol Copy & Cadence Consistency Sweep",
+    bullets: [
+      "Holder rewards cadence is now correctly described as a randomized 5–10 day window everywhere on the site (previously said \"weekly\" in two places)",
+      "Dashboard no longer claims it's \"read-only\" — every loan action (repay, partial repay, extend, top up) ships on the site",
+      "Pip's system prompt updated so it matches the user's current surface (suggests dashboard buttons on the site, slash commands in the bot)",
+      "/docs Supported Tokens section now mentions magpie.capital/submit alongside the bot path",
+    ],
+  },
+  {
+    date: "June 2026",
+    tag: "Feature",
+    title: "Site Borrow / Repay / Extend / Top Up — End-to-End on the Dashboard",
+    bullets: [
+      "Take out new loans directly from the dashboard — no Telegram required",
+      "Repay (full or partial via slider), Extend, and Top Up buttons on every active loan",
+      "Withdraw SOL from the custodial bot wallet via the dashboard",
+      "Server-side lender co-signing endpoint signs the protocol-authority half of every borrow",
+      "Same on-chain program as Telegram — pick whichever surface fits the moment",
+    ],
+  },
+  {
+    date: "June 2026",
+    tag: "Improvement",
+    title: "Multi-Wallet Scoping — Holdings & Loans Stay Separated",
+    bullets: [
+      "Loans and holdings now show ONLY the active wallet, not everything across all linked wallets",
+      "Linked wallets still aggregate for credit-score and points (intentional — that's why they're linked)",
+      "Wallet switcher in the wallets section + a one-tap action menu (Borrow, Loans, Top up, Extend, Ask Pip) per wallet",
+      "Wallet removal now uses local PDA derivation — no longer fails closed on RPC blips",
+    ],
+  },
+  {
+    date: "May 2026",
+    tag: "Feature",
+    title: "Pip — Floating AI Agent Across Every Page",
+    bullets: [
+      "Pip now lives on every page of magpie.capital (and inside the dashboard, with full action proposals)",
+      "Inline action cards for borrow, repay, partial repay, extend, top up — confirm right inside the chat",
+      "State-aware suggestion chips that reflect what the user actually has on-chain right now",
+      "Floating-button status badge turns amber when a loan needs attention, red when health is in danger",
+      "24h Bearer-token session after one wallet signature — sign once, chat freely",
+      "Slow-network reassurance, typewriter streaming, ↑-key recall, copy-to-clipboard, a11y dialog role + aria-live",
+    ],
+  },
+  {
+    date: "May 2026",
+    tag: "Feature",
+    title: "Dashboard — Full Account Hub",
+    bullets: [
+      "Site Wallets view with active-wallet switcher",
+      "Support tickets viewer + ask-Pip thread",
+      "Notification + auto-protect preferences panel (top-up assist, health-watch alerts, pump alerts)",
+      "Activity feed (loans, repays, top-ups, extends, transfers, credit events)",
+      "TG ↔ site account linking via short codes",
+      "Live protocol ticker — TVL, active loans, today's volume, $MAGPIE price",
+    ],
+  },
+  {
+    date: "May 2026",
+    tag: "Security",
+    title: "Lock-Switch & Wallet-Mismatch Guards",
+    bullets: [
+      "/lock 24h immediately rejects every signed site action (withdraw, set-active, ticket delete, etc.) with 423 LOCKED",
+      "Telegram is a separate auth surface from Phantom — a stolen seed cannot suppress the lock",
+      "Wrong-wallet borrower pre-flight on every loan action — refuses if the loan PDA doesn't match the active wallet",
+      "Decimals-drift refusal guard — borrow refuses if DB and on-chain decimals disagree",
+    ],
+  },
+  {
     date: "April 17, 2026",
     tag: "Feature",
     title: "Public REST API (v1)",
