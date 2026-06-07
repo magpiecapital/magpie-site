@@ -278,7 +278,21 @@ export function PipActionCard({
         <Row label="Paying" value={`${fmtSol(action.repay_sol)} SOL`} mono />
         <Row label="Currently owed" value={`${fmtSol(action.owed_sol_before)} SOL`} mono muted />
         <Row label="After payment" value={`${fmtSol(action.owed_sol_after)} SOL`} mono />
-        <Row label="Collateral" value="Stays locked (loan stays open)" muted />
+        {/* Loud warning — users sometimes assume partial repay frees
+            collateral proportionally. It does NOT. Make this impossible
+            to miss before they sign. */}
+        <div
+          className="col-span-2 mt-2 rounded-lg border px-2.5 py-2 text-[11px] leading-snug"
+          style={{
+            borderColor: "var(--accent)",
+            background: "color-mix(in srgb, var(--accent) 12%, transparent)",
+            color: "var(--ink)",
+          }}
+        >
+          <span className="font-semibold">⚠️ Your collateral stays locked.</span>{" "}
+          A partial repay only reduces what you owe — it does <span className="font-semibold">not</span> return any of your{" "}
+          {action.collateral_symbol ?? "collateral"}. To get your tokens back, fully repay the remaining balance.
+        </div>
         <Footer
           busy={busy}
           expired={expired}
