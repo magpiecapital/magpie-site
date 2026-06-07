@@ -146,7 +146,10 @@ export default function EarnPage() {
       return;
     }
     refresh();
-    const interval = setInterval(refresh, 60_000);
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      refresh();
+    }, 60_000);
     return () => clearInterval(interval);
   }, [refresh]);
 

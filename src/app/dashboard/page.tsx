@@ -756,9 +756,28 @@ export default function DashboardPage() {
   // Auto-poll trigger every 2 min so updates from bot actions
   // (e.g., user repays a loan via TG → credit score updates) appear
   // on the dashboard without a manual reload.
+  //
+  // Skip the bump when the tab is hidden so dashboards left open in
+  // a buried tab don't keep hitting our APIs. When the user comes
+  // back to the tab, fire one immediate forceRefresh so they see
+  // fresh data instead of waiting up to 2 min for the next tick.
   useEffect(() => {
-    const id = setInterval(forceRefresh, 120_000);
-    return () => clearInterval(id);
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      forceRefresh();
+    }, 120_000);
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) forceRefresh();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
+    return () => {
+      clearInterval(id);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
+    };
   }, [forceRefresh]);
 
   // ── Activity feed (unified across loans, referrals, holder distributions) ──
@@ -847,7 +866,10 @@ export default function DashboardPage() {
         });
     };
     fetchBalance();
-    const interval = setInterval(fetchBalance, 60_000);
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchBalance();
+    }, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey, refreshTrigger]);
 
@@ -891,7 +913,10 @@ export default function DashboardPage() {
         .finally(() => { if (!cancelled) setHoldingsLoading(false); });
     };
     fetchHoldings();
-    const interval = setInterval(fetchHoldings, 90_000);
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchHoldings();
+    }, 90_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey, refreshTrigger]);
 
@@ -1267,7 +1292,10 @@ export default function DashboardPage() {
         .finally(() => { if (!cancelled) setLoansLoading(false); });
     };
     fetchLoans();
-    const interval = setInterval(fetchLoans, 60_000);
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchLoans();
+    }, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey, refreshTrigger]);
 
@@ -1287,7 +1315,10 @@ export default function DashboardPage() {
         .catch(() => { /* keep last good */ });
     };
     fetchEligible();
-    const interval = setInterval(fetchEligible, 60_000);
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchEligible();
+    }, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey, refreshTrigger]);
 
@@ -1303,7 +1334,10 @@ export default function DashboardPage() {
         .catch(() => { /* keep last good */ });
     };
     fetchActivity();
-    const interval = setInterval(fetchActivity, 60_000);
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchActivity();
+    }, 60_000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [connected, publicKey, refreshTrigger]);
 

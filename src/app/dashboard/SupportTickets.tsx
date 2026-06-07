@@ -110,7 +110,10 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
 
   useEffect(() => {
     loadTickets();
-    const id = setInterval(loadTickets, 45_000);
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      loadTickets();
+    }, 45_000);
     return () => clearInterval(id);
   }, [loadTickets]);
 
