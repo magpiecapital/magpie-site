@@ -14,7 +14,7 @@ import { getTokenStats, getPoolOverview } from "@/lib/db";
 export const revalidate = 60;
 
 const X_URL = "https://x.com/MagpieLoans";
-const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
+import { TELEGRAM_BOT, TELEGRAM_COMMUNITY, TELEGRAM_URL } from "@/lib/telegram-links";
 
 /* ─── Data ─── */
 
@@ -659,6 +659,114 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
             </div>
           </Reveal>
         </div>
+      </section>
+
+      {/* ══════════ TWO TELEGRAM SURFACES — clarity, not confusion ══════════
+          Magpie has two Telegram accounts that serve different purposes.
+          Confusing them is the single most common source of "I got scammed
+          by a fake support DM" stories in crypto. Spelling it out here
+          eliminates the ambiguity before someone googles "magpie telegram"
+          and lands in a scammer's group. */}
+      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-20">
+        <Reveal>
+          <div className="text-center mb-10 md:mb-12">
+            <div className="chip mb-4">Two Telegram surfaces</div>
+            <h2 className="font-display text-3xl font-medium tracking-[-0.03em] sm:text-4xl md:text-5xl">
+              Don&apos;t mix them up.
+            </h2>
+            <p className="mt-3 max-w-2xl mx-auto text-base text-[var(--ink-soft)] sm:text-lg">
+              Magpie has exactly two Telegram accounts. Anyone else claiming to be Magpie is a scammer.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
+          {/* Wallet bot */}
+          <Reveal>
+            <a
+              href={TELEGRAM_BOT.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-dim)]/40 p-6 sm:p-7 transition hover:border-[var(--accent)] hover:bg-[var(--accent-dim)]/60"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-[var(--accent)]/15">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent-deep)]">
+                      <rect x="3" y="11" width="18" height="11" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-[var(--accent-deep)]">Private</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">1:1 with bot</span>
+              </div>
+              <h3 className="font-display text-2xl font-semibold tracking-tight">
+                {TELEGRAM_BOT.handle}
+              </h3>
+              <div className="text-sm font-semibold mt-1 text-[var(--accent-deep)]">
+                Your wallet bot
+              </div>
+              <p className="mt-3 text-sm text-[var(--ink-soft)] leading-relaxed">
+                Holds your Magpie wallet. Where you /borrow, /repay, /extend, manage loans. No one else can see your messages or wallet — it&apos;s a private chat between you and the bot.
+              </p>
+              <div className="mt-5 flex items-center gap-2 text-sm font-medium text-[var(--accent-deep)]">
+                Open the bot
+                <span aria-hidden>→</span>
+              </div>
+            </a>
+          </Reveal>
+
+          {/* Community group */}
+          <Reveal delay={80}>
+            <a
+              href={TELEGRAM_COMMUNITY.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 sm:p-7 transition hover:border-[var(--ink-faint)] hover:bg-[var(--surface)]"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-[var(--surface)]">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--ink-soft)]">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                      <circle cx="9" cy="7" r="4" />
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                    </svg>
+                  </span>
+                  <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-[var(--ink-soft)]">Public</span>
+                </div>
+                <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Group chat</span>
+              </div>
+              <h3 className="font-display text-2xl font-semibold tracking-tight">
+                {TELEGRAM_COMMUNITY.handle}
+              </h3>
+              <div className="text-sm font-semibold mt-1 text-[var(--ink)]">
+                Community group
+              </div>
+              <p className="mt-3 text-sm text-[var(--ink-soft)] leading-relaxed">
+                Public chat with other Magpie users. Discussion, questions, protocol news. Moderated — no scam links, CAPTCHA for joiners. Completely optional; you can use the protocol without ever joining.
+              </p>
+              <div className="mt-5 flex items-center gap-2 text-sm font-medium text-[var(--ink-soft)]">
+                Join the community
+                <span aria-hidden>→</span>
+              </div>
+            </a>
+          </Reveal>
+        </div>
+
+        {/* Trust signal — what no Magpie account ever does */}
+        <Reveal delay={160}>
+          <div className="max-w-2xl mx-auto mt-8 rounded-xl bg-[var(--surface)] border border-[var(--hairline)] p-5 text-center">
+            <div className="text-[11px] uppercase tracking-[0.16em] font-semibold text-[var(--bad)] mb-2">
+              ⚠️ Anyone else is a scammer
+            </div>
+            <p className="text-sm text-[var(--ink-soft)] leading-relaxed">
+              No Magpie account will ever DM you first, ask for your seed phrase, promise to recover lost funds, or hand out free airdrops. There&apos;s no &quot;Magpie Support&quot; account — official help only happens inside <span className="font-semibold text-[var(--ink)]">{TELEGRAM_BOT.handle}</span> or in the community group above.
+            </p>
+          </div>
+        </Reveal>
       </section>
 
       {/* ══════════ LIVE PROTOCOL DATA ══════════ */}

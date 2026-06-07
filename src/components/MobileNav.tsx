@@ -6,8 +6,7 @@ import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { Wordmark } from "@/components/Logo";
 import { ConnectWallet } from "@/components/ConnectWallet";
-
-const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
+import { TELEGRAM_BOT, TELEGRAM_COMMUNITY } from "@/lib/telegram-links";
 const CREATOR_WALLET = "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx";
 // $MAGPIE token nav slot — mirror of the one in Header.tsx. Renders as
 // a disabled/muted pill while MAGPIE_TOKEN_HREF is null; becomes a clickable
@@ -173,18 +172,33 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
           ))}
         </nav>
 
-        {/* Bottom CTA */}
-        <div className="border-t border-[var(--hairline)] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {/* Bottom CTAs — TWO clearly-labeled Telegram surfaces.
+            Wallet bot (primary, full-width) + Community group (secondary,
+            outline). Eliminates the ambiguity of a generic "Telegram" link. */}
+        <div className="border-t border-[var(--hairline)] px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2">
           <a
-            href={TELEGRAM_URL}
+            href={TELEGRAM_BOT.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-3.5 text-sm font-semibold text-[var(--accent-ink)] transition hover:bg-[var(--accent-hover)]"
+            className="flex items-center justify-center gap-2 rounded-xl bg-[var(--accent)] px-4 py-3 text-sm font-semibold text-[var(--accent-ink)] transition hover:bg-[var(--accent-hover)]"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" />
             </svg>
-            Open Telegram Bot
+            <span>Open wallet bot</span>
+            <span className="text-[10px] opacity-75 font-normal">@magpie_capital_bot</span>
+          </a>
+          <a
+            href={TELEGRAM_COMMUNITY.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3 text-sm font-medium text-[var(--ink-soft)] transition hover:border-[var(--ink-faint)] hover:text-[var(--ink)]"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" />
+            </svg>
+            <span>Join community</span>
+            <span className="text-[10px] opacity-75 font-normal">@magpietalk</span>
           </a>
         </div>
       </div>
