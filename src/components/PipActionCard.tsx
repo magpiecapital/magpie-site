@@ -196,19 +196,23 @@ export function PipActionCard({
 
   // ── REPAY card ─────────────────────────────────────────────────
   if (action.type === "repay") {
+    const collateralLabel = `${fmtTokenAmount(action.collateral_amount_raw, action.collateral_decimals)} ${action.collateral_symbol ?? ""}`.trim();
     return (
-      <Card title={`Repay loan #${action.loan_id.slice(-6)}`} kind="repay">
-        <Row label="Owed" value={`${fmtSol(action.owed_sol)} SOL`} mono />
-        <Row label="Fee included" value={`${fmtSol(action.fee_sol)} SOL`} mono muted />
-        <Row
-          label="You get back"
-          value={`${fmtTokenAmount(action.collateral_amount_raw, action.collateral_decimals)} ${action.collateral_symbol ?? ""}`.trim()}
-        />
-        <Row
-          label="Due"
-          value={action.past_due ? "past due" : `in ${action.hours_to_due}h`}
-          valueColor={action.past_due ? "var(--bad)" : "var(--ink-soft)"}
-        />
+      <HeroCard
+        title={`Repay loan #${action.loan_id.slice(-6)}`}
+        kind="repay"
+        heroLabel="You'll pay"
+        heroValue={`${fmtSol(action.owed_sol)} SOL`}
+        heroSub={Number(action.fee_sol) > 0 ? `Includes ${fmtSol(action.fee_sol)} SOL fee` : undefined}
+        reward={{ label: "Reclaim", value: collateralLabel, symbol: action.collateral_symbol ?? undefined }}
+        meta={[
+          {
+            label: action.past_due ? "Status" : "Due",
+            value: action.past_due ? "past due" : `in ${action.hours_to_due}h`,
+            tone: action.past_due ? "danger" : "neutral",
+          },
+        ]}
+      >
         <Footer
           busy={busy}
           expired={expired}
@@ -217,28 +221,33 @@ export function PipActionCard({
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Repay"}
           onClick={handleSign}
         />
-      </Card>
+      </HeroCard>
     );
   }
 
   // ── TOPUP card ─────────────────────────────────────────────────
   if (action.type === "topup") {
+    const sym = action.collateral_symbol ?? "tokens";
+    const newTotal = (() => {
+      try {
+        const total = (BigInt(action.current_collateral_raw) + BigInt(action.extra_amount_raw)).toString();
+        return `${fmtTokenAmount(total, action.collateral_decimals)} ${action.collateral_symbol ?? ""}`.trim();
+      } catch {
+        return "—";
+      }
+    })();
     return (
-      <Card title={`Top up loan #${action.loan_id.slice(-6)}`} kind="add collateral">
-        <Row label="Current collateral" value={`${fmtTokenAmount(action.current_collateral_raw, action.collateral_decimals)} ${action.collateral_symbol ?? ""}`.trim()} muted />
-        <Row label="Adding" value={`+ ${action.extra_ui_amount} ${action.collateral_symbol ?? "tokens"}`} mono />
-        <Row
-          label="New total"
-          value={(() => {
-            try {
-              const total = (BigInt(action.current_collateral_raw) + BigInt(action.extra_amount_raw)).toString();
-              return `${fmtTokenAmount(total, action.collateral_decimals)} ${action.collateral_symbol ?? ""}`.trim();
-            } catch {
-              return "—";
-            }
-          })()}
-        />
-        <Row label="Effect" value="Lowers LTV, raises health" muted />
+      <HeroCard
+        title={`Top up loan #${action.loan_id.slice(-6)}`}
+        kind="add collateral"
+        heroLabel="Adding"
+        heroValue={`+${action.extra_ui_amount} ${sym}`}
+        heroSub="Lowers LTV, raises health"
+        reward={{ label: "New total", value: newTotal }}
+        meta={[
+          { label: "Currently posted", value: `${fmtTokenAmount(action.current_collateral_raw, action.collateral_decimals)} ${action.collateral_symbol ?? ""}`.trim() },
+        ]}
+      >
         <Footer
           busy={busy}
           expired={expired}
@@ -247,18 +256,26 @@ export function PipActionCard({
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Top up"}
           onClick={handleSign}
         />
-      </Card>
+      </HeroCard>
     );
   }
 
   // ── EXTEND card ────────────────────────────────────────────────
   if (action.type === "extend") {
+    const newDueLabel = new Date(action.new_due_at_utc).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    const oldDueLabel = new Date(action.current_due_at_utc).toLocaleDateString(undefined, { month: "short", day: "numeric" });
     return (
-      <Card title={`Extend loan #${action.loan_id.slice(-6)}`} kind="extend term">
-        <Row label="Fee" value={`~${fmtSol(action.est_fee_sol)} SOL`} mono />
-        <Row label="Current due" value={new Date(action.current_due_at_utc).toLocaleDateString(undefined, { month: "short", day: "numeric" })} muted />
-        <Row label="New due" value={new Date(action.new_due_at_utc).toLocaleDateString(undefined, { month: "short", day: "numeric" })} />
-        <Row label="Added" value={`${action.duration_days} day${action.duration_days === 1 ? "" : "s"}`} />
+      <HeroCard
+        title={`Extend loan #${action.loan_id.slice(-6)}`}
+        kind="extend term"
+        heroLabel="Extension fee"
+        heroValue={`~${fmtSol(action.est_fee_sol)} SOL`}
+        heroSub={`Adds ${action.duration_days} day${action.duration_days === 1 ? "" : "s"} to the loan`}
+        reward={{ label: "New due date", value: newDueLabel }}
+        meta={[
+          { label: "Current due", value: oldDueLabel },
+        ]}
+      >
         <Footer
           busy={busy}
           expired={expired}
@@ -267,38 +284,26 @@ export function PipActionCard({
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Extend"}
           onClick={handleSign}
         />
-      </Card>
+      </HeroCard>
     );
   }
 
   // ── PARTIAL REPAY card ─────────────────────────────────────────
   if (action.type === "partial_repay") {
+    const sym = action.collateral_symbol ?? "collateral";
     return (
-      <Card title={`Partial repay · loan #${action.loan_id.slice(-6)}`} kind="partial repay">
-        <Row label="Paying" value={`${fmtSol(action.repay_sol)} SOL`} mono />
-        <Row label="Currently owed" value={`${fmtSol(action.owed_sol_before)} SOL`} mono muted />
-        <Row label="After payment" value={`${fmtSol(action.owed_sol_after)} SOL`} mono />
-        {/* Loud warning — users sometimes assume partial repay frees
-            collateral proportionally. It does NOT. Make this impossible
-            to miss before they sign. */}
-        <div
-          className="col-span-2 mt-2 rounded-lg border px-2.5 py-2 text-[11px] leading-snug"
-          style={{
-            borderColor: "var(--accent)",
-            background: "color-mix(in srgb, var(--accent) 12%, transparent)",
-            color: "var(--ink)",
-          }}
-        >
-          <div>
-            <span className="font-semibold">⚠️ Your collateral stays locked.</span>{" "}
-            A partial repay only reduces what you owe — it does <span className="font-semibold">not</span> return any of your{" "}
-            {action.collateral_symbol ?? "collateral"}. To get your tokens back, fully repay the remaining balance.
-          </div>
-          <div className="mt-1.5 pt-1.5 border-t" style={{ borderColor: "color-mix(in srgb, var(--accent) 25%, transparent)" }}>
-            <span className="font-semibold">Want some {action.collateral_symbol ?? "collateral"} back now?</span>{" "}
-            Use <code className="font-mono">/reborrow</code> in the Telegram bot — it closes this loan (all collateral released), then opens a smaller new loan against just the portion you want kept locked. Net: you walk away with some tokens free + a smaller loan.
-          </div>
-        </div>
+      <HeroCard
+        title={`Partial repay · loan #${action.loan_id.slice(-6)}`}
+        kind="partial repay"
+        heroLabel="Paying down"
+        heroValue={`${fmtSol(action.repay_sol)} SOL`}
+        heroSub={`Reduces what you owe — does NOT release ${sym}`}
+        reward={{ label: "Owed after", value: `${fmtSol(action.owed_sol_after)} SOL` }}
+        meta={[
+          { label: "Owed now", value: `${fmtSol(action.owed_sol_before)} SOL` },
+        ]}
+        warning={`Your ${sym} stays locked. To get tokens back, fully repay. Or use /reborrow in the bot — closes this loan then opens a smaller one against just the portion you want kept locked.`}
+      >
         <Footer
           busy={busy}
           expired={expired}
@@ -307,19 +312,24 @@ export function PipActionCard({
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Pay down"}
           onClick={handleSign}
         />
-      </Card>
+      </HeroCard>
     );
   }
 
   // ── BORROW card ────────────────────────────────────────────────
   return (
-    <Card title={`Borrow ${fmtSol(action.received_sol)} SOL · ${action.tier_label}`} kind="new loan">
-      <Row label="Collateral" value={`${action.collateral_ui_amount} ${action.collateral_symbol}`} />
-      <Row label="LTV" value={`${action.ltv_pct}%`} />
-      <Row label="Term" value={`${action.duration_days} day${action.duration_days === 1 ? "" : "s"}`} />
-      <Row label="Fee" value={`${fmtSol(action.fee_sol)} SOL (${(action.fee_bps / 100).toFixed(2)}%)`} mono muted />
-      <Row label="You receive" value={`${fmtSol(action.received_sol)} SOL`} mono />
-      <Row label="Due" value={new Date(action.due_at_utc).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })} />
+    <HeroCard
+      title={`Borrow · ${action.tier_label}`}
+      kind="new loan"
+      heroLabel="You'll receive"
+      heroValue={`${fmtSol(action.received_sol)} SOL`}
+      heroSub={`Pledging ${action.collateral_ui_amount} ${action.collateral_symbol} at ${action.ltv_pct}% LTV`}
+      reward={{ label: "Loan term", value: `${action.duration_days} day${action.duration_days === 1 ? "" : "s"}` }}
+      meta={[
+        { label: "Fee", value: `${fmtSol(action.fee_sol)} SOL (${(action.fee_bps / 100).toFixed(2)}%)` },
+        { label: "Due", value: new Date(action.due_at_utc).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) },
+      ]}
+    >
       <Footer
         busy={busy}
         expired={expired}
@@ -328,63 +338,139 @@ export function PipActionCard({
         buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Borrow"}
         onClick={handleSign}
       />
-    </Card>
+    </HeroCard>
   );
 }
 
 /* ── Shared sub-components ───────────────────────────────────────── */
 
-function Card({ title, kind = "action", children }: { title: string; kind?: string; children: React.ReactNode }) {
+/**
+ * HeroCard: visual hierarchy designed for in-chat action confirms.
+ * One LARGE primary number (the cost the user is committing to),
+ * a single "you get back" reward chip, and tightly-packed metadata
+ * rows beneath. Replaces the flat two-column grid that made every
+ * field look equally important.
+ */
+function HeroCard({
+  title,
+  kind,
+  heroLabel,
+  heroValue,
+  heroSub,
+  reward,
+  meta,
+  warning,
+  children,
+}: {
+  title: string;
+  kind: string;
+  heroLabel: string;
+  heroValue: string;
+  heroSub?: string;
+  reward?: { label: string; value: string; symbol?: string };
+  meta?: Array<{ label: string; value: string; tone?: "neutral" | "danger" | "good" }>;
+  warning?: string;
+  children: React.ReactNode;
+}) {
+  const toneColor = (tone?: "neutral" | "danger" | "good") =>
+    tone === "danger" ? "var(--bad)" : tone === "good" ? "var(--good, #22c55e)" : "var(--ink-soft)";
   return (
     <div
-      className="rounded-2xl border p-4 mt-2 text-[13px] shadow-sm"
+      className="rounded-2xl border mt-2 shadow-sm overflow-hidden"
       style={{
         borderColor: "var(--accent)",
         background: "var(--bg-elevated, var(--surface))",
       }}
     >
-      <div className="flex items-center justify-between mb-3 pb-2.5 border-b" style={{ borderColor: "color-mix(in srgb, var(--hairline) 60%, transparent)" }}>
-        <div className="font-semibold text-[14px] leading-tight" style={{ color: "var(--ink)" }}>{title}</div>
+      {/* Header strip */}
+      <div
+        className="flex items-center justify-between px-4 py-2.5 border-b"
+        style={{
+          borderColor: "color-mix(in srgb, var(--hairline) 60%, transparent)",
+          background: "color-mix(in srgb, var(--accent) 6%, transparent)",
+        }}
+      >
+        <div className="font-semibold text-[13px] leading-tight tracking-tight" style={{ color: "var(--ink)" }}>{title}</div>
         <div
-          className="text-[10px] uppercase tracking-[0.1em] font-semibold px-2 py-0.5 rounded-full"
-          style={{
-            color: "var(--accent-ink, #0a0a0a)",
-            background: "var(--accent)",
-          }}
+          className="text-[10px] uppercase tracking-[0.12em] font-semibold px-2 py-0.5 rounded-full"
+          style={{ color: "var(--accent-ink, #0a0a0a)", background: "var(--accent)" }}
         >
           {kind}
         </div>
       </div>
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]" style={{ color: "var(--ink-soft)" }}>
-        {children}
-      </dl>
-    </div>
-  );
-}
 
-function Row({
-  label,
-  value,
-  mono = false,
-  muted = false,
-  valueColor,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-  muted?: boolean;
-  valueColor?: string;
-}) {
-  return (
-    <>
-      <dt>{label}</dt>
-      <dd
-        className={`text-right ${mono ? "font-mono" : ""}`}
-        style={{ color: valueColor ?? (muted ? "var(--ink-soft)" : "var(--ink)") }}
-      >
-        {value}
-      </dd>
-    </>
+      {/* Hero amount */}
+      <div className="px-4 pt-4 pb-3">
+        <div className="text-[10px] uppercase tracking-[0.16em] font-medium" style={{ color: "var(--ink-faint)" }}>
+          {heroLabel}
+        </div>
+        <div className="mt-1 font-display text-[26px] font-semibold leading-none tracking-tight" style={{ color: "var(--ink)" }}>
+          {heroValue}
+        </div>
+        {heroSub && (
+          <div className="mt-1.5 text-[11px]" style={{ color: "var(--ink-faint)" }}>{heroSub}</div>
+        )}
+      </div>
+
+      {/* Reward chip — what the user gets back */}
+      {reward && (
+        <div className="mx-4 mb-3 rounded-xl px-3 py-2.5 flex items-center justify-between gap-3"
+          style={{
+            background: "color-mix(in srgb, var(--accent) 10%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--accent) 25%, transparent)",
+          }}
+        >
+          <div className="flex items-center gap-1.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--accent-deep, var(--accent))" }} aria-hidden="true">
+              <path d="M20 12v9H4v-9" />
+              <path d="M22 7H2v5h20V7z" />
+              <path d="M12 22V7" />
+              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+            </svg>
+            <span className="text-[11px] uppercase tracking-[0.14em] font-medium" style={{ color: "var(--ink-soft)" }}>{reward.label}</span>
+          </div>
+          <span className="text-[13px] font-semibold" style={{ color: "var(--ink)" }}>
+            {reward.value}
+          </span>
+        </div>
+      )}
+
+      {/* Warning callout (e.g. partial repay collateral-locked notice) */}
+      {warning && (
+        <div className="mx-4 mb-3 rounded-xl px-3 py-2 text-[11px] leading-relaxed flex gap-2"
+          style={{
+            background: "color-mix(in srgb, var(--bad) 8%, transparent)",
+            border: "1px solid color-mix(in srgb, var(--bad) 25%, transparent)",
+            color: "var(--ink)",
+          }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 mt-0.5" style={{ color: "var(--bad)" }} aria-hidden="true">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <span>{warning}</span>
+        </div>
+      )}
+
+      {/* Compact metadata rows */}
+      {meta && meta.length > 0 && (
+        <div className="px-4 pb-3 space-y-1">
+          {meta.map((m, i) => (
+            <div key={i} className="flex items-center justify-between text-[11.5px]">
+              <span className="uppercase tracking-[0.12em]" style={{ color: "var(--ink-faint)" }}>{m.label}</span>
+              <span className="font-medium" style={{ color: toneColor(m.tone) }}>{m.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Footer (button + status messages) */}
+      <div className="px-4 pb-4 pt-1">
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -395,6 +481,8 @@ function Footer({
   error,
   buttonLabel,
   onClick,
+  /** When true, wrap output so it sits cleanly inside the old 2-col Card grid. */
+  inGrid = false,
 }: {
   busy: boolean;
   expired: boolean;
@@ -402,11 +490,12 @@ function Footer({
   error: string | null;
   buttonLabel: string;
   onClick: () => void;
+  inGrid?: boolean;
 }) {
   if (doneSig) {
     return (
-      <div className="mt-3 text-[12px] flex items-center gap-2 col-span-2" style={{ color: "var(--good, #22c55e)" }}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <div className={`text-[12px] flex items-center gap-2 ${inGrid ? "mt-3 col-span-2" : ""}`} style={{ color: "var(--good, #22c55e)" }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M20 6L9 17l-5-5" />
         </svg>
         Done · <a href={`https://solscan.io/tx/${doneSig}`} target="_blank" rel="noopener noreferrer" className="underline">tx</a>
@@ -414,17 +503,18 @@ function Footer({
     );
   }
   return (
-    <div className="col-span-2 mt-3">
+    <div className={inGrid ? "col-span-2 mt-3" : ""}>
       <button
         onClick={onClick}
         disabled={busy || expired}
-        className="w-full rounded-xl py-2 text-sm font-semibold transition disabled:opacity-50"
+        aria-busy={busy}
+        className="w-full rounded-xl py-2.5 text-[13px] font-semibold transition active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed"
         style={{ background: "var(--accent)", color: "var(--accent-ink, #0a0a0a)" }}
       >
         {buttonLabel}
       </button>
       {error && (
-        <div className="mt-2 text-[11px]" style={{ color: "var(--bad)" }}>
+        <div className="mt-2 text-[11px] leading-snug" style={{ color: "var(--bad)" }}>
           {error}
         </div>
       )}
