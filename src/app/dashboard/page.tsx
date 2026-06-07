@@ -586,14 +586,29 @@ function MobileMenu({
 
 /* ───────────────────────── EMPTY STATE ───────────────────────── */
 
-function EmptyState({ message, cta }: { message: string; cta?: { label: string; href: string } }) {
+function EmptyState({
+  message,
+  cta,
+}: {
+  message: string;
+  cta?: { label: string; href: string } | { label: string; onClick: () => void };
+}) {
   return (
     <div className="rounded-2xl border border-dashed border-[var(--d-border-strong)] bg-[var(--d-surface)]/50 p-10 text-center">
       <div className="text-sm text-[var(--d-ink-soft)]">{message}</div>
-      {cta && (
+      {cta && "href" in cta && (
         <a href={cta.href} className="mt-3 inline-block text-sm font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
           {cta.label} &rarr;
         </a>
+      )}
+      {cta && "onClick" in cta && (
+        <button
+          type="button"
+          onClick={cta.onClick}
+          className="mt-3 inline-block text-sm font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4"
+        >
+          {cta.label} &rarr;
+        </button>
       )}
     </div>
   );
@@ -1899,7 +1914,7 @@ export default function DashboardPage() {
                   { label: "Holdings", value: `${holdings.length}`, sub: "SPL tokens", accent: false },
                   { label: "Eligible Collateral", value: `${eligibleCollateral.length}`, sub: totalEligibleUsd > 0 ? `$${totalEligibleUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "No eligible tokens", accent: eligibleCollateral.length > 0 },
                   { label: "Active Loans", value: `${activeLoans.length}`, sub: activeLoans.length > 0 ? "outstanding" : "No active loans", accent: activeLoans.length > 0 },
-                  { label: "Total Owed", value: `${totalOwedSol.toFixed(4)} SOL`, sub: totalOwedSol > 0 ? "repay via Telegram" : "No debt", accent: totalOwedSol > 0 },
+                  { label: "Total Owed", value: `${totalOwedSol.toFixed(4)} SOL`, sub: totalOwedSol > 0 ? "outstanding" : "No debt", accent: totalOwedSol > 0 },
                   { label: "Credit Score", value: `${creditScore}`, sub: `${creditTier} tier`, accent: true },
                 ];
               })().map((kpi) => (
@@ -1987,14 +2002,22 @@ export default function DashboardPage() {
                       <SkeletonRows count={3} />
                     ) : activeLoans.length === 0 ? (
                       <EmptyState
-                        message="No active loans — start borrowing on Telegram"
-                        cta={{ label: "Open Telegram Bot", href: TELEGRAM_URL }}
+                        message={
+                          eligibleCollateral.length > 0
+                            ? "No active loans — pick a token in Eligible Collateral below to borrow"
+                            : "No active loans — deposit a supported token to use as collateral"
+                        }
+                        cta={
+                          eligibleCollateral.length > 0
+                            ? { label: "Scroll to collateral", onClick: () => scrollTo("eligible") }
+                            : undefined
+                        }
                       />
                     ) : (
                       <div className="overflow-hidden rounded-2xl border border-[var(--d-accent)]/20 bg-[var(--d-bg-card)]">
                         <div className="border-b border-[var(--d-border)] bg-[var(--d-accent-dim)]/30 px-4 py-3">
                           <span className="text-xs font-medium text-[var(--d-accent-deep)]">
-                            {activeLoans.length} loan{activeLoans.length !== 1 ? "s" : ""} outstanding — manage on Telegram
+                            {activeLoans.length} loan{activeLoans.length !== 1 ? "s" : ""} outstanding
                           </span>
                         </div>
                         <div className="divide-y divide-[var(--d-border)]">
@@ -2099,9 +2122,11 @@ export default function DashboardPage() {
                             href={TELEGRAM_URL}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs font-medium text-[var(--d-accent-deep)] hover:underline"
+                            className="text-xs font-medium text-[var(--d-ink-faint)] hover:text-[var(--d-accent-deep)] hover:underline"
                           >
-                            {SITE_REPAY_ENABLED ? "Repay, extend, or top up in Telegram →" : "Repay or extend in Telegram →"}
+                            {SITE_REPAY_ENABLED
+                              ? "Prefer Telegram? Manage from @magpie_capital_bot →"
+                              : "Repay or extend from @magpie_capital_bot →"}
                           </a>
                         </div>
                       </div>
@@ -2809,10 +2834,10 @@ export default function DashboardPage() {
               <div className="pointer-events-none absolute -left-12 -bottom-12 h-40 w-40 rounded-full bg-[var(--d-accent-deep)]/15 blur-3xl" />
               <div className="relative">
                 <h3 className="font-display text-xl font-medium tracking-tight md:text-2xl" style={{ color: "var(--d-cta-text)" }}>
-                  All actions happen in <span className="italic" style={{ color: "var(--d-accent)" }}>Telegram</span>
+                  Magpie also lives in <span className="italic" style={{ color: "var(--d-accent)" }}>Telegram</span>
                 </h3>
                 <p className="mx-auto mt-2 max-w-md text-sm" style={{ color: "var(--d-cta-muted)" }}>
-                  Deposit, borrow, repay, and extend from the bot. This dashboard is read-only.
+                  Borrow, repay, extend, and top up — same protocol, same wallet, two front doors. Use whichever fits the moment.
                 </p>
                 <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[var(--d-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]">
                   Open @magpie_capital_bot
