@@ -9,6 +9,7 @@ import { DiamondIcon } from "@/components/DiamondIcon";
 import { TriangleAlertIcon } from "@/components/icons";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { TELEGRAM_COMMUNITY } from "@/lib/telegram-links";
 import {
   fetchPoolStats,
   fetchDepositorPosition,
@@ -597,7 +598,7 @@ export default function EarnPage() {
               <p className="text-sm font-semibold text-[var(--ink)] mb-1">Pool launching soon</p>
               <p className="text-sm text-[var(--ink-soft)]">
                 Deposits will be enabled once the pool is activated. Join the{" "}
-                <a href="https://t.me/magpiecapital" target="_blank" rel="noopener noreferrer" className="font-medium text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">Telegram</a>
+                <a href={TELEGRAM_COMMUNITY.url} target="_blank" rel="noopener noreferrer" className="font-medium text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">community Telegram (@magpietalk)</a>
                 {" "}for updates.
               </p>
             </div>
@@ -783,7 +784,7 @@ export default function EarnPage() {
             <p className="text-sm text-[var(--ink-soft)]">
               The pool contract is deployed but hasn&apos;t been initialized yet. Deposits will be
               enabled once the pool is activated. Join the{" "}
-              <a href="https://t.me/magpiecapital" target="_blank" rel="noopener noreferrer" className="font-medium text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">Telegram</a>
+              <a href={TELEGRAM_COMMUNITY.url} target="_blank" rel="noopener noreferrer" className="font-medium text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">community Telegram (@magpietalk)</a>
               {" "}for updates.
             </p>
           </div>
