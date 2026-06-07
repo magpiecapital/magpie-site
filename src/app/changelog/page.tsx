@@ -19,6 +19,18 @@ interface Entry {
 
 const ENTRIES: Entry[] = [
   {
+    date: "June 7, 2026",
+    tag: "Feature",
+    title: "Gold + Platinum borrowers unlock 20 SOL outstanding (up from 10)",
+    bullets: [
+      "Credit-score tier now directly upgrades your loan-cap ceiling — Gold (score ≥650) and Platinum (≥750) borrowers can hold up to 20 SOL outstanding across active loans (previously capped at 10)",
+      "Max per-loan size also bumped to 10 SOL at Gold/Platinum (from 5 SOL)",
+      "Bronze and Silver tiers unchanged — still 5 SOL per loan / 10 SOL outstanding at their trusted ceiling",
+      "Best-of qualification: a high-credit user gets the upgrade immediately without needing to accumulate the legacy 3-on-time-repay threshold",
+      "Pure off-chain config change — every existing loan unchanged on-chain",
+    ],
+  },
+  {
     date: "June 6, 2026",
     tag: "Improvement",
     title: "Protocol Copy & Cadence Consistency Sweep",

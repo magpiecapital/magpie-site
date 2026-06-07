@@ -91,9 +91,9 @@ const TIERS = [
     fee: "1.5–3%",
     term: "2–7 days",
     perks: [
+      "Borrow up to 20 SOL outstanding (vs. 10 SOL for pre-Gold borrowers)",
       "Premium status badge on dashboard + leaderboard",
       "Trusted-borrower signal for third-party protocols querying the on-chain credit oracle",
-      "Eligible for upcoming tier-gated perks",
     ],
     color: "var(--accent)",
     colorDim: "var(--accent-dim)",
@@ -108,9 +108,9 @@ const TIERS = [
     fee: "1.5–3%",
     term: "2–7 days",
     perks: [
+      "Borrow up to 20 SOL outstanding — the highest tier in the protocol",
       "Top-tier status badge — sustained zero-liquidation track record",
-      "Public proof-of-reliability on-chain (BBYtty9s… credit oracle)",
-      "First in line for tier-gated upgrades when they ship",
+      "First in line for any new tier-gated perks as they ship",
     ],
     color: "#e8e6e0",
     colorDim: "rgba(232,230,224,0.15)",
@@ -129,6 +129,8 @@ const SIM_ACTIONS = [
 ];
 
 const COMPARISON = [
+  { label: "Max outstanding loan", bronze: "10 SOL", silver: "10 SOL", gold: "20 SOL", platinum: "20 SOL", highlight: true },
+  { label: "Max per single loan", bronze: "5 SOL", silver: "5 SOL", gold: "10 SOL", platinum: "10 SOL", highlight: true },
   { label: "Max LTV", bronze: "30%", silver: "30%", gold: "30%", platinum: "30%" },
   { label: "Fee", bronze: "1.5–3%", silver: "1.5–3%", gold: "1.5–3%", platinum: "1.5–3%" },
   { label: "Max Term", bronze: "7 days", silver: "7 days", gold: "7 days", platinum: "7 days" },
@@ -740,13 +742,23 @@ export default function CreditClient() {
                     <tr key={row.label} className="group">
                       <td className="border-b border-[var(--hairline)] py-4 text-sm font-semibold text-[var(--ink)] group-last:border-0">
                         {row.label}
+                        {/* highlight rows: small NEW pill so users see the upgrade quickly */}
+                        {row.highlight && (
+                          <span className="ml-2 inline-flex items-center rounded-full bg-[var(--accent)]/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--accent-deep)]">
+                            NEW
+                          </span>
+                        )}
                       </td>
                       {(["bronze", "silver", "gold", "platinum"] as const).map((tier) => {
                         const val = row[tier];
+                        const isUpgradedCell =
+                          row.highlight === true && (tier === "gold" || tier === "platinum");
                         return (
                           <td
                             key={tier}
-                            className="border-b border-[var(--hairline)] py-4 text-center text-sm group-last:border-0"
+                            className={`border-b border-[var(--hairline)] py-4 text-center text-sm group-last:border-0 ${
+                              isUpgradedCell ? "bg-[var(--accent-dim)]/40" : ""
+                            }`}
                           >
                             {typeof val === "boolean" ? (
                               val ? (
@@ -757,7 +769,13 @@ export default function CreditClient() {
                                 <span className="text-[var(--ink-faint)]">—</span>
                               )
                             ) : (
-                              <span className="tabular font-medium text-[var(--ink)]">{val}</span>
+                              <span
+                                className={`tabular font-medium ${
+                                  isUpgradedCell ? "font-bold text-[var(--accent-deep)]" : "text-[var(--ink)]"
+                                }`}
+                              >
+                                {val}
+                              </span>
                             )}
                           </td>
                         );
