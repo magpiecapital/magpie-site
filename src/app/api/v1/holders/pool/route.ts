@@ -2,7 +2,9 @@
  * GET /api/v1/holders/pool
  *
  * Returns the current $MAGPIE holder reward pool size — lamports
- * accrued since the last weekly distribution. Public, lightly cached.
+ * accrued since the last distribution. Distributions fire on a
+ * randomized 5–10 day window; the exact timing is operator-private
+ * to prevent mercenary holders from timing the snapshot.
  */
 import { NextResponse } from "next/server";
 
