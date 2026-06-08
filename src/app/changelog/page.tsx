@@ -8,7 +8,7 @@ export const metadata = {
     "What's new at Magpie. Protocol updates, new features, and improvements.",
 };
 
-type Tag = "Feature" | "Improvement" | "Security" | "Launch";
+type Tag = "Feature" | "Improvement" | "Security" | "Launch" | "Migration" | "Privacy";
 
 interface Entry {
   date: string;
@@ -407,6 +407,16 @@ const TAG_STYLES: Record<Tag, { bg: string; text: string; dot: string; glow?: st
     text: "text-[var(--accent-ink)]",
     dot: "bg-[var(--accent)]",
     glow: "shadow-[0_0_16px_rgba(247,201,72,0.5)]",
+  },
+  Migration: {
+    bg: "bg-[#fef3c7]",
+    text: "text-[#92400e]",
+    dot: "bg-[#d97706]",
+  },
+  Privacy: {
+    bg: "bg-[#dbeafe]",
+    text: "text-[#1e40af]",
+    dot: "bg-[#3b82f6]",
   },
 };
 
