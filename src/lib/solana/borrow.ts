@@ -158,6 +158,12 @@ export async function buildBorrowTransaction({
       borrowerLoanTokenAccount: borrowerWsolAta,
       feeWalletTokenAccount: feeWalletWsolAta,
       borrower,
+      // Lender authority MUST be passed explicitly — it's marked
+      // signer=true in the IDL but has no PDA seed or address constant
+      // for Anchor to auto-resolve. Without this, the resulting tx has
+      // no signer slot for LENDER_PUBKEY → cosign-borrow rejects with
+      // "Lender authority is not a signer in this transaction."
+      authority: LENDER_PUBKEY,
       systemProgram: SystemProgram.programId,
       tokenProgram: collateralTokenProgram,
       loanTokenProgram,

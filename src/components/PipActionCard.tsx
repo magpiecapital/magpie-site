@@ -40,6 +40,26 @@ function fmtTokenAmount(rawStr: string, decimals: number): string {
 
 const DEFAULT_BOT_API = "https://magpie-bot-production.up.railway.app";
 
+/**
+ * Tell the bot that a write tx just landed on-chain so its DB (which
+ * feeds the activity feed, /stats lifetime totals, credit score, and
+ * on-time streak tracking) picks up the state change immediately
+ * instead of waiting for the every-5-min loan-reconciler. Fail-soft —
+ * if it errors, the reconciler will catch up shortly.
+ */
+async function syncLoanWithBot(loanPda: string, signature: string) {
+  try {
+    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || DEFAULT_BOT_API;
+    await fetch(`${botApi}/api/v1/sync-loan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ loan_pda: loanPda, signature }),
+    });
+  } catch (err) {
+    console.warn("[pip] sync-loan failed (reconciler will catch up):", err);
+  }
+}
+
 export function PipActionCard({
   action,
   onResult,
@@ -80,6 +100,7 @@ export function PipActionCard({
         });
         const sig = await sendTransaction(transaction, connection);
         await waitConfirmed(connection, sig);
+        await syncLoanWithBot(action.loan_pda, sig);
         setDoneSig(sig);
         onResult(
           `✅ Loan #${action.loan_id} repaid · ${fmtSol(action.owed_sol)} SOL · ` +
@@ -102,6 +123,7 @@ export function PipActionCard({
         });
         const sig = await sendTransaction(transaction, connection);
         await waitConfirmed(connection, sig);
+        await syncLoanWithBot(action.loan_pda, sig);
         setDoneSig(sig);
         onResult(
           `✅ Added ${action.extra_ui_amount} ${action.collateral_symbol} to loan #${action.loan_id.slice(-6)} · ` +
@@ -122,6 +144,7 @@ export function PipActionCard({
         });
         const sig = await sendTransaction(transaction, connection);
         await waitConfirmed(connection, sig);
+        await syncLoanWithBot(action.loan_pda, sig);
         setDoneSig(sig);
         onResult(
           `✅ Extended loan #${action.loan_id.slice(-6)} · new due ${new Date(action.new_due_at_utc).toLocaleDateString()} · ` +
@@ -143,6 +166,7 @@ export function PipActionCard({
         });
         const sig = await sendTransaction(transaction, connection);
         await waitConfirmed(connection, sig);
+        await syncLoanWithBot(action.loan_pda, sig);
         setDoneSig(sig);
         onResult(
           `✅ Paid down ${fmtSol(action.repay_sol)} SOL on loan #${action.loan_id.slice(-6)} · now owes ${fmtSol(action.owed_sol_after)} SOL · ` +

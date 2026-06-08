@@ -1154,6 +1154,15 @@ export default function DashboardPage() {
         await new Promise((r) => setTimeout(r, 2000));
       }
       if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
+      // Tell the bot the tx landed so the activity feed, /stats, credit
+      // score, and streak pick up the state change immediately instead
+      // of waiting for the every-5-min reconciler. Fail-soft.
+      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+      fetch(`${botApi}/api/v1/sync-loan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loan_pda: loan.loan_pda, signature: sig }),
+      }).catch(() => {});
       setRepaySuccessSig(sig);
       forceRefresh();
     } catch (e: unknown) {
@@ -1197,6 +1206,12 @@ export default function DashboardPage() {
         await new Promise((r) => setTimeout(r, 2000));
       }
       if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
+      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+      fetch(`${botApi}/api/v1/sync-loan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loan_pda: loan.loan_pda, signature: sig }),
+      }).catch(() => {});
       setRepaySuccessSig(sig);
       forceRefresh();
     } catch (e: unknown) {
@@ -1246,6 +1261,12 @@ export default function DashboardPage() {
         await new Promise((r) => setTimeout(r, 2000));
       }
       if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
+      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+      fetch(`${botApi}/api/v1/sync-loan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ loan_pda: loan.loan_pda, signature: sig }),
+      }).catch(() => {});
       setRepaySuccessSig(sig);
       forceRefresh();
     } catch (e: unknown) {
