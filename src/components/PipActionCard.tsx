@@ -512,17 +512,25 @@ function Footer({
         <div
           className="w-full rounded-xl py-2.5 px-3 flex items-center justify-between gap-2 pip-card-confirmed"
           style={{
-            background: "color-mix(in srgb, var(--good, #22c55e) 14%, transparent)",
-            border: "1px solid color-mix(in srgb, var(--good, #22c55e) 35%, transparent)",
+            // Slightly more saturated pill background so the success
+            // state feels confident rather than washed out.
+            background: "color-mix(in srgb, #16a34a 18%, transparent)",
+            border: "1px solid color-mix(in srgb, #16a34a 45%, transparent)",
           }}
         >
-          <div className="flex items-center gap-2 text-[13px] font-semibold" style={{ color: "var(--good, #22c55e)" }}>
+          {/* Pinned to a saturated, WCAG-AA dark green (#15803d) for
+              the verb text, and a deep solid green (#16a34a) for the
+              check circle. var(--good) can resolve to a pale tint in
+              some themes, making the check feel ghosted — these
+              hardcoded values guarantee strong contrast in both light
+              and dark modes. */}
+          <div className="flex items-center gap-2 text-[13px] font-bold" style={{ color: "#15803d" }}>
             <span
               className="inline-flex h-5 w-5 items-center justify-center rounded-full pip-check-pop"
-              style={{ background: "var(--good, #22c55e)", color: "white" }}
+              style={{ background: "#16a34a", color: "#ffffff", boxShadow: "0 1px 2px rgba(0,0,0,0.15)" }}
               aria-hidden="true"
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M20 6L9 17l-5-5" />
               </svg>
             </span>
