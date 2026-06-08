@@ -13,7 +13,12 @@ const PROTOCOL_PCT = 15;
 interface ReferralData {
   linked: boolean;
   code: string | null;
+  /** Backward-compat: TG-targeted share link (bot start command). */
   share_link: string | null;
+  /** magpie.capital?ref=CODE — captured by RefCapture, attributed at auto-bootstrap. */
+  site_share_link?: string | null;
+  /** Explicit alias of share_link for the TG link. */
+  tg_share_link?: string | null;
   referred_count: number;
   borrowed_count: number;
   lifetime_lamports: string;
@@ -62,9 +67,12 @@ export default function ReferClient() {
   }, [data]);
 
   async function copyLink() {
-    if (!data?.share_link) return;
+    // Prefer the site share link (works for any audience) and fall
+    // back to the TG share link if the bot doesn't return one yet.
+    const link = data?.site_share_link || data?.share_link;
+    if (!link) return;
     try {
-      await navigator.clipboard.writeText(data.share_link);
+      await navigator.clipboard.writeText(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -142,14 +150,22 @@ export default function ReferClient() {
                   Your share link
                 </div>
                 <div className="mt-3 break-all rounded-lg bg-[var(--surface)] p-3 font-mono text-sm">
-                  {data.share_link}
+                  {data.site_share_link || data.share_link}
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button onClick={copyLink} className="btn-accent text-sm">
                     {copied ? "Copied ✓" : "Copy link"}
                   </button>
                   <a
-                    href={`https://t.me/share/url?url=${encodeURIComponent(data.share_link ?? "")}&text=${encodeURIComponent("Try Magpie — borrow SOL against memecoins, instant approval: " + (data.share_link ?? ""))}`}
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent("Try @MagpieLoans — permissionless lending on Solana. Borrow SOL against your tokens in seconds: " + (data.site_share_link || data.share_link || ""))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn-ghost text-sm"
+                  >
+                    Share on X
+                  </a>
+                  <a
+                    href={`https://t.me/share/url?url=${encodeURIComponent(data.tg_share_link || data.share_link || "")}&text=${encodeURIComponent("Try Magpie — borrow SOL against memecoins, instant approval: " + (data.tg_share_link || data.share_link || ""))}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn-ghost text-sm"
@@ -157,6 +173,11 @@ export default function ReferClient() {
                     Share to Telegram
                   </a>
                 </div>
+                {data.tg_share_link && data.site_share_link && (
+                  <div className="mt-3 text-[11px] text-[var(--ink-faint)] leading-relaxed">
+                    Prefer the TG-targeted variant? <span className="font-mono break-all text-[var(--ink-soft)]">{data.tg_share_link}</span>
+                  </div>
+                )}
                 <div className="mt-4 text-xs text-[var(--ink-faint)]">
                   Code: <span className="font-mono text-[var(--ink-soft)]">{data.code}</span>
                 </div>
