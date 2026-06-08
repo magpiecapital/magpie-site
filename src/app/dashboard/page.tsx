@@ -1872,7 +1872,7 @@ export default function DashboardPage() {
             <>
               <div className="text-sm font-semibold text-red-500">Repay failed</div>
               <div className="mt-1 text-xs text-[var(--d-ink-soft)] break-words">{repayError.slice(0, 200)}</div>
-              <p className="mt-2 text-[11px] text-[var(--d-ink-faint)]">Your funds are safe. Try again, or use /repay in Telegram.</p>
+              <p className="mt-2 text-[11px] text-[var(--d-ink-faint)]">Your funds are safe. Try again — if this keeps happening, ask Pip or open a support ticket.</p>
               <button onClick={() => setRepayError(null)} aria-label="Dismiss error notice" className="absolute top-2 right-2 text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]">×</button>
             </>
           )}

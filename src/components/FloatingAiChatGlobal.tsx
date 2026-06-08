@@ -1070,18 +1070,16 @@ export default function FloatingAiChatGlobal() {
                 Couldn&apos;t set up your account.
               </p>
               <p className="mt-1 text-xs">
-                Try refreshing the page. If this keeps happening, ping
-                us on{" "}
+                Try refreshing the page. If this keeps happening, head to
+                the{" "}
                 <a
-                  href="https://t.me/magpiecapital_chat"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/dashboard"
                   className="font-medium underline"
                   style={{ color: "var(--accent-deep)" }}
                 >
-                  Telegram
+                  dashboard
                 </a>{" "}
-                — we&apos;ll sort it.
+                and submit a support ticket — we&apos;ll sort it.
               </p>
             </div>
           )}

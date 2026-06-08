@@ -338,7 +338,7 @@ export function PipActionCard({
         meta={[
           { label: "Owed now", value: `${fmtSol(action.owed_sol_before)} SOL` },
         ]}
-        warning={`Your ${sym} stays locked. To get tokens back, fully repay. Or use /reborrow in the bot — closes this loan then opens a smaller one against just the portion you want kept locked.`}
+        warning={`Your ${sym} stays locked. To get tokens back, fully repay — then open a new, smaller loan against just the portion you want kept locked.`}
       >
         <Footer
           busy={busy}

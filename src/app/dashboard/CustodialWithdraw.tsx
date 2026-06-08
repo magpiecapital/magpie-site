@@ -301,16 +301,9 @@ export default function CustodialWithdraw({ botApiUrl }: { botApiUrl: string }) 
                   {signerPubkey}
                 </div>
                 <div className="mt-1 text-[10px] text-[var(--d-ink-faint)]">
-                  Site withdraws can only send to your connected wallet. To send elsewhere, use{" "}
-                  <a
-                    href="https://t.me/magpie_capital_bot"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium text-[var(--d-accent-deep)] underline hover:text-[var(--d-accent)]"
-                  >
-                    /withdraw on Telegram
-                  </a>
-                  .
+                  Site withdraws can only send to your connected wallet — keeps
+                  the signing flow simple and safe. Need to send elsewhere?
+                  Ask Pip and we can route it.
                 </div>
               </div>
 
