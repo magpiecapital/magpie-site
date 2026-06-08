@@ -80,7 +80,15 @@ export async function buildBorrowTransaction({
   );
   const loanTokenProgram = TOKEN_PROGRAM_ID; // wSOL is classic SPL
 
-  const loanId = new BN(Date.now());
+  // loan_id is baked into the loan PDA. Two borrows hitting the SAME
+  // millisecond would derive the same PDA → second tx fails with
+  // AccountAlreadyInitialized on submit (which can surface as an empty
+  // "Submission failed" if the on-chain error message doesn't carry
+  // through cleanly). Add 16 bits of entropy: collision space 2^16×
+  // larger, while Date.now() still dominates so ordering is preserved.
+  // Matches the bot's TG-side loan_id construction in services/loans.js.
+  const randomSuffix = Math.floor(Math.random() * 0x10000);
+  const loanId = new BN(Date.now()).muln(0x10000).addn(randomSuffix);
   const [loanAccount] = loanPda(borrower, loanId);
   const [collateralVault] = collateralVaultPda(loanAccount);
 
