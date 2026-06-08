@@ -825,11 +825,13 @@ export default function DashboardPage() {
   const [borrowError, setBorrowError] = useState<string | null>(null);
   const { sendTransaction, signTransaction } = useWallet();
 
-  // ── Site-repay state (feature-flagged) ──
-  // While SITE_REPAY_ENABLED is false, the repay button does not render.
-  // When true, each active loan card gets a "Repay" button. Building, signing,
-  // and submitting all happens client-side — TG flow stays unchanged.
-  const SITE_REPAY_ENABLED = process.env.NEXT_PUBLIC_SITE_REPAY_ENABLED === "true";
+  // Site-repay / extend / topup are now the default — always render the
+  // action buttons. The feature flag is retired (kept as a constant
+  // here only so the env var can still force-disable in an emergency,
+  // by setting NEXT_PUBLIC_SITE_REPAY_ENABLED=false explicitly).
+  // Otherwise the buttons are visible to every site-connected user,
+  // including site-native auto-bootstrapped accounts.
+  const SITE_REPAY_ENABLED = process.env.NEXT_PUBLIC_SITE_REPAY_ENABLED !== "false";
   const [repayPendingFor, setRepayPendingFor] = useState<string | null>(null); // loan_pda
   const [repaySuccessSig, setRepaySuccessSig] = useState<string | null>(null);
   const [repayError, setRepayError] = useState<string | null>(null);
@@ -2277,9 +2279,7 @@ export default function DashboardPage() {
                             rel="noopener noreferrer"
                             className="text-xs font-medium text-[var(--d-ink-faint)] hover:text-[var(--d-accent-deep)] hover:underline"
                           >
-                            {SITE_REPAY_ENABLED
-                              ? "Prefer Telegram? Manage from @magpie_capital_bot →"
-                              : "Repay or extend from @magpie_capital_bot →"}
+                            Prefer Telegram? Manage from @magpie_capital_bot →
                           </a>
                         </div>
                       </div>
@@ -2488,7 +2488,7 @@ export default function DashboardPage() {
                                     </svg>
                                     <p className="text-[11px] text-[var(--d-ink-soft)] leading-relaxed">
                                       Click &ldquo;Borrow&rdquo; to sign the transaction with your wallet. Your {h.symbol} is locked as collateral and you receive SOL instantly.
-                                      Repay before the deadline to reclaim your tokens. Manage loans via the <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--d-accent-deep)] font-medium hover:underline">Telegram bot</a>.
+                                      Repay before the deadline to reclaim your tokens — manage everything from the active-loans panel above, or from the <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--d-accent-deep)] font-medium hover:underline">Telegram bot</a> if you prefer.
                                     </p>
                                   </div>
                                 </div>
