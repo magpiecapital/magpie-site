@@ -82,6 +82,15 @@ export async function GET(req: Request) {
         raw_amount: t.raw_amount,
         amount: t.amount,
         priceUsd: null as number | null,
+        // Risk-preview fields, populated from DexScreener below. These
+        // let the dashboard show users token fundamentals BEFORE they
+        // confirm a borrow — liquidity depth, 24h volume, and 24h
+        // price change are the three signals that most cleanly
+        // separate "safe to collateralize" from "shallow pool, could
+        // liquidate quickly."
+        liquidityUsd: null as number | null,
+        volume24hUsd: null as number | null,
+        priceChange24hPct: null as number | null,
       };
     })
     .sort((a, b) => (b.amount || 0) - (a.amount || 0));
@@ -98,24 +107,44 @@ export async function GET(req: Request) {
         { signal: AbortSignal.timeout(7_000) },
       );
       if (r.ok) {
-        const pairs = (await r.json()) as Array<{ baseToken?: { address?: string }; priceUsd?: string; liquidity?: { usd?: number } }>;
+        const pairs = (await r.json()) as Array<{
+          baseToken?: { address?: string };
+          priceUsd?: string;
+          priceChange?: { h24?: number };
+          volume?: { h24?: number };
+          liquidity?: { usd?: number };
+        }>;
         // Pick the deepest-liquidity pair per mint (defensive against
         // shallow-pool spoofing the price).
-        const bestPriceByMint = new Map<string, number>();
-        const bestLiqByMint = new Map<string, number>();
+        const bestByMint = new Map<string, {
+          price: number;
+          liquidity: number;
+          volume24h: number;
+          priceChange24h: number;
+        }>();
         for (const p of Array.isArray(pairs) ? pairs : []) {
           const addr = p?.baseToken?.address;
           const price = parseFloat(p?.priceUsd ?? "0");
           const liq = p?.liquidity?.usd ?? 0;
           if (!addr || !price) continue;
-          if (!bestLiqByMint.has(addr) || liq > (bestLiqByMint.get(addr) ?? 0)) {
-            bestPriceByMint.set(addr, price);
-            bestLiqByMint.set(addr, liq);
+          const existing = bestByMint.get(addr);
+          if (!existing || liq > existing.liquidity) {
+            bestByMint.set(addr, {
+              price,
+              liquidity: liq,
+              volume24h: p?.volume?.h24 ?? 0,
+              priceChange24h: p?.priceChange?.h24 ?? 0,
+            });
           }
         }
         for (const e of eligibleBase) {
-          const p = bestPriceByMint.get(e.mint);
-          if (p && isFinite(p) && p > 0) e.priceUsd = p;
+          const best = bestByMint.get(e.mint);
+          if (best && isFinite(best.price) && best.price > 0) {
+            e.priceUsd = best.price;
+            e.liquidityUsd = best.liquidity || null;
+            e.volume24hUsd = best.volume24h || null;
+            e.priceChange24hPct = isFinite(best.priceChange24h) ? best.priceChange24h : null;
+          }
         }
       }
     } catch {

@@ -751,6 +751,13 @@ export default function DashboardPage() {
      *  Without this the tier cards show "You receive $0.00" — see
      *  /api/v1/eligible-collateral. */
     priceUsd?: number | null;
+    /** Risk-preview fields from DexScreener (same response). Surfaced
+     *  on each token tile so users can size up token fundamentals BEFORE
+     *  signing a borrow — thin liquidity + high volatility = liquidation
+     *  risk regardless of how good the tier looks on paper. */
+    liquidityUsd?: number | null;
+    volume24hUsd?: number | null;
+    priceChange24hPct?: number | null;
   };
   const [eligibleFromApi, setEligibleFromApi] = useState<ApiEligible[]>([]);
 
@@ -970,6 +977,12 @@ export default function DashboardPage() {
         // "You receive $0.00" because neither source had a price.
         const livePriceUsd = e.priceUsd ?? approved?.priceUsd ?? null;
         const valueUsd = livePriceUsd ? uiAmount * livePriceUsd : 0;
+        // Prefer server-side enrichment (DexScreener via
+        // /api/v1/eligible-collateral) for the risk-preview fields,
+        // falling back to whatever supported_mints had cached.
+        const liveLiquidity = e.liquidityUsd ?? approved?.liquidity ?? null;
+        const liveVolume24h = e.volume24hUsd ?? approved?.volume24h ?? null;
+        const livePriceChange24h = e.priceChange24hPct ?? approved?.priceChange24h ?? null;
         return {
           symbol: e.symbol,
           name: e.name,
@@ -977,16 +990,22 @@ export default function DashboardPage() {
           amount: e.raw_amount,
           decimals: e.decimals,
           approved: approved
-            ? { ...approved, priceUsd: livePriceUsd ?? approved.priceUsd }
+            ? {
+                ...approved,
+                priceUsd: livePriceUsd ?? approved.priceUsd,
+                liquidity: liveLiquidity,
+                volume24h: liveVolume24h,
+                priceChange24h: livePriceChange24h,
+              }
             : {
                 mint: e.mint,
                 symbol: e.symbol,
                 name: e.name,
                 priceUsd: livePriceUsd,
-                priceChange24h: null,
-                volume24h: null,
+                priceChange24h: livePriceChange24h,
+                volume24h: liveVolume24h,
                 marketCap: null,
-                liquidity: null,
+                liquidity: liveLiquidity,
               },
           valueUsd,
         };
@@ -2348,6 +2367,49 @@ export default function DashboardPage() {
                                     {formatTokenAmount(h.amount, h.decimals)} tokens
                                     {h.approved.priceUsd ? ` · $${h.approved.priceUsd < 0.01 ? h.approved.priceUsd.toPrecision(4) : h.approved.priceUsd.toFixed(4)}` : ""}
                                   </div>
+                                  {/* Risk-preview strip — surfaces token
+                                      fundamentals before the user commits
+                                      to a borrow. Liquidity depth + 24h
+                                      change are the two cleanest signals
+                                      for "is this safe to collateralize?"
+                                      Renders only when DexScreener returned
+                                      data (most approved tokens) so it
+                                      doesn't show a fake "deep" tier for
+                                      tokens we can't price. */}
+                                  {(h.approved.liquidity != null || h.approved.priceChange24h != null) && (
+                                    <div className="mt-0.5 flex items-center gap-2 text-[10px]">
+                                      {h.approved.liquidity != null && (() => {
+                                        const liq = h.approved.liquidity!;
+                                        const tier = liq >= 250_000 ? "Deep" : liq >= 50_000 ? "Mid" : "Thin";
+                                        const color = liq >= 250_000
+                                          ? "var(--d-accent-deep)"
+                                          : liq >= 50_000
+                                            ? "var(--d-warn)"
+                                            : "var(--d-bad)";
+                                        const liqLabel = liq >= 1_000_000
+                                          ? `$${(liq / 1_000_000).toFixed(1)}M`
+                                          : liq >= 1_000
+                                            ? `$${(liq / 1_000).toFixed(0)}k`
+                                            : `$${liq.toFixed(0)}`;
+                                        return (
+                                          <span style={{ color }}>
+                                            ●&nbsp;{tier} liquidity · {liqLabel}
+                                          </span>
+                                        );
+                                      })()}
+                                      {h.approved.priceChange24h != null && (
+                                        <span style={{
+                                          color: h.approved.priceChange24h >= 0
+                                            ? "var(--d-accent-deep)"
+                                            : "var(--d-bad)",
+                                        }}>
+                                          {h.approved.priceChange24h >= 0 ? "▲" : "▼"}&nbsp;
+                                          {h.approved.priceChange24h >= 0 ? "+" : ""}
+                                          {h.approved.priceChange24h.toFixed(1)}% 24h
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="text-right shrink-0">
                                   <div className="text-sm font-semibold">
@@ -2369,14 +2431,25 @@ export default function DashboardPage() {
                               {/* Expanded loan simulator */}
                               {isExpanded && (
                                 <div className="border-t border-[var(--d-border)] bg-[var(--d-surface)]/30 px-4 py-5 sm:px-6">
-                                  {/* Collateral slider */}
-                                  <div className="mb-5">
-                                    <div className="flex items-center justify-between mb-2">
-                                      <span className="text-xs font-medium text-[var(--d-ink-soft)]">Collateral amount</span>
-                                      <span className="text-xs font-semibold">
-                                        {(uiAmount * pct / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {h.symbol}
-                                        <span className="text-[var(--d-ink-faint)] font-normal ml-1">({pct}%)</span>
+                                  {/* Collateral slider — was being missed
+                                      by users because the visual was too
+                                      subtle (small "Collateral amount"
+                                      label, thin track). Users defaulted
+                                      to 100% without realizing they could
+                                      pledge less. Redesigned with an
+                                      explicit question heading, prominent
+                                      live amount, hint copy, and chip-
+                                      style quick-pick buttons so the
+                                      interaction is unmistakable. */}
+                                  <div className="mb-5 rounded-xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-3.5">
+                                    <div className="flex items-center justify-between mb-1.5">
+                                      <span className="text-xs font-semibold text-[var(--d-ink)]">How much do you want to pledge?</span>
+                                      <span className="text-xs font-bold tabular-nums" style={{ color: "var(--d-accent-deep)" }}>
+                                        {pct}%
                                       </span>
+                                    </div>
+                                    <div className="text-[11px] text-[var(--d-ink-soft)] mb-2.5">
+                                      Using <span className="font-semibold text-[var(--d-ink)]">{(uiAmount * pct / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })} {h.symbol}</span> of your {uiAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} {h.symbol} — drag or pick a preset to change.
                                     </div>
                                     <input
                                       type="range"
@@ -2385,23 +2458,49 @@ export default function DashboardPage() {
                                       step={5}
                                       value={pct}
                                       onChange={(e) => setLoanPercent((prev) => ({ ...prev, [h.mint]: Number(e.target.value) }))}
-                                      className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                                      className="w-full h-2.5 rounded-full appearance-none cursor-pointer"
                                       style={{
                                         background: `linear-gradient(to right, var(--d-accent) 0%, var(--d-accent) ${pct}%, var(--d-border) ${pct}%, var(--d-border) 100%)`,
                                       }}
                                     />
-                                    <div className="flex justify-between mt-1">
+                                    <div className="flex gap-2 mt-2.5">
                                       {[25, 50, 75, 100].map((v) => (
                                         <button
                                           key={v}
                                           onClick={() => setLoanPercent((prev) => ({ ...prev, [h.mint]: v }))}
-                                          className={`text-[10px] font-medium px-2 py-0.5 rounded-md transition ${pct === v ? "bg-[var(--d-accent)] text-[var(--d-accent-ink)]" : "text-[var(--d-ink-faint)] hover:text-[var(--d-ink-soft)]"}`}
+                                          className={`flex-1 text-xs font-semibold py-1.5 rounded-md transition border ${
+                                            pct === v
+                                              ? "bg-[var(--d-accent)] text-[var(--d-accent-ink)] border-[var(--d-accent)]"
+                                              : "text-[var(--d-ink-soft)] border-[var(--d-border)] hover:border-[var(--d-accent)] hover:text-[var(--d-ink)]"
+                                          }`}
                                         >
                                           {v}%
                                         </button>
                                       ))}
                                     </div>
                                   </div>
+
+                                  {/* Thin-liquidity caution. Renders only
+                                      when DexScreener data is available
+                                      AND liquidity is genuinely shallow
+                                      ($50k threshold matches the
+                                      protocol's borrow-time liquidity
+                                      floor in services/anti-exploit.js).
+                                      Same idea on extreme 24h moves —
+                                      if a token is pumping or dumping
+                                      hard right now, the user should
+                                      pause and think about liquidation
+                                      risk before signing. */}
+                                  {h.approved.liquidity != null && h.approved.liquidity < 50_000 && (
+                                    <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-700">
+                                      <span className="font-semibold">⚠ Thin liquidity</span> · only ${Math.round(h.approved.liquidity).toLocaleString()} across DEX pools. A repay-time sell could move price more than usual — consider borrowing a smaller % or picking a different token.
+                                    </div>
+                                  )}
+                                  {h.approved.priceChange24h != null && Math.abs(h.approved.priceChange24h) >= 25 && (
+                                    <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-700">
+                                      <span className="font-semibold">⚠ High volatility</span> · {h.approved.priceChange24h >= 0 ? "+" : ""}{h.approved.priceChange24h.toFixed(1)}% in 24h. If price reverses, your loan could approach the liquidation threshold faster than usual.
+                                    </div>
+                                  )}
 
                                   {/* Tier cards */}
                                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
