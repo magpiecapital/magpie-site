@@ -77,21 +77,19 @@ export async function GET(req: Request) {
       [limit],
     );
 
-    const events = (rows as ActivityRow[]).map((r) => {
-      const isRecent = new Date(r.updated_at) > new Date(r.start_timestamp);
-      const eventType =
-        r.status === "active" ? "borrow"
-        : r.status === "repaid" ? "repay"
-        : r.status === "liquidated" ? "liquidation"
-        : "update";
-      // For repay/liquidation use updated_at; for borrow use start_timestamp
-      const ts = (r.status === "active" || !isRecent) ? r.start_timestamp : r.updated_at;
+    // Emit BOTH the borrow event AND the closing event (repay/liquidation)
+    // per loan row. Previously we mapped each row to ONE event by current
+    // status — which meant a closed loan made its original borrow event
+    // disappear from the feed once it was repaid. Now: every loan
+    // contributes a borrow at start_timestamp + (if closed) a closing
+    // event at updated_at. Final list is re-sorted newest-first since the
+    // SQL ORDER BY only guaranteed loan-level ordering, not per-event.
+    const events = (rows as ActivityRow[]).flatMap((r) => {
       const loanAmountSol = Number(r.loan_amount_lamports) / 1e9;
       const collateralAmount = r.decimals != null
         ? Number(r.collateral_amount) / Math.pow(10, r.decimals)
         : null;
-      return {
-        type: eventType,
+      const common = {
         loan_id: r.loan_id,
         wallet_stub: stubWallet(r.wallet_pub),
         symbol: r.symbol ?? "?",
@@ -99,9 +97,18 @@ export async function GET(req: Request) {
         collateral_amount: collateralAmount,
         ltv_pct: r.ltv_percentage,
         duration_days: r.duration_days,
-        timestamp: ts,
       };
-    });
+      const out: Array<typeof common & { type: string; timestamp: string }> = [
+        { ...common, type: "borrow", timestamp: r.start_timestamp },
+      ];
+      if (r.status === "repaid") {
+        out.push({ ...common, type: "repay", timestamp: r.updated_at });
+      } else if (r.status === "liquidated") {
+        out.push({ ...common, type: "liquidation", timestamp: r.updated_at });
+      }
+      return out;
+    }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, limit);
 
     return NextResponse.json(
       { events, generated_at: new Date().toISOString() },
