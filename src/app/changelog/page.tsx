@@ -20,6 +20,20 @@ interface Entry {
 const ENTRIES: Entry[] = [
   {
     date: "June 8, 2026",
+    tag: "Launch",
+    title: "Conditional borrows — first agent-native limit orders for borrows on Solana",
+    bullets: [
+      "Agents POST a borrow intent specifying a trigger — price_above, price_below, time_after, or pool_liq_above — and Magpie's watcher polls live cross-sourced DEX prices every 30 seconds in the background",
+      "When the trigger fires, the server re-runs the FULL anti-exploit gauntlet with fresh state, then builds the unsigned tx and stores it. Agent polls, signs, and submits whenever it next checks in",
+      "All gates apply at MATCH TIME, not creation time — a banned wallet posting an intent before the ban is still blocked when the watcher fires",
+      "Postgres advisory lock ensures single-instance execution even across multiple bot replicas — no double-builds, no double-loans",
+      "SDK surface: createBorrowIntent(), getIntent(), cancelIntent(), listIntents(), waitForIntent() — the last one blocks until the watcher fires and returns the on-chain signature",
+      "MCP exposes magpie_create_borrow_intent + magpie_wait_for_intent — your Claude / Cursor / Cline agent can now place borrow orders that fire while you sleep",
+      "Pricing: 0.01 SOL to create an intent (one payment covers the entire watching + final build lifecycle, up to 30 days). Polling 0.0005 SOL, listing 0.001 SOL, cancellation free",
+    ],
+  },
+  {
+    date: "June 8, 2026",
     tag: "Improvement",
     title: "Gold + Platinum outstanding-loan ceiling raised to 30 SOL",
     bullets: [

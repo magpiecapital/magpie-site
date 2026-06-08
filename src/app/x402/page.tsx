@@ -16,7 +16,8 @@ export const metadata: Metadata = {
 };
 
 const ENDPOINTS = [
-  { method: "POST", path: "/agent/build-borrow",   desc: "Build an unsigned borrow tx. Agent signs + submits. All anti-exploit gates apply.",       price: "0.005 SOL" },
+  { method: "POST", path: "/agent/intent",         desc: "CONDITIONAL borrow — \"limit order for borrows\". Bot watches your trigger, builds the tx when matched.", price: "0.01 SOL" },
+  { method: "POST", path: "/agent/build-borrow",   desc: "Build an unsigned borrow tx now. Agent signs + submits. All anti-exploit gates apply.",   price: "0.005 SOL" },
   { method: "GET",  path: "/agent/credit-attest",  desc: "Ed25519-signed credit attestation. Verify off-chain. The portable reputation wedge.", price: "0.0005 SOL" },
   { method: "GET",  path: "/credit-score",         desc: "On-chain credit score (300–850) + factor breakdown.",                                  price: "0.001 SOL" },
   { method: "GET",  path: "/wallet/:wallet/loans", desc: "Every loan ever opened by a wallet — active, repaid, liquidated.",                     price: "free" },
@@ -155,6 +156,40 @@ console.log(result.signature);
             </p>
           </div>
         </div>
+      </section>
+
+      {/* The Wedge: conditional borrows */}
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <Reveal>
+          <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-8 md:p-10">
+            <div className="text-xs uppercase tracking-widest text-[var(--accent-deep)] mb-3">First-of-its-kind</div>
+            <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-4">
+              Limit orders, but for borrows.
+            </h2>
+            <p className="text-lg leading-relaxed text-[var(--ink)] max-w-3xl mb-6">
+              An agent doesn&apos;t have to be online when the opportunity strikes. Post a <strong>conditional borrow intent</strong> — &quot;when $TOKEN trades above $0.50, borrow 5 SOL against 10000 of it&quot; — and Magpie&apos;s watcher polls live DEX prices every 30 seconds. The moment your trigger fires, the server builds the unsigned tx. Your agent polls, signs, and submits whenever it next checks in. <strong>The first permissionless lending protocol with this primitive.</strong>
+            </p>
+            <p className="text-lg leading-relaxed text-[var(--ink)] max-w-3xl mb-8">
+              All the same anti-exploit gates run at <em>match time</em>, not creation time — fresh prices, fresh pool state, current ban list. The agent always retains final-signature authority. No custodial reservation, no smart-contract pre-commit, no funds locked.
+            </p>
+            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)] max-w-3xl">{`import { MagpieAgent } from "magpie-agent";
+
+const agent = new MagpieAgent({ keypair });
+
+const intent = await agent.createBorrowIntent({
+  collateralMint: "9UuLs...pump",        // $MAGPIE
+  collateralAmount: 10_000_000_000n,      // 10000 tokens (6 dp)
+  tier: "quick",
+  conditionType: "price_above",
+  conditionParams: { mint: "9UuLs...pump", usd: 0.05 },
+  expiresInSeconds: 7 * 86400,
+});
+
+// Block until the watcher fires + the borrow lands on-chain:
+const { signature } = await agent.waitForIntent(intent.intent_id);
+console.log("Loan opened:", signature);`}</pre>
+          </div>
+        </Reveal>
       </section>
 
       {/* The Wedge: signed credit attestations */}
