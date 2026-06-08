@@ -2070,24 +2070,24 @@ export default function DashboardPage() {
             <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
 
               {/* ─── LEFT COLUMN (8/12) ─── */}
-              <DashboardProvider botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}>
+              <DashboardProvider botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}>
               <div className="xl:col-span-8 flex flex-col gap-6">
 
                 {/* Global site-disabled banner — visible to everyone when the operator has flipped the kill-switch. */}
-                <SiteStatusBanner botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"} />
+                <SiteStatusBanner botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""} />
 
                 {/* TG link status — invisible until response comes back, then either ✓ banner or button */}
                 {connected && publicKey && (
                   <LinkToTelegram
                     wallet={publicKey.toBase58()}
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
 
                 {/* Custodial wallet management — only renders for linked users. */}
                 {connected && publicKey && (
                   <CustodialWithdraw
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
 
@@ -2095,7 +2095,7 @@ export default function DashboardPage() {
                 {connected && publicKey && (
                   <div id="section-wallets">
                     <WalletsList
-                      botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
+                      botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                     />
                   </div>
                 )}
@@ -2103,14 +2103,14 @@ export default function DashboardPage() {
                 {/* Auto-Protect + notification prefs — linked users only. */}
                 {connected && publicKey && (
                   <PrefsPanel
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
 
                 {/* Unified activity feed for linked users. */}
                 {connected && publicKey && (
                   <ActivityFeed
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
 
@@ -2118,7 +2118,7 @@ export default function DashboardPage() {
                     hides if user has zero across all three. */}
                 {connected && publicKey && (
                   <EarningsCard
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
 
@@ -2129,7 +2129,7 @@ export default function DashboardPage() {
                 {/* Support tickets — only renders if the user has tickets. */}
                 {connected && publicKey && (
                   <SupportTickets
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
 
