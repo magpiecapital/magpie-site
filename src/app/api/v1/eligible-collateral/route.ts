@@ -47,31 +47,104 @@ export async function GET(req: Request) {
     );
   }
 
-  // Fan out the two reads in parallel.
-  const [balanceRes, approvedRes] = await Promise.allSettled([
+  // Fan out the three reads in parallel: wallet balance, approved-token
+  // metadata (now including tier-relevant columns), and currently-open
+  // notional per mint (so we can show users how much cap is left
+  // without forcing them to hit the per-token cap blindly during a
+  // borrow attempt).
+  const [balanceRes, approvedRes, openByMintRes] = await Promise.allSettled([
     fetch(`${BOT_API_URL}/api/v1/wallet/balance?wallet=${wallet}`, {
       signal: AbortSignal.timeout(10_000),
     }).then((r) => r.json()),
     query(
-      `SELECT mint, symbol, name, decimals, category, image_url
+      `SELECT mint, symbol, name, decimals, category, image_url,
+              max_open_lamports, liquidity_usd, holder_count, token_age_hours,
+              top10_holder_pct, has_mint_authority, has_freeze_authority, lp_burned
          FROM supported_mints
         WHERE enabled = TRUE`,
+    ),
+    query(
+      `SELECT collateral_mint AS mint,
+              COALESCE(SUM(original_loan_amount_lamports), 0)::TEXT AS open_lamports
+         FROM loans
+        WHERE status = 'active'
+        GROUP BY collateral_mint`,
     ),
   ]);
 
   const balance = balanceRes.status === "fulfilled" ? balanceRes.value : null;
   const approved = approvedRes.status === "fulfilled" ? approvedRes.value.rows : [];
+  const openByMintRows = openByMintRes.status === "fulfilled" ? openByMintRes.value.rows : [];
+  const openByMint = new Map<string, bigint>(
+    (openByMintRows as Array<{ mint: string; open_lamports: string }>).map((r) => [r.mint, BigInt(r.open_lamports || "0")]),
+  );
   const heldTokens: BotToken[] = (balance?.tokens ?? []) as BotToken[];
 
   // Build mint → approved metadata map, then intersect with holdings.
-  const approvedByMint = new Map(
-    approved.map((row: { mint: string; symbol: string; name: string; decimals: number; category: string | null; image_url: string | null }) => [row.mint, row]),
+  type ApprovedRow = {
+    mint: string; symbol: string; name: string; decimals: number;
+    category: string | null; image_url: string | null;
+    max_open_lamports: string | null;
+    liquidity_usd: number | string | null;
+    holder_count: number | null;
+    token_age_hours: number | null;
+    top10_holder_pct: number | string | null;
+    has_mint_authority: boolean | null;
+    has_freeze_authority: boolean | null;
+    lp_burned: boolean | null;
+  };
+  const approvedByMint = new Map<string, ApprovedRow>(
+    (approved as ApprovedRow[]).map((row) => [row.mint, row]),
   );
+
+  // Tier table — keep in sync with bagbank-bot/src/services/anti-exploit.js.
+  // Mirroring here lets us tell the user up front what cap they're
+  // working with, instead of hitting the gate at borrow time. The
+  // fallback per-token cap of 10 SOL matches the bot's default.
+  const FALLBACK_CAP_SOL = 10;
+  const TIERS = [
+    { label: "bluechip", capSol: 30, minLiq: 1_000_000, minHolders: 10_000, minAgeH: 1440, maxTop10: 30, requireLpBurned: true },
+    { label: "large",    capSol: 25, minLiq: 400_000,   minHolders: 3_000,  minAgeH: 480,  maxTop10: 40, requireLpBurned: false },
+    { label: "mid",      capSol: 15, minLiq: 150_000,   minHolders: 1_000,  minAgeH: 168,  maxTop10: 50, requireLpBurned: false },
+  ];
+  function computeTier(row: ApprovedRow): { tier: string; capSol: number } {
+    if (row.has_mint_authority === true) return { tier: "small", capSol: FALLBACK_CAP_SOL };
+    if (row.has_freeze_authority === true) return { tier: "small", capSol: FALLBACK_CAP_SOL };
+    const liq = Number(row.liquidity_usd || 0);
+    const holders = Number(row.holder_count || 0);
+    const ageH = Number(row.token_age_hours || 0);
+    const top10 = Number(row.top10_holder_pct || 100);
+    const lpBurned = row.lp_burned === true;
+    for (const t of TIERS) {
+      if (liq < t.minLiq) continue;
+      if (holders < t.minHolders) continue;
+      if (ageH < t.minAgeH) continue;
+      if (top10 > t.maxTop10) continue;
+      if (t.requireLpBurned && !lpBurned) continue;
+      return { tier: t.label, capSol: t.capSol };
+    }
+    return { tier: "small", capSol: FALLBACK_CAP_SOL };
+  }
 
   const eligibleBase = heldTokens
     .filter((t) => approvedByMint.has(t.mint))
     .map((t) => {
-      const meta = approvedByMint.get(t.mint)! as { mint: string; symbol: string; name: string; decimals: number; category: string | null; image_url: string | null };
+      const meta = approvedByMint.get(t.mint)!;
+      // Resolve the cap: operator override wins, otherwise tier-based.
+      let capSol: number | null;
+      let tier: string;
+      if (meta.max_open_lamports !== null && meta.max_open_lamports !== undefined) {
+        const raw = BigInt(String(meta.max_open_lamports));
+        if (raw === 0n) { capSol = null; tier = "unlimited"; }
+        else { capSol = Number(raw) / 1e9; tier = "override"; }
+      } else {
+        const computed = computeTier(meta);
+        capSol = computed.capSol;
+        tier = computed.tier;
+      }
+      const openLamports = openByMint.get(t.mint) ?? 0n;
+      const openSol = Number(openLamports) / 1e9;
+      const remainingSol = capSol === null ? null : Math.max(0, capSol - openSol);
       return {
         mint: t.mint,
         symbol: meta.symbol,
@@ -82,6 +155,13 @@ export async function GET(req: Request) {
         raw_amount: t.raw_amount,
         amount: t.amount,
         priceUsd: null as number | null,
+        // Per-token exposure cap fields — let the dashboard surface
+        // tier + remaining capacity so users know up front whether
+        // they'll hit the cap before they sign a borrow.
+        tier,
+        capSol,
+        openSol,
+        remainingSol,
         // Risk-preview fields, populated from DexScreener below. These
         // let the dashboard show users token fundamentals BEFORE they
         // confirm a borrow — liquidity depth, 24h volume, and 24h

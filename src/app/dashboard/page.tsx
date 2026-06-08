@@ -141,6 +141,14 @@ interface ApprovedToken {
   volume24h: number | null;
   marketCap: number | null;
   liquidity: number | null;
+  // Per-token protocol-exposure cap (computed server-side in
+  // /api/v1/eligible-collateral from supported_mints metadata).
+  // Lets the dashboard show users the tier their token qualifies
+  // for and how much capacity remains before they sign a borrow.
+  tier?: string;
+  capSol?: number | null;
+  openSol?: number;
+  remainingSol?: number | null;
 }
 
 interface EligibleHolding extends TokenHolding {
@@ -758,6 +766,17 @@ export default function DashboardPage() {
     liquidityUsd?: number | null;
     volume24hUsd?: number | null;
     priceChange24hPct?: number | null;
+    /** Per-token protocol-exposure cap fields (computed server-side
+     *  from supported_mints metadata + currently-active loans). Lets
+     *  the dashboard show users the tier their token qualifies for
+     *  (bluechip/large/mid/small/override/unlimited) and how much
+     *  borrowing capacity is left across the whole protocol before
+     *  the cap is hit. Without this, users only learn about the cap
+     *  AFTER signing and getting refused by anti-exploit. */
+    tier?: string;
+    capSol?: number | null;
+    openSol?: number;
+    remainingSol?: number | null;
   };
   const [eligibleFromApi, setEligibleFromApi] = useState<ApiEligible[]>([]);
 
@@ -996,6 +1015,10 @@ export default function DashboardPage() {
                 liquidity: liveLiquidity,
                 volume24h: liveVolume24h,
                 priceChange24h: livePriceChange24h,
+                tier: e.tier,
+                capSol: e.capSol,
+                openSol: e.openSol,
+                remainingSol: e.remainingSol,
               }
             : {
                 mint: e.mint,
@@ -1006,6 +1029,10 @@ export default function DashboardPage() {
                 volume24h: liveVolume24h,
                 marketCap: null,
                 liquidity: liveLiquidity,
+                tier: e.tier,
+                capSol: e.capSol,
+                openSol: e.openSol,
+                remainingSol: e.remainingSol,
               },
           valueUsd,
         };
@@ -2479,6 +2506,62 @@ export default function DashboardPage() {
                                       ))}
                                     </div>
                                   </div>
+
+                                  {/* Tier + per-token cap info strip.
+                                      Tells the user up front what tier
+                                      this token is in and how much
+                                      borrowing capacity is left across
+                                      the whole protocol — so they don't
+                                      sign a borrow and then get rejected
+                                      by gate 0 (per_token_cap) at the
+                                      bot's anti-exploit layer. The tier
+                                      labels mirror the bot's
+                                      computeTokenTier output. */}
+                                  {(() => {
+                                    const tier = h.approved.tier as string | undefined;
+                                    if (!tier) return null;
+                                    const capSol = h.approved.capSol ?? null;
+                                    const openSol = h.approved.openSol ?? 0;
+                                    const remaining = h.approved.remainingSol;
+                                    const isUnlimited = tier === "unlimited" || capSol === null;
+                                    const utilization = !isUnlimited && capSol > 0 ? openSol / capSol : 0;
+                                    const tierLabel = {
+                                      bluechip: "Bluechip",
+                                      large: "Large",
+                                      mid: "Mid",
+                                      small: "Small",
+                                      override: "Pinned",
+                                      unlimited: "Unlimited",
+                                    }[tier] || tier;
+                                    const tierColor = tier === "bluechip"
+                                      ? "var(--d-accent-deep)"
+                                      : tier === "large"
+                                        ? "var(--d-accent-deep)"
+                                        : tier === "mid"
+                                          ? "var(--d-warn)"
+                                          : tier === "unlimited" || tier === "override"
+                                            ? "var(--d-accent-deep)"
+                                            : "var(--d-ink-soft)";
+                                    return (
+                                      <div className="mb-3 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 text-[11px] flex items-center justify-between gap-2 flex-wrap">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-semibold" style={{ color: tierColor }}>
+                                            Tier · {tierLabel}
+                                          </span>
+                                          <span className="text-[var(--d-ink-soft)]">
+                                            {isUnlimited
+                                              ? "no protocol cap"
+                                              : `${openSol.toFixed(2)} of ${capSol.toFixed(0)} SOL borrowed protocol-wide`}
+                                          </span>
+                                        </div>
+                                        {!isUnlimited && utilization >= 0.75 && (
+                                          <span className="font-semibold" style={{ color: utilization >= 0.95 ? "var(--d-bad)" : "var(--d-warn)" }}>
+                                            {remaining != null ? `${remaining.toFixed(2)} SOL left` : ""}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
 
                                   {/* Thin-liquidity caution. Renders only
                                       when DexScreener data is available
