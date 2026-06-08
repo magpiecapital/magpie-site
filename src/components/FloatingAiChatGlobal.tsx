@@ -1057,33 +1057,22 @@ export default function FloatingAiChatGlobal() {
               }}
             >
               <p style={{ color: "var(--ink)" }} className="font-semibold">
-                Almost there — link your wallet to chat.
+                Couldn&apos;t set up your account.
               </p>
-              <ol className="mt-2 list-decimal pl-5 space-y-1 text-xs">
-                <li>
-                  Go to{" "}
-                  <Link href="/dashboard" className="font-medium underline" style={{ color: "var(--accent-deep)" }}>
-                    magpie.capital/dashboard
-                  </Link>{" "}
-                  and tap <em>Link to Telegram</em>
-                </li>
-                <li>
-                  Paste the code in{" "}
-                  <a
-                    href="https://t.me/magpie_capital_bot"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-medium underline"
-                    style={{ color: "var(--accent-deep)" }}
-                  >
-                    @magpie_capital_bot
-                  </a>{" "}
-                  as{" "}
-                  <code className="rounded px-1" style={{ background: "var(--hairline)", color: "var(--ink)" }}>
-                    /link &lt;code&gt;
-                  </code>
-                </li>
-              </ol>
+              <p className="mt-1 text-xs">
+                Try refreshing the page. If this keeps happening, ping
+                us on{" "}
+                <a
+                  href="https://t.me/magpiecapital_chat"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium underline"
+                  style={{ color: "var(--accent-deep)" }}
+                >
+                  Telegram
+                </a>{" "}
+                — we&apos;ll sort it.
+              </p>
             </div>
           )}
 

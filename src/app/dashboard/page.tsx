@@ -3141,15 +3141,15 @@ function LinkToTelegram({ wallet, botApiUrl }: { wallet: string; botApiUrl: stri
   return (
     <div className="rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 flex items-center justify-between gap-3">
       <div>
-        <div className="text-[11px] font-semibold text-[var(--d-ink)]">Link to Telegram</div>
-        <div className="text-[10px] text-[var(--d-ink-soft)]">Unifies your loans + referral code across surfaces</div>
+        <div className="text-[11px] font-semibold text-[var(--d-ink)]">Connect Telegram (optional)</div>
+        <div className="text-[10px] text-[var(--d-ink-soft)]">Backup auth surface + emergency lock + unified loans across surfaces</div>
       </div>
       <button
         onClick={requestCode}
         disabled={requesting}
         className="rounded-md border border-[var(--d-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)] disabled:opacity-50"
       >
-        {requesting ? "…" : "Link"}
+        {requesting ? "…" : "Connect"}
       </button>
       {err && <span className="text-[10px] text-red-500">{err}</span>}
     </div>
