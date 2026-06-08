@@ -20,6 +20,43 @@ interface Entry {
 const ENTRIES: Entry[] = [
   {
     date: "June 8, 2026",
+    tag: "Migration",
+    title: "Site-first protocol — borrow, repay, extend, topup, chat with Pip — all without Telegram",
+    bullets: [
+      "Auto-bootstrap on first wallet connect — magpie.capital creates your Magpie identity automatically. No /link <code>, no @username, no Telegram step required to start transacting",
+      "Dashboard now ships Repay / Extend / Top up buttons on every active loan card (was feature-flagged off; now production-stable)",
+      "Pip chat streams tokens live (typing-as-it-generates) instead of pausing for the full response. First characters appear in ~300-500ms",
+      "Pip's panel widened on desktop and fills viewport on mobile; markdown tables now have proper cell padding, horizontal-scroll fallback, and tabular-numeric alignment",
+      "Pip is scoped to the connected wallet only — won't reference your other linked wallets unless you explicitly ask for your full account picture",
+      "Every site action (borrow / repay / extend / topup) now feeds the activity feed, /stats lifetime totals, credit score, and on-time streak immediately via a new sync-loan endpoint — no waiting on the every-5-min reconciler",
+      "Telegram is now framed as an optional backup surface across the site (landing, calculator, holders, credit, dashboard) — never required. The TG bot continues to work exactly as before for users who prefer it",
+    ],
+  },
+  {
+    date: "June 8, 2026",
+    tag: "Privacy",
+    title: "Telegram handles never exposed in public API responses",
+    bullets: [
+      "Stripped telegram_username from /api/v1/link/status, /api/v1/dashboard, and /api/v1/credit/leaderboard — anyone with a wallet pubkey could previously curl those endpoints and learn the owner's TG handle",
+      "Leaderboard now displays a short wallet-pubkey prefix instead of @handle — keeps competitive recognition without leaking identities",
+      "/api/v1/debug/recent-errors is now token-gated (operator-only). Previously anyone could harvest live error contexts including wallet pubkeys + loan PDAs",
+      "Auto-bootstrap and backfill endpoints are per-IP rate-limited to prevent DoS / DB-bloat attacks",
+      "New startup self-check refuses to boot the bot if any public-route handler regressively exposes telegram_username (defensive privacy lint)",
+    ],
+  },
+  {
+    date: "June 8, 2026",
+    tag: "Improvement",
+    title: "$MAGPIE holder rewards now credit collateralized tokens",
+    bullets: [
+      "If you borrow against $MAGPIE on Magpie, your locked collateral now COUNTS toward holder reward distributions",
+      "Previously, collateralized $MAGPIE was filtered out by the contract-account-exclusion sweep (designed to stop AMM pools / DEX vaults from siphoning rewards), which silently punished the exact users most engaged with the protocol",
+      "Defensive ordering: the locked amount is added BEFORE the PDA filter runs, so real user wallets get credited while any hypothetical PDA borrower would still be excluded",
+      "Borrowing against $MAGPIE is strictly additive to your holder yield now — never punitive",
+    ],
+  },
+  {
+    date: "June 8, 2026",
     tag: "Launch",
     title: "Conditional borrows — first agent-native limit orders for borrows on Solana",
     bullets: [
