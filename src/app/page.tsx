@@ -39,6 +39,11 @@ const PROTOCOL_FEATURES = [
     desc: "Borrow against real equities on Solana. xTSLA, xNVDA, xAAPL, and more via tokens.xyz — the first lending protocol to accept both memecoins and stocks.",
     icon: "◈",
   },
+  {
+    title: "Agent-native via x402",
+    desc: "AI agents pay in SOL to query our credit and loan data — no API keys, no accounts, no custody. The first paid agent API for permissionless lending on Solana.",
+    icon: "⌬",
+  },
 ];
 
 const THREE_SIDES = (tokenCount: number) => [

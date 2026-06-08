@@ -16,6 +16,7 @@ const NAV_LINKS = [
   { label: "Borrow", href: "/marketplace" },
   { label: "Tokens", href: "/tokens" },
   { label: "Credit", href: "/credit" },
+  { label: "x402", href: "/x402" },
   { label: "Holders", href: "/holders" },
   { label: "Refer", href: "/refer" },
   { label: "Dashboard", href: "/dashboard" },
