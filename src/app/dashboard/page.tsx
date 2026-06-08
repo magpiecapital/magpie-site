@@ -1076,6 +1076,17 @@ export default function DashboardPage() {
 
       setBorrowTx(signature);
 
+      // Safety net: trigger a sync-loan in case cosign-borrow's inline
+      // recordLoan hit an RPC blip. cosign-borrow returns the loan_pda
+      // in its response specifically so we can do this. Fail-soft.
+      if (cosignBody.loan_pda) {
+        fetch(`${botApi}/api/v1/sync-loan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ loan_pda: cosignBody.loan_pda, signature }),
+        }).catch(() => {});
+      }
+
       // Refresh balances + ALL dashboard state. The borrow just changed:
       //  • SOL balance (got the loan)
       //  • Active loans (new entry)

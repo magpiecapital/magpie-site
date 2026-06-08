@@ -203,6 +203,11 @@ export function PipActionCard({
         }
         const sig = body.signature as string;
         await waitConfirmed(connection, sig);
+        // Safety net: cosign-borrow records inline, but if that step
+        // hit an RPC blip, sync-loan recovers from on-chain truth.
+        if (body.loan_pda) {
+          await syncLoanWithBot(body.loan_pda, sig);
+        }
         setDoneSig(sig);
         onResult(
           `✅ Borrowed ${fmtSol(action.received_sol)} SOL against ${action.collateral_ui_amount} ${action.collateral_symbol} · ` +
