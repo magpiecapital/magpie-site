@@ -42,6 +42,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.85,
     },
     {
+      // x402 agent-API marketing page — high SEO priority because it's the
+      // novel-positioning surface (first paid lending API on Solana).
+      url: `${SITE_URL}/x402`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${SITE_URL}/docs`,
       lastModified: now,
       changeFrequency: "weekly",

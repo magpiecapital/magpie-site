@@ -20,6 +20,29 @@ interface Entry {
 const ENTRIES: Entry[] = [
   {
     date: "June 7, 2026",
+    tag: "Security",
+    title: "Multi-layer exploit defense + on-chain TWAP program (v3)",
+    bullets: [
+      "Ten-layer pre-borrow gauntlet now runs on every loan: ban registry (user/wallet/funder graph), per-token open cap, imported-wallet cooldown, new-account cap, rapid-fire cap, pool-pct cap, $50k live-liquidity floor, off-chain TWAP (spot ≤ trailing 30-min avg + 15%), Jupiter↔DexScreener cross-source agreement (≤5%), and a v2-pool RWA-only hard guard",
+      "Token screener tightened: $25k minimum liquidity (was $5k), mandatory holder lookup, time-based review-queue auto-promote KILLED (was the root cause of one approval that should never have happened)",
+      "RWA classification now requires positive issuer ID — a memecoin name alone (\"Tesla\", \"Nvidia\") no longer routes to the RWA pool",
+      "Auto-detector running every 60s + fast-lane every 10s on fresh loans: multi-signal match → auto-bans user + linked wallets + traced funder wallets + suspends loans + disables the collateral mint, with one-tap admin Undo button",
+      "magpie-lending-v3 — parallel on-chain Anchor program with TWAP price validation (32-sample rolling buffer, 30-min window, refuses borrows when spot > TWAP + 15%). Replaces single-spot oracle; v1 and v2 stay deployed for existing loans",
+    ],
+  },
+  {
+    date: "June 7, 2026",
+    tag: "Launch",
+    title: "magpie-x402 — agent-native lending API live at /x402",
+    bullets: [
+      "AI agents pay in SOL to query our on-chain lending protocol — credit scores, loan history, pool stats, borrow simulation",
+      "No API keys, no accounts, no custody. Agents sign x402 payment proofs from their own wallets — pure HTTP 402 standard",
+      "Targets the agent-spending tailwind: as autonomous machine-to-machine commerce grows, this opens a new consumer market for the Solana permissionless lending space",
+      "First paid lending API on Solana. Source open at github.com/magpiecapital/magpie-x402",
+    ],
+  },
+  {
+    date: "June 7, 2026",
     tag: "Feature",
     title: "Gold + Platinum borrowers unlock 20 SOL outstanding (up from 10)",
     bullets: [
