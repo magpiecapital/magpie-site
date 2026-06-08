@@ -871,11 +871,12 @@ export default function FloatingAiChatGlobal() {
           //     the on-screen keyboard.
           bottom: `calc(max(env(safe-area-inset-bottom, 1rem), 1rem) + ${keyboardOffset}px)`,
           // Width: tight margins on mobile, generous on desktop.
-          // 560px gives markdown tables + tier-comparison content room
-          // to breathe without forcing tiny font sizes. Mobile still
-          // hugs the viewport edges via left-4/right-4 above.
+          // 720px gives tier-comparison tables + multi-column content
+          // plenty of horizontal room — eliminates the side-scroll the
+          // operator hit with 560px. Mobile still hugs the viewport
+          // edges via left-4/right-4 above.
           width: "auto",
-          maxWidth: "min(560px, calc(100vw - 2rem))",
+          maxWidth: "min(720px, calc(100vw - 2rem))",
           // Cap the panel height so it never overflows the visible
           // viewport when the keyboard is open. On mobile, take MORE
           // height (only 4rem reserved for the top status bar / notch
