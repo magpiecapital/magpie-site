@@ -42,12 +42,18 @@ export async function GET(req: Request) {
   const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "20", 10)));
 
   try {
-    // One row per loan. The earlier LEFT JOIN wallets w ON w.user_id =
-    // l.user_id was a cross-join in disguise: users with multiple linked
-    // wallets had their single loan appear once per wallet (so a 4.7 SOL
-    // borrow looked like 3 separate events). Use a LATERAL subquery to
-    // pick exactly one wallet per user — prefer the active one, fall
-    // back to oldest imported.
+    // One row per loan. The wallet shown should be the one that
+    // ACTUALLY executed this loan, not the user's currently-active
+    // one. Previous logic ("pick the active wallet for this user")
+    // made every loan for a multi-wallet user look like the same
+    // stub (e.g. `DNU8…VFei` repeated) even when different wallets
+    // signed each loan.
+    //
+    // Heuristic: pick the user's wallet that existed at the time the
+    // loan opened, preferring the most recently created one created
+    // BEFORE or AT the loan's start_timestamp. That's the wallet they
+    // would have been using at that moment. (A fully accurate fix
+    // requires a borrower_wallet column on loans — separate work.)
     const { rows } = await query(
       `SELECT
          l.loan_id, l.status,
@@ -56,15 +62,16 @@ export async function GET(req: Request) {
          l.start_timestamp, l.updated_at,
          l.collateral_amount,
          sm.symbol, sm.decimals,
-         w.public_key AS wallet_pub
+         COALESCE(l.borrower_wallet, w.public_key) AS wallet_pub
        FROM loans l
        LEFT JOIN supported_mints sm ON sm.mint = l.collateral_mint
        LEFT JOIN LATERAL (
          SELECT public_key FROM wallets
           WHERE user_id = l.user_id
-          ORDER BY is_active DESC, created_at ASC
+            AND created_at <= l.start_timestamp
+          ORDER BY created_at DESC
           LIMIT 1
-       ) w ON true
+       ) w ON l.borrower_wallet IS NULL
        ORDER BY GREATEST(l.start_timestamp, l.updated_at) DESC
        LIMIT $1`,
       [limit],
