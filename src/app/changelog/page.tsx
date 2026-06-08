@@ -19,6 +19,17 @@ interface Entry {
 
 const ENTRIES: Entry[] = [
   {
+    date: "June 8, 2026",
+    tag: "Improvement",
+    title: "Gold + Platinum outstanding-loan ceiling raised to 30 SOL",
+    bullets: [
+      "Max outstanding aggregate per user (across all linked wallets) bumped from 20 SOL → 30 SOL for Gold (score ≥650) and Platinum (≥750) tiers",
+      "Max per-single-loan unchanged at 10 SOL — the bump is purely for users running multiple concurrent loans simultaneously",
+      "Bronze and Silver unchanged at 10 SOL outstanding",
+      "Trusted-borrower signal — the bump is a reward for sustained on-time repayment history at the higher tiers",
+    ],
+  },
+  {
     date: "June 7, 2026",
     tag: "Security",
     title: "Multi-layer exploit defense + on-chain TWAP program (v3)",
@@ -44,9 +55,9 @@ const ENTRIES: Entry[] = [
   {
     date: "June 7, 2026",
     tag: "Feature",
-    title: "Gold + Platinum borrowers unlock 20 SOL outstanding (up from 10)",
+    title: "Gold + Platinum borrowers unlock higher outstanding ceiling (up from 10)",
     bullets: [
-      "Credit-score tier now directly upgrades your loan-cap ceiling — Gold (score ≥650) and Platinum (≥750) borrowers can hold up to 20 SOL outstanding across active loans (previously capped at 10)",
+      "Credit-score tier now directly upgrades your loan-cap ceiling — Gold (score ≥650) and Platinum (≥750) borrowers initially unlocked up to 20 SOL outstanding (previously capped at 10). Subsequently raised to 30 SOL on June 8.",
       "Max per-loan size also bumped to 10 SOL at Gold/Platinum (from 5 SOL)",
       "Bronze and Silver tiers unchanged — still 5 SOL per loan / 10 SOL outstanding at their trusted ceiling",
       "Best-of qualification: a high-credit user gets the upgrade immediately without needing to accumulate the legacy 3-on-time-repay threshold",

@@ -91,7 +91,7 @@ const TIERS = [
     fee: "1.5–3%",
     term: "2–7 days",
     perks: [
-      "Borrow up to 20 SOL outstanding (vs. 10 SOL for pre-Gold borrowers)",
+      "Borrow up to 30 SOL outstanding (vs. 10 SOL for pre-Gold borrowers)",
       "Premium status badge on dashboard + leaderboard",
       "Trusted-borrower signal for third-party protocols querying the on-chain credit oracle",
     ],
@@ -108,7 +108,7 @@ const TIERS = [
     fee: "1.5–3%",
     term: "2–7 days",
     perks: [
-      "Borrow up to 20 SOL outstanding — the highest tier in the protocol",
+      "Borrow up to 30 SOL outstanding — the highest tier in the protocol",
       "Top-tier status badge — sustained zero-liquidation track record",
       "First in line for any new tier-gated perks as they ship",
     ],
@@ -129,7 +129,7 @@ const SIM_ACTIONS = [
 ];
 
 const COMPARISON = [
-  { label: "Max outstanding loan", bronze: "10 SOL", silver: "10 SOL", gold: "20 SOL", platinum: "20 SOL", highlight: true },
+  { label: "Max outstanding loan", bronze: "10 SOL", silver: "10 SOL", gold: "30 SOL", platinum: "30 SOL", highlight: true },
   { label: "Max per single loan", bronze: "5 SOL", silver: "5 SOL", gold: "10 SOL", platinum: "10 SOL", highlight: true },
   { label: "Max LTV", bronze: "30%", silver: "30%", gold: "30%", platinum: "30%" },
   { label: "Fee", bronze: "1.5–3%", silver: "1.5–3%", gold: "1.5–3%", platinum: "1.5–3%" },
