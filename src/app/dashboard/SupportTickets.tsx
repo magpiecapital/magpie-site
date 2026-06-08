@@ -300,7 +300,7 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
           <button
             onClick={handleOpen}
             disabled={submitting || composeText.trim().length < 4}
-            className="w-full rounded-md bg-[var(--d-accent-deep)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--d-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-md bg-[var(--d-accent-deep)] px-4 py-2 text-sm font-semibold text-[var(--d-accent-ink)] hover:bg-[var(--d-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? "Signing & sending…" : "Sign & send"}
           </button>
@@ -461,7 +461,7 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
                       <button
                         onClick={() => handleFollowUp(t.id)}
                         disabled={submitting || followupText.trim().length < 2}
-                        className="w-full rounded-md bg-[var(--d-accent-deep)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[var(--d-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full rounded-md bg-[var(--d-accent-deep)] px-3 py-1.5 text-xs font-semibold text-[var(--d-accent-ink)] hover:bg-[var(--d-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {submitting ? "Signing & sending…" : "Sign & send follow-up"}
                       </button>

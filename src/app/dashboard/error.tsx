@@ -45,7 +45,7 @@ export default function DashboardError({
         <div className="mt-5 flex flex-wrap gap-2">
           <button
             onClick={() => reset()}
-            className="rounded-md bg-[var(--d-accent-deep)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--d-accent)]"
+            className="rounded-md bg-[var(--d-accent-deep)] px-4 py-2 text-sm font-semibold text-[var(--d-accent-ink)] hover:bg-[var(--d-accent)]"
           >
             Try again
           </button>

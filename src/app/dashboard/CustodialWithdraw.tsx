@@ -317,7 +317,7 @@ export default function CustodialWithdraw({ botApiUrl }: { botApiUrl: string }) 
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className="w-full rounded-md bg-[var(--d-accent-deep)] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[var(--d-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-md bg-[var(--d-accent-deep)] px-4 py-2.5 text-sm font-semibold text-[var(--d-accent-ink)] hover:bg-[var(--d-accent)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? "Signing & sending…" : "Sign & withdraw"}
               </button>

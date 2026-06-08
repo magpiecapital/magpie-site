@@ -1613,7 +1613,7 @@ export default function DashboardPage() {
                     onClick={() => setRepayPct(p)}
                     className={`flex-1 rounded-md border px-2 py-2 text-xs font-semibold transition ${
                       repayPct === p
-                        ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-white"
+                        ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]"
                         : "border-[var(--d-border)] text-[var(--d-ink-soft)] hover:bg-[var(--d-surface-hover)]"
                     }`}
                   >
@@ -1661,7 +1661,7 @@ export default function DashboardPage() {
                 </button>
                 <button
                   onClick={() => handleRepay(repayConfirmFor, repayPct)}
-                  className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-white hover:brightness-110"
+                  className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-[var(--d-accent-ink)] hover:brightness-110"
                 >
                   {isFull ? "Sign & repay full" : `Sign & repay ${repayPct}%`}
                 </button>
@@ -1706,7 +1706,7 @@ export default function DashboardPage() {
                 </button>
                 <button
                   onClick={() => handleExtend(extendConfirmFor)}
-                  className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-white hover:brightness-110"
+                  className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-[var(--d-accent-ink)] hover:brightness-110"
                 >
                   Sign & extend
                 </button>
@@ -1797,7 +1797,7 @@ export default function DashboardPage() {
                 <button
                   onClick={() => handleTopup(loan, intendedRaw)}
                   disabled={intendedRaw <= 0n}
-                  className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-white hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-md bg-[var(--d-accent)] px-3 py-2 text-sm font-semibold text-[var(--d-accent-ink)] hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Sign & add
                 </button>
