@@ -22,7 +22,6 @@ const NAV_LINKS = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Stats", href: "/stats" },
   { label: "Docs", href: "/docs" },
-  { label: "Whitepaper", href: "/whitepaper" },
 ];
 
 // $MAGPIE token nav slot. href is a placeholder until the official link
