@@ -98,13 +98,17 @@ export async function GET(req: Request) {
         ltv_pct: r.ltv_percentage,
         duration_days: r.duration_days,
       };
+      // SQL timestamps come back as Date objects from pg — normalize
+      // to ISO strings so the JSON response is consistent.
+      const startIso = new Date(r.start_timestamp).toISOString();
+      const updatedIso = new Date(r.updated_at).toISOString();
       const out: Array<typeof common & { type: string; timestamp: string }> = [
-        { ...common, type: "borrow", timestamp: r.start_timestamp },
+        { ...common, type: "borrow", timestamp: startIso },
       ];
       if (r.status === "repaid") {
-        out.push({ ...common, type: "repay", timestamp: r.updated_at });
+        out.push({ ...common, type: "repay", timestamp: updatedIso });
       } else if (r.status === "liquidated") {
-        out.push({ ...common, type: "liquidation", timestamp: r.updated_at });
+        out.push({ ...common, type: "liquidation", timestamp: updatedIso });
       }
       return out;
     }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
