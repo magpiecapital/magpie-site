@@ -102,7 +102,19 @@ export default async function DocsPage() {
                 </a>
               ))}
             </div>
-            <div className="mt-8 border-t border-[var(--hairline)] pt-6">
+            <div className="mt-6 rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4">
+              <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-1">Reading the deeper version?</div>
+              <a
+                href="/whitepaper"
+                className="text-sm font-semibold text-[var(--ink)] hover:text-[var(--accent-deep)] transition"
+              >
+                📄 Magpie Whitepaper →
+              </a>
+              <div className="mt-1 text-[12px] text-[var(--ink-soft)] leading-snug">
+                Full architecture, tokenomics, fee distribution, roadmap.
+              </div>
+            </div>
+            <div className="mt-6 border-t border-[var(--hairline)] pt-6">
               <a
                 href={TELEGRAM_URL}
                 target="_blank"
