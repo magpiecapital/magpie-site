@@ -2126,10 +2126,15 @@ export default function DashboardPage() {
                     see below — so no ancestor transform/overflow can
                     affect its fixed positioning.) */}
 
-                {/* Support tickets — only renders if the user has tickets. */}
+                {/* Support tickets — renders an "Ask a question" composer
+                    plus any existing tickets the user has. Needs a real bot
+                    API URL (the other dashboard child components were
+                    reverted to empty URL after producing visual surprises,
+                    but the ticket surface MUST function for non-TG users —
+                    that's now their only way to reach support). */}
                 {connected && publicKey && (
                   <SupportTickets
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
                   />
                 )}
 
