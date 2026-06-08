@@ -217,6 +217,10 @@ export function PipActionCard({
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      // Mirror the full error to the browser console so the
+      // operator can paste it for debugging — the toast text-box can
+      // visually truncate long messages depending on layout.
+      console.error("[magpie] action card failed:", msg, e);
       setError(msg);
     } finally {
       setBusy(false);
