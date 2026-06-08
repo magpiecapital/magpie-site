@@ -418,7 +418,17 @@ export default function FloatingAiChatGlobal() {
     const timeoutId = setTimeout(() => controller.abort(), 8000);
     (async () => {
       try {
-        const r = await fetch(`${botApiUrl}/api/v1/link/status?wallet=${walletStr}`, {
+        // Pass-through referral code if the user landed via a share
+        // link. The bot's auto-bootstrap path attributes the new
+        // user to the referrer when ref is supplied. Stored in
+        // localStorage so a refresh / different-tab visit still
+        // credits the referrer.
+        let ref = "";
+        try {
+          ref = (typeof window !== "undefined" && window.localStorage?.getItem("magpie_ref")) || "";
+        } catch { /* private mode etc. */ }
+        const refQs = ref ? `&ref=${encodeURIComponent(ref)}` : "";
+        const r = await fetch(`${botApiUrl}/api/v1/link/status?wallet=${walletStr}${refQs}`, {
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
