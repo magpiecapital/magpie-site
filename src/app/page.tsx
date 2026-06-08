@@ -73,8 +73,8 @@ const THREE_SIDES = (tokenCount: number) => [
 const STEPS = [
   {
     n: "01",
-    t: "Open @magpie_capital_bot",
-    d: "Start a chat. Connect your wallet. No seed phrase — keys stay yours.",
+    t: "Connect on magpie.capital",
+    d: "Open the dashboard, connect your wallet. No seed phrase. No signup. (Telegram @magpie_capital_bot works too if you prefer.)",
   },
   {
     n: "02",
@@ -713,7 +713,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                 Your wallet bot
               </div>
               <p className="mt-3 text-sm text-[var(--ink-soft)] leading-relaxed">
-                Holds your Magpie wallet. Where you /borrow, /repay, /extend, manage loans. No one else can see your messages or wallet — it&apos;s a private chat between you and the bot.
+                Optional backup surface. Borrow / repay / extend / manage loans from here OR from the dashboard at magpie.capital — both flow into the same on-chain protocol. Private 1:1 with the bot; nobody else sees your messages or wallet.
               </p>
               <div className="mt-5 flex items-center gap-2 text-sm font-medium text-[var(--accent-deep)]">
                 Open the bot

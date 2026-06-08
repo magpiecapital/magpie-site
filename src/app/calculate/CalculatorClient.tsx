@@ -626,12 +626,20 @@ export default function CalculatorClient() {
             Ready to <span className="italic text-[var(--accent)]">borrow?</span>
           </h2>
           <p className="mx-auto mt-5 max-w-md text-lg text-[var(--bg-elevated)]/70">
-            Open the bot, pick your tier, and get SOL in under 30 seconds.
+            Connect your wallet, pick your tier, and get SOL in under 30 seconds.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row">
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-lg">
-              Open @magpie_capital_bot
+            <Link href="/dashboard" className="btn-accent text-lg">
+              Open dashboard
               <span aria-hidden>&#8594;</span>
+            </Link>
+            <a
+              href={TELEGRAM_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
+            >
+              Or use Telegram
             </a>
             <Link
               href="/tokens"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { DiamondIcon } from "@/components/DiamondIcon";
 import { Header } from "@/components/Header";
@@ -93,8 +94,11 @@ export default function HoldersClient() {
             <a href={PUMP_URL} target="_blank" rel="noopener noreferrer" className="btn-accent shimmer text-sm sm:text-base">
               Buy $MAGPIE →
             </a>
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost text-sm sm:text-base">
-              Open the bot
+            <Link href="/dashboard" className="btn-ghost text-sm sm:text-base">
+              Connect on dashboard
+            </Link>
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-sm sm:text-base text-[var(--ink-soft)] hover:text-[var(--accent-deep)] hover:underline">
+              or use Telegram
             </a>
           </div>
         </div>

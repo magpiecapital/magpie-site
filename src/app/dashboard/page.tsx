@@ -2244,7 +2244,12 @@ export default function DashboardPage() {
                                         <button
                                           onClick={() => { setRepayPct(100); setRepayConfirmFor(l); }}
                                           disabled={anyPending}
-                                          className="rounded-md bg-[var(--d-accent)] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+                                          // text-white on bright accent was too hot in
+                                          // dark mode. Use the accent-ink token which
+                                          // resolves to the proper high-contrast
+                                          // foreground for each theme (dark text on
+                                          // light, light-but-not-white on dark).
+                                          className="rounded-md bg-[var(--d-accent)] px-2.5 py-1 text-[11px] font-semibold text-[var(--d-accent-ink)] transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
                                           {repayPendingFor === l.loan_pda ? "Repaying…" : "Repay"}
                                         </button>

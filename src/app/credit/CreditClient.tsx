@@ -143,7 +143,7 @@ const COMPARISON = [
 const FAQ = [
   {
     q: "How do I check my credit score?",
-    a: "Use the /credit command in the Magpie Telegram bot. Your score, tier, and full history are available anytime.",
+    a: "Connect your wallet at magpie.capital/dashboard — your score, tier, and full history show right at the top. Or run /credit in the Telegram bot if you prefer.",
   },
   {
     q: "Can my score go down?",
