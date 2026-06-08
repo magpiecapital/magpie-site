@@ -859,7 +859,7 @@ export default function FloatingAiChatGlobal() {
 
       {/* Panel */}
       <div
-        className={`fixed left-4 right-4 sm:left-auto sm:right-6 z-[60] flex flex-col rounded-2xl border shadow-2xl overflow-hidden pip-panel ${open ? "pip-panel-open" : ""}`}
+        className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:w-[720px] z-[60] flex flex-col rounded-2xl border shadow-2xl overflow-hidden pip-panel ${open ? "pip-panel-open" : ""}`}
         style={{
           // Bottom anchor:
           //   • Mobile (no floating button when open): hug the safe
@@ -870,12 +870,10 @@ export default function FloatingAiChatGlobal() {
           //   • visualViewport offset is added on top to lift above
           //     the on-screen keyboard.
           bottom: `calc(max(env(safe-area-inset-bottom, 1rem), 1rem) + ${keyboardOffset}px)`,
-          // Width: tight margins on mobile, generous on desktop.
-          // 720px gives tier-comparison tables + multi-column content
-          // plenty of horizontal room — eliminates the side-scroll the
-          // operator hit with 560px. Mobile still hugs the viewport
-          // edges via left-4/right-4 above.
-          width: "auto",
+          // Width: tight margins on mobile (via left-4/right-4), pinned
+          // to 720px on desktop via the sm:w-[720px] class above so the
+          // panel doesn't shrink to fit short replies. maxWidth handles
+          // the mid-range case where viewport is < 720+2rem.
           maxWidth: "min(720px, calc(100vw - 2rem))",
           // Cap the panel height so it never overflows the visible
           // viewport when the keyboard is open. On mobile, take MORE
