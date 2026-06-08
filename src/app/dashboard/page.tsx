@@ -747,6 +747,10 @@ export default function DashboardPage() {
     category: string;
     raw_amount: string;
     amount: number;
+    /** Live USD price per token, populated server-side from DexScreener.
+     *  Without this the tier cards show "You receive $0.00" — see
+     *  /api/v1/eligible-collateral. */
+    priceUsd?: number | null;
   };
   const [eligibleFromApi, setEligibleFromApi] = useState<ApiEligible[]>([]);
 
@@ -957,23 +961,31 @@ export default function DashboardPage() {
       .map((e) => {
         const approved = approvedMap.get(e.mint);
         const uiAmount = e.amount ?? 0;
-        const valueUsd = approved?.priceUsd ? uiAmount * approved.priceUsd : 0;
+        // Prefer the live price the eligible-collateral endpoint
+        // attached server-side (via DexScreener) — falls back to the
+        // approvedTokens entry (legacy path, currently has no price)
+        // and finally 0. Without this, the borrow tier cards showed
+        // "You receive $0.00" because neither source had a price.
+        const livePriceUsd = e.priceUsd ?? approved?.priceUsd ?? null;
+        const valueUsd = livePriceUsd ? uiAmount * livePriceUsd : 0;
         return {
           symbol: e.symbol,
           name: e.name,
           mint: e.mint,
           amount: e.raw_amount,
           decimals: e.decimals,
-          approved: approved ?? {
-            mint: e.mint,
-            symbol: e.symbol,
-            name: e.name,
-            priceUsd: null,
-            priceChange24h: null,
-            volume24h: null,
-            marketCap: null,
-            liquidity: null,
-          },
+          approved: approved
+            ? { ...approved, priceUsd: livePriceUsd ?? approved.priceUsd }
+            : {
+                mint: e.mint,
+                symbol: e.symbol,
+                name: e.name,
+                priceUsd: livePriceUsd,
+                priceChange24h: null,
+                volume24h: null,
+                marketCap: null,
+                liquidity: null,
+              },
           valueUsd,
         };
       })
