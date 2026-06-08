@@ -859,7 +859,7 @@ export default function FloatingAiChatGlobal() {
 
       {/* Panel */}
       <div
-        className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:w-[720px] z-[60] flex flex-col rounded-2xl border shadow-2xl overflow-hidden pip-panel ${open ? "pip-panel-open" : ""}`}
+        className={`fixed left-4 right-4 sm:left-auto sm:right-6 sm:w-[620px] z-[60] flex flex-col rounded-2xl border shadow-2xl overflow-hidden pip-panel ${open ? "pip-panel-open" : ""}`}
         style={{
           // Bottom anchor:
           //   • Mobile (no floating button when open): hug the safe
@@ -874,7 +874,7 @@ export default function FloatingAiChatGlobal() {
           // to 720px on desktop via the sm:w-[720px] class above so the
           // panel doesn't shrink to fit short replies. maxWidth handles
           // the mid-range case where viewport is < 720+2rem.
-          maxWidth: "min(720px, calc(100vw - 2rem))",
+          maxWidth: "min(620px, calc(100vw - 2rem))",
           // Cap the panel height so it never overflows the visible
           // viewport when the keyboard is open. On mobile, take MORE
           // height (only 4rem reserved for the top status bar / notch
