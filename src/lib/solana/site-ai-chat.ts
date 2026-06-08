@@ -391,6 +391,157 @@ export async function siteAiChat(args: {
   };
 }
 
+/* ─────────────── Streaming chat ─────────────── */
+
+export type StreamEvent =
+  | { type: "text"; delta: string }
+  | { type: "tool"; names: string[] }
+  | { type: "replace"; text: string; gated?: string }
+  | { type: "done"; result: AiChatResult }
+  | { type: "error"; status?: number; text: string };
+
+/**
+ * Streaming variant of siteAiChat. Reads NDJSON from
+ * /api/v1/ai/chat/stream and calls onEvent for every parsed frame —
+ * the floating chat panel appends each text delta to the in-flight
+ * agent bubble so Pip's response renders as it generates.
+ *
+ * Falls back to the non-streaming siteAiChat() if the stream endpoint
+ * returns 404 (bot hasn't deployed yet) or 401 with no recoverable
+ * session.
+ */
+export async function siteAiChatStream(args: {
+  botApiUrl: string;
+  signerPubkey: string;
+  signMessage: SignMessageFn;
+  message: string;
+  pageContext?: string;
+  onEvent: (e: StreamEvent) => void;
+}): Promise<AiChatResult> {
+  // Bearer-first, same as siteAiChat.
+  let session = readCachedSession(args.signerPubkey);
+  if (!session) {
+    try {
+      session = await mintPipSession(args);
+    } catch (e) {
+      if (e instanceof PipSessionEndpointUnavailableError) {
+        // Bot doesn't have session endpoint — non-streaming fallback.
+        const result = await siteAiChat(args);
+        args.onEvent({ type: "done", result });
+        return result;
+      }
+      throw e;
+    }
+  }
+
+  const callStream = async (token: string): Promise<{ status: number; result: AiChatResult | null }> => {
+    const r = await fetch(`${args.botApiUrl.replace(/\/$/, "")}/api/v1/ai/chat/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "Accept": "application/x-ndjson",
+      },
+      body: JSON.stringify({
+        action: "chat",
+        message: args.message,
+        page_context: args.pageContext ?? null,
+      }),
+    });
+
+    if (r.status === 404) {
+      // Endpoint not deployed yet — caller should fall back.
+      return { status: 404, result: null };
+    }
+    if (r.status === 401) {
+      return { status: 401, result: null };
+    }
+
+    if (!r.body) {
+      // Browser didn't expose a stream reader — treat as a JSON response.
+      const body = await r.json().catch(() => ({}));
+      const result: AiChatResult = {
+        response: body?.result?.response ?? body?.response ?? "",
+        blockedReason: body?.result?.blocked_reason ?? null,
+        spendCapped: !!body?.result?.spend_capped,
+        escalatedTicketId: body?.result?.escalated_ticket_id ?? null,
+        proposedAction: body?.result?.proposed_action ?? null,
+      };
+      args.onEvent({ type: "done", result });
+      return { status: r.status, result };
+    }
+
+    // Read NDJSON stream
+    const reader = r.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "";
+    let finalResult: AiChatResult | null = null;
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf("\n")) !== -1) {
+        const line = buf.slice(0, nl).trim();
+        buf = buf.slice(nl + 1);
+        if (!line) continue;
+        let evt: StreamEvent;
+        try { evt = JSON.parse(line); }
+        catch { continue; }
+
+        if (evt.type === "done") {
+          // The on-wire shape uses snake_case + raw types — normalize
+          // to the camelCase AiChatResult the rest of the UI expects.
+          const raw = ((evt as unknown) as { type: "done"; result: Record<string, unknown> }).result || {};
+          finalResult = {
+            response: (raw.response as string) ?? "",
+            blockedReason: (raw.blocked_reason as string | null) ?? null,
+            spendCapped: !!raw.spend_capped,
+            escalatedTicketId: typeof raw.escalated_ticket_id === "number" ? raw.escalated_ticket_id : null,
+            proposedAction: (raw.proposed_action as ProposedAction | null) ?? null,
+          };
+          args.onEvent({ type: "done", result: finalResult });
+        } else {
+          args.onEvent(evt);
+        }
+      }
+    }
+    return { status: r.status, result: finalResult };
+  };
+
+  let { status, result } = await callStream(session.token);
+
+  if (status === 404) {
+    // Stream endpoint not deployed — use the non-streaming path.
+    const fallback = await siteAiChat(args);
+    args.onEvent({ type: "done", result: fallback });
+    return fallback;
+  }
+
+  if (status === 401) {
+    clearCachedSession(args.signerPubkey);
+    try {
+      session = await mintPipSession(args);
+    } catch (e) {
+      if (e instanceof PipSessionEndpointUnavailableError) {
+        const fallback = await siteAiChat(args);
+        args.onEvent({ type: "done", result: fallback });
+        return fallback;
+      }
+      throw e;
+    }
+    ({ status, result } = await callStream(session.token));
+  }
+
+  if (!result) {
+    throw new Error(`Streaming chat failed (HTTP ${status})`);
+  }
+  // After the null-guard above TS narrows to AiChatResult.
+  return result as AiChatResult;
+}
+
 /**
  * Legacy per-message signing path. Used as fallback when the session
  * endpoint isn't deployed yet. Triggers a Phantom prompt per message.

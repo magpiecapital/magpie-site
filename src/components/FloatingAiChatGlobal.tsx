@@ -27,6 +27,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   siteAiChat,
+  siteAiChatStream,
   siteAiReset,
   clearCachedSession,
   getCachedSessionExpiry,
@@ -568,25 +569,68 @@ export default function FloatingAiChatGlobal() {
     setError(null);
     setBusy(true);
     setInput("");
-    setTurns((t) => [...t, { role: "user", text: trimmed, at: Date.now() }]);
+
+    // Append user message + a placeholder agent bubble that will fill
+    // in via streaming deltas. The placeholder's index lets us update
+    // only that bubble as new chunks arrive without disturbing prior
+    // turns.
+    let agentTurnIndex = -1;
+    setTurns((t) => {
+      const next = [...t, { role: "user" as const, text: trimmed, at: Date.now() }];
+      agentTurnIndex = next.length;
+      next.push({ role: "agent" as const, text: "", at: Date.now(), streaming: true });
+      return next;
+    });
+
     try {
-      const r = await siteAiChat({
+      await siteAiChatStream({
         botApiUrl,
         signerPubkey: walletStr,
         signMessage,
         message: trimmed,
         pageContext: pathname || undefined,
+        onEvent: (evt) => {
+          if (evt.type === "text") {
+            setTurns((t) => {
+              if (agentTurnIndex < 0 || !t[agentTurnIndex]) return t;
+              const next = t.slice();
+              next[agentTurnIndex] = { ...next[agentTurnIndex], text: next[agentTurnIndex].text + evt.delta };
+              return next;
+            });
+          } else if (evt.type === "replace") {
+            setTurns((t) => {
+              if (agentTurnIndex < 0 || !t[agentTurnIndex]) return t;
+              const next = t.slice();
+              next[agentTurnIndex] = { ...next[agentTurnIndex], text: evt.text };
+              return next;
+            });
+          } else if (evt.type === "done") {
+            setTurns((t) => {
+              if (agentTurnIndex < 0 || !t[agentTurnIndex]) return t;
+              const next = t.slice();
+              next[agentTurnIndex] = {
+                ...next[agentTurnIndex],
+                // Replace with final text so any minor desync between
+                // accumulated deltas and the server's "final" response
+                // resolves on the server's side.
+                text: evt.result.response || next[agentTurnIndex].text,
+                streaming: false,
+                proposedAction: evt.result.proposedAction ?? null,
+              };
+              return next;
+            });
+          }
+          // 'tool' and 'error' events are intentionally ignored in the
+          // bubble — could surface a "looking up your loans…" hint
+          // later, but for now silence is fine since the streamed
+          // pre-tool text shows the user the AI is thinking.
+        },
       });
-      setTurns((t) => [...t, {
-        role: "agent",
-        text: r.response,
-        at: Date.now(),
-        streaming: true,
-        proposedAction: r.proposedAction ?? null,
-      }]);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
-      setTurns((t) => t.slice(0, -1));
+      // Pop both the user message and the empty agent placeholder so
+      // the user can edit and retry.
+      setTurns((t) => t.slice(0, -2));
       setInput(trimmed);
     } finally {
       setBusy(false);
