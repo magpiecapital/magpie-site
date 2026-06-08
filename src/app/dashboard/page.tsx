@@ -1022,6 +1022,34 @@ export default function DashboardPage() {
         connection,
       });
 
+      // PRE-SIMULATE before asking the wallet to sign. Phantom's docs
+      // (docs.phantom.com/developer-powertools/domain-and-transaction-warnings)
+      // explicitly recommend this for multi-signer flows where Phantom can't
+      // submit itself — pre-sim catches errors BEFORE the user gets a
+      // warning, and gives Phantom strong signal that the dApp is being
+      // careful. sigVerify:false because the tx isn't signed yet at this
+      // step. Soft-fail (don't block on simulation failure — the real
+      // submit gives the authoritative answer; this is just an early
+      // sanity check).
+      try {
+        // Legacy Transaction simulateTransaction signature — RPC simulates
+        // without requiring signatures when none are present.
+        const sim = await connection.simulateTransaction(transaction);
+        if (sim.value.err) {
+          // Surface a friendly error pre-sign, so Phantom never sees a
+          // tx we expect to fail.
+          throw new Error(
+            `Pre-flight failed: ${JSON.stringify(sim.value.err)}. ` +
+              (sim.value.logs?.slice(-3).join(" | ") ?? ""),
+          );
+        }
+      } catch (simErr) {
+        // If simulation threw (network blip, etc.) — proceed anyway. The
+        // backend cosign + submit will surface any real error.
+        if ((simErr as Error).message?.startsWith("Pre-flight failed:")) throw simErr;
+        // else continue
+      }
+
       // Two-step sign: user signs first (in browser via wallet adapter),
       // then the bot's co-sign endpoint adds the lender authority signature
       // and submits. The endpoint strictly allowlists request_and_fund_loan
