@@ -240,6 +240,32 @@ function MarkdownBubble({ text }: { text: string }) {
         h2: ({ children }) => <div className="font-semibold text-sm mb-1">{children}</div>,
         h3: ({ children }) => <div className="font-semibold text-sm mb-1">{children}</div>,
         hr: () => <hr className="my-2 opacity-30" />,
+        // Tables in a narrow chat bubble were crushing into unreadable
+        // columns. Wrap in a horizontal-scroll container, give cells
+        // proper padding + tabular-nums for clean numeric alignment.
+        // Sticky-ish header row with a subtle background helps the
+        // table read at a glance.
+        table: ({ children }) => (
+          <div className="my-2 -mx-1 overflow-x-auto rounded-md border" style={{ borderColor: "var(--hairline)" }}>
+            <table className="w-full border-collapse text-[12.5px] leading-snug tabular-nums">
+              {children}
+            </table>
+          </div>
+        ),
+        thead: ({ children }) => (
+          <thead style={{ background: "color-mix(in srgb, var(--ink) 5%, transparent)" }}>{children}</thead>
+        ),
+        tr: ({ children }) => (
+          <tr className="border-t" style={{ borderColor: "var(--hairline)" }}>{children}</tr>
+        ),
+        th: ({ children }) => (
+          <th className="px-2.5 py-1.5 text-left font-semibold whitespace-nowrap" style={{ color: "var(--ink-soft)" }}>
+            {children}
+          </th>
+        ),
+        td: ({ children }) => (
+          <td className="px-2.5 py-1.5 whitespace-nowrap">{children}</td>
+        ),
       }}
     >
       {text}
@@ -844,9 +870,12 @@ export default function FloatingAiChatGlobal() {
           //   • visualViewport offset is added on top to lift above
           //     the on-screen keyboard.
           bottom: `calc(max(env(safe-area-inset-bottom, 1rem), 1rem) + ${keyboardOffset}px)`,
-          // Width: tight margins on mobile, capped width on desktop.
+          // Width: tight margins on mobile, generous on desktop.
+          // 560px gives markdown tables + tier-comparison content room
+          // to breathe without forcing tiny font sizes. Mobile still
+          // hugs the viewport edges via left-4/right-4 above.
           width: "auto",
-          maxWidth: "min(480px, calc(100vw - 2rem))",
+          maxWidth: "min(560px, calc(100vw - 2rem))",
           // Cap the panel height so it never overflows the visible
           // viewport when the keyboard is open. On mobile, take MORE
           // height (only 4rem reserved for the top status bar / notch
