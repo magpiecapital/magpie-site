@@ -1348,6 +1348,22 @@ export default function DashboardPage() {
     return () => { cancelled = true; };
   }, [connected, publicKey, connection]);
 
+  // Self-heal any on-chain loans missing from the DB. Runs once on
+  // connect — scans the user's wallet for loans that landed on-chain
+  // (e.g. from a site borrow whose post-submit recordLoan hit an RPC
+  // propagation race) and inserts them. Fail-soft: the endpoint is
+  // rate-limited and any failure is silent. Without this, a missing
+  // loan stays invisible in /stats / activity / credit forever.
+  useEffect(() => {
+    if (!connected || !publicKey) return;
+    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+    fetch(`${botApi}/api/v1/wallet/backfill-loans`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ wallet: publicKey.toBase58() }),
+    }).catch(() => { /* best-effort */ });
+  }, [connected, publicKey]);
+
   // Fetch active loans + history. Polls every 30s so a freshly-opened or
   // freshly-repaid loan reflects within seconds of returning to the page.
   useEffect(() => {
