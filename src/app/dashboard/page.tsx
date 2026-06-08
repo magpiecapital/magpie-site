@@ -1076,7 +1076,7 @@ export default function DashboardPage() {
       const userSigned = await signTransaction(transaction);
       const partialBase64 = userSigned.serialize({ requireAllSignatures: false }).toString("base64");
 
-      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
       const cosignRes = await fetch(`${botApi}/api/v1/cosign-borrow`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1182,7 +1182,7 @@ export default function DashboardPage() {
       // Tell the bot the tx landed so the activity feed, /stats, credit
       // score, and streak pick up the state change immediately instead
       // of waiting for the every-5-min reconciler. Fail-soft.
-      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
       fetch(`${botApi}/api/v1/sync-loan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1231,7 +1231,7 @@ export default function DashboardPage() {
         await new Promise((r) => setTimeout(r, 2000));
       }
       if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
-      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
       fetch(`${botApi}/api/v1/sync-loan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1286,7 +1286,7 @@ export default function DashboardPage() {
         await new Promise((r) => setTimeout(r, 2000));
       }
       if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
-      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
       fetch(`${botApi}/api/v1/sync-loan`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1358,7 +1358,7 @@ export default function DashboardPage() {
   // loan stays invisible in /stats / activity / credit forever.
   useEffect(() => {
     if (!connected || !publicKey) return;
-    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
     fetch(`${botApi}/api/v1/wallet/backfill-loans`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2070,24 +2070,24 @@ export default function DashboardPage() {
             <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-12">
 
               {/* ─── LEFT COLUMN (8/12) ─── */}
-              <DashboardProvider botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}>
+              <DashboardProvider botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}>
               <div className="xl:col-span-8 flex flex-col gap-6">
 
                 {/* Global site-disabled banner — visible to everyone when the operator has flipped the kill-switch. */}
-                <SiteStatusBanner botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""} />
+                <SiteStatusBanner botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"} />
 
                 {/* TG link status — invisible until response comes back, then either ✓ banner or button */}
                 {connected && publicKey && (
                   <LinkToTelegram
                     wallet={publicKey.toBase58()}
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
                   />
                 )}
 
                 {/* Custodial wallet management — only renders for linked users. */}
                 {connected && publicKey && (
                   <CustodialWithdraw
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
                   />
                 )}
 
@@ -2095,7 +2095,7 @@ export default function DashboardPage() {
                 {connected && publicKey && (
                   <div id="section-wallets">
                     <WalletsList
-                      botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                      botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
                     />
                   </div>
                 )}
@@ -2103,14 +2103,14 @@ export default function DashboardPage() {
                 {/* Auto-Protect + notification prefs — linked users only. */}
                 {connected && publicKey && (
                   <PrefsPanel
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
                   />
                 )}
 
                 {/* Unified activity feed for linked users. */}
                 {connected && publicKey && (
                   <ActivityFeed
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
                   />
                 )}
 
@@ -2118,7 +2118,7 @@ export default function DashboardPage() {
                     hides if user has zero across all three. */}
                 {connected && publicKey && (
                   <EarningsCard
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
                   />
                 )}
 
@@ -2129,7 +2129,7 @@ export default function DashboardPage() {
                 {/* Support tickets — only renders if the user has tickets. */}
                 {connected && publicKey && (
                   <SupportTickets
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
                   />
                 )}
 

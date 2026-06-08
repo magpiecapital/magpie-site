@@ -34,7 +34,7 @@ export default function LeaderboardClient() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
     if (!botApi) {
       setError("Leaderboard unavailable — bot API not configured");
       return;

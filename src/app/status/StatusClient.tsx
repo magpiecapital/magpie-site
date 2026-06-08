@@ -46,7 +46,7 @@ export default function StatusClient() {
   const [fetchedAt, setFetchedAt] = useState<Date | null>(null);
 
   useEffect(() => {
-    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
     if (!botApi) {
       setError("Status unavailable — bot API not configured");
       return;
