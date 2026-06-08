@@ -3052,7 +3052,10 @@ function Metric({ label, value, danger }: { label: string; value: string; danger
  * or (b) sign actions in TG against a wallet they connected via Phantom.
  */
 function LinkToTelegram({ wallet, botApiUrl }: { wallet: string; botApiUrl: string }) {
-  const [status, setStatus] = useState<{ linked: boolean; telegram_username?: string | null } | null>(null);
+  // `linked` = wallet has a Magpie account (always true after the
+  // bot's auto-bootstrap). `telegram_linked` = real TG bond (positive
+  // telegram_id). We only treat the latter as "linked to TG" in the UI.
+  const [status, setStatus] = useState<{ linked: boolean; telegram_linked?: boolean } | null>(null);
   const [code, setCode] = useState<string | null>(null);
   const [codeExpiresAt, setCodeExpiresAt] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -3103,13 +3106,15 @@ function LinkToTelegram({ wallet, botApiUrl }: { wallet: string; botApiUrl: stri
 
   if (!status) return null; // still loading
 
-  if (status.linked) {
+  // Only show "✓ Linked to Telegram" when the user actually has a
+  // real TG bond. Site-native auto-bootstrap users have `linked:
+  // true` (Magpie account exists) but `telegram_linked: false` (no
+  // real TG handle attached). Showing them as TG-linked would be a
+  // misleading status badge.
+  if (status.telegram_linked) {
     return (
       <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-xs">
-        <span className="font-semibold text-emerald-600">✓ Linked to Telegram</span>
-        {status.telegram_username && (
-          <span className="ml-1 text-[var(--d-ink-soft)]">as {status.telegram_username}</span>
-        )}
+        <span className="font-semibold text-emerald-600">✓ Telegram connected</span>
       </div>
     );
   }
