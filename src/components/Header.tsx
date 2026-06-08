@@ -11,14 +11,14 @@ import ThemeToggle from "@/components/ThemeToggle";
 // item only appears when this wallet is connected.
 const CREATOR_WALLET = "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx";
 
+// Header is intentionally tight. Headline product surfaces only — the
+// related pages (Credit, Holders, Refer, etc.) are cross-linked from
+// their natural homes: Dashboard, Tokens, /earn, the footer.
 const NAV_LINKS = [
   { label: "Earn", href: "/earn" },
   { label: "Borrow", href: "/marketplace" },
   { label: "Tokens", href: "/tokens" },
-  { label: "Credit", href: "/credit" },
   { label: "x402", href: "/x402" },
-  { label: "Holders", href: "/holders" },
-  { label: "Refer", href: "/refer" },
   { label: "Dashboard", href: "/dashboard" },
   { label: "Stats", href: "/stats" },
   { label: "Docs", href: "/docs" },
@@ -49,10 +49,11 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Center: desktop nav links. xl: breakpoint so at narrower desktop
-            sizes the nav doesn't fight for space with the wordmark + right
-            cluster (use the hamburger drawer there). */}
-        <nav className="hidden items-center gap-4 xl:flex xl:ml-8">
+        {/* Center: desktop nav links. lg: breakpoint — with the tighter
+            7-item nav (was 10) we now fit comfortably from the medium-
+            desktop width up. Below lg, the hamburger drawer (MobileNav)
+            surfaces every link with full hierarchy. */}
+        <nav className="hidden items-center gap-5 lg:flex lg:ml-6">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

@@ -19,15 +19,18 @@ export function Footer() {
             </p>
           </div>
           <FooterCol title="Product">
-            <FooterLink href="/tokens">Approved Tokens</FooterLink>
-            <FooterLink href="/calculate">Loan Calculator</FooterLink>
-            <FooterLink href="/credit">Credit System</FooterLink>
-            <FooterLink href="/points">Points</FooterLink>
             <FooterLink href="/earn">Earn</FooterLink>
-            <FooterLink href="/marketplace">Marketplace</FooterLink>
+            <FooterLink href="/marketplace">Borrow</FooterLink>
+            <FooterLink href="/tokens">Approved Tokens</FooterLink>
+            <FooterLink href="/x402">x402 · Agent API</FooterLink>
             <FooterLink href="/dashboard">Dashboard</FooterLink>
-            <FooterLink href="/leaderboard">Leaderboard</FooterLink>
             <FooterLink href="/stats">Protocol Stats</FooterLink>
+            <FooterLink href="/credit">Credit System</FooterLink>
+            <FooterLink href="/holders">$MAGPIE Holders</FooterLink>
+            <FooterLink href="/refer">Refer &amp; Earn</FooterLink>
+            <FooterLink href="/points">Points</FooterLink>
+            <FooterLink href="/calculate">Loan Calculator</FooterLink>
+            <FooterLink href="/leaderboard">Leaderboard</FooterLink>
             <FooterLink href="/status">Status</FooterLink>
           </FooterCol>
           <FooterCol title="Resources">
