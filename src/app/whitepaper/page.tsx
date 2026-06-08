@@ -26,7 +26,7 @@ const TOC = [
   { id: "credit", n: "7", label: "Credit System" },
   { id: "points", n: "8", label: "Points & Incentives" },
   { id: "security", n: "9", label: "Security Model" },
-  { id: "tokenomics", n: "10", label: "Tokenomics (Future)" },
+  { id: "tokenomics", n: "10", label: "Tokenomics" },
   { id: "roadmap", n: "11", label: "Roadmap" },
   { id: "conclusion", n: "12", label: "Conclusion" },
 ];
@@ -48,9 +48,9 @@ const CREDIT_TIERS = [
 
 const ROADMAP = [
   { q: "Q1 2026", status: "done", items: "Protocol launch, 64 token support, Telegram bot live" },
-  { q: "Q2 2026", status: "done", items: "Credit system, points, public API, open source" },
-  { q: "Q3 2026", status: "upcoming", items: "Multi-chain expansion, governance token, mobile app" },
-  { q: "Q4 2026", status: "upcoming", items: "Institutional pools, DAO governance, cross-chain lending" },
+  { q: "Q2 2026", status: "done", items: "Credit system, points, public API, open source, $MAGPIE token launch + holder rewards" },
+  { q: "Q3 2026", status: "upcoming", items: "magpie-x402 agent borrow API, on-chain TWAP program (v3), mobile app" },
+  { q: "Q4 2026", status: "upcoming", items: "Institutional pools, multi-chain expansion, cross-chain lending" },
 ];
 
 export default async function WhitepaperPage() {
@@ -465,24 +465,63 @@ First Loan      = 500 flat bonus`}</CodeBlock>
 
           {/* ─── 10. Tokenomics ─── */}
           <Reveal>
-            <Section id="tokenomics" n="10" title="Tokenomics (Future)">
+            <Section id="tokenomics" n="10" title="Tokenomics">
               <P>
-                A governance token is under active consideration. The following framework
-                represents current thinking and is subject to change based on community feedback
-                and regulatory guidance.
+                <Strong>$MAGPIE is live.</Strong> The protocol&apos;s native token launched on Pump.fun
+                and now distributes a share of every loan fee back to holders. Held by wallet,
+                rewarded by wallet — no staking, no claim transactions, no lockups.
               </P>
+
+              <div className="mt-6 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5">
+                <div className="font-mono text-xs text-[var(--ink-soft)] mb-1">Contract address (Token-2022, 6 decimals)</div>
+                <div className="font-mono text-sm break-all">9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump</div>
+                <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                  <a className="underline hover:text-[var(--ink)]" href="https://solscan.io/token/9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump" target="_blank" rel="noopener">Solscan ↗</a>
+                  <a className="underline hover:text-[var(--ink)]" href="https://pump.fun/coin/9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump" target="_blank" rel="noopener">Pump.fun ↗</a>
+                  <a className="underline hover:text-[var(--ink)]" href="https://dexscreener.com/solana/9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump" target="_blank" rel="noopener">DexScreener ↗</a>
+                </div>
+              </div>
+
+              <h4 className="mt-8 text-lg font-medium">Where every loan fee goes</h4>
+              <div className="mt-3 rounded-2xl border border-[var(--hairline)] overflow-hidden">
+                <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-[var(--ink)]/[0.03] text-xs uppercase tracking-widest text-[var(--ink-soft)]">
+                  <div className="col-span-3">Recipient</div>
+                  <div className="col-span-2">Share</div>
+                  <div className="col-span-7">Mechanism</div>
+                </div>
+                {[
+                  ["LPs (pool depositors)", "80%", "Pro-rata to each LP's share of the SOL pool. Compounds in-pool."],
+                  ["$MAGPIE holders", "10%", "Distributed in SOL to wallets holding $MAGPIE at snapshot time. No claim tx required."],
+                  ["Referrers", "5%", "Pro-rata fee share to whoever referred the borrower (lifetime, on every loan they take)."],
+                  ["LP loyalty pool", "2%", "Bonus distribution to long-term LPs based on share-days held."],
+                  ["Protocol", "3%", "Treasury — covers infrastructure, audits, ongoing development."],
+                ].map(([who, pct, how]) => (
+                  <div key={who} className="grid grid-cols-12 gap-4 px-5 py-4 border-t border-[var(--hairline)] text-sm items-start">
+                    <div className="col-span-3 font-medium">{who}</div>
+                    <div className="col-span-2 font-mono">{pct}</div>
+                    <div className="col-span-7 text-[var(--ink-soft)]">{how}</div>
+                  </div>
+                ))}
+              </div>
+
+              <h4 className="mt-8 text-lg font-medium">How $MAGPIE holders earn</h4>
               <BulletList items={[
-                "Governance token under consideration for protocol decision-making",
-                "Points may convert to governance weight, rewarding early and active users",
-                "Community-driven token listing governance — holders vote on new collateral types",
-                "Fee sharing mechanism for token holders aligned with protocol health",
-                "Detailed tokenomics to be announced in a dedicated publication",
+                "Hold $MAGPIE in any Solana wallet — Phantom, Solflare, Backpack, hardware (Ledger / Trezor), or the Magpie bot wallet. The snapshot reads every token account holding $MAGPIE on-chain. Wallet-agnostic.",
+                "Snapshots fire on a randomized 5–10 day cadence. Randomization is anti-dump — no one can predict the exact moment to pump-and-snapshot.",
+                "Distributions happen on-chain via direct SOL transfer from the lender authority wallet to every eligible holder. No claim, no signing, no lockup — the SOL just lands.",
+                "Held by wallet, rewarded by wallet. Your share = (your $MAGPIE balance) / (total $MAGPIE in eligible holder wallets) × (10% of fees accrued since the last distribution).",
+                "Pool/contract/CEX-deposit addresses are filtered out so distributions don't leak to non-holders. Holder count + payout sums are public via /api/v1/holders.",
               ]} />
-              <Callout>
-                <Strong>Note:</Strong> No token has been announced or launched. This section
-                reflects directional thinking only. Any token launch will be accompanied by
-                a full tokenomics paper, audit, and community review period.
-              </Callout>
+
+              <h4 className="mt-8 text-lg font-medium">Verify, don&apos;t trust</h4>
+              <P>
+                Everything in this section is verifiable on-chain. The contract address above is the
+                <em> only </em> legitimate $MAGPIE mint — anything else claiming to be Magpie is a scam.
+                Holder distribution flows can be inspected by searching the lender authority wallet
+                <span className="font-mono"> 4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx</span> on Solscan;
+                outgoing SOL transfers labeled <span className="font-mono">magpie-holder-distribution</span> are
+                the holder payouts.
+              </P>
             </Section>
           </Reveal>
 
