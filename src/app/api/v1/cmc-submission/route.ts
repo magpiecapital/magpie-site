@@ -17,7 +17,7 @@ import { getMagpieSupplyBreakdown, MAGPIE_MINT_STR, MAGPIE_DECIMALS } from "@/li
 export const revalidate = 60;
 
 export async function GET() {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://magpie.capital";
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.magpie.capital";
   let supplyBlock = "Supply data unavailable (RPC fetch failed).\nRetry shortly or check /api/v1/supply directly.";
   try {
     const s = await getMagpieSupplyBreakdown();

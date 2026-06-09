@@ -12,7 +12,7 @@
 export const revalidate = 3600;
 
 export async function GET() {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://magpie.capital";
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.magpie.capital";
   const text = `═══════════════════════════════════════════════════════════════════
   $MAGPIE — Listing Submission Walkthrough
 ═══════════════════════════════════════════════════════════════════
@@ -105,7 +105,7 @@ Fields not covered above:
   Project category:           DeFi / Lending
   Tags:                       DeFi, Lending, Solana, Memecoin, Credit Oracle
   Tokenomics URL:             ${base}/tokenomics
-  Launch date:                2026-04-17
+  Launch date:                March 2026
   Initial price (if asked):   leave blank or "fair launch via pump.fun
                               bonding curve, no fixed initial price"
   Vesting schedule:           "None — 100% fair launch on bonding curve"

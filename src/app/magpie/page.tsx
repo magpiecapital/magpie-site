@@ -45,7 +45,7 @@ function fmt(n: number): string {
 
 export default async function MagpiePage() {
   const supply = await safeBreakdown();
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://magpie.capital";
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.magpie.capital";
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">

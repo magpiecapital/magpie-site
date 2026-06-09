@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-const SITE_URL = "https://magpie.capital";
+const SITE_URL = "https://www.magpie.capital";
 
 export default function robots(): MetadataRoute.Robots {
   return {

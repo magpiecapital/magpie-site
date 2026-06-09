@@ -13,7 +13,7 @@ import { MAGPIE_MINT_STR, MAGPIE_DECIMALS } from "@/lib/solana/magpie-supply";
 export const revalidate = 300;
 
 export async function GET() {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://magpie.capital";
+  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.magpie.capital";
   return NextResponse.json(
     {
       ok: true,
