@@ -2,12 +2,24 @@
 id: MGP-002
 title: Signal poll — should Magpie add a Premium tier (30-day, 40% LTV, 5% fee, tokenized stocks only)?
 scope_tier: A6
-status: active
-voting_window: 2026-06-09 to 2026-06-12 (3 days)
+status: withdrawn
+voting_window: 2026-06-09 to 2026-06-12 (withdrawn before close)
 author: "@MagpieLoans"
 created_at: 2026-06-09
 activated_at: 2026-06-09
+withdrawn_at: 2026-06-09
 ---
+
+> **WITHDRAWN 2026-06-09.** This proposal was activated on 2026-06-09 as a non-binding signal poll on whether Magpie should add a Premium tier. The operator decided to ship the Premium tier (with **both 15-day and 30-day duration options**) under Tier B operator discretion rather than running the poll to conclusion. Tier B is the legitimate path per [GOVERNANCE.md v0](../GOVERNANCE.md) — loan-duration adjustments and new-tier additions are operator-discretion in v0; this proposal explored whether to move them into Tier A via a Tier C escalation. The operator's choice not to escalate is itself within scope.
+>
+> Execution plan for the Premium tier (15-day + 30-day, tokenized stocks only) is documented in `magpie-bot/docs/PREMIUM-TIER-DEPLOY-PLAN-2026-06-09.md`. The exit plan in §7 of this proposal (Q1 passes, Q2 fails → operator ships under discretion) is the path being taken.
+>
+> Any votes submitted against MGP-002 are recorded in `governance_votes` and visible in the aggregate endpoint but will not be tallied or acted on. The intent of any holder who voted YES on Q1 is being honored by shipping the tier; the intent of any holder who voted YES on Q4 (eligibility screener gates) is being honored by adopting the screener spec referenced in the deploy plan.
+>
+> The original proposal text follows for the record.
+
+---
+
 
 # MGP-002 — Signal poll: Premium tier (tokenized stocks)
 

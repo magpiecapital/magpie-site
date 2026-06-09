@@ -350,35 +350,6 @@ export default function GovernancePage() {
                 </p>
                 <p className="mt-3 text-xs text-cyan-300">Read the full proposal + cast your vote →</p>
               </Link>
-              <Link
-                href="/governance/proposal/MGP-002"
-                className="block rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-5 transition hover:border-cyan-400/60 hover:bg-cyan-500/15"
-              >
-                <div className="flex items-baseline gap-3">
-                  <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-xs text-cyan-100">
-                    MGP-002
-                  </span>
-                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] uppercase text-white/70">
-                    Tier A6
-                  </span>
-                  <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-[10px] uppercase text-cyan-100">
-                    active · signal poll
-                  </span>
-                  <span className="ml-auto text-[10px] uppercase tracking-wider text-white/50">
-                    closes 2026-06-12
-                  </span>
-                </div>
-                <h3 className="mt-3 font-medium text-white">
-                  Should Magpie add a Premium tier — 30-day, 40% LTV, 5% fee, tokenized stocks only?
-                </h3>
-                <p className="mt-2 text-sm text-white/70">
-                  Non-binding signal poll across four sub-questions: add the Premium tier at
-                  these parameters? · move loan-duration changes into Tier A scope? · launch
-                  with a separate Premium liquidity pool? · are the eligibility screener gates
-                  the right shape? Each tallied independently.
-                </p>
-                <p className="mt-3 text-xs text-cyan-300">Read the full proposal + cast your vote →</p>
-              </Link>
             </div>
           </section>
         </Reveal>

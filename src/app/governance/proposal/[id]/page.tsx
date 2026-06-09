@@ -89,48 +89,21 @@ const PROPOSALS: Record<string, Proposal> = {
     ],
   },
   "MGP-002": {
-    id: "MGP-002",
-    title:
-      "Should Magpie add a Premium tier (30-day, 40% LTV, 5% fee, tokenized stocks only)?",
-    scope_tier: "A6 — non-binding signal poll",
-    status: "active",
-    voting_window: "2026-06-09 to 2026-06-12 (3 days)",
+    id: "MGP-002-withdrawn",
+    title: "[WITHDRAWN] Signal poll on the Premium tier",
+    scope_tier: "A6 — withdrawn before close",
+    status: "failed",
+    voting_window: "2026-06-09 (withdrawn same day)",
     activated_at: "2026-06-09",
-    closes_at: "2026-06-12",
+    closes_at: "2026-06-09",
     summary:
-      "A non-binding signal poll asking $MAGPIE holders four independent questions about a proposed Premium loan tier — longer duration, higher LTV, higher fee, restricted to tokenized-stock collateral. Results inform whether to proceed with a Tier C scope amendment and a v3 program deploy.",
+      "Withdrawn 2026-06-09. The operator activated MGP-002 as a non-binding signal poll on whether to add a Premium tier, then chose to ship the tier directly under Tier B operator discretion (with both 15-day and 30-day duration options, tokenized stocks only). Tier B is the legitimate path for loan-duration adjustments and new-tier additions in v0; this poll explored whether to move them into Tier A via a Tier C escalation. The operator's choice not to escalate is within scope. Execution plan: magpie-bot/docs/PREMIUM-TIER-DEPLOY-PLAN-2026-06-09.md.",
     spec_url:
       "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-002-extended-duration-tier-signal-poll.md",
     parameters: [
-      { label: "Term", value: "30 days" },
-      { label: "LTV cap", value: "40%" },
-      { label: "Upfront fee", value: "5%" },
-      { label: "Eligible collateral", value: "Tokenized stocks only (whitelist gated)" },
-      { label: "Per-loan cap (initial)", value: "10 SOL" },
-      { label: "Per-token aggregate cap (initial)", value: "10 SOL" },
-      { label: "Liquidity pool", value: "Separate from existing pool (proposed)" },
-    ],
-    questions: [
-      {
-        id: "Q1",
-        text: "Magpie should add a Premium tier with the parameters above (30-day, 40% LTV, 5% fee, tokenized stocks only).",
-        choices: ["YES", "NO", "ABSTAIN"],
-      },
-      {
-        id: "Q2",
-        text: "Loan-duration adjustments should move from operator discretion into Tier A governance scope via a Tier C scope-amendment proposal (so future tier-duration changes are votable).",
-        choices: ["YES", "NO", "ABSTAIN"],
-      },
-      {
-        id: "Q3",
-        text: "The Premium tier should launch with a separate liquidity pool rather than sharing the existing pool's LP capital.",
-        choices: ["YES", "NO", "ABSTAIN"],
-      },
-      {
-        id: "Q4",
-        text: "The eligibility screener parameters (stock-category gate + per-pool whitelist + institutional price-feed health + 24h volume floor + liquidation-solvability simulation + clean-credit requirement) are the right shape.",
-        choices: ["YES", "NO", "ABSTAIN"],
-      },
+      { label: "Status", value: "Withdrawn before close" },
+      { label: "Reason", value: "Operator chose to ship under Tier B discretion (both 15-day + 30-day, stocks only)" },
+      { label: "Execution plan", value: "magpie-bot/docs/PREMIUM-TIER-DEPLOY-PLAN-2026-06-09.md" },
     ],
   },
 };

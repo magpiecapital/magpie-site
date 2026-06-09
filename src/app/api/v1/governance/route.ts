@@ -93,17 +93,6 @@ export async function GET() {
           spec_url:
             "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md",
         },
-        {
-          id: "MGP-002",
-          title: "Signal poll — should Magpie add a Premium tier (30-day, 40% LTV, 5% fee, tokenized stocks only)?",
-          scope_tier: "A6",
-          status: "active",
-          voting_window: "2026-06-09 to 2026-06-12",
-          summary: "Non-binding signal poll across four sub-questions: add the Premium tier at these specific parameters; move loan-duration changes into Tier A scope; launch with a separate Premium liquidity pool; are the eligibility screener gates the right shape. Aggregate results published at vote close.",
-          vote_url: `${base}/governance/proposal/MGP-002`,
-          spec_url:
-            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-002-extended-duration-tier-signal-poll.md",
-        },
       ],
       drafts: [
         {
@@ -120,7 +109,18 @@ export async function GET() {
           unlock_date: "2026-07-01",
         },
       ],
-      past_proposals: [],
+      past_proposals: [
+        {
+          id: "MGP-002",
+          title: "Signal poll — should Magpie add a Premium tier (30-day, 40% LTV, 5% fee, tokenized stocks only)?",
+          scope_tier: "A6",
+          status: "withdrawn",
+          voting_window: "2026-06-09 (withdrawn same day)",
+          summary: "Withdrawn 2026-06-09. Operator decided to ship the Premium tier (both 15-day and 30-day options) under Tier B operator discretion rather than running the signal poll to conclusion. Tier B is the legitimate path per GOVERNANCE.md v0 — loan-duration adjustments and new-tier additions are operator-discretion in v0. Execution plan documented in magpie-bot/docs/PREMIUM-TIER-DEPLOY-PLAN-2026-06-09.md.",
+          spec_url:
+            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-002-extended-duration-tier-signal-poll.md",
+        },
+      ],
       links: {
         community: "https://t.me/magpietalk",
         github_repo: "https://github.com/magpiecapital/magpie-site",
