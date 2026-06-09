@@ -9,6 +9,8 @@ interface VoteButtonsProps {
   questionId: string;
   choices: VoteChoice[];
   botApiUrl: string;
+  /** ISO timestamp; if set and in the future, buttons render as "voting opens at …" instead of clickable. */
+  opensAtIso?: string;
 }
 
 export function VoteButtons({
@@ -16,6 +18,7 @@ export function VoteButtons({
   questionId,
   choices,
   botApiUrl,
+  opensAtIso,
 }: VoteButtonsProps) {
   const { publicKey, signMessage, connected } = useWallet();
   const [busy, setBusy] = useState<VoteChoice | null>(null);
@@ -23,6 +26,8 @@ export function VoteButtons({
   const [error, setError] = useState<string | null>(null);
 
   const walletStr = publicKey ? publicKey.toBase58() : null;
+  const opensAt = opensAtIso ? Date.parse(opensAtIso) : null;
+  const notYetOpen = opensAt !== null && Date.now() < opensAt;
 
   async function handleVote(choice: VoteChoice) {
     setError(null);
@@ -46,6 +51,21 @@ export function VoteButtons({
     } finally {
       setBusy(null);
     }
+  }
+
+  if (notYetOpen) {
+    const opensFmt = new Date(opensAt!).toUTCString();
+    return (
+      <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
+        <p className="text-sm font-medium text-amber-200">
+          Voting opens {opensFmt}.
+        </p>
+        <p className="mt-1 text-xs text-amber-200/70">
+          Buttons unlock at the open time. The signed payloads need to be issued AFTER
+          activation; the server rejects votes signed earlier.
+        </p>
+      </div>
+    );
   }
 
   if (!connected) {

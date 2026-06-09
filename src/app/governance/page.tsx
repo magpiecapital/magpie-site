@@ -332,10 +332,10 @@ export default function GovernancePage() {
                     A4 + operator-committed
                   </span>
                   <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-[10px] uppercase text-cyan-100">
-                    active · binding · rescoped
+                    opens 2026-06-10 · binding · rescoped
                   </span>
                   <span className="ml-auto text-[10px] uppercase tracking-wider text-white/50">
-                    closes 2026-06-12
+                    closes 2026-06-13
                   </span>
                 </div>
                 <h3 className="mt-3 font-medium text-white">

@@ -3,11 +3,12 @@ id: MGP-001
 title: Restructure the loan-fee split — 60% to $MAGPIE holders, 30% to SOL LPs (5% referrer / 2% LP loyalty / 3% protocol unchanged)
 scope_tier: A4 — binding by operator commitment (one-time Tier B → de-facto Tier A exception, same path as MGP-003)
 status: active
-voting_window: 2026-06-09 to 2026-06-12 (3 days)
+voting_window: 2026-06-10 to 2026-06-13 (3 days; voting opens 2026-06-10 00:00 UTC)
 author: "@MagpieLoans"
 created_at: 2026-06-09
-activated_at: 2026-06-09
+activated_at: 2026-06-10
 rescoped_at: 2026-06-09
+window_shifted_at: 2026-06-09
 ---
 
 # MGP-001 — Restructure the loan-fee split to 60% holders / 30% LPs
@@ -162,8 +163,9 @@ You can change your vote any time before the voting window closes; the latest va
 ## 11. Lifecycle
 
 - `2026-06-09` — drafted by @MagpieLoans (initial 10→15% incremental version)
-- `2026-06-09` — operator scope review passed; status → `active`; 3-day voting window opens (closes 2026-06-12)
-- `2026-06-09` — proposal rescoped during activation window from 10→15% incremental to the full 10→60% target. Voting window unchanged. Existing intent registered in @magpietalk before the rescope is invalidated; voters are asked to recast.
-- (target 2026-06-12) — status → `closed`, tally computed
-- (target 2026-06-15 to 2026-06-26) — status → `executed` (passing) or `failed`
+- `2026-06-09` — operator scope review passed; status → `active`; initial 3-day voting window 2026-06-09 → 2026-06-12 set
+- `2026-06-09` — proposal rescoped during activation window from 10→15% incremental to the full 10→60% target. Existing intent registered in @magpietalk before the rescope is invalidated; voters are asked to recast.
+- `2026-06-09` — voting window shifted to 2026-06-10 → 2026-06-13 to ensure voting opens on a fresh day after the rescope. Status remains `active` but the activation gate rejects any vote payload with `issuedAt < 2026-06-10T00:00:00Z`. Holders see "voting opens 2026-06-10" on the proposal page.
+- (target 2026-06-13) — status → `closed`, tally computed
+- (target 2026-06-16 to 2026-06-27) — status → `executed` (passing) or `failed`
 - (T+30 days post-execution) — retrospective: observed LP TVL response, borrow volume response, and holder retention vs projected effects, appended below

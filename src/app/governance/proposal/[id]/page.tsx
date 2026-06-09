@@ -20,6 +20,8 @@ interface Proposal {
   voting_window: string;
   activated_at?: string;
   closes_at?: string;
+  /** ISO timestamp when the activation gate actually opens, if different from activated_at (e.g. shifted-window cases). */
+  opens_at_iso?: string;
   summary: string;
   spec_url: string;
   questions?: ProposalQuestion[];
@@ -32,9 +34,10 @@ const PROPOSALS: Record<string, Proposal> = {
     title: "Restructure the loan-fee split — 60% to $MAGPIE holders, 30% to SOL LPs",
     scope_tier: "A4 — binding by operator commitment (one-time Tier B → de-facto Tier A exception)",
     status: "active",
-    voting_window: "2026-06-09 to 2026-06-12 (3 days)",
-    activated_at: "2026-06-09",
-    closes_at: "2026-06-12",
+    voting_window: "Opens 2026-06-10 00:00 UTC · closes 2026-06-13 (3 days)",
+    activated_at: "2026-06-10",
+    closes_at: "2026-06-13",
+    opens_at_iso: "2026-06-10T00:00:00Z",
     summary:
       "Rescoped on 2026-06-09 from the earlier 10→15% incremental step to put the full long-term target directly on the ballot. Shift 50 percentage points from the SOL LP share (80% → 30%) to the $MAGPIE holder share (10% → 60%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged. The 60% holder share is outside the Tier A4 5%–15% bound; this proposal is filed as a one-time operator-committed Tier B → de-facto Tier A exception, the same path documented in MGP-003. Forward-only — does not affect distributions already accrued.",
     spec_url:
@@ -251,6 +254,7 @@ export default async function ProposalPage({
                         questionId={q.id}
                         choices={q.choices}
                         botApiUrl={botApiUrl}
+                        opensAtIso={p.opens_at_iso}
                       />
                     )}
                   </div>
