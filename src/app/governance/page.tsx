@@ -261,15 +261,86 @@ export default function GovernancePage() {
           </section>
         </Reveal>
 
-        {/* Active proposals — empty for now */}
+        {/* Drafts in review */}
+        <Reveal delay={0.28}>
+          <section className="mt-12">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-2xl font-semibold">Drafts in review</h2>
+              <span className="text-xs uppercase tracking-wider text-white/40">
+                pending operator scope review
+              </span>
+            </div>
+            <p className="mt-3 text-white/70">
+              These proposals are drafted and undergoing operator scope review (≤7 days per
+              spec). Read them now; comment in @magpietalk. They become active when status flips
+              and a snapshot slot is recorded.
+            </p>
+            <div className="mt-5 space-y-3">
+              <Link
+                href="https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-cyan-500/30 hover:bg-white/10"
+              >
+                <div className="flex items-baseline gap-3">
+                  <span className="rounded-md bg-cyan-500/20 px-2 py-0.5 font-mono text-xs text-cyan-200">
+                    MGP-001
+                  </span>
+                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] uppercase text-white/60">
+                    Tier A4
+                  </span>
+                  <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase text-white/40">
+                    draft
+                  </span>
+                </div>
+                <h3 className="mt-3 font-medium text-white/90">
+                  Increase $MAGPIE holder fee share from 10% to 15%
+                </h3>
+                <p className="mt-2 text-sm text-white/60">
+                  The 5-pp increase comes from the SOL LP share, which decreases from 80% to
+                  75%. Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged.
+                  Forward-only — does not affect distributions already accrued.
+                </p>
+              </Link>
+              <Link
+                href="https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-002-extended-duration-tier-signal-poll.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-cyan-500/30 hover:bg-white/10"
+              >
+                <div className="flex items-baseline gap-3">
+                  <span className="rounded-md bg-cyan-500/20 px-2 py-0.5 font-mono text-xs text-cyan-200">
+                    MGP-002
+                  </span>
+                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] uppercase text-white/60">
+                    Tier A6
+                  </span>
+                  <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase text-white/40">
+                    draft · signal poll
+                  </span>
+                </div>
+                <h3 className="mt-3 font-medium text-white/90">
+                  Should Magpie add an Extended-duration loan tier (≥14 days)?
+                </h3>
+                <p className="mt-2 text-sm text-white/60">
+                  Non-binding poll across four sub-questions (add tier? lower LTV? higher fee?
+                  move duration into Tier A?). Each is tallied independently. Results inform
+                  whether to file a Tier C escalation next.
+                </p>
+              </Link>
+            </div>
+          </section>
+        </Reveal>
+
+        {/* Active proposals */}
         <Reveal delay={0.3}>
           <section className="mt-12">
             <h2 className="text-2xl font-semibold">Active proposals</h2>
             <div className="mt-5 rounded-2xl border border-dashed border-white/15 bg-white/5 p-8 text-center">
-              <p className="text-white/60">No active proposals.</p>
+              <p className="text-white/60">No active proposals yet.</p>
               <p className="mt-2 text-sm text-white/40">
-                The first proposal will be announced in @magpietalk and posted here. Voting
-                interface will open with that proposal.
+                Drafts above will move here when the operator activates them. The voting
+                interface opens with the first activation.
               </p>
             </div>
           </section>

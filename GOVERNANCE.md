@@ -136,6 +136,17 @@ No timeline commitments on v1 or v2. The model evolves when the protocol's track
 
 ---
 
+## Proposals
+
+Each governance proposal is a Markdown file in [`/proposals`](./proposals/). See [`/proposals/README.md`](./proposals/README.md) for the file-naming convention, required frontmatter, required sections, and lifecycle states.
+
+Drafted proposals at the time of v0 launch:
+
+- [`MGP-001`](./proposals/MGP-001-holder-distribution-share-15pct.md) — Increase $MAGPIE holder fee share from 10% to 15%; LP share decreases from 80% to 75%. (Tier A4, draft.)
+- [`MGP-002`](./proposals/MGP-002-extended-duration-tier-signal-poll.md) — Signal poll: should Magpie add an Extended-duration loan tier (≥14 days)? (Tier A6, draft.)
+
+Subsequent proposal numbers are reserved for follow-ups (LTV adjustments per tier, fee-rate adjustments per tier, Tier C scope amendments).
+
 ## Questions / Concerns
 
 - Open an issue at https://github.com/magpiecapital/magpie-site/issues

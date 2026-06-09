@@ -82,6 +82,26 @@ export async function GET() {
         v2: { status: "planned", description: "Full on-chain governance (SPL governance or equivalent)" },
       },
       active_proposals: [],
+      drafts: [
+        {
+          id: "MGP-001",
+          title: "Increase $MAGPIE holder fee share from 10% to 15%",
+          scope_tier: "A4",
+          status: "draft",
+          summary: "Shift 5 percentage points from the SOL LP share (80% → 75%) to the $MAGPIE holder share (10% → 15%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged. Forward-only.",
+          spec_url:
+            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md",
+        },
+        {
+          id: "MGP-002",
+          title: "Signal poll — should Magpie add an Extended-duration loan tier (≥14 days)?",
+          scope_tier: "A6",
+          status: "draft",
+          summary: "Non-binding poll across four sub-questions (add tier? lower LTV? higher fee? move duration into Tier A?). Results inform whether to file a Tier C escalation next.",
+          spec_url:
+            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-002-extended-duration-tier-signal-poll.md",
+        },
+      ],
       past_proposals: [],
       links: {
         community: "https://t.me/magpietalk",
