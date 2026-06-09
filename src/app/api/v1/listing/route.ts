@@ -11,6 +11,7 @@
  * on each request. noindex.
  */
 import { getMagpieSupplyBreakdown, MAGPIE_MINT_STR, MAGPIE_DECIMALS } from "@/lib/solana/magpie-supply";
+import { TELEGRAM_BOT, TELEGRAM_COMMUNITY } from "@/lib/telegram-links";
 
 export const revalidate = 60;
 
@@ -176,7 +177,7 @@ bonding curve at launch, no team allocation, no presale, no vesting.
   GitHub:                  https://github.com/magpiecapital/magpie-bot
                            https://github.com/magpiecapital/magpie-site
   Twitter:                 https://x.com/MagpieLoans
-  Telegram:                https://t.me/MagpieTalk
+  Telegram:                ${TELEGRAM_COMMUNITY.url}
   Block explorer:          https://solscan.io/token/${MAGPIE_MINT_STR}
 
   Logo:                    upload ${base}/icon-200.png
@@ -236,7 +237,7 @@ collateral on Solana. 10% of every loan fee → SOL to $MAGPIE holders.
   Whitepaper:              ${base}/whitepaper
   Source code:             https://github.com/magpiecapital
   X / Twitter:             https://x.com/MagpieLoans
-  Telegram:                https://t.me/MagpieTalk
+  Telegram:                ${TELEGRAM_COMMUNITY.url}
   Block explorer:          https://solscan.io/token/${MAGPIE_MINT_STR}
 
   Logo:                    upload ${base}/icon-200.png  (exact 200×200 PNG)

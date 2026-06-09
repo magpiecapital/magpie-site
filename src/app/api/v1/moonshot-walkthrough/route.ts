@@ -9,6 +9,8 @@
  *
  * noindex.
  */
+import { TELEGRAM_BOT } from "@/lib/telegram-links";
+
 export const revalidate = 3600;
 
 export async function GET() {
@@ -115,7 +117,7 @@ What to paste in the first message (keep it short, they triage):
     - Mint: <paste from packet>
     - Site: ${base}
     - X: https://x.com/MagpieLoans
-    - Telegram: https://t.me/magpie_capital_bot
+    - Telegram: ${TELEGRAM_BOT.url}
     - Full submission packet (auto-refreshing, live data):
         ${base}/api/v1/moonshot-submission
 

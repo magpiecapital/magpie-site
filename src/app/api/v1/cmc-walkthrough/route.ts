@@ -9,6 +9,8 @@
  *
  * noindex.
  */
+import { TELEGRAM_BOT, TELEGRAM_COMMUNITY } from "@/lib/telegram-links";
+
 export const revalidate = 3600;
 
 export async function GET() {
@@ -64,8 +66,8 @@ Fields they'll ask, in roughly this order:
   GitHub:                     https://github.com/magpiecapital/magpie-bot
                               https://github.com/magpiecapital/magpie-site
   Twitter:                    https://x.com/MagpieLoans
-  Telegram:                   https://t.me/magpie_capital_bot
-                              https://t.me/MagpieTalk
+  Telegram:                   ${TELEGRAM_BOT.url}
+                              ${TELEGRAM_COMMUNITY.url}
   Block explorer:             https://solscan.io/token/<mint>
   Logo:                       upload /icon-512.png (resampled to 200x200)
   Circulating supply API:     ${base}/api/v1/supply/circulating

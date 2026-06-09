@@ -9,6 +9,7 @@
  */
 import { NextResponse } from "next/server";
 import { MAGPIE_MINT_STR, MAGPIE_DECIMALS } from "@/lib/solana/magpie-supply";
+import { TELEGRAM_BOT, TELEGRAM_COMMUNITY } from "@/lib/telegram-links";
 
 export const revalidate = 300;
 
@@ -40,8 +41,8 @@ export async function GET() {
         stats: [`${base}/stats`],
         token_page: [`${base}/magpie`],
         twitter: ["https://x.com/MagpieLoans"],
-        telegram_bot: ["https://t.me/magpie_capital_bot"],
-        telegram_community: ["https://t.me/MagpieTalk"],
+        telegram_bot: [TELEGRAM_BOT.url],
+        telegram_community: [TELEGRAM_COMMUNITY.url],
         explorer: [
           `https://solscan.io/token/${MAGPIE_MINT_STR}`,
           `https://birdeye.so/token/${MAGPIE_MINT_STR}?chain=solana`,
@@ -72,7 +73,7 @@ export async function GET() {
       },
       contact: {
         twitter_dm: "https://x.com/MagpieLoans",
-        telegram_dm: "https://t.me/magpie_capital_bot",
+        telegram_dm: TELEGRAM_BOT.url,
         support_tickets: `${base}/dashboard`,
       },
       generated_at: new Date().toISOString(),

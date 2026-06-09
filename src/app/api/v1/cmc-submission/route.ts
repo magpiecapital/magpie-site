@@ -13,6 +13,7 @@
  * search engines from indexing it as if it were a landing page.
  */
 import { getMagpieSupplyBreakdown, MAGPIE_MINT_STR, MAGPIE_DECIMALS } from "@/lib/solana/magpie-supply";
+import { TELEGRAM_BOT, TELEGRAM_COMMUNITY } from "@/lib/telegram-links";
 
 export const revalidate = 60;
 
@@ -104,8 +105,8 @@ Protocol stats:            ${base}/stats
 Support:                   ${base}/support
 
 X / Twitter:               https://x.com/MagpieLoans
-Telegram bot:              https://t.me/magpie_capital_bot
-Telegram community:        https://t.me/MagpieTalk
+Telegram bot:              ${TELEGRAM_BOT.url}
+Telegram community:        ${TELEGRAM_COMMUNITY.url}
 
 Source code (bot):         https://github.com/magpiecapital/magpie-bot
 Source code (site):        https://github.com/magpiecapital/magpie-site

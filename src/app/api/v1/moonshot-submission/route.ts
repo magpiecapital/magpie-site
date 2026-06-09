@@ -10,6 +10,7 @@
  * noindex.
  */
 import { getMagpieSupplyBreakdown, MAGPIE_MINT_STR, MAGPIE_DECIMALS } from "@/lib/solana/magpie-supply";
+import { TELEGRAM_BOT, TELEGRAM_COMMUNITY } from "@/lib/telegram-links";
 
 export const revalidate = 60;
 
@@ -144,8 +145,8 @@ Security:                  ${base}/security
 Whitepaper:                ${base}/whitepaper
 
 X / Twitter:               https://x.com/MagpieLoans
-Telegram community:        https://t.me/MagpieTalk
-Telegram bot (the app):    https://t.me/magpie_capital_bot
+Telegram community:        ${TELEGRAM_COMMUNITY.url}
+Telegram bot (the app):    ${TELEGRAM_BOT.url}
 
 Source code:               https://github.com/magpiecapital
 
