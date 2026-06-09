@@ -92,6 +92,29 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      // Token landing page — single URL for listing reviewers + skeptics
+      // to consolidate contract, supply, and explorer links.
+      url: `${SITE_URL}/magpie`,
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/tokenomics`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.85,
+    },
+    {
+      // Support entry point — discoverable from header nav so non-TG
+      // users (and any first-time visitor) can find help without
+      // digging into the dashboard.
+      url: `${SITE_URL}/support`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
       url: `${SITE_URL}/earn`,
       lastModified: now,
       changeFrequency: "weekly",

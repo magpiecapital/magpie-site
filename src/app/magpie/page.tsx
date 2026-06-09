@@ -203,6 +203,8 @@ export default async function MagpiePage() {
         <div className="text-xs text-[var(--ink-faint)] text-center mt-12">
           Numbers refresh every 60s.{" "}
           <a href={`${base}/api/v1/supply`} className="underline">View raw supply JSON ↗</a>
+          <span className="mx-2">·</span>
+          <a href="/tokenomics" className="underline">Tokenomics →</a>
         </div>
       </main>
       <Footer />
