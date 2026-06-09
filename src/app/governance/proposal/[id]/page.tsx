@@ -24,6 +24,55 @@ interface Proposal {
 }
 
 const PROPOSALS: Record<string, Proposal> = {
+  "MGP-003": {
+    id: "MGP-003",
+    title:
+      "Allocation decision for the July 1, 2026 $MAGPIE Streamflow unlock (~5% of supply)",
+    scope_tier: "A6 — binding by operator commitment (one-time Tier B → de-facto Tier A exception)",
+    status: "draft",
+    voting_window: "Target: 2026-06-12 to 2026-06-15 (3 days)",
+    activated_at: undefined,
+    closes_at: "2026-06-15",
+    summary:
+      "On July 1, 2026 a Streamflow contract holding ~5% of $MAGPIE supply (~50M tokens) unlocks. Five options on the ballot: burn, re-lock 12 months, pro-rata distribution to holders (30-day stream), utility-weighted distribution to protocol users (30-day stream), or hybrid (50% burn + 25% holders + 25% users). Operator commits to honor the winning option as a one-time Tier B → de-facto-Tier-A exception. Execution must complete within 14 days of unlock.",
+    spec_url:
+      "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md",
+    parameters: [
+      { label: "Streamflow contract", value: "GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc" },
+      { label: "Unlock date", value: "2026-07-01" },
+      { label: "Allocation size", value: "~5% of total supply (~50M $MAGPIE)" },
+      { label: "Quorum requirement", value: "≥ 7.5% of eligible supply (non-ABSTAIN)" },
+      { label: "Pass threshold", value: "Plurality, winner > 40% of cast votes" },
+      { label: "Operator discretion fallback", value: "Triggered if ABSTAIN ≥ 30% or quorum fails" },
+      { label: "Execution window", value: "≤ 14 days after July 1 unlock" },
+    ],
+    questions: [
+      {
+        id: "Option A",
+        text: "BURN — full ~50M $MAGPIE balance sent to a verified burn address on unlock. Permanent supply reduction of ~5%. Simplest execution.",
+      },
+      {
+        id: "Option B",
+        text: "RE-LOCK — deposit into a new Streamflow contract with a fresh 12-month lock (next unlock: July 1, 2027). Defers the decision; no immediate change.",
+      },
+      {
+        id: "Option C",
+        text: "HOLDER DISTRIBUTION — pro-rata to $MAGPIE holders, streamed over 30 days, with a 1% per-wallet cap (overflow to next-largest sub-cap wallets, then burn). Rewards loyalty.",
+      },
+      {
+        id: "Option D",
+        text: "USER DISTRIBUTION — weighted by lifetime fees paid (borrowers) + time-weighted share-seconds (LPs) + flat per-successful-referral. Streamed over 30 days. Rewards utility.",
+      },
+      {
+        id: "Option E",
+        text: "HYBRID — 50% burn (25M) + 25% to holders (12.5M) + 25% to users (12.5M). Spreads benefit across constituencies; net 2.5% supply reduction.",
+      },
+      {
+        id: "ABSTAIN",
+        text: "ABSTAIN — defer to operator discretion. If aggregate ABSTAIN ≥ 30% of cast votes, operator chooses from {A,B,C,D,E} with a published rationale.",
+      },
+    ],
+  },
   "MGP-002": {
     id: "MGP-002",
     title:

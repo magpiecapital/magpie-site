@@ -104,6 +104,19 @@ export async function GET() {
           spec_url:
             "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md",
         },
+        {
+          id: "MGP-003",
+          title: "Allocation decision for the July 1, 2026 $MAGPIE Streamflow unlock (~5% of supply)",
+          scope_tier: "A6 (binding by operator commitment — one-time Tier B → de-facto Tier A exception)",
+          status: "draft",
+          summary:
+            "Five options for the ~50M $MAGPIE balance unlocking on July 1, 2026 (Streamflow contract GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc): burn / re-lock 12 months / pro-rata distribution to holders (30-day stream) / utility-weighted distribution to protocol users (30-day stream) / hybrid (50% burn + 25% holders + 25% users). Plurality wins above 40%; 7.5% quorum; ABSTAIN ≥ 30% triggers operator discretion fallback. Target voting window 2026-06-12 to 2026-06-15.",
+          spec_url:
+            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md",
+          streamflow_contract:
+            "GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc",
+          unlock_date: "2026-07-01",
+        },
       ],
       past_proposals: [],
       links: {

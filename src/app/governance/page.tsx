@@ -302,6 +302,33 @@ export default function GovernancePage() {
                   Forward-only — does not affect distributions already accrued.
                 </p>
               </Link>
+              <Link
+                href="https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-cyan-500/30 hover:bg-white/10"
+              >
+                <div className="flex items-baseline gap-3">
+                  <span className="rounded-md bg-cyan-500/20 px-2 py-0.5 font-mono text-xs text-cyan-200">
+                    MGP-003
+                  </span>
+                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] uppercase text-white/60">
+                    A6 (binding by commitment)
+                  </span>
+                  <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase text-white/40">
+                    draft · vote target 2026-06-12
+                  </span>
+                </div>
+                <h3 className="mt-3 font-medium text-white/90">
+                  Allocation decision for the July 1 $MAGPIE Streamflow unlock (~5% of supply)
+                </h3>
+                <p className="mt-2 text-sm text-white/60">
+                  Five options: burn / re-lock 12 months / pro-rata to holders / utility-weighted
+                  to users / hybrid (50% burn + 25% holders + 25% users). Operator commits to
+                  honor the winning option as a one-time Tier-B-as-Tier-A exception. Execution
+                  must complete within 14 days of the July 1 unlock.
+                </p>
+              </Link>
             </div>
           </section>
         </Reveal>
