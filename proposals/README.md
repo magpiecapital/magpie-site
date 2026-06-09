@@ -65,7 +65,7 @@ A proposal moves through these states. The current state is reflected in the fro
 
 - Drafts are reviewed by the operator within 7 days for scope and clarity.
 - Scope-rejected drafts get a written `rejected` status with a one-paragraph reason appended.
-- Drafts that pass review are activated: status → `active`, voting window is set to 7 days. Activation-time vote-weight basis (per-wallet $MAGPIE balance) is captured by the operator and not published.
+- Drafts that pass review are activated: status → `active`, voting window is set to 3 days. Activation-time vote-weight basis (per-wallet $MAGPIE balance) is captured by the operator and not published.
 
 ## Post-execution requirements
 

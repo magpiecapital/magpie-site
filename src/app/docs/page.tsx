@@ -682,7 +682,7 @@ export default async function DocsPage() {
                 {
                   n: "3",
                   title: "Closed (tally + threshold check)",
-                  body: "After 7 days: tally is computed. Quorum requirement is 5% of eligible supply (excluding the excluded-address list) voting YES + NO. Pass threshold is 60% YES of (YES + NO). Abstain does not count toward either.",
+                  body: "After 3 days: tally is computed. Quorum requirement is 5% of eligible supply (excluding the excluded-address list) voting YES + NO. Pass threshold is 60% YES of (YES + NO). Abstain does not count toward either.",
                 },
                 {
                   n: "4",

@@ -223,7 +223,7 @@ export default function GovernancePage() {
                   <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-xs">
                     2. Active
                   </span>
-                  <span className="text-sm text-white/60">7-day voting window</span>
+                  <span className="text-sm text-white/60">3-day voting window</span>
                 </div>
                 <p className="mt-2 text-sm text-white/70">
                   Operator pins the proposal here. Holders connect wallet and vote

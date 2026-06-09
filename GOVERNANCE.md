@@ -83,12 +83,12 @@ This is intentionally a high bar. Scope creep is the single biggest governance f
 ### 2. Active (voting opens)
 
 - Operator pins the proposal to `/governance` and to @magpietalk.
-- Voting opens for **7 days**.
+- Voting opens for **3 days**.
 - The voting interface at `/governance/proposal/[id]` allows any $MAGPIE holder to connect wallet and vote YES / NO / ABSTAIN. Vote is a wallet-signed message; the operator tallies signed votes against a pinned holder balance set determined at proposal activation.
 
 ### 3. Closed (vote ends)
 
-- Tally is computed at the end of the 7-day window.
+- Tally is computed at the end of the 3-day window.
 - **Quorum requirement:** at least 5% of eligible supply (excluding the exclusion list above) must have voted YES + NO (abstain doesn't count toward quorum).
 - **Pass threshold:** 60% of (YES + NO) votes must be YES.
 - If quorum fails OR pass threshold fails, the proposal is `failed`.

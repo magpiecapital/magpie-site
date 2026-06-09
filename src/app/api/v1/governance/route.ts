@@ -66,7 +66,7 @@ export async function GET() {
         steps: ["draft", "active", "closed", "executed"],
         terminal_states: ["executed", "failed", "withdrawn", "rejected"],
         draft_review_window_days: 7,
-        active_voting_window_days: 7,
+        active_voting_window_days: 3,
         quorum_pct: 0.05,
         pass_threshold_pct: 0.60,
         execution_window_days: 14,

@@ -50,7 +50,7 @@ Two reasons.
 
 **The question is exploratory, not specific.** A binding proposal needs to specify exact numbers: which duration, which LTV, which fee, which risk-engine implications. Holders haven't yet been asked whether they even want this direction — proposing specific numbers without that input would be premature.
 
-**Duration is out of Tier A v0 scope.** A binding duration-change proposal would require a Tier C escalation first to amend the governance spec. That's a higher bar (80% pass / 15% quorum / 30-day cooling-off) than this signal poll (60% pass / 5% quorum / 7-day window). Running the signal poll first is the cheap way to figure out whether the Tier C escalation has support before incurring its overhead.
+**Duration is out of Tier A v0 scope.** A binding duration-change proposal would require a Tier C escalation first to amend the governance spec. That's a higher bar (80% pass / 15% quorum / 30-day cooling-off) than this signal poll (60% pass / 5% quorum / 3-day window). Running the signal poll first is the cheap way to figure out whether the Tier C escalation has support before incurring its overhead.
 
 ## 5. What happens after the poll closes
 

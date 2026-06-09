@@ -28,7 +28,7 @@ const ENTRIES: Entry[] = [
       "Tier B — out of scope: anything affecting active loans retroactively, on-chain safety config, founder identity, treasury allocation, token supply changes, x402 pricing",
       "1 token = 1 vote. Voting weight is based on $MAGPIE balance at proposal activation. DEX pools, operator wallet, and burn addresses are excluded from the weight calculation",
       "Voting is gasless — wallet-signed off-chain messages. Aggregate tallies are published at vote close; per-wallet vote choices are not",
-      "7-day voting window, 5% quorum, 60% pass threshold. Passing votes implemented by the operator within 14 days",
+      "3-day voting window, 5% quorum, 60% pass threshold. Passing votes implemented by the operator within 14 days",
       "Roadmap: v1 introduces an on-chain parameter-bounds contract so the operator cannot change Tier A values outside the bounds; v2 is full on-chain governance",
       "Machine-readable model at /api/v1/governance for agents and integrators. Drafts and discussion in @magpietalk",
     ],
