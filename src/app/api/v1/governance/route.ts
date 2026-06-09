@@ -84,11 +84,11 @@ export async function GET() {
       active_proposals: [
         {
           id: "MGP-001",
-          title: "Increase $MAGPIE holder fee share from 10% to 15%",
-          scope_tier: "A4",
+          title: "Restructure the loan-fee split — 60% to $MAGPIE holders, 30% to SOL LPs",
+          scope_tier: "A4 — binding by operator commitment (one-time Tier B → de-facto Tier A exception, same path as MGP-003)",
           status: "active",
           voting_window: "2026-06-09 to 2026-06-12",
-          summary: "Shift 5 percentage points from the SOL LP share (80% → 75%) to the $MAGPIE holder share (10% → 15%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged. Forward-only — does not affect distributions already accrued. Binding under Tier A4.",
+          summary: "Shift 50 percentage points from the SOL LP share (80% → 30%) to the $MAGPIE holder share (10% → 60%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged. Forward-only — does not affect distributions already accrued. Rescoped from the earlier 10→15% incremental step to put the full target end state on the ballot directly. Outside Tier A4 5%–15% bound; filed as a one-time operator-committed exception per the path documented in MGP-003.",
           vote_url: `${base}/governance/proposal/MGP-001`,
           spec_url:
             "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md",

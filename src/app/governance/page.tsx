@@ -329,23 +329,24 @@ export default function GovernancePage() {
                     MGP-001
                   </span>
                   <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] uppercase text-white/70">
-                    Tier A4
+                    A4 + operator-committed
                   </span>
                   <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-[10px] uppercase text-cyan-100">
-                    active · binding
+                    active · binding · rescoped
                   </span>
                   <span className="ml-auto text-[10px] uppercase tracking-wider text-white/50">
                     closes 2026-06-12
                   </span>
                 </div>
                 <h3 className="mt-3 font-medium text-white">
-                  Increase $MAGPIE holder fee share from 10% to 15%
+                  Restructure the fee split — 60% $MAGPIE holders / 30% SOL LPs
                 </h3>
                 <p className="mt-2 text-sm text-white/70">
-                  The 5-pp increase comes from the SOL LP share, which decreases from 80% to
-                  75%. Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged.
-                  Forward-only — does not affect distributions already accrued. First step
-                  toward the longer-term ~60% holder / ~30% LP target.
+                  Rescoped from the earlier 10→15% incremental step to the full target
+                  end state. Shift 50 pp from the LP share (80% → 30%) to holders
+                  (10% → 60%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%)
+                  unchanged. Outside Tier A4 bound — filed as a one-time Tier B → de-facto
+                  Tier A exception under operator commitment. Forward-only.
                 </p>
                 <p className="mt-3 text-xs text-cyan-300">Read the full proposal + cast your vote →</p>
               </Link>
