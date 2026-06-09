@@ -36,6 +36,7 @@ export function Footer() {
           <FooterCol title="Resources">
             <FooterLink href="/docs">Documentation</FooterLink>
             <FooterLink href="/whitepaper">Whitepaper</FooterLink>
+            <FooterLink href="/governance">Governance</FooterLink>
             <FooterLink href="/security">Security</FooterLink>
             <FooterLink href="/privacy">Privacy & data</FooterLink>
             <FooterLink href="/changelog">Changelog</FooterLink>

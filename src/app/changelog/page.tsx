@@ -8,7 +8,7 @@ export const metadata = {
     "What's new at Magpie. Protocol updates, new features, and improvements.",
 };
 
-type Tag = "Feature" | "Improvement" | "Security" | "Launch" | "Migration" | "Privacy";
+type Tag = "Feature" | "Improvement" | "Security" | "Launch" | "Migration" | "Privacy" | "Governance";
 
 interface Entry {
   date: string;
@@ -18,6 +18,21 @@ interface Entry {
 }
 
 const ENTRIES: Entry[] = [
+  {
+    date: "June 9, 2026",
+    tag: "Governance",
+    title: "Magpie Governance v0 — off-chain signal voting for $MAGPIE holders",
+    bullets: [
+      "Published the v0 governance model at magpie.capital/governance (and the canonical spec in GOVERNANCE.md)",
+      "Tier A — votable now: collateral additions/removals, tier LTV caps (±5pp), tier fee rates (±0.5pp), holder distribution share (5-15%), distribution cadence (3-14 days), and non-binding signal polls on feature priorities",
+      "Tier B — out of scope: anything affecting active loans retroactively, on-chain safety config, founder identity, treasury allocation, token supply changes, x402 pricing",
+      "1 token = 1 vote at proposal snapshot slot. DEX pools, operator wallet, and burn addresses are excluded from the weight calculation",
+      "Voting is gasless — wallet-signed off-chain messages, tally regenerable by anyone from the snapshot slot + the signed-payload archive",
+      "7-day voting window, 5% quorum, 60% pass threshold. Passing votes implemented by the operator within 14 days",
+      "Roadmap: v1 introduces an on-chain parameter-bounds contract so the operator cannot change Tier A values outside the bounds; v2 is full on-chain governance",
+      "Machine-readable model at /api/v1/governance for agents and integrators. Drafts and discussion in @magpietalk",
+    ],
+  },
   {
     date: "June 8, 2026",
     tag: "Migration",
@@ -417,6 +432,11 @@ const TAG_STYLES: Record<Tag, { bg: string; text: string; dot: string; glow?: st
     bg: "bg-[#dbeafe]",
     text: "text-[#1e40af]",
     dot: "bg-[#3b82f6]",
+  },
+  Governance: {
+    bg: "bg-[#ecfeff]",
+    text: "text-[#0e7490]",
+    dot: "bg-[#06b6d4]",
   },
 };
 
