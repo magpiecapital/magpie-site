@@ -126,10 +126,22 @@ STEP 0 — Pre-flight (5 minutes, do once)
 STEP 1 — Submit to CoinGecko  (do this FIRST — fastest reviewer)
 ═══════════════════════════════════════════════════════════════════
 
-GO TO:  https://www.coingecko.com/en/coins/new
+GO TO:  https://support.coingecko.com/hc/en-us/requests/new
 
-Log into a CoinGecko account (create one with the email from Step 0
-if needed).
+(CG retired the old /en/coins/new path. Their support center is the
+current entry point. If THIS link 404s in the future, go to
+coingecko.com, scroll to footer, click "Request Form".)
+
+Log into your CoinGecko account (sign up with the email from Step 0
+if needed — same account works for the support center).
+
+On the request form:
+  - "Please choose your issue below" → select Request & Listing
+  - "What can we help you with?" → New Coin/Token Listing
+  - Listing type → Active Listing  (the token is already trading
+                                    on PumpSwap — pick Active, not Preview)
+  - Pass type → Regular Pass is free (up to 5 days). Fast Pass is
+                paid (~24h). Default Regular unless you want to pay.
 
 Fields, top to bottom — COPY-PASTE the bold blocks exactly:
 
@@ -186,11 +198,13 @@ Hit submit. CG review usually 1–3 weeks. Watch the email.
 STEP 2 — Submit to CoinMarketCap  (parallel — fine to do same day)
 ═══════════════════════════════════════════════════════════════════
 
-GO TO:  https://coinmarketcap.com/request/
+GO TO:  https://support.coinmarketcap.com/hc/en-us/requests/new?ticket_form_id=360000493112
 
-(If that 404s, search "coinmarketcap request form" — they move the URL.)
+(Deep link straight to the "[New Listing] Add cryptoasset" form. If
+it 404s in the future, go to coinmarketcap.com/request/ and select
+"1 - [New Listing] Add cryptoasset" from the dropdown.)
 
-Log into a CMC account.
+Log into your CMC account.
 
 Fields, top to bottom — COPY-PASTE the bold blocks exactly:
 
@@ -390,8 +404,10 @@ STALL POINTS — what kills these submissions, by frequency
 QUICK REFERENCE — every link you'll need (in submission order)
 ═══════════════════════════════════════════════════════════════════
 
-CoinGecko submit:          https://www.coingecko.com/en/coins/new
-CoinMarketCap submit:      https://coinmarketcap.com/request/
+CoinGecko submit:          https://support.coingecko.com/hc/en-us/requests/new
+                           (Request & Listing → New Coin/Token Listing → Active)
+CoinMarketCap submit:      https://support.coinmarketcap.com/hc/en-us/requests/new?ticket_form_id=360000493112
+                           (or coinmarketcap.com/request/ → "1 - [New Listing] Add cryptoasset")
 Moonshot search:           https://moonshot.money
 Moonshot DM target:        https://x.com/moonshot
 
