@@ -132,7 +132,11 @@ export default async function ProposalPage({
   if (!p) notFound();
 
   const isActive = p.status === "active";
-  const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || "";
+  // Same fallback as StatusClient.tsx + LeaderboardClient.tsx — keeps the
+  // vote flow working even if NEXT_PUBLIC_BOT_API_URL isn't set on Vercel.
+  const botApiUrl =
+    process.env.NEXT_PUBLIC_BOT_API_URL ||
+    "https://magpie-bot-production.up.railway.app";
 
   return (
     <div className="min-h-screen bg-black text-white">
