@@ -302,32 +302,6 @@ export default function GovernancePage() {
                   Forward-only — does not affect distributions already accrued.
                 </p>
               </Link>
-              <Link
-                href="https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-002-extended-duration-tier-signal-poll.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-cyan-500/30 hover:bg-white/10"
-              >
-                <div className="flex items-baseline gap-3">
-                  <span className="rounded-md bg-cyan-500/20 px-2 py-0.5 font-mono text-xs text-cyan-200">
-                    MGP-002
-                  </span>
-                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] uppercase text-white/60">
-                    Tier A6
-                  </span>
-                  <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase text-white/40">
-                    draft · signal poll
-                  </span>
-                </div>
-                <h3 className="mt-3 font-medium text-white/90">
-                  Should Magpie add an Extended-duration loan tier (≥14 days)?
-                </h3>
-                <p className="mt-2 text-sm text-white/60">
-                  Non-binding poll across four sub-questions (add tier? lower LTV? higher fee?
-                  move duration into Tier A?). Each is tallied independently. Results inform
-                  whether to file a Tier C escalation next.
-                </p>
-              </Link>
             </div>
           </section>
         </Reveal>
@@ -335,13 +309,46 @@ export default function GovernancePage() {
         {/* Active proposals */}
         <Reveal delay={0.3}>
           <section className="mt-12">
-            <h2 className="text-2xl font-semibold">Active proposals</h2>
-            <div className="mt-5 rounded-2xl border border-dashed border-white/15 bg-white/5 p-8 text-center">
-              <p className="text-white/60">No active proposals yet.</p>
-              <p className="mt-2 text-sm text-white/40">
-                Drafts above will move here when the operator activates them. The voting
-                interface opens with the first activation.
-              </p>
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-2xl font-semibold">Active proposals</h2>
+              <span className="text-xs uppercase tracking-wider text-cyan-300">
+                voting open
+              </span>
+            </div>
+            <p className="mt-3 text-white/70">
+              These proposals are open for voting. Each has a 3-day window from activation.
+            </p>
+            <div className="mt-5 space-y-3">
+              <Link
+                href="/governance/proposal/MGP-002"
+                className="block rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-5 transition hover:border-cyan-400/60 hover:bg-cyan-500/15"
+              >
+                <div className="flex items-baseline gap-3">
+                  <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-xs text-cyan-100">
+                    MGP-002
+                  </span>
+                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] uppercase text-white/70">
+                    Tier A6
+                  </span>
+                  <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-[10px] uppercase text-cyan-100">
+                    active · signal poll
+                  </span>
+                  <span className="ml-auto text-[10px] uppercase tracking-wider text-white/50">
+                    closes 2026-06-12
+                  </span>
+                </div>
+                <h3 className="mt-3 font-medium text-white">
+                  Should Magpie add a Premium tier — 30-day, 40% LTV, 5% fee, tokenized stocks only?
+                </h3>
+                <p className="mt-2 text-sm text-white/70">
+                  Non-binding signal poll across four sub-questions: add the Premium tier at
+                  these parameters? · move loan-duration changes into Tier A scope? · launch
+                  with a separate Premium liquidity pool? · are the eligibility screener gates
+                  the right shape? Each tallied independently.
+                </p>
+                <p className="mt-3 text-xs text-cyan-300">Read the full proposal + intent
+                  collection →</p>
+              </Link>
             </div>
           </section>
         </Reveal>

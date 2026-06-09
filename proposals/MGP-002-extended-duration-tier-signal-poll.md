@@ -2,10 +2,11 @@
 id: MGP-002
 title: Signal poll — should Magpie add a Premium tier (30-day, 40% LTV, 5% fee, tokenized stocks only)?
 scope_tier: A6
-status: draft
-voting_window: TBD
+status: active
+voting_window: 2026-06-09 to 2026-06-12 (3 days)
 author: "@MagpieLoans"
 created_at: 2026-06-09
+activated_at: 2026-06-09
 ---
 
 # MGP-002 — Signal poll: Premium tier (tokenized stocks)
@@ -124,10 +125,9 @@ Discussion in [@magpietalk](https://t.me/magpietalk).
 ## 13. Lifecycle
 
 - `2026-06-09` — drafted by @MagpieLoans (re-scoped from prior generic-extended-tier draft to specific Premium-tier parameters)
-- (TBD) — operator scope review
-- (TBD) — status → `active`
-- (TBD) — status → `closed`, tally published per question
-- (TBD) — operator response to each question's result published
+- `2026-06-09` — operator scope review passed; status → `active`; 3-day voting window opens
+- (2026-06-12) — status → `closed`, tally published per question
+- (TBD) — operator response to each question's result published within 30 days
 
 ---
 

@@ -81,7 +81,19 @@ export async function GET() {
         v1: { status: "planned", description: "On-chain parameter-bounds contract" },
         v2: { status: "planned", description: "Full on-chain governance (SPL governance or equivalent)" },
       },
-      active_proposals: [],
+      active_proposals: [
+        {
+          id: "MGP-002",
+          title: "Signal poll — should Magpie add a Premium tier (30-day, 40% LTV, 5% fee, tokenized stocks only)?",
+          scope_tier: "A6",
+          status: "active",
+          voting_window: "2026-06-09 to 2026-06-12",
+          summary: "Non-binding signal poll across four sub-questions: add the Premium tier at these specific parameters; move loan-duration changes into Tier A scope; launch with a separate Premium liquidity pool; are the eligibility screener gates the right shape. Aggregate results published at vote close.",
+          vote_url: `${base}/governance/proposal/MGP-002`,
+          spec_url:
+            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-002-extended-duration-tier-signal-poll.md",
+        },
+      ],
       drafts: [
         {
           id: "MGP-001",
@@ -91,15 +103,6 @@ export async function GET() {
           summary: "Shift 5 percentage points from the SOL LP share (80% → 75%) to the $MAGPIE holder share (10% → 15%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged. Forward-only.",
           spec_url:
             "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md",
-        },
-        {
-          id: "MGP-002",
-          title: "Signal poll — should Magpie add an Extended-duration loan tier (≥14 days)?",
-          scope_tier: "A6",
-          status: "draft",
-          summary: "Non-binding poll across four sub-questions (add tier? lower LTV? higher fee? move duration into Tier A?). Results inform whether to file a Tier C escalation next.",
-          spec_url:
-            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-002-extended-duration-tier-signal-poll.md",
         },
       ],
       past_proposals: [],
