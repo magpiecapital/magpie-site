@@ -97,6 +97,51 @@ const LAYERS = [
   },
 ];
 
+/**
+ * Anti-exploit gauntlet — the Magpie-specific defenses that run on every
+ * borrow. Grouped by when they fire: pre-borrow (before any funds move),
+ * during the loan (active monitoring), and post-exploit (response).
+ * Surfacing these gives listing reviewers + sophisticated users
+ * confidence that the protocol's security investment is real and
+ * layered, not just "we audited the contract once."
+ */
+const GAUNTLET_GROUPS = [
+  {
+    label: "Pre-borrow",
+    intro: "Every borrow attempt passes through 8 gates before any SOL leaves the lender wallet. Any one rejection blocks the loan.",
+    gates: [
+      { name: "Outer-instruction allowlist", body: "The bot only co-signs transactions whose other instructions come from a hardcoded program allowlist (Lighthouse, ATA, etc). A tx asking the lender to sign something unexpected is refused before signing." },
+      { name: "Ban registry", body: "Wallets known to have exploited the protocol or behaved maliciously are permanently banned. Checked on every borrow attempt." },
+      { name: "Per-token exposure cap", body: "Protocol-wide cap on outstanding loans against any single token (10–30 SOL by tier, based on liquidity / holders / age / mint-authority status). Stops parallel-borrower swarms on a compromised mint." },
+      { name: "New-account cap", body: "Accounts under 2 hours old can't borrow more than 2 SOL. Blocks flash-launch + immediate-borrow exploit patterns." },
+      { name: "Imported-wallet cooldown", body: "Freshly-imported wallets are throttled to small loans for 24h after import. Wallets pre-funded externally then sprayed across the protocol get caught here." },
+      { name: "Rapid-fire cap", body: "Per-user limit on how many borrows can fire in a short window. Multi-borrow drain attempts trip this before they finish." },
+      { name: "DEX liquidity floor", body: "Refuse borrows against tokens with <$50k DEX liquidity. Even a tier-promoted token must clear this floor — defends against thin-pool liquidation impossibility." },
+      { name: "Cross-source price agreement", body: "Borrow-time price must agree across Jupiter and DexScreener within tolerance. Single-source oracle manipulation is rejected." },
+    ],
+  },
+  {
+    label: "Active monitoring",
+    intro: "Once a loan opens, watchers keep it under continuous review until repayment or liquidation.",
+    gates: [
+      { name: "Real-time post-borrow watcher", body: "Every loan is re-checked every 10 seconds for the first 30 minutes. Pumps-and-dumps that succeed at borrow time get caught before any value can be extracted." },
+      { name: "Off-chain TWAP price-impact", body: "Continuously evaluates whether the collateral could actually be sold at quoted price. Pools that fail this test trigger immediate review." },
+      { name: "Suspended-loan state", body: "Flagged loans freeze — borrower can't extend or partial-repay until operator clears the flag. Buys time to investigate without forcing premature liquidation." },
+      { name: "Loan-health DM alerts", body: "Borrowers DM'd at 24h and 6h before due. Reduces preventable liquidations by giving real warning." },
+    ],
+  },
+  {
+    label: "Exploit response",
+    intro: "If something does slip through, the protocol has fast levers to contain it without touching healthy loans.",
+    gates: [
+      { name: "Token-level circuit breaker", body: "Confirmed exploit on a token → that token is instantly disabled for new borrows protocol-wide. Existing loans against it continue normally." },
+      { name: "Auto-ban with appeal", body: "Wallets matching exploit patterns auto-banned with an inline Unban DM button. False positives can self-resolve in seconds without operator round-trip." },
+      { name: "Site-wide pause switch", body: "Operator can pause the entire site (or just specific endpoints) in seconds via environment flag. Used surgically — never to mask routine issues." },
+      { name: "Per-user soft lock", body: "Operator can lock a single user during investigation without affecting anyone else's flows." },
+    ],
+  },
+];
+
 const PROTECTIONS = [
   {
     title: "Your Wallet",
@@ -248,6 +293,49 @@ export default function SecurityPage() {
               </div>
             </Reveal>
           ))}
+        </div>
+      </section>
+
+      {/* Anti-exploit gauntlet — pre-borrow / active / response */}
+      <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
+        <div className="mx-auto max-w-6xl px-6 py-28 md:py-36">
+          <Reveal>
+            <div className="chip mb-5">Anti-exploit gauntlet</div>
+            <h2 className="font-display max-w-3xl text-4xl font-medium tracking-[-0.03em] md:text-6xl">
+              Layered defense, <span className="italic text-[var(--accent)]">not a single audit.</span>
+            </h2>
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--ink-soft)]">
+              A static contract audit isn&apos;t enough for permissionless
+              lending. Every borrow runs a live gauntlet of checks, every
+              active loan is watched in real time, and confirmed exploits
+              trigger automatic containment. Below is what actually runs.
+            </p>
+          </Reveal>
+
+          <div className="mt-16 space-y-12">
+            {GAUNTLET_GROUPS.map((group, gi) => (
+              <Reveal key={group.label} delay={gi * 80}>
+                <div>
+                  <div className="flex items-baseline gap-4 mb-2">
+                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+                      {group.label}
+                    </div>
+                  </div>
+                  <p className="max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed mb-6">
+                    {group.intro}
+                  </p>
+                  <div className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] md:grid-cols-2">
+                    {group.gates.map((g) => (
+                      <div key={g.name} className="bg-[var(--bg-elevated)] p-5 md:p-6">
+                        <div className="text-sm font-semibold tracking-tight">{g.name}</div>
+                        <p className="mt-1.5 text-sm leading-relaxed text-[var(--ink-soft)]">{g.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 
