@@ -59,7 +59,8 @@ export async function GET(req: Request) {
     query(
       `SELECT mint, symbol, name, decimals, category, image_url,
               max_open_lamports, liquidity_usd, holder_count, token_age_hours,
-              top10_holder_pct, has_mint_authority, has_freeze_authority, lp_burned
+              top10_holder_pct, has_mint_authority, has_freeze_authority, lp_burned,
+              market_cap_usd
          FROM supported_mints
         WHERE enabled = TRUE`,
     ),
@@ -92,6 +93,7 @@ export async function GET(req: Request) {
     has_mint_authority: boolean | null;
     has_freeze_authority: boolean | null;
     lp_burned: boolean | null;
+    market_cap_usd: number | string | null;
   };
   const approvedByMint = new Map<string, ApprovedRow>(
     (approved as ApprovedRow[]).map((row) => [row.mint, row]),
@@ -107,6 +109,15 @@ export async function GET(req: Request) {
     { label: "large",    capSol: 25, minLiq: 400_000,   minHolders: 3_000,  minAgeH: 480,  maxTop10: 40, requireLpBurned: false },
     { label: "mid",      capSol: 15, minLiq: 150_000,   minHolders: 1_000,  minAgeH: 168,  maxTop10: 50, requireLpBurned: false },
   ];
+  // Mcap fallback — promotes high-mcap tokens whose holder_count or
+  // token_age_hours are stale (legacy approvals where the screener
+  // didn't populate them). Requires real liquidity ($50k floor) so a
+  // thin-pool fake mcap can't game it. Matches bot.
+  const MCAP_FALLBACK = [
+    { label: "bluechip", capSol: 30, minMcap: 100_000_000 },
+    { label: "large",    capSol: 25, minMcap:  30_000_000 },
+    { label: "mid",      capSol: 15, minMcap:  10_000_000 },
+  ];
   function computeTier(row: ApprovedRow): { tier: string; capSol: number } {
     if (row.has_mint_authority === true) return { tier: "small", capSol: FALLBACK_CAP_SOL };
     if (row.has_freeze_authority === true) return { tier: "small", capSol: FALLBACK_CAP_SOL };
@@ -115,6 +126,7 @@ export async function GET(req: Request) {
     const ageH = Number(row.token_age_hours || 0);
     const top10 = Number(row.top10_holder_pct || 100);
     const lpBurned = row.lp_burned === true;
+    const mcap = Number(row.market_cap_usd || 0);
     for (const t of TIERS) {
       if (liq < t.minLiq) continue;
       if (holders < t.minHolders) continue;
@@ -122,6 +134,11 @@ export async function GET(req: Request) {
       if (top10 > t.maxTop10) continue;
       if (t.requireLpBurned && !lpBurned) continue;
       return { tier: t.label, capSol: t.capSol };
+    }
+    if (mcap > 0 && liq >= 50_000) {
+      for (const fb of MCAP_FALLBACK) {
+        if (mcap >= fb.minMcap) return { tier: fb.label, capSol: fb.capSol };
+      }
     }
     return { tier: "small", capSol: FALLBACK_CAP_SOL };
   }
