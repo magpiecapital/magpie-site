@@ -119,8 +119,8 @@ export default function GovernancePage() {
           <section className="mt-12">
             <h2 className="text-2xl font-semibold">Voting power</h2>
             <p className="mt-3 text-white/70">
-              Any wallet holding $MAGPIE at the proposal's snapshot Solana slot can vote.
-              Voting weight equals the wallet's $MAGPIE balance at that slot — 1 token, 1 vote.
+              Any wallet holding $MAGPIE at the time of proposal activation can vote.
+              Voting weight is proportional to your balance — 1 token, 1 vote.
             </p>
             <div className="mt-5 rounded-xl border border-white/10 bg-white/5 p-5">
               <h3 className="font-medium text-white/90">Excluded addresses</h3>
@@ -226,9 +226,9 @@ export default function GovernancePage() {
                   <span className="text-sm text-white/60">7-day voting window</span>
                 </div>
                 <p className="mt-2 text-sm text-white/70">
-                  Operator pins the proposal here. A Solana slot is recorded as the snapshot.
-                  Holders connect wallet and vote YES / NO / ABSTAIN. Voting is gasless —
-                  votes are wallet-signed off-chain messages.
+                  Operator pins the proposal here. Holders connect wallet and vote
+                  YES / NO / ABSTAIN. Voting is gasless — votes are wallet-signed off-chain
+                  messages. Aggregate tally publishes at vote close.
                 </p>
               </li>
               <li className="rounded-xl border border-white/10 bg-white/5 p-5">
@@ -272,8 +272,8 @@ export default function GovernancePage() {
             </div>
             <p className="mt-3 text-white/70">
               These proposals are drafted and undergoing operator scope review (≤7 days per
-              spec). Read them now; comment in @magpietalk. They become active when status flips
-              and a snapshot slot is recorded.
+              spec). Read them now; comment in @magpietalk. They become active when the operator
+              activates them and voting opens.
             </p>
             <div className="mt-5 space-y-3">
               <Link

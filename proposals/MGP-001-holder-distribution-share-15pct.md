@@ -3,7 +3,6 @@ id: MGP-001
 title: Increase $MAGPIE holder fee share from 10% to 15%, with the increase coming from the LP share
 scope_tier: A4
 status: draft
-snapshot_slot: TBD
 voting_window: TBD
 author: "@MagpieLoans"
 created_at: 2026-06-09
@@ -62,6 +61,15 @@ Three reasons.
 
 **The LP economy can absorb 75% comfortably.** At 75%, SOL LPs still capture more than 7× what $MAGPIE holders do and 25× what referrers do. Historical vault TVL has been responsive to small yield changes within 2-3 percentage points; the 5 pp reduction here is large but not regime-changing. If LP TVL materially declines after execution, the operator retains discretion to file a follow-up A2 proposal (raise fees) to compensate.
 
+### 4a. Long-term direction (context, not binding)
+
+The long-term direction this proposal is the first step toward is **roughly 60% holders / 30% LPs**, with the remaining 10% covering referrers, LP loyalty, and protocol. That end state requires:
+
+1. **A Tier C spec amendment** to widen A4's bound beyond the current 5–15% range (the upper bound is the limiting factor; the operator anticipates a target bound of 5–65%).
+2. **A sequence of subsequent Tier A4 proposals** stepping the holder share up in measured increments after observing LP-side response at each step.
+
+MGP-001 itself does not bind anyone to that direction. The 15% delivered here is fully reversible by a future proposal, and the bigger move would require its own contentious votes. The vision is documented so holders understand which long-term arc the operator believes is right; agreeing with MGP-001 is not agreement with the full arc.
+
 ## 5. Economic impact
 
 The protocol distributes fees from gross loan fees. Worked numbers from the live protocol:
@@ -117,11 +125,12 @@ Reasons a holder might legitimately vote NO:
 
 ## 8. Verification
 
-- **Snapshot slot:** recorded as a Solana slot at proposal activation. Voting weights derive from each wallet's $MAGPIE balance at that slot. Eligible-supply calculation excludes the addresses enumerated in [`GOVERNANCE.md`](../GOVERNANCE.md#voting-power).
-- **Vote payloads:** each YES / NO / ABSTAIN is a wallet-signed structured message: `{proposal_id: "MGP-001", vote, voter_pubkey, snapshot_slot, timestamp}`. Signed payloads are archived publicly.
-- **Tally regeneration:** any third party can reconstruct the tally by (a) fetching the eligible-supply set at the snapshot slot from any Solana RPC, (b) downloading the signed-payload archive from [`/api/v1/governance/proposal/MGP-001`](https://www.magpie.capital/api/v1/governance) (endpoint to be added before activation), (c) summing signed weights per outcome.
+- **Vote weight basis:** voting weight per wallet equals the wallet's $MAGPIE balance at the time of proposal activation, with the exclusion list in [`GOVERNANCE.md`](../GOVERNANCE.md#voting-power) applied. The activation-time holder balance set and per-wallet voting weights are operator-internal in v0; they are not published.
+- **Vote payloads:** each YES / NO / ABSTAIN is a wallet-signed structured message identifying the proposal ID and the vote. The operator records signed payloads to maintain the audit trail.
+- **Aggregate publication:** at vote close, the operator publishes the aggregate YES weight, NO weight, ABSTAIN weight, eligible-supply total, quorum met / not met, and pass / fail result. Per-wallet vote choices are not published.
 - **Quorum:** ≥ 5% of eligible supply must cast YES + NO (ABSTAIN does not count toward quorum).
 - **Pass threshold:** ≥ 60% of (YES + NO) must be YES.
+- **Operator-trust note:** v0 verification is operator-trust-based by design. v1 and v2 progressively move verification on-chain. The trust model evolves with the model version, not within v0.
 
 ## 9. Execution plan
 
@@ -151,7 +160,7 @@ Discussion in [@magpietalk](https://t.me/magpietalk).
 
 - `2026-06-09` — drafted by @MagpieLoans
 - (TBD) — operator scope review (target: within 7 days)
-- (TBD) — status → `active`, snapshot slot recorded, voting window opens
+- (TBD) — status → `active`, voting window opens
 - (TBD) — status → `closed`, tally computed
 - (TBD) — status → `executed` or `failed`
 - (T+30 days post-execution) — retrospective: observed effects vs projected effects appended below

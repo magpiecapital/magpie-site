@@ -28,7 +28,7 @@ export async function GET() {
       public_page: `${base}/governance`,
       voting_power: {
         rule: "1_token_1_vote",
-        snapshot: "solana_slot",
+        eligibility: "wallet_balance_at_proposal_activation",
         excluded_addresses: [
           { kind: "bonding_curve", label: "pump.fun bonding curve" },
           { kind: "dex_pool", label: "PumpSwap MAGPIE/SOL pool" },
@@ -74,7 +74,7 @@ export async function GET() {
       voting_mechanics: {
         gasless: true,
         signature_scheme: "wallet_signed_off_chain_message",
-        verification: "tally_regenerable_from_snapshot_slot_plus_signed_payloads",
+        verification: "operator_publishes_aggregate_tally_at_close",
       },
       roadmap: {
         v0: { status: "current", description: "Off-chain signal voting; operator-honored" },

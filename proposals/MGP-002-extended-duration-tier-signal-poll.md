@@ -3,7 +3,6 @@ id: MGP-002
 title: Signal poll — should Magpie add an Extended-duration loan tier (≥ 14 days)?
 scope_tier: A6
 status: draft
-snapshot_slot: TBD
 voting_window: TBD
 author: "@MagpieLoans"
 created_at: 2026-06-09
@@ -80,9 +79,9 @@ Reasons to vote NO on Q1 specifically:
 
 ## 8. Verification
 
-Same verification mechanics as MGP-001: snapshot slot, signed payloads, third-party re-tally. Eligibility and exclusion rules per [`GOVERNANCE.md`](../GOVERNANCE.md#voting-power).
+Same verification mechanics as MGP-001: vote weight by activation-time $MAGPIE balance with the exclusion list applied; signed payloads recorded by the operator; aggregate result published at vote close. Per-wallet vote choices and the activation-time holder balance set are operator-internal.
 
-Because this is a multi-question poll, the API endpoint will return per-question tallies rather than a single aggregate.
+Because this is a multi-question poll, the aggregate publication will return per-question tallies (Q1 / Q2 / Q3 / Q4) rather than a single aggregate.
 
 ## 9. Execution plan
 

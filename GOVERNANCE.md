@@ -17,14 +17,14 @@ This is a **v0 model**: off-chain signal voting, operator-honored within an expl
 
 ## Voting Power
 
-- **Eligible holders:** any wallet holding $MAGPIE at the proposal's snapshot Solana slot.
-- **Voting weight:** equal to the wallet's $MAGPIE balance at the snapshot slot (1 token = 1 vote).
+- **Eligible holders:** any wallet holding $MAGPIE at the time of proposal activation.
+- **Voting weight:** proportional to each eligible wallet's $MAGPIE balance — 1 token = 1 vote.
 - **Excluded addresses (do not vote):**
   - The pump.fun bonding curve address (now empty; reserved for completeness).
   - DEX pool token accounts (PumpSwap MAGPIE/SOL pool, Meteora MAGPIE/SOL pool, any future pools).
-  - The Magpie protocol lender / operator wallet (`5hsZBr…` — operational liquidity, not governance constituency).
+  - The Magpie protocol lender / operator wallet (operational liquidity, not governance constituency).
   - The system / burn address.
-- **Why not quadratic / square-root weighting:** linear 1-token-1-vote is the simplest model holders can audit. The exclusion list handles the largest non-voter accounts (DEX pools). When voting power concentrates such that a single holder can pass any proposal alone, we revisit the weighting function.
+- **Why not quadratic / square-root weighting:** linear 1-token-1-vote is the simplest model. The exclusion list handles the largest non-voter accounts (DEX pools). When voting power concentrates such that a single holder can pass any proposal alone, we revisit the weighting function.
 
 ---
 
@@ -70,7 +70,7 @@ This is intentionally a high bar. Scope creep is the single biggest governance f
    draft ──▶ active ──▶ closed ──▶ executed
      │         │          │
      │         │          └─▶ failed (no quorum, or NO threshold)
-     │         └─▶ withdrawn (proposer cancels before snapshot)
+     │         └─▶ withdrawn (proposer cancels before activation)
      └─▶ rejected (operator scope review)
 ```
 
@@ -83,16 +83,16 @@ This is intentionally a high bar. Scope creep is the single biggest governance f
 ### 2. Active (voting opens)
 
 - Operator pins the proposal to `/governance` and to @magpietalk.
-- A Solana slot is recorded as the snapshot slot.
-- Voting opens for **7 days from the snapshot**.
-- The voting interface at `/governance/proposal/[id]` allows any $MAGPIE holder to connect wallet and vote YES / NO / ABSTAIN. Vote is a wallet-signed message; signed payloads are stored off-chain and tally-verifiable by any third party.
+- Voting opens for **7 days**.
+- The voting interface at `/governance/proposal/[id]` allows any $MAGPIE holder to connect wallet and vote YES / NO / ABSTAIN. Vote is a wallet-signed message; the operator tallies signed votes against a pinned holder balance set determined at proposal activation.
 
 ### 3. Closed (vote ends)
 
-- Tally is computed at 7 days after snapshot.
-- **Quorum requirement:** at least 5% of circulating supply (excluding the exclusion list above) must have voted YES + NO (abstain doesn't count toward quorum).
+- Tally is computed at the end of the 7-day window.
+- **Quorum requirement:** at least 5% of eligible supply (excluding the exclusion list above) must have voted YES + NO (abstain doesn't count toward quorum).
 - **Pass threshold:** 60% of (YES + NO) votes must be YES.
 - If quorum fails OR pass threshold fails, the proposal is `failed`.
+- The operator publishes the aggregate result: YES weight, NO weight, ABSTAIN weight, quorum met / not met, pass / fail. Per-wallet vote disclosures are not published.
 
 ### 4. Executed (operator implements)
 
@@ -110,11 +110,10 @@ If the operator does not execute a passing Tier A vote within 14 days without pu
 2. Connect your Solana wallet
 3. Find the active proposal
 4. Click YES / NO / ABSTAIN
-5. Your wallet signs a structured payload: `{proposal_id, vote, voter_pubkey, snapshot_slot, timestamp}`
-6. The signed payload is recorded by the governance API
-7. Anyone can audit the tally by replaying signed payloads against the on-chain snapshot
+5. Your wallet signs a structured payload identifying the proposal and your vote
+6. The operator records the signed payload, tallies against the activation-time holder balances, and publishes the aggregate result at vote close
 
-Voting is **gasless** (off-chain signed message, no Solana tx) and **anonymous** beyond the wallet pubkey.
+Voting is **gasless** (off-chain signed message, no Solana tx). Per-wallet vote choices are not published — only aggregate tallies (YES weight / NO weight / ABSTAIN weight / quorum / pass).
 
 ---
 
@@ -130,9 +129,9 @@ No timeline commitments on v1 or v2. The model evolves when the protocol's track
 
 ## Audit + Verification
 
-- **Live tally:** every proposal's tally is regenerable from the public snapshot slot + the off-chain signed-payload archive. Both are accessible via `/api/v1/governance`.
-- **Snapshot integrity:** snapshot slots are published with the proposal; balances at that slot are auditable via any Solana RPC.
-- **Operator commitment audit:** the operator publishes a quarterly governance report listing every proposal, its result, the execution action taken, and any deviations.
+- **Aggregate tally publication:** at vote close, the operator publishes the aggregate YES weight, NO weight, ABSTAIN weight, quorum met/not met, and pass/fail result. Per-wallet vote choices and the activation-time holder balance set are operator-internal and are not published.
+- **Operator commitment audit:** the operator publishes a quarterly governance report listing every proposal, its result, the execution action taken, and any deviations from the published commitment timeline. This is the primary verifiability surface in v0.
+- **v1+ verifiability:** v1 (on-chain parameter bounds) and v2 (full on-chain governance) progressively move verification on-chain. v0 is operator-trust-based by design; the trust model evolves with the model version.
 
 ---
 

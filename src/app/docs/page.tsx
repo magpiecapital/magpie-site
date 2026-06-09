@@ -624,11 +624,11 @@ export default async function DocsPage() {
 
             <H3>Voting power</H3>
             <P>
-              1 token = 1 vote at the proposal&apos;s snapshot Solana slot. DEX
-              pool token accounts (PumpSwap, Meteora), the Magpie operator
-              wallet, and the burn / system address are excluded from the
-              weight calculation &mdash; they hold $MAGPIE for non-voter
-              reasons.
+              1 token = 1 vote. Voting weight per wallet equals the wallet&apos;s
+              $MAGPIE balance at the time of proposal activation. DEX pool
+              token accounts (PumpSwap, Meteora), the Magpie operator wallet,
+              and the burn / system address are excluded from the weight
+              calculation &mdash; they hold $MAGPIE for non-voter reasons.
             </P>
 
             <H3>Tier A &mdash; what holders can vote on</H3>
@@ -677,7 +677,7 @@ export default async function DocsPage() {
                 {
                   n: "2",
                   title: "Active (voting opens)",
-                  body: "Operator pins the proposal at /governance with a recorded Solana snapshot slot. Holders connect wallet at /governance/proposal/[id] and vote YES / NO / ABSTAIN. Votes are wallet-signed off-chain messages — gasless, anonymous beyond the pubkey, and tally-regenerable by any third party.",
+                  body: "Operator pins the proposal at /governance. Holders connect wallet at /governance/proposal/[id] and vote YES / NO / ABSTAIN. Votes are wallet-signed off-chain messages — gasless and anonymous beyond the pubkey. The operator publishes the aggregate result at vote close; per-wallet vote choices are not published.",
                 },
                 {
                   n: "3",

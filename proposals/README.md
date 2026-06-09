@@ -26,7 +26,6 @@ id: MGP-NNN
 title: <one-line title>
 scope_tier: A1 | A2 | A3 | A4 | A5 | A6 | C
 status: draft | active | closed | executed | failed | withdrawn | rejected
-snapshot_slot: <Solana slot at proposal activation, or "TBD" if draft>
 voting_window: <ISO date range, or "TBD">
 author: <pubkey or @MagpieLoans>
 created_at: <YYYY-MM-DD>
@@ -46,7 +45,7 @@ Every proposal must contain, in this order:
 5. **Economic / protocol impact** — worked numbers showing the effect. Use real protocol data from `magpie.capital/api/v1/stats` where possible. Don't extrapolate beyond what the data supports.
 6. **Risks** — what can go wrong if this passes. List them. A proposal with no listed risks fails review.
 7. **Dissent paths** — at least two legitimate counterarguments a NO vote could be based on. The proposer's job is to surface these, not hide them.
-8. **Verification** — how anyone can re-tally the vote independently. Includes snapshot slot, eligible-supply derivation method, and how to fetch the signed-payload archive.
+8. **Verification** — how vote weights are determined (activation-time $MAGPIE balance, exclusion list per GOVERNANCE.md), quorum and pass thresholds, and the aggregate-result publication commitment. Per-wallet vote choices and activation-time balances are operator-internal in v0; this section should reflect that.
 9. **Execution plan** — if it passes, exactly what the operator does within the 14-day execution window. Code paths, on-chain transactions, or config changes.
 10. **How to vote** — the URL to vote at (`/governance/proposal/<id>`) once active.
 
@@ -58,7 +57,7 @@ A proposal moves through these states. The current state is reflected in the fro
    draft ──▶ active ──▶ closed ──▶ executed
      │         │          │
      │         │          └─▶ failed (no quorum, or NO threshold)
-     │         └─▶ withdrawn (proposer cancels before snapshot)
+     │         └─▶ withdrawn (proposer cancels before activation)
      └─▶ rejected (operator scope review)
 ```
 
@@ -66,7 +65,7 @@ A proposal moves through these states. The current state is reflected in the fro
 
 - Drafts are reviewed by the operator within 7 days for scope and clarity.
 - Scope-rejected drafts get a written `rejected` status with a one-paragraph reason appended.
-- Drafts that pass review are activated: status → `active`, snapshot slot is recorded, voting window is set to 7 days.
+- Drafts that pass review are activated: status → `active`, voting window is set to 7 days. Activation-time vote-weight basis (per-wallet $MAGPIE balance) is captured by the operator and not published.
 
 ## Post-execution requirements
 
