@@ -277,32 +277,6 @@ export default function GovernancePage() {
             </p>
             <div className="mt-5 space-y-3">
               <Link
-                href="https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block rounded-xl border border-white/10 bg-white/5 p-5 transition hover:border-cyan-500/30 hover:bg-white/10"
-              >
-                <div className="flex items-baseline gap-3">
-                  <span className="rounded-md bg-cyan-500/20 px-2 py-0.5 font-mono text-xs text-cyan-200">
-                    MGP-001
-                  </span>
-                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] uppercase text-white/60">
-                    Tier A4
-                  </span>
-                  <span className="rounded-md bg-white/5 px-2 py-0.5 font-mono text-[10px] uppercase text-white/40">
-                    draft
-                  </span>
-                </div>
-                <h3 className="mt-3 font-medium text-white/90">
-                  Increase $MAGPIE holder fee share from 10% to 15%
-                </h3>
-                <p className="mt-2 text-sm text-white/60">
-                  The 5-pp increase comes from the SOL LP share, which decreases from 80% to
-                  75%. Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged.
-                  Forward-only — does not affect distributions already accrued.
-                </p>
-              </Link>
-              <Link
                 href="https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -347,6 +321,35 @@ export default function GovernancePage() {
             </p>
             <div className="mt-5 space-y-3">
               <Link
+                href="/governance/proposal/MGP-001"
+                className="block rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-5 transition hover:border-cyan-400/60 hover:bg-cyan-500/15"
+              >
+                <div className="flex items-baseline gap-3">
+                  <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-xs text-cyan-100">
+                    MGP-001
+                  </span>
+                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] uppercase text-white/70">
+                    Tier A4
+                  </span>
+                  <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-[10px] uppercase text-cyan-100">
+                    active · binding
+                  </span>
+                  <span className="ml-auto text-[10px] uppercase tracking-wider text-white/50">
+                    closes 2026-06-12
+                  </span>
+                </div>
+                <h3 className="mt-3 font-medium text-white">
+                  Increase $MAGPIE holder fee share from 10% to 15%
+                </h3>
+                <p className="mt-2 text-sm text-white/70">
+                  The 5-pp increase comes from the SOL LP share, which decreases from 80% to
+                  75%. Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged.
+                  Forward-only — does not affect distributions already accrued. First step
+                  toward the longer-term ~60% holder / ~30% LP target.
+                </p>
+                <p className="mt-3 text-xs text-cyan-300">Read the full proposal + cast your vote →</p>
+              </Link>
+              <Link
                 href="/governance/proposal/MGP-002"
                 className="block rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-5 transition hover:border-cyan-400/60 hover:bg-cyan-500/15"
               >
@@ -373,8 +376,7 @@ export default function GovernancePage() {
                   with a separate Premium liquidity pool? · are the eligibility screener gates
                   the right shape? Each tallied independently.
                 </p>
-                <p className="mt-3 text-xs text-cyan-300">Read the full proposal + intent
-                  collection →</p>
+                <p className="mt-3 text-xs text-cyan-300">Read the full proposal + cast your vote →</p>
               </Link>
             </div>
           </section>

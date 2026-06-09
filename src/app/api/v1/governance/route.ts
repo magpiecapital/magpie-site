@@ -83,6 +83,17 @@ export async function GET() {
       },
       active_proposals: [
         {
+          id: "MGP-001",
+          title: "Increase $MAGPIE holder fee share from 10% to 15%",
+          scope_tier: "A4",
+          status: "active",
+          voting_window: "2026-06-09 to 2026-06-12",
+          summary: "Shift 5 percentage points from the SOL LP share (80% → 75%) to the $MAGPIE holder share (10% → 15%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged. Forward-only — does not affect distributions already accrued. Binding under Tier A4.",
+          vote_url: `${base}/governance/proposal/MGP-001`,
+          spec_url:
+            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md",
+        },
+        {
           id: "MGP-002",
           title: "Signal poll — should Magpie add a Premium tier (30-day, 40% LTV, 5% fee, tokenized stocks only)?",
           scope_tier: "A6",
@@ -95,15 +106,6 @@ export async function GET() {
         },
       ],
       drafts: [
-        {
-          id: "MGP-001",
-          title: "Increase $MAGPIE holder fee share from 10% to 15%",
-          scope_tier: "A4",
-          status: "draft",
-          summary: "Shift 5 percentage points from the SOL LP share (80% → 75%) to the $MAGPIE holder share (10% → 15%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged. Forward-only.",
-          spec_url:
-            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md",
-        },
         {
           id: "MGP-003",
           title: "Allocation decision for the July 1, 2026 $MAGPIE Streamflow unlock (~5% of supply)",

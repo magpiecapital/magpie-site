@@ -24,6 +24,34 @@ interface Proposal {
 }
 
 const PROPOSALS: Record<string, Proposal> = {
+  "MGP-001": {
+    id: "MGP-001",
+    title: "Increase $MAGPIE holder fee share from 10% to 15%",
+    scope_tier: "A4 — binding",
+    status: "active",
+    voting_window: "2026-06-09 to 2026-06-12 (3 days)",
+    activated_at: "2026-06-09",
+    closes_at: "2026-06-12",
+    summary:
+      "Shift 5 percentage points from the SOL LP share (80% → 75%) to the $MAGPIE holder share (10% → 15%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged. Forward-only — does not affect distributions already accrued. First step toward the longer-term ~60% holder / ~30% LP target the operator has documented in Section 4a of the proposal.",
+    spec_url:
+      "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md",
+    parameters: [
+      { label: "Current holder share", value: "10% (1,000 BPS)" },
+      { label: "Proposed holder share", value: "15% (1,500 BPS)" },
+      { label: "Source of the 5-pp increase", value: "LP share (80% → 75%)" },
+      { label: "Other splits", value: "Referrer 5%, LP loyalty 2%, protocol 3% — unchanged" },
+      { label: "Effective on", value: "Loans originated after execution (forward-only)" },
+      { label: "Bound by Tier A4", value: "5%–15% (this proposal lands at upper bound)" },
+      { label: "Execution path", value: "Single BPS constant change in magpie-bot/src/services/magpie-holder-rewards.js:43" },
+    ],
+    questions: [
+      {
+        id: "Vote",
+        text: "Should HOLDER_REWARD_BPS change from 1,000 (10%) to 1,500 (15%), with the implicit 5-pp reduction coming from the LP share (8,000 → 7,500 BPS)? YES to adopt the change. NO to keep the current split. ABSTAIN if you want operator discretion to choose.",
+      },
+    ],
+  },
   "MGP-003": {
     id: "MGP-003",
     title:

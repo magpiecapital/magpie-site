@@ -2,10 +2,11 @@
 id: MGP-001
 title: Increase $MAGPIE holder fee share from 10% to 15%, with the increase coming from the LP share
 scope_tier: A4
-status: draft
-voting_window: TBD
+status: active
+voting_window: 2026-06-09 to 2026-06-12 (3 days)
 author: "@MagpieLoans"
 created_at: 2026-06-09
+activated_at: 2026-06-09
 ---
 
 # MGP-001 — Increase $MAGPIE holder fee share from 10% to 15%
@@ -159,8 +160,7 @@ Discussion in [@magpietalk](https://t.me/magpietalk).
 ## 11. Lifecycle
 
 - `2026-06-09` — drafted by @MagpieLoans
-- (TBD) — operator scope review (target: within 7 days)
-- (TBD) — status → `active`, voting window opens
-- (TBD) — status → `closed`, tally computed
-- (TBD) — status → `executed` or `failed`
+- `2026-06-09` — operator scope review passed; status → `active`; 3-day voting window opens (closes 2026-06-12)
+- (target 2026-06-12) — status → `closed`, tally computed
+- (target 2026-06-15 to 2026-06-26) — status → `executed` (passing) or `failed`
 - (T+30 days post-execution) — retrospective: observed effects vs projected effects appended below
