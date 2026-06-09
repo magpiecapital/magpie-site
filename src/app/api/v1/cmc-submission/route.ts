@@ -48,7 +48,7 @@ Symbol:                    MAGPIE
 Project name:              Magpie Capital
 Category:                  DeFi · Lending
 Tags:                      defi, lending, solana, memecoin, credit-oracle, x402, agent-native
-Launch date:               2026-04-17
+Launch date:               March 2026  (Solana mainnet)
 Status:                    Live on mainnet
 
 ───────────────────────────────────────────────────────────────────

@@ -25,7 +25,7 @@ export async function GET() {
       tagline: "Permissionless SOL loans against memecoin + tokenized-stock collateral.",
       category: "DeFi · Lending",
       tags: ["defi", "lending", "solana", "memecoin", "credit-oracle", "x402", "agent-native"],
-      launch_date: "2026-04-17",
+      launch_date: "2026-03",
       platform: {
         name: "Solana",
         token_address: MAGPIE_MINT_STR,
