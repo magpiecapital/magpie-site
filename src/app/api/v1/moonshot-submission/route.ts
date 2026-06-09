@@ -144,7 +144,7 @@ Security:                  ${base}/security
 Whitepaper:                ${base}/whitepaper
 
 X / Twitter:               https://x.com/MagpieLoans
-Telegram community:        https://t.me/magpiecapital_chat
+Telegram community:        https://t.me/MagpieTalk
 Telegram bot (the app):    https://t.me/magpie_capital_bot
 
 Source code:               https://github.com/magpiecapital

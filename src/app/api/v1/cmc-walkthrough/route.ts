@@ -65,7 +65,7 @@ Fields they'll ask, in roughly this order:
                               https://github.com/magpiecapital/magpie-site
   Twitter:                    https://x.com/MagpieLoans
   Telegram:                   https://t.me/magpie_capital_bot
-                              https://t.me/magpiecapital_chat
+                              https://t.me/MagpieTalk
   Block explorer:             https://solscan.io/token/<mint>
   Logo:                       upload /icon-512.png (resampled to 200x200)
   Circulating supply API:     ${base}/api/v1/supply/circulating

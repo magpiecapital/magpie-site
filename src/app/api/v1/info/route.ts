@@ -41,7 +41,7 @@ export async function GET() {
         token_page: [`${base}/magpie`],
         twitter: ["https://x.com/MagpieLoans"],
         telegram_bot: ["https://t.me/magpie_capital_bot"],
-        telegram_community: ["https://t.me/magpiecapital_chat"],
+        telegram_community: ["https://t.me/MagpieTalk"],
         explorer: [
           `https://solscan.io/token/${MAGPIE_MINT_STR}`,
           `https://birdeye.so/token/${MAGPIE_MINT_STR}?chain=solana`,

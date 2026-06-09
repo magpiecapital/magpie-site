@@ -176,7 +176,7 @@ bonding curve at launch, no team allocation, no presale, no vesting.
   GitHub:                  https://github.com/magpiecapital/magpie-bot
                            https://github.com/magpiecapital/magpie-site
   Twitter:                 https://x.com/MagpieLoans
-  Telegram:                https://t.me/magpiecapital_chat
+  Telegram:                https://t.me/MagpieTalk
   Block explorer:          https://solscan.io/token/${MAGPIE_MINT_STR}
 
   Logo:                    upload ${base}/icon-200.png
@@ -236,7 +236,7 @@ collateral on Solana. 10% of every loan fee → SOL to $MAGPIE holders.
   Whitepaper:              ${base}/whitepaper
   Source code:             https://github.com/magpiecapital
   X / Twitter:             https://x.com/MagpieLoans
-  Telegram:                https://t.me/magpiecapital_chat
+  Telegram:                https://t.me/MagpieTalk
   Block explorer:          https://solscan.io/token/${MAGPIE_MINT_STR}
 
   Logo:                    upload ${base}/icon-200.png  (exact 200×200 PNG)

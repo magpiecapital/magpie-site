@@ -105,7 +105,7 @@ Support:                   ${base}/support
 
 X / Twitter:               https://x.com/MagpieLoans
 Telegram bot:              https://t.me/magpie_capital_bot
-Telegram community:        https://t.me/magpiecapital_chat
+Telegram community:        https://t.me/MagpieTalk
 
 Source code (bot):         https://github.com/magpiecapital/magpie-bot
 Source code (site):        https://github.com/magpiecapital/magpie-site
