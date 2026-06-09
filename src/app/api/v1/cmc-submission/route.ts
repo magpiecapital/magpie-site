@@ -118,9 +118,12 @@ Explorers:
 ───────────────────────────────────────────────────────────────────
 LOGO
 ───────────────────────────────────────────────────────────────────
-URL:                       ${base}/icon-512.png    (512×512 PNG, transparent bg)
+200×200 (canonical):       ${base}/icon-200.png   ← USE THIS FOR CMC
+512×512 (high-res):        ${base}/icon-512.png
 
-Note: If CMC requires exactly 200×200, resample from icon-512.png.
+Both PNG, RGBA, rounded-square cream brand mark. The 200×200 was
+resampled from the 512×512 — same image, scaled to CMC's required
+listing-form size so reviewers don't reject for dimension.
 
 ───────────────────────────────────────────────────────────────────
 MARKETS (DEX pairs — live from DexScreener)

@@ -53,11 +53,11 @@ export async function GET() {
         ],
       },
       logo: {
-        url: `${base}/icon-512.png`,
+        url: `${base}/icon-200.png`,
+        url_512: `${base}/icon-512.png`,
         format: "PNG",
-        dimensions: "512x512",
-        background: "transparent",
-        notes: "Resample to 200x200 for CMC's listing form if that exact size is required.",
+        dimensions: "200x200 (canonical for CMC); 512x512 available at url_512",
+        background: "rounded-square cream, transparent outside the corner radius",
       },
       supply_endpoints: {
         circulating: `${base}/api/v1/supply/circulating`,
