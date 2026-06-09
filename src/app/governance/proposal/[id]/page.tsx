@@ -3,10 +3,13 @@ import { notFound } from "next/navigation";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { VoteButtons } from "./VoteButtons";
+import type { VoteChoice } from "@/lib/solana/site-governance-vote";
 
 interface ProposalQuestion {
   id: string;
   text: string;
+  choices?: VoteChoice[];
 }
 
 interface Proposal {
@@ -49,6 +52,7 @@ const PROPOSALS: Record<string, Proposal> = {
       {
         id: "Vote",
         text: "Should HOLDER_REWARD_BPS change from 1,000 (10%) to 1,500 (15%), with the implicit 5-pp reduction coming from the LP share (8,000 → 7,500 BPS)? YES to adopt the change. NO to keep the current split. ABSTAIN if you want operator discretion to choose.",
+        choices: ["YES", "NO", "ABSTAIN"],
       },
     ],
   },
@@ -76,28 +80,9 @@ const PROPOSALS: Record<string, Proposal> = {
     ],
     questions: [
       {
-        id: "Option A",
-        text: "BURN — full ~50M $MAGPIE balance sent to a verified burn address on unlock. Permanent supply reduction of ~5%. Simplest execution.",
-      },
-      {
-        id: "Option B",
-        text: "RE-LOCK — deposit into a new Streamflow contract with a fresh 12-month lock (next unlock: July 1, 2027). Defers the decision; no immediate change.",
-      },
-      {
-        id: "Option C",
-        text: "HOLDER DISTRIBUTION — pro-rata to $MAGPIE holders, streamed over 30 days, with a 1% per-wallet cap (overflow to next-largest sub-cap wallets, then burn). Rewards loyalty.",
-      },
-      {
-        id: "Option D",
-        text: "USER DISTRIBUTION — weighted by lifetime fees paid (borrowers) + time-weighted share-seconds (LPs) + flat per-successful-referral. Streamed over 30 days. Rewards utility.",
-      },
-      {
-        id: "Option E",
-        text: "HYBRID — 50% burn (25M) + 25% to holders (12.5M) + 25% to users (12.5M). Spreads benefit across constituencies; net 2.5% supply reduction.",
-      },
-      {
-        id: "ABSTAIN",
-        text: "ABSTAIN — defer to operator discretion. If aggregate ABSTAIN ≥ 30% of cast votes, operator chooses from {A,B,C,D,E} with a published rationale.",
+        id: "Vote",
+        text: "Pick ONE option. A = burn the full ~50M; B = re-lock for 12 months; C = pro-rata distribution to $MAGPIE holders over 30 days; D = utility-weighted distribution to protocol users over 30 days; E = hybrid (50% burn + 25% holders + 25% users); ABSTAIN = defer to operator discretion.",
+        choices: ["A", "B", "C", "D", "E", "ABSTAIN"],
       },
     ],
   },
@@ -127,18 +112,22 @@ const PROPOSALS: Record<string, Proposal> = {
       {
         id: "Q1",
         text: "Magpie should add a Premium tier with the parameters above (30-day, 40% LTV, 5% fee, tokenized stocks only).",
+        choices: ["YES", "NO", "ABSTAIN"],
       },
       {
         id: "Q2",
         text: "Loan-duration adjustments should move from operator discretion into Tier A governance scope via a Tier C scope-amendment proposal (so future tier-duration changes are votable).",
+        choices: ["YES", "NO", "ABSTAIN"],
       },
       {
         id: "Q3",
         text: "The Premium tier should launch with a separate liquidity pool rather than sharing the existing pool's LP capital.",
+        choices: ["YES", "NO", "ABSTAIN"],
       },
       {
         id: "Q4",
         text: "The eligibility screener parameters (stock-category gate + per-pool whitelist + institutional price-feed health + 24h volume floor + liquidation-solvability simulation + clean-credit requirement) are the right shape.",
+        choices: ["YES", "NO", "ABSTAIN"],
       },
     ],
   },
@@ -168,6 +157,7 @@ export default async function ProposalPage({
   if (!p) notFound();
 
   const isActive = p.status === "active";
+  const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || "";
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -276,6 +266,14 @@ export default async function ProposalPage({
                       </span>
                     </div>
                     <p className="mt-3 text-white/90">{q.text}</p>
+                    {isActive && q.choices && (
+                      <VoteButtons
+                        proposalId={p.id}
+                        questionId={q.id}
+                        choices={q.choices}
+                        botApiUrl={botApiUrl}
+                      />
+                    )}
                   </div>
                 ))}
               </div>
@@ -288,9 +286,10 @@ export default async function ProposalPage({
           <section className="mt-12 rounded-2xl border border-white/15 bg-white/5 p-6 sm:p-8">
             <h2 className="text-xl font-semibold">How to vote</h2>
             <p className="mt-3 text-white/70">
-              <strong className="text-white/90">v0 voting model:</strong> the wallet-signed
-              on-site vote-submission flow is under development. While it lands, the
-              operator collects holder intent in <Link href="https://t.me/magpietalk" className="text-cyan-300 hover:text-cyan-200">@magpietalk</Link>.
+              <strong className="text-white/90">v0 voting model:</strong> connect your
+              Solana wallet, click a choice on each question above, and approve the
+              wallet&apos;s message-sign prompt. No on-chain transaction; no gas. Your signed
+              payload is recorded on-server.
             </p>
             <ol className="mt-4 space-y-2 text-sm text-white/70">
               <li>
@@ -301,28 +300,29 @@ export default async function ProposalPage({
                 .
               </li>
               <li>
-                <strong className="text-white/90">2.</strong> Open{" "}
-                <Link href="https://t.me/magpietalk" className="text-cyan-300 hover:text-cyan-200">
-                  @magpietalk
-                </Link>{" "}
-                and post your intent. Format example:
-                <code className="mt-2 block rounded-md bg-black/40 p-3 font-mono text-xs text-cyan-200">
-                  MGP-002 vote · Q1: YES · Q2: YES · Q3: YES · Q4: YES
-                </code>
+                <strong className="text-white/90">2.</strong> Connect a wallet that supports
+                signMessage (Phantom, Solflare, Backpack, etc.). Click YES / NO / ABSTAIN
+                (or A–E for option-style polls) on each question. The wallet asks you to
+                sign a small JSON payload — no SOL moves.
               </li>
               <li>
-                <strong className="text-white/90">3.</strong> The operator tallies intents
-                against $MAGPIE balances at the activation-time vote-weight basis. Per-wallet
-                votes are not published; aggregate results are.
+                <strong className="text-white/90">3.</strong> You can change your vote at
+                any time before the voting window closes. The latest valid signature wins
+                at tally.
               </li>
               <li>
                 <strong className="text-white/90">4.</strong> Aggregate result publishes at
-                voting close ({p.closes_at}).
+                voting close ({p.closes_at}). Per-wallet vote choices are not published;
+                only aggregate weights.
               </li>
             </ol>
             <p className="mt-4 text-xs text-white/50">
-              The on-site wallet-signed vote flow lands shortly. Once active, intents
-              registered in @magpietalk are folded in automatically.
+              Prefer Telegram? Post your intent in{" "}
+              <Link href="https://t.me/magpietalk" className="text-cyan-300 hover:text-cyan-200">
+                @magpietalk
+              </Link>{" "}
+              instead — the operator folds those in too. Wallet-signed votes have priority
+              if you submit both.
             </p>
           </section>
         </Reveal>
