@@ -26,6 +26,7 @@ const SECTIONS = [
   { id: "wallet-model", label: "Wallet Model" },
   { id: "supported-tokens", label: "Supported Tokens" },
   { id: "api-integration", label: "API & Integration" },
+  { id: "governance", label: "Governance" },
 ];
 
 const CREDIT_TIERS = [
@@ -587,6 +588,124 @@ export default async function DocsPage() {
        → Jupiter API: reprice collateral
        → If health < 1.1x → Anchor: liquidate
        → Telegram: alert user`}</CodeBlock>
+          </Section>
+
+          {/* ─── Governance ─── */}
+          <Section id="governance" title="Governance" chip="v0">
+            <P>
+              $MAGPIE holders influence protocol direction through off-chain
+              signal voting on a narrow, explicit set of levers. The operator
+              commits to honor passing votes within scope. The full canonical
+              spec is at{" "}
+              <a
+                href="https://github.com/magpiecapital/magpie-site/blob/main/GOVERNANCE.md"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-[var(--accent-deep)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
+              >
+                GOVERNANCE.md
+              </a>
+              ; the public page lives at{" "}
+              <Link
+                href="/governance"
+                className="font-semibold text-[var(--accent-deep)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
+              >
+                magpie.capital/governance
+              </Link>
+              ; and the machine-readable model is at{" "}
+              <Link
+                href="/api/v1/governance"
+                className="font-semibold text-[var(--accent-deep)] underline-offset-2 hover:text-[var(--accent)] hover:underline"
+              >
+                /api/v1/governance
+              </Link>
+              .
+            </P>
+
+            <H3>Voting power</H3>
+            <P>
+              1 token = 1 vote at the proposal&apos;s snapshot Solana slot. DEX
+              pool token accounts (PumpSwap, Meteora), the Magpie operator
+              wallet, and the burn / system address are excluded from the
+              weight calculation &mdash; they hold $MAGPIE for non-voter
+              reasons.
+            </P>
+
+            <H3>Tier A &mdash; what holders can vote on</H3>
+            <Table
+              headers={["#", "Topic", "Bounds"]}
+              rows={[
+                ["A1", "Add or remove a collateral token", "Must clear screener risk thresholds; one token per proposal"],
+                ["A2", "Adjust tier LTV cap", "Within ±5 percentage points of current; per tier"],
+                ["A3", "Adjust tier fee rate", "Within ±0.5 percentage points of current"],
+                ["A4", "Adjust holder distribution share of loan fees", "Within 5%–15% (currently 10%); future loans only"],
+                ["A5", "Adjust holder distribution cadence", "Within 3–14 days (currently randomized 5–10)"],
+                ["A6", "Non-binding signal poll on feature priorities", "Advisory only"],
+              ]}
+            />
+            <P>
+              The operator commits to implement a passing Tier A vote within
+              14 days. Vetoing a passing Tier A vote within bounds is a
+              one-strike trust event documented in the governance spec.
+            </P>
+
+            <H3>Tier B &mdash; out of scope (operator discretion)</H3>
+            <P>
+              These cannot be put to a vote in v0. Listed explicitly so the
+              boundary is unambiguous:
+            </P>
+            <Table
+              headers={["Topic", "Why"]}
+              rows={[
+                ["Retroactive changes to active loans", "Loan terms are a contract between borrower and protocol at borrow time"],
+                ["On-chain safety configuration", "Security gauntlet, oracle config, anti-exploit gates"],
+                ["Founder identity or operational security", "Operator anonymity is part of the security model"],
+                ["Treasury / lender-wallet allocation", "Holds operational SOL liquidity, not governance funds"],
+                ["Token supply changes", "Mint authority revoked; supply is fixed"],
+                ["Pricing or scope of the x402 paid agent API", "Operator discretion"],
+              ]}
+            />
+
+            <H3>Proposal lifecycle</H3>
+            <StepList
+              steps={[
+                {
+                  n: "1",
+                  title: "Draft (community)",
+                  body: "Anyone posts a proposal idea in the @magpietalk community group. Include the scope tier (A1–A6), exact change requested, rationale (≤500 words), and expected protocol impact. Operator reviews drafts within 7 days; scope-rejected drafts remain visible so the community can iterate.",
+                },
+                {
+                  n: "2",
+                  title: "Active (voting opens)",
+                  body: "Operator pins the proposal at /governance with a recorded Solana snapshot slot. Holders connect wallet at /governance/proposal/[id] and vote YES / NO / ABSTAIN. Votes are wallet-signed off-chain messages — gasless, anonymous beyond the pubkey, and tally-regenerable by any third party.",
+                },
+                {
+                  n: "3",
+                  title: "Closed (tally + threshold check)",
+                  body: "After 7 days: tally is computed. Quorum requirement is 5% of eligible supply (excluding the excluded-address list) voting YES + NO. Pass threshold is 60% YES of (YES + NO). Abstain does not count toward either.",
+                },
+                {
+                  n: "4",
+                  title: "Executed (operator implements)",
+                  body: "Operator implements the passing change within 14 days. On-chain changes ship as transactions with public signatures. Configuration changes ship as commits with the proposal ID in the commit message.",
+                },
+              ]}
+            />
+
+            <H3>Roadmap</H3>
+            <Table
+              headers={["Version", "Status", "Mechanism"]}
+              rows={[
+                ["v0", "current", "Off-chain signal voting; operator commits to honor passing Tier A votes within 14 days"],
+                ["v1", "planned", "On-chain configuration contract enforces Tier A parameter bounds — operator cannot change LTV / fees / holder share outside the bounds without a new contract deploy"],
+                ["v2", "planned", "Full on-chain governance (SPL governance program or equivalent); token-weighted on-chain votes; operator key authority transitions to multisig + governance"],
+              ]}
+            />
+            <P>
+              No timeline commitments on v1 or v2 &mdash; the model evolves as
+              the protocol&apos;s track record warrants it. The direction is
+              one-way: less operator discretion, never more.
+            </P>
           </Section>
 
           {/* Bottom spacer */}
