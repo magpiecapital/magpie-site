@@ -63,8 +63,14 @@ export default function DistributionCard() {
   // Hide if wallet wasn't in distribution AND no useful context to show
   if (!data.in_distribution) return null;
 
-  const sentLink = data.tx_signature
-    ? `https://solscan.io/tx/${data.tx_signature}`
+  // Link to the CONNECTED WALLET's Solscan address page rather than the
+  // batched transaction page. The batched tx contains multiple recipients
+  // (up to 10 per tx) and shows them all — surfacing other holders' wallets
+  // and amounts on the same page would feel non-private. The address page
+  // shows only THIS wallet's incoming history, including the distribution
+  // tx as one of its own account activities.
+  const sentLink = data.tx_signature && data.wallet
+    ? `https://solscan.io/account/${data.wallet}`
     : null;
 
   return (

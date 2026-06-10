@@ -268,7 +268,22 @@ export default function ActivityFeed({ botApiUrl }: { botApiUrl: string }) {
                 <div className="text-[10px] text-[var(--d-ink-faint)]">{ageStr(e.at)}</div>
                 {e.tx_signature && (
                   <a
-                    href={`https://solscan.io/tx/${e.tx_signature}`}
+                    href={
+                      // Holder rewards land in batched transactions where
+                      // multiple recipients share one tx_signature. Linking
+                      // to the tx page on Solscan would surface the other
+                      // recipients' wallets and amounts — surfaces other
+                      // holders' info, feels non-private. For the holder
+                      // reward kind only, link to THIS wallet's address
+                      // page on Solscan so the user sees their own incoming
+                      // distribution as part of their own account history,
+                      // without the batched-tx context. Loan-derived events
+                      // (borrow/repay/etc.) are user-scoped single-tx events
+                      // already, so they still link to the tx page directly.
+                      e.kind === "holder_reward_paid" && walletStr
+                        ? `https://solscan.io/account/${walletStr}`
+                        : `https://solscan.io/tx/${e.tx_signature}`
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-0.5 inline-block font-mono text-[10px] text-[var(--d-accent-deep)] underline"
