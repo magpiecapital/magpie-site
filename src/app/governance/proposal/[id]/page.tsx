@@ -66,9 +66,9 @@ const PROPOSALS: Record<string, Proposal> = {
     title:
       "Allocation decision for the July 1, 2026 $MAGPIE Streamflow unlock (~5% of supply)",
     scope_tier: "A6 — binding by operator commitment (one-time Tier B → de-facto Tier A exception)",
-    status: "draft",
-    voting_window: "Target: 2026-06-12 to 2026-06-15 (3 days)",
-    activated_at: undefined,
+    status: "active",
+    voting_window: "2026-06-12 to 2026-06-15 (3 days)",
+    activated_at: "2026-06-12T00:00:00Z",
     closes_at: "2026-06-15",
     summary:
       "On July 1, 2026 a Streamflow contract holding ~5% of $MAGPIE supply (~50M tokens) unlocks. Five options on the ballot: burn, re-lock 12 months, pro-rata distribution to holders (30-day stream), utility-weighted distribution to protocol users (30-day stream), or hybrid (50% burn + 25% holders + 25% users). Operator commits to honor the winning option as a one-time Tier B → de-facto-Tier-A exception. Execution must complete within 14 days of unlock.",
