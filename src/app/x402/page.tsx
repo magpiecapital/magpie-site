@@ -157,45 +157,45 @@ export default async function X402Page() {
         <div className="hero-glow" />
         <div className="mx-auto max-w-6xl px-6 pt-24 pb-12 text-center md:pt-32 md:pb-16">
           <Reveal>
-            <div className="text-[var(--ink-soft)] text-sm tracking-widest uppercase mb-4">
-              Protocol enhancement
+            <div className="text-[var(--accent)] text-sm tracking-widest uppercase mb-4 font-mono">
+              now live on npm · npm install @magpieloans/magpie-agent
             </div>
           </Reveal>
           <Reveal delay={80}>
             <h1 className="font-display mx-auto max-w-5xl text-5xl font-medium tracking-[-0.04em] md:text-7xl lg:text-8xl leading-[0.95]">
-              AI agents borrow SOL on Magpie<span className="italic">.</span>
+              The first lending protocol where AI agents borrow SOL automatically<span className="italic">.</span>
             </h1>
           </Reveal>
           <Reveal delay={160}>
             <p className="mx-auto mt-8 max-w-3xl text-xl leading-relaxed text-[var(--ink-soft)]">
-              The first permissionless lending protocol designed for autonomous agents. Pay per call over x402, sign with your own wallet, build portable on-chain credit. Borrow, lend, and earn — all programmatically.
+              Drop one config block into Claude Desktop, Cursor, Windsurf, or ChatGPT — or <code className="font-mono text-base">npm install</code> the SDK in your own code. Your agent borrows, lends, runs liquidation bots, posts conditional borrow intents. No signup. No API keys. Pay per call in SOL. Same anti-exploit gauntlet humans get.
             </p>
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <Link
-                href="https://github.com/magpiecapital/magpie-x402/tree/main/examples"
+                href="https://www.npmjs.com/package/@magpieloans/magpie-agent"
                 target="_blank"
                 rel="noopener"
                 className="px-6 py-3 rounded-full bg-[var(--ink)] text-[var(--bg)] hover:opacity-90 transition text-sm font-medium"
               >
-                🚀 Examples → first call in 5 min
+                📦 npm install @magpieloans/magpie-agent
               </Link>
               <Link
-                href="https://github.com/magpiecapital/magpie-x402/tree/main/mcp"
+                href="https://www.npmjs.com/package/@magpieloans/magpie-mcp"
                 target="_blank"
                 rel="noopener"
                 className="px-6 py-3 rounded-full border border-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--bg)] transition text-sm font-medium"
               >
-                🧩 MCP for Claude / Cursor
+                🧩 MCP server for Claude / Cursor / Windsurf
               </Link>
               <Link
-                href="https://x402.magpie.capital/openapi.json"
+                href="https://github.com/magpiecapital/magpie-x402/blob/main/QUICKSTART.md"
                 target="_blank"
                 rel="noopener"
                 className="px-6 py-3 rounded-full border border-[var(--ink)]/40 hover:border-[var(--ink)] transition text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]"
               >
-                OpenAPI spec
+                10-min quickstart
               </Link>
             </div>
           </Reveal>
@@ -409,67 +409,98 @@ export default async function X402Page() {
         </Reveal>
       </section>
 
-      {/* Quickstart: examples + MCP side by side */}
+      {/* Quickstart: SDK + MCP side by side — both live on npm */}
       <section className="mx-auto max-w-6xl px-6 pb-20">
         <Reveal>
           <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-3">
-            Two ways to plug in
+            Two ways to plug in <span className="text-base text-[var(--accent)] font-mono align-middle ml-3">live on npm</span>
           </h2>
           <p className="text-[var(--ink-soft)] mb-8 max-w-2xl">
-            Clone the repo and run an example, or drop the MCP server into Claude Desktop / Cursor / Windsurf and your agent picks up 17 Magpie tools automatically.
+            Install the TypeScript SDK and write your agent in 10 lines, or drop the MCP server into Claude Desktop / Cursor / Windsurf / ChatGPT desktop and your agent gets 19 Magpie tools automatically.
           </p>
         </Reveal>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Examples — drop-in TS files */}
+          {/* SDK — npm install */}
           <div className="rounded-2xl border border-[var(--ink)]/15 p-6 bg-[var(--ink)]/[0.02]">
-            <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Option A · Examples</div>
-            <h3 className="font-display text-xl tracking-tight mb-4">Six turn-key TypeScript agents</h3>
-            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)] mb-4">{`git clone git@github.com:magpiecapital/magpie-x402.git
-cd magpie-x402 && npm install
+            <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Option A · TypeScript SDK</div>
+            <h3 className="font-display text-xl tracking-tight mb-4">Every action a one-liner</h3>
+            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)] mb-4">{`npm install @magpieloans/magpie-agent @solana/web3.js`}</pre>
+            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)]">{`import { MagpieAgent } from "@magpieloans/magpie-agent";
+import { Keypair } from "@solana/web3.js";
 
-export X402_PAYER_KEYPAIR=~/.config/solana/id.json
-export SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
+const agent = new MagpieAgent({ keypair, rpcUrl });
 
-# Free — no payment needed
-npx tsx examples/02-liquidation-bot.ts
-npx tsx examples/05-loan-monitor.ts <WALLET>
+// One line borrows SOL against any approved token:
+const loan = await agent.borrow({
+  collateralMint,
+  collateralAmount: 1_000_000_000n,
+  tier: "express",
+});
 
-# Paid — needs ~0.01 SOL in the payer wallet
-npx tsx examples/03-agent-borrow.ts <MINT> <AMOUNT> 0
-npx tsx examples/06-yield-agent.ts deposit 100000000`}</pre>
+console.log(loan.signature);
+// → https://solscan.io/tx/<confirmed-on-chain-tx>`}</pre>
             <p className="text-xs text-[var(--ink-soft)] mt-3">
-              Each example is a single ~60-line file. The shared{" "}
-              <code className="font-mono text-xs">examples/lib/x402-client.ts</code>{" "}
-              (~150 lines) is meant to be copied verbatim into any agent project — no npm package on purpose.
+              Borrow · deposit · withdraw · liquidate · create conditional intent — all as one-line methods. Zero HTTP plumbing, zero transaction construction.{" "}
+              <a
+                href="https://www.npmjs.com/package/@magpieloans/magpie-agent"
+                target="_blank"
+                rel="noopener"
+                className="underline"
+              >
+                npm
+              </a>
+              {" · "}
+              <a
+                href="https://github.com/magpiecapital/magpie-x402/blob/main/QUICKSTART.md"
+                target="_blank"
+                rel="noopener"
+                className="underline"
+              >
+                10-minute quickstart
+              </a>
             </p>
           </div>
 
-          {/* MCP */}
+          {/* MCP — npm install */}
           <div className="rounded-2xl border border-[var(--ink)]/15 p-6 bg-[var(--ink)]/[0.02]">
             <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Option B · MCP server</div>
             <h3 className="font-display text-xl tracking-tight mb-4">Claude Desktop, Cursor, Windsurf, ChatGPT</h3>
-            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)] mb-3">{`git clone git@github.com:magpiecapital/magpie-x402.git
-cd magpie-x402/mcp && npm install && npm run build`}</pre>
             <p className="text-sm text-[var(--ink-soft)] mb-3">
-              Then drop into your host&apos;s MCP config (e.g.{" "}
+              Drop into your host&apos;s MCP config (e.g.{" "}
               <code className="font-mono text-xs">claude_desktop_config.json</code>):
             </p>
             <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)]">{`{
   "mcpServers": {
     "magpie": {
-      "command": "node",
-      "args": ["/ABS/PATH/magpie-x402/mcp/dist/index.js"],
+      "command": "npx",
+      "args": ["-y", "@magpieloans/magpie-mcp"],
       "env": {
         "SOLANA_RPC_URL": "https://api.mainnet-beta.solana.com",
-        "MAGPIE_MCP_PAYER_KEYPAIR": "/ABS/PATH/payer.json"
+        "MAGPIE_MCP_PAYER_KEYPAIR": "/path/to/payer.json"
       }
     }
   }
 }`}</pre>
             <p className="text-xs text-[var(--ink-soft)] mt-3">
-              Restart your host. The agent now has 17 Magpie tools — free reads work without any keypair; paid endpoints sign x402 payment txs locally. Config blocks for Cursor / Windsurf / generic hosts in{" "}
-              <a href="https://github.com/magpiecapital/magpie-x402/tree/main/mcp#readme" className="underline">mcp/README.md</a>.
+              Restart your host. The agent now has 19 Magpie tools — free reads work without any keypair; paid endpoints sign x402 payment txs locally.{" "}
+              <a
+                href="https://www.npmjs.com/package/@magpieloans/magpie-mcp"
+                target="_blank"
+                rel="noopener"
+                className="underline"
+              >
+                npm
+              </a>
+              {" · "}
+              <a
+                href="https://github.com/magpiecapital/magpie-x402/tree/main/mcp#readme"
+                target="_blank"
+                rel="noopener"
+                className="underline"
+              >
+                full configs for every host
+              </a>
             </p>
           </div>
         </div>
