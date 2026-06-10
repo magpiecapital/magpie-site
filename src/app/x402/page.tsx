@@ -17,13 +17,22 @@ export const metadata: Metadata = {
 
 const ENDPOINTS = [
   { method: "POST", path: "/agent/intent",         desc: "CONDITIONAL borrow — \"limit order for borrows\". Bot watches your trigger, builds the tx when matched.", price: "0.01 SOL" },
-  { method: "POST", path: "/agent/build-borrow",   desc: "Build an unsigned borrow tx now. Agent signs + submits. All anti-exploit gates apply.",   price: "0.005 SOL" },
+  { method: "POST", path: "/agent/build-borrow",   desc: "Build an unsigned borrow tx. Agent signs + submits. All anti-exploit gates apply.",   price: "0.005 SOL" },
+  { method: "POST", path: "/agent/build-deposit",  desc: "LP-side. Build an unsigned deposit tx — wraps SOL → wSOL → deposits into the LendingPool.", price: "0.002 SOL" },
+  { method: "POST", path: "/agent/build-withdraw", desc: "LP-side. Build an unsigned withdraw tx. Server refuses unsafe chunk sizes.",          price: "0.002 SOL" },
+  { method: "POST", path: "/agent/build-repay",    desc: "Build an unsigned repay tx for an existing loan.",                                    price: "0.002 SOL" },
   { method: "GET",  path: "/agent/credit-attest",  desc: "Ed25519-signed credit attestation. Verify off-chain. The portable reputation wedge.", price: "0.0005 SOL" },
   { method: "GET",  path: "/credit-score",         desc: "On-chain credit score (300–850) + factor breakdown.",                                  price: "0.001 SOL" },
   { method: "GET",  path: "/wallet/:wallet/loans", desc: "Every loan ever opened by a wallet — active, repaid, liquidated.",                     price: "free" },
   { method: "GET",  path: "/loan/:id",             desc: "Lifecycle of a specific loan: terms, collateral, status, health, due time.",          price: "free" },
+  { method: "GET",  path: "/agent/lp-state",       desc: "Depositor position + pool context — shares, deposited, current value, yield.",        price: "free" },
+  { method: "GET",  path: "/agent/protocol-pulse", desc: "24h aggregates — active loans, active borrowers, borrow volume, liquidations.",       price: "free" },
+  { method: "GET",  path: "/agent/activity",       desc: "Anonymized recent borrow/repay/liquidate events. Live protocol pulse.",               price: "free" },
+  { method: "GET",  path: "/agent/leaderboard",    desc: "Top wallets ranked by Magpie credit score, anonymized.",                              price: "free" },
   { method: "GET",  path: "/pool",                 desc: "Live LendingPool state — TVL, utilization, total borrowed.",                          price: "free" },
-  { method: "GET",  path: "/simulate-borrow",      desc: "Quote a borrow without paying x402. Pure math from public tier constants.",           price: "free" },
+  { method: "GET",  path: "/simulate-borrow",      desc: "Quote a borrow without paying. Pure math from public tier constants.",                price: "free" },
+  { method: "GET",  path: "/collateral/eligible",  desc: "Catalog of every approved collateral token.",                                          price: "free" },
+  { method: "GET",  path: "/markets/liquidatable", desc: "Past-due active loans — canonical liquidation-bot feed.",                              price: "free" },
   { method: "GET",  path: "/tiers",                desc: "The three tier constants — LTV / term / fee. Fixed at the program level.",            price: "free" },
 ];
 
@@ -46,7 +55,35 @@ const WHY_AGENT_NATIVE = [
   },
 ];
 
-export default function X402Page() {
+// Revalidate the live-stats strip every 60s — the underlying endpoint
+// already caches at 30s, so this is a defensive ceiling on origin hits.
+export const revalidate = 60;
+
+interface ProtocolPulse {
+  active_loans: number;
+  active_borrowers: number;
+  borrows_1h: number;
+  borrows_24h: number;
+  borrowed_24h_sol: number;
+  repays_24h: number;
+  liquidations_24h: number;
+}
+
+async function fetchProtocolPulse(): Promise<ProtocolPulse | null> {
+  const BOT_API = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+  try {
+    const res = await fetch(`${BOT_API}/api/v1/public/protocol-pulse`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as ProtocolPulse;
+  } catch {
+    return null;
+  }
+}
+
+export default async function X402Page() {
+  const pulse = await fetchProtocolPulse();
   return (
     <div className="min-h-screen">
       <Header />
@@ -67,26 +104,26 @@ export default function X402Page() {
           </Reveal>
           <Reveal delay={160}>
             <p className="mx-auto mt-8 max-w-3xl text-xl leading-relaxed text-[var(--ink-soft)]">
-              The first permissionless lending protocol designed for autonomous agents. Pay per call over x402, sign with your own wallet, build portable on-chain credit. Ten lines of code from <code className="font-mono text-base">npm install</code> to an open loan.
+              The first permissionless lending protocol designed for autonomous agents. Pay per call over x402, sign with your own wallet, build portable on-chain credit. Borrow, lend, and earn — all programmatically.
             </p>
           </Reveal>
           <Reveal delay={240}>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <Link
-                href="https://github.com/magpiecapital/magpie-agent"
+                href="https://github.com/magpiecapital/magpie-x402/tree/main/examples"
                 target="_blank"
                 rel="noopener"
                 className="px-6 py-3 rounded-full bg-[var(--ink)] text-[var(--bg)] hover:opacity-90 transition text-sm font-medium"
               >
-                📦 SDK + MCP server →
+                🚀 Examples → first call in 5 min
               </Link>
               <Link
-                href="https://github.com/magpiecapital/magpie-x402"
+                href="https://github.com/magpiecapital/magpie-x402/tree/main/mcp"
                 target="_blank"
                 rel="noopener"
                 className="px-6 py-3 rounded-full border border-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--bg)] transition text-sm font-medium"
               >
-                ⚙ x402 service
+                🧩 MCP for Claude / Cursor
               </Link>
               <Link
                 href="https://x402.magpie.capital/openapi.json"
@@ -101,58 +138,123 @@ export default function X402Page() {
         </div>
       </section>
 
-      {/* Quickstart: SDK + MCP side by side */}
+      {/* Live protocol pulse — proof of life */}
+      {pulse && (
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <Reveal>
+            <div className="rounded-2xl border border-[var(--ink)]/15 bg-[var(--ink)]/[0.02] p-6 md:p-8">
+              <div className="flex items-center gap-2 mb-6">
+                <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+                <span className="text-xs uppercase tracking-widest text-[var(--ink-soft)]">
+                  Live protocol pulse · last 24h
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div>
+                  <div className="font-display text-3xl md:text-4xl tracking-tight">
+                    {pulse.borrows_24h.toLocaleString()}
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mt-1">
+                    borrows · 24h
+                  </div>
+                </div>
+                <div>
+                  <div className="font-display text-3xl md:text-4xl tracking-tight">
+                    {pulse.borrowed_24h_sol.toFixed(1)}{" "}
+                    <span className="text-base text-[var(--ink-soft)]">SOL</span>
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mt-1">
+                    volume · 24h
+                  </div>
+                </div>
+                <div>
+                  <div className="font-display text-3xl md:text-4xl tracking-tight">
+                    {pulse.active_loans.toLocaleString()}
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mt-1">
+                    active loans
+                  </div>
+                </div>
+                <div>
+                  <div className="font-display text-3xl md:text-4xl tracking-tight">
+                    {pulse.active_borrowers.toLocaleString()}
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mt-1">
+                    active borrowers
+                  </div>
+                </div>
+              </div>
+              <p className="text-xs text-[var(--ink-soft)] mt-6">
+                Pulled from{" "}
+                <code className="font-mono">/api/v1/agent/protocol-pulse</code> —
+                same free endpoint your agent can hit on every tick.
+              </p>
+            </div>
+          </Reveal>
+        </section>
+      )}
+
+      {/* Quickstart: examples + MCP side by side */}
       <section className="mx-auto max-w-6xl px-6 pb-20">
         <Reveal>
           <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-3">
             Two ways to plug in
           </h2>
           <p className="text-[var(--ink-soft)] mb-8 max-w-2xl">
-            Use the TypeScript SDK directly in your agent code, or drop the MCP server into Claude Desktop / Cursor / Cline and the agent picks it up automatically.
+            Clone the repo and run an example, or drop the MCP server into Claude Desktop / Cursor / Windsurf and your agent picks up 17 Magpie tools automatically.
           </p>
         </Reveal>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* TS SDK */}
+          {/* Examples — drop-in TS files */}
           <div className="rounded-2xl border border-[var(--ink)]/15 p-6 bg-[var(--ink)]/[0.02]">
-            <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Option A · SDK</div>
-            <h3 className="font-display text-xl tracking-tight mb-4">TypeScript / JavaScript</h3>
-            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)] mb-4">{`npm install magpie-agent`}</pre>
-            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)]">{`import { Keypair } from "@solana/web3.js";
-import { MagpieAgent } from "magpie-agent";
+            <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Option A · Examples</div>
+            <h3 className="font-display text-xl tracking-tight mb-4">Six turn-key TypeScript agents</h3>
+            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)] mb-4">{`git clone git@github.com:magpiecapital/magpie-x402.git
+cd magpie-x402 && npm install
 
-const agent = new MagpieAgent({ keypair });
+export X402_PAYER_KEYPAIR=~/.config/solana/id.json
+export SOLANA_RPC_URL="https://api.mainnet-beta.solana.com"
 
-const result = await agent.borrow({
-  collateralMint: "9UuLs…pump",      // $MAGPIE
-  collateralAmount: 1_000_000_000_000n,
-  tier: "express",                    // 30% LTV / 2d / 3% fee
-});
+# Free — no payment needed
+npx tsx examples/02-liquidation-bot.ts
+npx tsx examples/05-loan-monitor.ts <WALLET>
 
-console.log(result.signature);
-// → https://solscan.io/tx/<sig>`}</pre>
+# Paid — needs ~0.01 SOL in the payer wallet
+npx tsx examples/03-agent-borrow.ts <MINT> <AMOUNT> 0
+npx tsx examples/06-yield-agent.ts deposit 100000000`}</pre>
+            <p className="text-xs text-[var(--ink-soft)] mt-3">
+              Each example is a single ~60-line file. The shared{" "}
+              <code className="font-mono text-xs">examples/lib/x402-client.ts</code>{" "}
+              (~150 lines) is meant to be copied verbatim into any agent project — no npm package on purpose.
+            </p>
           </div>
 
           {/* MCP */}
           <div className="rounded-2xl border border-[var(--ink)]/15 p-6 bg-[var(--ink)]/[0.02]">
             <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Option B · MCP server</div>
-            <h3 className="font-display text-xl tracking-tight mb-4">Claude Desktop, Cursor, Cline, Continue</h3>
+            <h3 className="font-display text-xl tracking-tight mb-4">Claude Desktop, Cursor, Windsurf, ChatGPT</h3>
+            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)] mb-3">{`git clone git@github.com:magpiecapital/magpie-x402.git
+cd magpie-x402/mcp && npm install && npm run build`}</pre>
             <p className="text-sm text-[var(--ink-soft)] mb-3">
-              Drop into <code className="font-mono text-xs">~/Library/Application Support/Claude/claude_desktop_config.json</code>:
+              Then drop into your host&apos;s MCP config (e.g.{" "}
+              <code className="font-mono text-xs">claude_desktop_config.json</code>):
             </p>
             <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)]">{`{
   "mcpServers": {
     "magpie": {
-      "command": "npx",
-      "args": ["-y", "magpie-agent", "magpie-mcp"],
+      "command": "node",
+      "args": ["/ABS/PATH/magpie-x402/mcp/dist/index.js"],
       "env": {
-        "AGENT_SECRET_KEY": "<base58 secret key>"
+        "SOLANA_RPC_URL": "https://api.mainnet-beta.solana.com",
+        "MAGPIE_MCP_PAYER_KEYPAIR": "/ABS/PATH/payer.json"
       }
     }
   }
 }`}</pre>
             <p className="text-xs text-[var(--ink-soft)] mt-3">
-              Restart Claude Desktop. Your agent now has 7 Magpie tools. Use a dedicated agent wallet — never your main wallet.
+              Restart your host. The agent now has 17 Magpie tools — free reads work without any keypair; paid endpoints sign x402 payment txs locally. Config blocks for Cursor / Windsurf / generic hosts in{" "}
+              <a href="https://github.com/magpiecapital/magpie-x402/tree/main/mcp#readme" className="underline">mcp/README.md</a>.
             </p>
           </div>
         </div>
@@ -172,22 +274,25 @@ console.log(result.signature);
             <p className="text-lg leading-relaxed text-[var(--ink)] max-w-3xl mb-8">
               All the same anti-exploit gates run at <em>match time</em>, not creation time — fresh prices, fresh pool state, current ban list. The agent always retains final-signature authority. No custodial reservation, no smart-contract pre-commit, no funds locked.
             </p>
-            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)] max-w-3xl">{`import { MagpieAgent } from "magpie-agent";
+            <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)] max-w-3xl">{`// examples/04-conditional-borrow-intent.ts
+import { paidCall, loadKeypairFromFile } from "./lib/x402-client.js";
 
-const agent = new MagpieAgent({ keypair });
+const payer = loadKeypairFromFile(process.env.X402_PAYER_KEYPAIR!);
 
-const intent = await agent.createBorrowIntent({
-  collateralMint: "9UuLs...pump",        // $MAGPIE
-  collateralAmount: 10_000_000_000n,      // 10000 tokens (6 dp)
-  tier: "quick",
-  conditionType: "price_above",
-  conditionParams: { mint: "9UuLs...pump", usd: 0.05 },
-  expiresInSeconds: 7 * 86400,
+const create = await paidCall({ rpcUrl, payer }, "POST", "/api/v1/agent/intent", {
+  body: {
+    borrower_wallet:   payer.publicKey.toBase58(),
+    collateral_mint:   "9UuLs...pump",
+    collateral_amount: "10000000000",     // 10000 tokens (6 dp)
+    tier: 0,
+    condition_type: "price_above",
+    condition_params: { mint: "9UuLs...pump", price_usd: "0.05", source: "jupiter" },
+    expires_in_seconds: 7 * 86400,
+  },
 });
 
-// Block until the watcher fires + the borrow lands on-chain:
-const { signature } = await agent.waitForIntent(intent.intent_id);
-console.log("Loan opened:", signature);`}</pre>
+// Poll until matched, then sign + submit the returned partial_signed_tx_b64.
+// Each poll is 0.0005 SOL — the create payment covers the watcher lifecycle.`}</pre>
           </div>
         </Reveal>
       </section>
