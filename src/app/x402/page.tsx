@@ -71,6 +71,16 @@ interface ProtocolPulse {
   liquidations_24h: number;
 }
 
+interface X402Metrics {
+  calls_1h: number;
+  calls_24h: number;
+  calls_7d: number;
+  revenue_24h_sol: number;
+  revenue_7d_sol: number;
+  unique_payers_24h: number;
+  top_endpoints: Array<{ path: string; calls: number; revenue_sol: number }>;
+}
+
 interface ActivityEvent {
   type: "borrow" | "repaid" | "liquidated";
   at: string;
@@ -108,6 +118,19 @@ async function fetchActivity(): Promise<ActivityEvent[]> {
   }
 }
 
+async function fetchX402Metrics(): Promise<X402Metrics | null> {
+  const BOT_API = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+  try {
+    const res = await fetch(`${BOT_API}/api/v1/public/x402-metrics`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as X402Metrics;
+  } catch {
+    return null;
+  }
+}
+
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   const sec = Math.max(0, Math.floor(ms / 1000));
@@ -124,6 +147,7 @@ export default async function X402Page() {
     fetchProtocolPulse(),
     fetchActivity(),
   ]);
+  const x402metrics = await fetchX402Metrics();
   return (
     <div className="min-h-screen">
       <Header />
@@ -228,6 +252,82 @@ export default async function X402Page() {
                 Pulled from{" "}
                 <code className="font-mono">/api/v1/agent/protocol-pulse</code> —
                 same free endpoint your agent can hit on every tick.
+              </p>
+            </div>
+          </Reveal>
+        </section>
+      )}
+
+      {/* x402 revenue + adoption — only shows once there's data */}
+      {x402metrics && x402metrics.calls_24h > 0 && (
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <Reveal>
+            <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-6 md:p-8">
+              <div className="flex items-center gap-2 mb-6">
+                <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+                <span className="text-xs uppercase tracking-widest text-[var(--accent-deep)]">
+                  Agents are paying for it · last 24h
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+                <div>
+                  <div className="font-display text-3xl md:text-4xl tracking-tight">
+                    {x402metrics.calls_24h.toLocaleString()}
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mt-1">
+                    paid calls · 24h
+                  </div>
+                </div>
+                <div>
+                  <div className="font-display text-3xl md:text-4xl tracking-tight">
+                    {x402metrics.revenue_24h_sol.toFixed(3)}{" "}
+                    <span className="text-base text-[var(--ink-soft)]">SOL</span>
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mt-1">
+                    revenue · 24h
+                  </div>
+                </div>
+                <div>
+                  <div className="font-display text-3xl md:text-4xl tracking-tight">
+                    {x402metrics.unique_payers_24h.toLocaleString()}
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mt-1">
+                    unique agents
+                  </div>
+                </div>
+                <div>
+                  <div className="font-display text-3xl md:text-4xl tracking-tight">
+                    {x402metrics.calls_1h.toLocaleString()}
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mt-1">
+                    calls · last hour
+                  </div>
+                </div>
+              </div>
+              {x402metrics.top_endpoints.length > 0 && (
+                <div className="border-t border-[var(--ink)]/10 pt-4">
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-3">
+                    Top paid endpoints · 24h
+                  </div>
+                  <div className="space-y-1.5">
+                    {x402metrics.top_endpoints.slice(0, 5).map((e) => (
+                      <div
+                        key={e.path}
+                        className="flex items-center justify-between gap-4 text-sm font-mono"
+                      >
+                        <span className="truncate">{e.path}</span>
+                        <span className="shrink-0 text-[var(--ink-soft)]">
+                          {e.calls} call{e.calls === 1 ? "" : "s"} ·{" "}
+                          <span className="text-[var(--ink)]">{e.revenue_sol.toFixed(4)} SOL</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <p className="text-xs text-[var(--ink-soft)] mt-5">
+                Same data via <code className="font-mono">GET /api/v1/agent/x402-metrics</code> on the bot —
+                refresh interval 60s.
               </p>
             </div>
           </Reveal>
