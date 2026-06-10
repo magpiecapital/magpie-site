@@ -24,6 +24,7 @@ const SupportTickets = dynamic(() => import("./SupportTickets"), { ssr: false })
 const ActivityFeed = dynamic(() => import("./ActivityFeed"), { ssr: false });
 const EarningsCard = dynamic(() => import("./EarningsCard"), { ssr: false });
 const GovernanceCard = dynamic(() => import("./GovernanceCard"), { ssr: false });
+const DistributionCard = dynamic(() => import("./DistributionCard"), { ssr: false });
 
 // Note: the floating AI chat is rendered site-wide via
 // ClientProviders → FloatingAiChatGlobal, so the dashboard no longer
@@ -2173,6 +2174,12 @@ export default function DashboardPage() {
                     voting weight + quick cast-vote link. Hides when no
                     proposals are active or user not connected. */}
                 {connected && publicKey && <GovernanceCard />}
+
+                {/* Holder Distribution — shows the connected wallet's
+                    expected SOL for the current/upcoming distribution
+                    round + the tx link once sent. Hides if wallet not
+                    in the active distribution. */}
+                {connected && publicKey && <DistributionCard />}
 
                 {/* (Floating AI chat is rendered at the page root —
                     see below — so no ancestor transform/overflow can
