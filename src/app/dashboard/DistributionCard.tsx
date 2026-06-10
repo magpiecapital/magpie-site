@@ -4,13 +4,11 @@
  * Holder Distributions card — shows the full history of distributions
  * the connected wallet has received, oldest at bottom and newest at top.
  *
- * For each distribution row: proposal id, SOL amount, sent date, and a
- * clickable Solscan link to the actual on-chain transaction.
+ * Each row: proposal id, SOL amount, date sent, running cumulative
+ * total at that point, and a Solscan tx link.
+ * Header: lifetime total received + count of distributions.
  *
- * Hides entirely when:
- *   - Wallet not connected
- *   - The wallet has no distributions in DB
- *   - API unreachable
+ * Hides entirely when wallet not connected or has no distribution rows.
  */
 
 import { useEffect, useState } from "react";
@@ -25,8 +23,6 @@ interface DistributionRow {
   tx_signature: string | null;
   sent_at: string | null;
   status: string;
-  plan_hash?: string;
-  snapshot_hash?: string;
 }
 
 interface DistributionsResp {
@@ -44,8 +40,7 @@ function fmtSol(sol: number): string {
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
 export default function DistributionCard() {
@@ -58,9 +53,7 @@ export default function DistributionCard() {
     let cancelled = false;
     (async () => {
       try {
-        const r = await fetch(
-          `${botApiUrl}/api/v1/governance/distributions?wallet=${publicKey.toBase58()}`,
-        );
+        const r = await fetch(`${botApiUrl}/api/v1/governance/distributions?wallet=${publicKey.toBase58()}`);
         if (!r.ok) { if (!cancelled) setLoading(false); return; }
         const j = (await r.json()) as DistributionsResp;
         if (!cancelled) { setData(j); setLoading(false); }
@@ -72,9 +65,24 @@ export default function DistributionCard() {
   if (!publicKey || loading) return null;
   if (!data || data.distribution_count === 0) return null;
 
-  const sentRows = data.distributions.filter((d) => d.status === "sent");
+  // Sort sent rows oldest-first to compute the running cumulative, then
+  // render newest-first by reversing the prepared array.
+  const sentRowsOldestFirst = [...data.distributions]
+    .filter((d) => d.status === "sent")
+    .sort((a, b) => {
+      const ta = a.sent_at ? new Date(a.sent_at).getTime() : 0;
+      const tb = b.sent_at ? new Date(b.sent_at).getTime() : 0;
+      return ta - tb;
+    });
+  let runningSum = 0;
+  const sentWithCumulative = sentRowsOldestFirst.map((d) => {
+    runningSum += d.allocated_sol;
+    return { ...d, cumulative_sol: runningSum };
+  });
+  const sentNewestFirst = [...sentWithCumulative].reverse();
+
   const pendingRows = data.distributions.filter((d) => d.status === "pending");
-  const unpayableRows = data.distributions.filter((d) => d.status === "unpayable_rent_exempt");
+  const unpayableCount = data.distributions.filter((d) => d.status === "unpayable_rent_exempt").length;
 
   return (
     <section
@@ -86,92 +94,117 @@ export default function DistributionCard() {
         marginTop: 16,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 16 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "var(--d-ink)" }}>
           Holder Distributions
         </h3>
-        <div style={{ fontSize: 12, color: "var(--d-ink-soft)" }}>
-          {fmtSol(data.total_received_sol)} SOL received total
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontSize: 18, fontFamily: "monospace", fontWeight: 700, color: "var(--d-ink)" }}>
+            {fmtSol(data.total_received_sol)} SOL
+          </div>
+          <div style={{ fontSize: 11, color: "var(--d-ink-faint)" }}>
+            received across {sentNewestFirst.length} distribution{sentNewestFirst.length === 1 ? "" : "s"}
+          </div>
         </div>
       </div>
 
-      <div style={{ borderTop: "1px solid var(--d-border)" }}>
-        {sentRows.map((d) => (
-          <div
-            key={d.proposal_id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "12px 0",
-              borderBottom: "1px solid var(--d-border)",
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--d-ink)" }}>
-                {d.proposal_id} Distribution
-              </div>
-              <div style={{ fontSize: 11, color: "var(--d-ink-faint)", marginTop: 2 }}>
-                Sent {fmtDate(d.sent_at)}
-              </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr auto auto auto",
+          gap: "8px 16px",
+          fontSize: 11,
+          color: "var(--d-ink-faint)",
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          paddingBottom: 8,
+          borderBottom: "1px solid var(--d-border)",
+        }}
+      >
+        <div>Round</div>
+        <div style={{ textAlign: "right" }}>Amount</div>
+        <div style={{ textAlign: "right" }}>Lifetime</div>
+        <div style={{ textAlign: "right" }}>Proof</div>
+      </div>
+
+      {sentNewestFirst.map((d) => (
+        <div
+          key={d.proposal_id}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr auto auto auto",
+            gap: "8px 16px",
+            alignItems: "center",
+            padding: "12px 0",
+            borderBottom: "1px solid var(--d-border)",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--d-ink)" }}>
+              {d.proposal_id}
             </div>
-            <div style={{ textAlign: "right", marginRight: 12 }}>
-              <div style={{ fontSize: 14, fontFamily: "monospace", color: "var(--d-ink)" }}>
-                {fmtSol(d.allocated_sol)} SOL
-              </div>
+            <div style={{ fontSize: 11, color: "var(--d-ink-faint)", marginTop: 2 }}>
+              {fmtDate(d.sent_at)}
             </div>
-            {d.tx_signature && (
+          </div>
+          <div style={{ fontSize: 14, fontFamily: "monospace", color: "var(--d-ink)", textAlign: "right" }}>
+            {fmtSol(d.allocated_sol)}
+          </div>
+          <div style={{ fontSize: 14, fontFamily: "monospace", color: "var(--d-ink-soft)", textAlign: "right" }}>
+            {fmtSol(d.cumulative_sol)}
+          </div>
+          <div style={{ textAlign: "right" }}>
+            {d.tx_signature ? (
               <a
                 href={`https://solscan.io/tx/${d.tx_signature}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  fontSize: 12,
-                  color: "var(--d-accent-deep)",
-                  textDecoration: "underline",
-                  whiteSpace: "nowrap",
-                }}
+                style={{ fontSize: 12, color: "var(--d-accent-deep)", textDecoration: "underline" }}
               >
                 view tx
               </a>
+            ) : (
+              <span style={{ fontSize: 12, color: "var(--d-ink-faint)" }}>—</span>
             )}
           </div>
-        ))}
+        </div>
+      ))}
 
-        {pendingRows.map((d) => (
-          <div
-            key={d.proposal_id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "12px 0",
-              borderBottom: "1px solid var(--d-border)",
-            }}
-          >
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--d-ink)" }}>
-                {d.proposal_id} Distribution
-              </div>
-              <div style={{ fontSize: 11, color: "var(--d-ink-faint)", marginTop: 2 }}>
-                Pending — will be sent when the round executes
-              </div>
+      {pendingRows.map((d) => (
+        <div
+          key={d.proposal_id}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr auto auto auto",
+            gap: "8px 16px",
+            alignItems: "center",
+            padding: "12px 0",
+            borderBottom: "1px solid var(--d-border)",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--d-ink)" }}>{d.proposal_id}</div>
+            <div style={{ fontSize: 11, color: "var(--d-ink-faint)", marginTop: 2 }}>
+              Pending — will be sent when the round executes
             </div>
-            <div style={{ textAlign: "right", marginRight: 12 }}>
-              <div style={{ fontSize: 14, fontFamily: "monospace", color: "var(--d-ink)" }}>
-                {fmtSol(d.allocated_sol)} SOL
-              </div>
-            </div>
-            <div style={{ width: 60 }} />
           </div>
-        ))}
+          <div style={{ fontSize: 14, fontFamily: "monospace", color: "var(--d-ink)", textAlign: "right" }}>
+            {fmtSol(d.allocated_sol)}
+          </div>
+          <div style={{ fontSize: 14, fontFamily: "monospace", color: "var(--d-ink-faint)", textAlign: "right" }}>
+            —
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <span style={{ fontSize: 12, color: "var(--d-ink-faint)" }}>—</span>
+          </div>
+        </div>
+      ))}
 
-        {unpayableRows.length > 0 && (
-          <div style={{ padding: "12px 0", fontSize: 11, color: "var(--d-ink-faint)" }}>
-            {unpayableRows.length} distribution(s) below Solana's rent-exempt minimum — unpayable to wallets not yet initialized on-chain.
-          </div>
-        )}
-      </div>
+      {unpayableCount > 0 && (
+        <div style={{ padding: "10px 0 0 0", fontSize: 11, color: "var(--d-ink-faint)" }}>
+          {unpayableCount} round(s) below Solana&apos;s rent-exempt minimum — unpayable to wallets not yet initialized on-chain.
+        </div>
+      )}
     </section>
   );
 }
