@@ -21,6 +21,7 @@ const ENDPOINTS = [
   { method: "POST", path: "/agent/build-borrow",   desc: "Build an unsigned borrow tx. Agent signs + submits. All anti-exploit gates apply.",   price: "0.005 SOL" },
   { method: "POST", path: "/agent/build-deposit",  desc: "LP-side. Build an unsigned deposit tx — wraps SOL → wSOL → deposits into the LendingPool.", price: "0.002 SOL" },
   { method: "POST", path: "/agent/build-withdraw", desc: "LP-side. Build an unsigned withdraw tx. Server refuses unsafe chunk sizes.",          price: "0.002 SOL" },
+  { method: "POST", path: "/agent/build-liquidate", desc: "Liquidate a past-due loan. Server pre-validates loan status + due time. Keeper receives bounty share of seized collateral.", price: "0.003 SOL" },
   { method: "POST", path: "/agent/build-repay",    desc: "Build an unsigned repay tx for an existing loan.",                                    price: "0.002 SOL" },
   { method: "GET",  path: "/agent/credit-attest",  desc: "Ed25519-signed credit attestation. Verify off-chain. The portable reputation wedge.", price: "0.0005 SOL" },
   { method: "GET",  path: "/credit-score",         desc: "On-chain credit score (300–850) + factor breakdown.",                                  price: "0.001 SOL" },
