@@ -2785,6 +2785,15 @@ export default function DashboardPage() {
                                       view tx
                                     </a>
                                   )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Governance — surfaces active proposals with this wallet's
                     voting weight + quick cast-vote link. Hides when no
                     proposals are active or user not connected. */}
@@ -2796,15 +2805,6 @@ export default function DashboardPage() {
                     in the active distribution. */}
                 {connected && publicKey && <DistributionCard />}
 
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
               </DashboardProvider>
 
