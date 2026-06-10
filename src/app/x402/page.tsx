@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
+import { WalletLookupWidget } from "@/components/WalletLookupWidget";
 
 export const metadata: Metadata = {
   title: "magpie-x402 · Agent-native lending on Solana | Magpie",
@@ -299,6 +300,13 @@ export default async function X402Page() {
           </Reveal>
         </section>
       )}
+
+      {/* Try-it-now wallet lookup */}
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <Reveal>
+          <WalletLookupWidget />
+        </Reveal>
+      </section>
 
       {/* Quickstart: examples + MCP side by side */}
       <section className="mx-auto max-w-6xl px-6 pb-20">
