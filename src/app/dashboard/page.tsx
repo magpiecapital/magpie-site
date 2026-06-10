@@ -2163,17 +2163,6 @@ export default function DashboardPage() {
                   />
                 )}
 
-                {/* Governance — surfaces active proposals with this wallet's
-                    voting weight + quick cast-vote link. Hides when no
-                    proposals are active or user not connected. */}
-                {connected && publicKey && <GovernanceCard />}
-
-                {/* Holder Distribution — shows the connected wallet's
-                    expected SOL for the current/upcoming distribution
-                    round + the tx link once sent. Hides if wallet not
-                    in the active distribution. */}
-                {connected && publicKey && <DistributionCard />}
-
                 {/* (Floating AI chat is rendered at the page root —
                     see below — so no ancestor transform/overflow can
                     affect its fixed positioning.) */}
@@ -2796,6 +2785,17 @@ export default function DashboardPage() {
                                       view tx
                                     </a>
                                   )}
+                {/* Governance — surfaces active proposals with this wallet's
+                    voting weight + quick cast-vote link. Hides when no
+                    proposals are active or user not connected. */}
+                {connected && publicKey && <GovernanceCard />}
+
+                {/* Holder Distribution — shows the connected wallet's
+                    expected SOL for the current/upcoming distribution
+                    round + the tx link once sent. Hides if wallet not
+                    in the active distribution. */}
+                {connected && publicKey && <DistributionCard />}
+
                                 </div>
                               </div>
                             );
