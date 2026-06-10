@@ -975,6 +975,52 @@ export default function EarnPage() {
               </ol>
             </div>
 
+            {/* Yield mechanics — detailed explainer */}
+            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
+              <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">How LP yield works in detail</h3>
+              <div className="space-y-3 text-sm text-[var(--ink-soft)]">
+                <p>
+                  Your yield isn&apos;t a payout event — it&apos;s share-price appreciation. The math runs at the moment you withdraw:
+                </p>
+                <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface)] p-3 font-mono text-[12px] text-[var(--ink)] sm:text-[13px]">
+                  payout = your_shares × (current_vault_balance / total_shares)
+                </div>
+                <p>
+                  No snapshot, no eligibility window. Whoever holds shares at the moment of withdrawal takes their pro-rata slice of the vault as it exists right then. Earlier depositors automatically earn more because they bought shares at a lower price.
+                </p>
+
+                <h4 className="font-semibold pt-2 text-[var(--ink)]">Concrete example</h4>
+                <ul className="list-disc pl-5 space-y-2">
+                  <li>
+                    <span className="text-[var(--ink)]">Day 1.</span> Alice deposits 10 SOL when the vault is empty. She gets 10 shares. Share price: 1.00 SOL.
+                  </li>
+                  <li>
+                    <span className="text-[var(--ink)]">Day 10.</span> The pool has earned 1 SOL in fees. Vault is now 11 SOL across 10 shares. Share price: 1.10 SOL.
+                  </li>
+                  <li>
+                    <span className="text-[var(--ink)]">Day 10.</span> Bob deposits 5 SOL at the new higher price. He gets 5 / 1.10 = 4.545 shares (fewer per SOL because the pool is richer).
+                  </li>
+                  <li>
+                    <span className="text-[var(--ink)]">Day 30.</span> Vault has earned another 2 SOL. Vault = 18 SOL across 14.545 shares. Share price: 1.2375 SOL.
+                  </li>
+                  <li>
+                    <span className="text-[var(--ink)]">Day 30.</span> Alice withdraws her 10 shares → receives 12.375 SOL (10 deposited + 2.375 SOL of yield).
+                  </li>
+                  <li>
+                    <span className="text-[var(--ink)]">Day 30.</span> Bob withdraws his 4.545 shares → receives 5.625 SOL (5 deposited + 0.625 SOL of yield).
+                  </li>
+                </ul>
+                <p>
+                  Alice earned more because she was in longer and bought at a lower share price. Bob earned less because he came in later at a higher price. Neither needed a snapshot — the share-price-at-withdrawal does all the work mechanically.
+                </p>
+
+                <h4 className="font-semibold pt-2 text-[var(--ink)]">What about the 2% LP loyalty bonus?</h4>
+                <p>
+                  Separately from the 80% yield, 2% of every loan fee accrues to an LP loyalty bonus pool. That one DOES use a snapshot — distributed by <span className="font-mono text-[12px]">shares × time held</span>, so longest-tenured LPs get a bigger slice when it pays out. It is an additional discrete payment on top of the share-price growth, not a substitute for it.
+                </p>
+              </div>
+            </div>
+
             {/* Pool breakdown */}
             {pool && (
               <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
