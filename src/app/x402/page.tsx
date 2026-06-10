@@ -69,6 +69,16 @@ interface ProtocolPulse {
   liquidations_24h: number;
 }
 
+interface ActivityEvent {
+  type: "borrow" | "repaid" | "liquidated";
+  at: string;
+  borrower_short: string | null;
+  amount_sol: number;
+  collateral_symbol: string | null;
+  ltv_pct?: number | null;
+  duration_days?: number | null;
+}
+
 async function fetchProtocolPulse(): Promise<ProtocolPulse | null> {
   const BOT_API = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
   try {
@@ -82,8 +92,36 @@ async function fetchProtocolPulse(): Promise<ProtocolPulse | null> {
   }
 }
 
+async function fetchActivity(): Promise<ActivityEvent[]> {
+  const BOT_API = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+  try {
+    const res = await fetch(`${BOT_API}/api/v1/public/activity?limit=12`, {
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as { events?: ActivityEvent[] };
+    return data.events ?? [];
+  } catch {
+    return [];
+  }
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const sec = Math.max(0, Math.floor(ms / 1000));
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return `${Math.floor(hr / 24)}d ago`;
+}
+
 export default async function X402Page() {
-  const pulse = await fetchProtocolPulse();
+  const [pulse, activity] = await Promise.all([
+    fetchProtocolPulse(),
+    fetchActivity(),
+  ]);
   return (
     <div className="min-h-screen">
       <Header />
@@ -189,6 +227,74 @@ export default async function X402Page() {
                 <code className="font-mono">/api/v1/agent/protocol-pulse</code> —
                 same free endpoint your agent can hit on every tick.
               </p>
+            </div>
+          </Reveal>
+        </section>
+      )}
+
+      {/* Live activity feed — anonymized */}
+      {activity.length > 0 && (
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <Reveal>
+            <div className="rounded-2xl border border-[var(--ink)]/15 bg-[var(--ink)]/[0.02] overflow-hidden">
+              <div className="px-6 py-4 border-b border-[var(--ink)]/10 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+                  <span className="text-xs uppercase tracking-widest text-[var(--ink-soft)]">
+                    Recent activity · live
+                  </span>
+                </div>
+                <code className="font-mono text-xs text-[var(--ink-soft)] hidden md:block">
+                  GET /api/v1/agent/activity
+                </code>
+              </div>
+              <div className="divide-y divide-[var(--ink)]/10">
+                {activity.slice(0, 12).map((e, idx) => {
+                  const typeColor =
+                    e.type === "borrow"
+                      ? "text-[var(--accent)]"
+                      : e.type === "repaid"
+                        ? "text-emerald-600"
+                        : "text-red-500";
+                  const typeLabel =
+                    e.type === "borrow"
+                      ? "BORROW"
+                      : e.type === "repaid"
+                        ? "REPAY"
+                        : "LIQUIDATE";
+                  return (
+                    <div
+                      key={`${e.at}-${idx}`}
+                      className="px-6 py-3 flex items-center justify-between gap-4 text-sm"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span
+                          className={`font-mono text-[10px] tracking-widest font-medium ${typeColor} w-20 shrink-0`}
+                        >
+                          {typeLabel}
+                        </span>
+                        <span className="font-mono text-xs text-[var(--ink-soft)] shrink-0">
+                          {e.borrower_short ?? "—"}
+                        </span>
+                        <span className="truncate">
+                          <span className="font-medium">
+                            {e.amount_sol.toFixed(3)} SOL
+                          </span>
+                          {e.collateral_symbol && (
+                            <span className="text-[var(--ink-soft)]">
+                              {" "}
+                              · {e.collateral_symbol}
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                      <span className="text-xs text-[var(--ink-soft)] font-mono shrink-0">
+                        {timeAgo(e.at)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </Reveal>
         </section>
