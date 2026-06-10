@@ -2811,75 +2811,6 @@ export default function DashboardPage() {
               {/* ─── RIGHT COLUMN (4/12) ─── */}
               <div className="xl:col-span-4 flex flex-col gap-6">
 
-                {/* LP POSITION CARD — Top of right column so LPs see their position first */}
-                <div id="section-lp" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
-                  <SectionHeader title="LP Position" compact />
-                  {lpPosition && lpPosition.depositedAmount > 0 ? (
-                    <>
-                      <div className="rounded-xl border border-[var(--d-accent)]/25 bg-[var(--d-accent-dim)]/30 p-3">
-                        <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">
-                          Current value
-                        </div>
-                        <div className="mt-1 font-mono text-xl font-semibold text-[var(--d-ink)]">
-                          {(lpPosition.currentValue / LAMPORTS_PER_SOL).toFixed(6)} SOL
-                        </div>
-                        <div className="mt-0.5 text-[10px] text-[var(--d-ink-faint)]">
-                          {lpPosition.yieldEarned >= 0 ? "+" : ""}
-                          {(lpPosition.yieldEarned / LAMPORTS_PER_SOL).toFixed(6)} SOL earned
-                        </div>
-                      </div>
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
-                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Deposited</div>
-                          <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
-                            {(lpPosition.depositedAmount / LAMPORTS_PER_SOL).toFixed(4)} SOL
-                          </div>
-                        </div>
-                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
-                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Time in pool</div>
-                          <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
-                            {lpLoyalty?.days_held != null ? `${lpLoyalty.days_held.toFixed(1)}d` : "—"}
-                          </div>
-                        </div>
-                      </div>
-                      {lpLoyalty && (
-                        <div className="mt-3 rounded-xl border border-[var(--d-accent)]/15 bg-[var(--d-bg)] p-3">
-                          <div className="flex items-baseline justify-between">
-                            <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">
-                              Loyalty bonus
-                            </div>
-                            <div className="text-[10px] text-[var(--d-accent-deep)]">+{lpLoyalty.reward_pct}% of fees</div>
-                          </div>
-                          <div className="mt-1 grid grid-cols-2 gap-2 text-[11px]">
-                            <div>
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Lifetime received</div>
-                              <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
-                                {(Number(lpLoyalty.paid_lamports) / LAMPORTS_PER_SOL).toFixed(6)} SOL
-                              </div>
-                            </div>
-                            <div>
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Distributions</div>
-                              <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
-                                {lpLoyalty.distributions_received}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-1 text-[10px] text-[var(--d-ink-faint)]">
-                            Time-weighted bonus on top of base 80% LP yield. Auto-paid in SOL.
-                          </div>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-sm text-[var(--d-ink-soft)]">
-                      No LP position yet. Deposit SOL → earn <span className="font-semibold text-[var(--d-accent-deep)]">80%</span> of every loan fee pro-rata to your share, PLUS time-weighted Loyalty Bonus that rewards long-term holders.
-                    </p>
-                  )}
-                  <Link href="/earn" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
-                    {lpPosition && lpPosition.depositedAmount > 0 ? "Manage position →" : "Deposit SOL →"}
-                  </Link>
-                </div>
-
                 {/* CREDIT SCORE CARD */}
                 {prefs.credit && (
                   <div id="section-credit" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
@@ -2975,7 +2906,76 @@ export default function DashboardPage() {
                   </Link>
                 </div>
 
-                {/* REFERRAL CARD */}
+{/* LP POSITION CARD — Top of right column so LPs see their position first */}
+                <div id="section-lp" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
+                  <SectionHeader title="LP Position" compact />
+                  {lpPosition && lpPosition.depositedAmount > 0 ? (
+                    <>
+                      <div className="rounded-xl border border-[var(--d-accent)]/25 bg-[var(--d-accent-dim)]/30 p-3">
+                        <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">
+                          Current value
+                        </div>
+                        <div className="mt-1 font-mono text-xl font-semibold text-[var(--d-ink)]">
+                          {(lpPosition.currentValue / LAMPORTS_PER_SOL).toFixed(6)} SOL
+                        </div>
+                        <div className="mt-0.5 text-[10px] text-[var(--d-ink-faint)]">
+                          {lpPosition.yieldEarned >= 0 ? "+" : ""}
+                          {(lpPosition.yieldEarned / LAMPORTS_PER_SOL).toFixed(6)} SOL earned
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Deposited</div>
+                          <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
+                            {(lpPosition.depositedAmount / LAMPORTS_PER_SOL).toFixed(4)} SOL
+                          </div>
+                        </div>
+                        <div className="rounded-lg bg-[var(--d-bg)] px-3 py-2">
+                          <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Time in pool</div>
+                          <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
+                            {lpLoyalty?.days_held != null ? `${lpLoyalty.days_held.toFixed(1)}d` : "—"}
+                          </div>
+                        </div>
+                      </div>
+                      {lpLoyalty && (
+                        <div className="mt-3 rounded-xl border border-[var(--d-accent)]/15 bg-[var(--d-bg)] p-3">
+                          <div className="flex items-baseline justify-between">
+                            <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">
+                              Loyalty bonus
+                            </div>
+                            <div className="text-[10px] text-[var(--d-accent-deep)]">+{lpLoyalty.reward_pct}% of fees</div>
+                          </div>
+                          <div className="mt-1 grid grid-cols-2 gap-2 text-[11px]">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Lifetime received</div>
+                              <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
+                                {(Number(lpLoyalty.paid_lamports) / LAMPORTS_PER_SOL).toFixed(6)} SOL
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)]">Distributions</div>
+                              <div className="mt-0.5 font-mono text-xs text-[var(--d-ink)]">
+                                {lpLoyalty.distributions_received}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-1 text-[10px] text-[var(--d-ink-faint)]">
+                            Time-weighted bonus on top of base 80% LP yield. Auto-paid in SOL.
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-[var(--d-ink-soft)]">
+                      No LP position yet. Deposit SOL → earn <span className="font-semibold text-[var(--d-accent-deep)]">80%</span> of every loan fee pro-rata to your share, PLUS time-weighted Loyalty Bonus that rewards long-term holders.
+                    </p>
+                  )}
+                  <Link href="/earn" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
+                    {lpPosition && lpPosition.depositedAmount > 0 ? "Manage position →" : "Deposit SOL →"}
+                  </Link>
+                </div>
+
+                                {/* REFERRAL CARD */}
                 <div id="section-referrals" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
                   <SectionHeader title="Referrals" compact />
                   {referrals?.linked ? (
