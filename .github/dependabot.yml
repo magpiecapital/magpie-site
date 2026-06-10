@@ -1,0 +1,49 @@
+version: 2
+
+# Dependabot configuration for the Next.js site.
+#
+# Security patches: highest priority, auto-PR immediately.
+# Non-security: weekly, grouped to avoid PR floods.
+# No auto-merge — operator reviews every PR.
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 10
+    groups:
+      production-deps:
+        applies-to: version-updates
+        dependency-type: "production"
+        update-types: ["patch", "minor"]
+      dev-deps:
+        applies-to: version-updates
+        dependency-type: "development"
+        update-types: ["patch", "minor"]
+      # Next.js + React get their own group — they often need to bump
+      # together and operator wants visibility on framework changes.
+      framework:
+        applies-to: version-updates
+        patterns:
+          - "next"
+          - "@next/*"
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+    labels:
+      - "dependencies"
+      - "site"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "github-actions"
