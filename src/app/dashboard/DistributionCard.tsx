@@ -79,7 +79,7 @@ export default function DistributionCard() {
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "var(--d-ink)" }}>
-          💸 Holder Distribution — {data.proposal_id}
+          Holder Distribution — {data.proposal_id}
         </h3>
         <div style={{ fontSize: 12, color: "var(--d-ink-soft)" }}>
           {data.distribution_total_recipients?.toLocaleString()} recipients · {data.distribution_total_sol?.toFixed(4)} SOL pool
@@ -101,13 +101,13 @@ export default function DistributionCard() {
       <div style={{ marginTop: 12, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         {data.status === "pending" && (
           <span style={{ fontSize: 13, color: "var(--d-ink-soft)" }}>
-            ⏳ Pending — will be sent to your wallet when the round executes
+            Pending — will be sent to your wallet when the round executes
           </span>
         )}
         {data.status === "sent" && sentLink && (
           <>
             <span style={{ fontSize: 13, color: "var(--d-accent-deep)", fontWeight: 600 }}>
-              ✅ Sent {data.sent_at ? new Date(data.sent_at).toLocaleDateString() : ""}
+              Sent {data.sent_at ? new Date(data.sent_at).toLocaleDateString() : ""}
             </span>
             <a
               href={sentLink}
@@ -121,7 +121,7 @@ export default function DistributionCard() {
         )}
         {data.status === "failed" && (
           <span style={{ fontSize: 13, color: "var(--d-bad)" }}>
-            ⚠️ Send failed — {data.failure_reason || "retry pending"}
+            Send failed — {data.failure_reason || "retry pending"}
           </span>
         )}
       </div>

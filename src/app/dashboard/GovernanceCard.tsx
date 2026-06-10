@@ -120,7 +120,7 @@ export default function GovernanceCard() {
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: "var(--d-ink)" }}>
-          🗳️ Governance — active votes
+          Governance — active votes
         </h3>
         <Link
           href="/governance"
@@ -163,7 +163,7 @@ export default function GovernanceCard() {
                     {p.weight_pct_of_pool?.toFixed(4)}% of eligible pool
                     {p.was_capped && (
                       <span style={{ color: "var(--d-warn)", marginLeft: 8 }}>
-                        ⚠️ capped at {((p.cap_fraction ?? 0.02) * 100).toFixed(0)}% — counted as {p.capped_pct_of_pool?.toFixed(4)}%
+                        capped at {((p.cap_fraction ?? 0.02) * 100).toFixed(0)}% — counted as {p.capped_pct_of_pool?.toFixed(4)}%
                       </span>
                     )}
                   </div>
@@ -175,7 +175,7 @@ export default function GovernanceCard() {
                 </>
               ) : (
                 <div style={{ fontSize: 13, color: "var(--d-ink-soft)", marginTop: 4 }}>
-                  ❌ Not eligible — {p.reason === "wallet_not_in_snapshot_or_zero_balance"
+                  Not eligible — {p.reason === "wallet_not_in_snapshot_or_zero_balance"
                     ? "wallet had no $MAGPIE at snapshot time"
                     : p.reason}
                 </div>
