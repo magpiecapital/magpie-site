@@ -23,6 +23,7 @@ import { DashboardProvider } from "./DashboardContext";
 const SupportTickets = dynamic(() => import("./SupportTickets"), { ssr: false });
 const ActivityFeed = dynamic(() => import("./ActivityFeed"), { ssr: false });
 const EarningsCard = dynamic(() => import("./EarningsCard"), { ssr: false });
+const GovernanceCard = dynamic(() => import("./GovernanceCard"), { ssr: false });
 
 // Note: the floating AI chat is rendered site-wide via
 // ClientProviders → FloatingAiChatGlobal, so the dashboard no longer
@@ -2167,6 +2168,11 @@ export default function DashboardPage() {
                     botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
                   />
                 )}
+
+                {/* Governance — surfaces active proposals with this wallet's
+                    voting weight + quick cast-vote link. Hides when no
+                    proposals are active or user not connected. */}
+                {connected && publicKey && <GovernanceCard />}
 
                 {/* (Floating AI chat is rendered at the page root —
                     see below — so no ancestor transform/overflow can
