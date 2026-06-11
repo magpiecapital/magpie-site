@@ -15,6 +15,7 @@ import CustodialWithdraw from "./CustodialWithdraw";
 import WalletsList from "./WalletsList";
 import PrefsPanel from "./PrefsPanel";
 import SiteStatusBanner from "./SiteStatusBanner";
+import { ApiHealthBanner } from "@/components/ApiHealthBanner";
 import { DashboardProvider } from "./DashboardContext";
 
 // Below-the-fold widgets are dynamically imported so the initial
@@ -2175,6 +2176,11 @@ export default function DashboardPage() {
 
                 {/* Global site-disabled banner — visible to everyone when the operator has flipped the kill-switch. */}
                 <SiteStatusBanner botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""} />
+
+                {/* API uptime banner — shows when the bot's Railway service is unreachable
+                    or degraded so users see a clear "Magpie API is recovering" instead of
+                    silently-failing forms. Self-clearing as soon as the bot is healthy. */}
+                <ApiHealthBanner />
 
                 {/* TG link status — invisible until response comes back, then either ✓ banner or button */}
                 {connected && publicKey && (
