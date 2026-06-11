@@ -749,6 +749,37 @@ export default function DashboardPage() {
   };
   const [activeLoans, setActiveLoans] = useState<Loan[]>([]);
   const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
+
+  // Deep-link to a specific loan from the TG bot health alert.
+  // When the bot DMs "Loan health dipped" with a [Loan #X](magpie.capital/dashboard?loan=X)
+  // link, this effect scrolls the loan into view AND flashes a highlight ring
+  // so the user can immediately see which loan the alert was about.
+  // Re-runs when activeLoans changes because on first load activeLoans is
+  // empty — we wait until the data is in before scrolling.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const targetLoanId = params.get("loan");
+    if (!targetLoanId) return;
+    if (activeLoans.length === 0) return; // data not loaded yet — wait for next run
+    const tryScroll = () => {
+      const el = document.getElementById(`loan-${targetLoanId}`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Flash a highlight ring around the loan card for 2.5s so the
+      // user knows which one the alert was about.
+      el.style.boxShadow = "inset 0 0 0 2px var(--d-accent, #5b8def), 0 0 0 4px rgba(91,141,239,0.18)";
+      el.style.borderRadius = "10px";
+      setTimeout(() => {
+        el.style.boxShadow = "";
+        el.style.borderRadius = "";
+      }, 2_500);
+    };
+    // Slight delay so the layout settles before we scroll. The activeLoans
+    // map renders synchronously after state update but layout/measure is async.
+    const t = setTimeout(tryScroll, 250);
+    return () => clearTimeout(t);
+  }, [activeLoans]);
   // Active loans that exist on OTHER linked wallets — surface as a hint
   // so a multi-wallet user understands why "Active Loans" reads 0 when
   // they know they have one elsewhere.
@@ -2311,7 +2342,12 @@ export default function DashboardPage() {
                                   : { txt: "text-emerald-500", bg: "bg-emerald-500/10 border border-emerald-500/30", label: `${h.toFixed(2)}x · healthy` };
 
                             return (
-                              <div key={l.loan_pda} className="flex items-center gap-3 px-4 py-3">
+                              <div
+                                key={l.loan_pda}
+                                id={`loan-${l.loan_id ?? l.loan_pda}`}
+                                data-loan-id={String(l.loan_id ?? l.loan_pda)}
+                                className="flex items-center gap-3 px-4 py-3 transition-colors duration-500"
+                              >
                                 <TokenIcon mint={l.collateral.mint} symbol={l.collateral.symbol || "?"} size={32} />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
