@@ -99,18 +99,19 @@ type SectionKey =
   | "activeLoans"
   | "loanHistory"
   | "holdings"
-  | "activity"
   | "quickActions";
 
 type SectionPrefs = Record<SectionKey, boolean>;
 
+// "activity" used to live here gating a second inline activity feed.
+// Removed when the duplicate broken feed was deleted — the unified
+// <ActivityFeed/> is now the only activity surface and isn't toggleable.
 const SECTION_LABELS: Record<SectionKey, string> = {
   credit: "Credit Score",
   points: "Points & Rewards",
   activeLoans: "Active Loans",
   loanHistory: "Loan History",
   holdings: "Holdings",
-  activity: "Activity Feed",
   quickActions: "Quick Actions",
 };
 
@@ -120,7 +121,6 @@ const DEFAULT_PREFS: SectionPrefs = {
   activeLoans: true,
   loanHistory: true,
   holdings: true,
-  activity: true,
   quickActions: true,
 };
 
@@ -160,7 +160,10 @@ interface EligibleHolding extends TokenHolding {
 
 /* ───────────────────────── SIDEBAR NAV ITEMS ───────────────────────── */
 
-type NavItem = { key: SectionKey; label: string; icon: React.ReactNode } | { key: "overview"; label: string; icon: React.ReactNode };
+// Nav keys include SectionKey (toggleable user-pref sections) plus a
+// couple of fixed keys: "overview" (always shown) and "activity" (anchor
+// only — the activity feed is always-on for linked users).
+type NavItem = { key: SectionKey | "overview" | "activity"; label: string; icon: React.ReactNode };
 
 const NAV_ITEMS: NavItem[] = [
   {
@@ -1468,12 +1471,23 @@ export default function DashboardPage() {
   }, [connected, publicKey, refreshTrigger]);
 
   // Activity feed — repays, borrows, top-ups, extensions, liquidations.
-  // Poll every 30s so a fresh repay shows up shortly after returning to the page.
+  // Used to compute totalPoints (the credit-event score deltas). The
+  // user-visible activity list is rendered by <ActivityFeed/> further
+  // down the tree — this fetch is purely for the points calculation.
+  // Poll every 60s so a fresh repay shows up shortly after returning to
+  // the page.
+  //
+  // Bot API URL is REQUIRED — the previous version used a relative
+  // /api/v1/activity path, which hit the site (which doesn't expose
+  // this endpoint) instead of the bot. Result: totalPoints was always
+  // 0, and the old inline activity section showed "No activity yet"
+  // even when the user had real on-chain history.
   useEffect(() => {
     if (!connected || !publicKey) { setActivity([]); return; }
     let cancelled = false;
+    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
     const fetchActivity = () => {
-      fetch(`/api/v1/activity?wallet=${publicKey.toBase58()}`)
+      fetch(`${botApi}/api/v1/activity?wallet=${publicKey.toBase58()}`)
         .then(r => r.json())
         .then(d => { if (!cancelled && d.ok) setActivity(d.events ?? []); })
         .catch(() => { /* keep last good */ });
@@ -2148,11 +2162,17 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* Unified activity feed for linked users. */}
+                {/* Unified activity feed for linked users. The wrapping
+                    div carries the section-activity anchor so the side
+                    nav's "Activity" entry scrolls here (the inline
+                    duplicate that previously owned this anchor was
+                    removed). */}
                 {connected && publicKey && (
-                  <ActivityFeed
-                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
-                  />
+                  <div id="section-activity">
+                    <ActivityFeed
+                      botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    />
+                  </div>
                 )}
 
                 {/* Earnings summary (referrals + holder + LP yield) —
@@ -3051,109 +3071,14 @@ export default function DashboardPage() {
                   />
                 )}
 
-                {/* ACTIVITY FEED */}
-                {prefs.activity && (
-                  <div id="section-activity" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
-                    <SectionHeader title="Activity" compact />
-                    {activity.length === 0 ? (
-                      <div className="py-6 text-center text-sm text-[var(--d-ink-soft)]">
-                        No activity yet
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        {activity.slice(0, 10).map((e) => {
-                          const tokenLabel = e.token?.symbol ?? "loan";
-                          const rewardSol = e.reward ? (Number(e.reward.lamports) / LAMPORTS_PER_SOL).toFixed(6) : null;
-                          const labels: Record<string, string> = {
-                            repay_ontime: `Repaid ${tokenLabel} loan on time`,
-                            repay_early: `Repaid ${tokenLabel} loan early`,
-                            repay_late: `Repaid ${tokenLabel} loan late`,
-                            partial_repay: `Partial repay on ${tokenLabel} loan`,
-                            topup: `Added ${tokenLabel} collateral`,
-                            extend: `Extended ${tokenLabel} loan`,
-                            liquidated: `${tokenLabel} loan liquidated`,
-                            borrow: `Borrowed against ${tokenLabel}`,
-                            referral_earned: `Earned ${rewardSol ?? ""} SOL from a referral`,
-                            holder_distribution: `Received ${rewardSol ?? ""} SOL from $MAGPIE snapshot`,
-                          };
-                          const label = labels[e.type] ?? e.type;
-                          const positive = (e.score_delta ?? 0) > 0 || e.type === "referral_earned" || e.type === "holder_distribution";
-                          const when = new Date(e.timestamp);
-                          const msAgo = Date.now() - when.getTime();
-                          const rel =
-                            msAgo < 60_000 ? "just now"
-                            : msAgo < 3_600_000 ? `${Math.floor(msAgo / 60_000)}m ago`
-                            : msAgo < 86_400_000 ? `${Math.floor(msAgo / 3_600_000)}h ago`
-                            : `${Math.floor(msAgo / 86_400_000)}d ago`;
-
-                          // Detail line: SOL amount, LTV, duration depending on event type.
-                          const lamportsToSol = (v: string | null) =>
-                            v ? (Number(BigInt(v)) / LAMPORTS_PER_SOL).toFixed(4) : null;
-                          const collateralToHuman = (v: string | null, decimals: number | null) =>
-                            v && decimals != null
-                              ? formatTokenAmount(v, decimals)
-                              : null;
-                          const loanSol = lamportsToSol(e.amounts.original_loan_lamports || e.amounts.loan_lamports);
-                          const collateralAmt = collateralToHuman(e.amounts.collateral_raw, e.token?.decimals ?? null);
-                          const parts: string[] = [];
-                          if (e.type.startsWith("repay") || e.type === "partial_repay") {
-                            if (loanSol) parts.push(`${loanSol} SOL`);
-                            if (e.terms.ltv_percentage != null) parts.push(`${e.terms.ltv_percentage}% LTV`);
-                          } else if (e.type === "borrow") {
-                            if (loanSol) parts.push(`${loanSol} SOL borrowed`);
-                            if (collateralAmt && e.token?.symbol) parts.push(`${collateralAmt} ${e.token.symbol} collateral`);
-                            if (e.terms.duration_days != null) parts.push(`${e.terms.duration_days}d`);
-                          } else if (e.type === "topup") {
-                            if (collateralAmt && e.token?.symbol) parts.push(`${collateralAmt} ${e.token.symbol} added`);
-                          } else if (e.type === "extend") {
-                            if (e.terms.duration_days != null) parts.push(`+${e.terms.duration_days}d`);
-                          } else if (e.type === "liquidated") {
-                            if (collateralAmt && e.token?.symbol) parts.push(`${collateralAmt} ${e.token.symbol} seized`);
-                          } else if (e.type === "referral_earned") {
-                            if (e.reward?.status === "accrued") parts.push("pending claim");
-                            else if (e.reward?.status === "paid") parts.push("paid out");
-                          } else if (e.type === "holder_distribution") {
-                            parts.push("auto-paid to your wallet");
-                          }
-                          const detail = parts.join(" · ");
-                          return (
-                            <div key={e.id} className="flex items-center gap-3 rounded-lg border border-[var(--d-border)] px-3 py-2.5">
-                              <span className="text-base">{activityIcon(e.type)}</span>
-                              <div className="flex-1 min-w-0">
-                                <div className="truncate text-[12px] font-medium">{label}</div>
-                                <div className="mt-0.5 truncate text-[10px] text-[var(--d-ink-faint)]">
-                                  {[detail, rel].filter(Boolean).join(" · ")}
-                                  {e.tx_signature && (
-                                    <>
-                                      {" · "}
-                                      <a
-                                        href={`https://solscan.io/tx/${e.tx_signature}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="underline hover:text-[var(--d-ink-soft)]"
-                                      >
-                                        tx
-                                      </a>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                              {e.reward ? (
-                                <span className="text-[11px] font-mono font-semibold text-emerald-500">
-                                  +{rewardSol} SOL
-                                </span>
-                              ) : (e.score_delta != null && e.score_delta !== 0) ? (
-                                <span className={`text-[11px] font-semibold ${positive ? "text-emerald-500" : "text-red-500"}`}>
-                                  {positive ? "+" : ""}{e.score_delta}
-                                </span>
-                              ) : null}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
+                {/* (The dashboard's user-visible activity feed is the
+                    unified <ActivityFeed/> rendered higher in the tree
+                    — see ~line 2152. A second inline activity section
+                    used to live here gated by prefs.activity, but it
+                    fetched the wrong URL and always showed "No activity
+                    yet" — confusing dual-feed UX. The local activity[]
+                    state still powers totalPoints; only the duplicate
+                    JSX was removed.) */}
 
                 {/* QUICK ACTIONS */}
                 {prefs.quickActions && (
