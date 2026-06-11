@@ -31,6 +31,7 @@
  * Rate limit: per-IP, max 10 requests / minute via in-process Map.
  */
 import { MAGPIE_KNOWLEDGE_BASE } from "@/lib/pip-fallback-knowledge";
+import { matchStaticFaq } from "@/lib/fallback/static-faq";
 
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_MODEL = process.env.PIP_FALLBACK_MODEL || "claude-haiku-4-5-20251001";
@@ -106,13 +107,70 @@ async function fetchPoolStatsForContext(originUrl: string): Promise<string> {
   }
 }
 
+/**
+ * Serve a static-FAQ-only response as the LAST RESORT. Used when:
+ *   - ANTHROPIC_API_KEY isn't set, OR
+ *   - The Anthropic API call fails (network error, 5xx, rate limit, etc)
+ *
+ * Streams the static answer in the same SSE shape as the Claude
+ * stream so the Pip client doesn't need to branch on tier. Always
+ * succeeds.
+ */
+function staticFaqStream(message: string, originalReason: string): Response {
+  const match = matchStaticFaq(message);
+  console.warn(`[fallback-chat] static-faq tier engaged: intent=${match.matchedIntent} confidence=${match.confidence} reason=${originalReason}`);
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      // Emit the answer in chunks so the UI's typing animation still plays.
+      const words = match.answer.split(/(\s+)/);
+      let i = 0;
+      const sendNext = () => {
+        if (i >= words.length) {
+          controller.enqueue(encoder.encode(
+            `data: ${JSON.stringify({ type: "done", source: "static-faq" })}\n\n`,
+          ));
+          controller.close();
+          return;
+        }
+        const chunk = words.slice(i, i + 3).join("");
+        i += 3;
+        controller.enqueue(encoder.encode(
+          `data: ${JSON.stringify({ type: "chunk", text: chunk })}\n\n`,
+        ));
+        // 35ms between chunks so the user sees a natural typing rhythm
+        // without the response stretching out absurdly.
+        setTimeout(sendNext, 35);
+      };
+      sendNext();
+    },
+  });
+  return new Response(stream, {
+    headers: {
+      "content-type": "text/event-stream",
+      "cache-control": "no-cache, no-transform",
+      "x-pip-mode": "static-faq",
+    },
+  });
+}
+
 export async function POST(req: Request) {
-  // ── Config + rate limit ──
+  // ── Body — read upfront so we can use it in the static-FAQ fallback
+  //    path too (when ANTHROPIC_API_KEY isn't set we still want to
+  //    serve SOMETHING useful, not a config-error 503).
+  let body: { messages?: ChatMessage[]; wallet?: string };
+  try { body = await req.json(); }
+  catch { return new Response(JSON.stringify({ error: "invalid_json" }), { status: 400 }); }
+  const messagesRaw = Array.isArray(body.messages) ? body.messages.slice(-20) : [];
+  if (messagesRaw.length === 0) {
+    return new Response(JSON.stringify({ error: "no_messages" }), { status: 400 });
+  }
+  const latestUserMessage =
+    [...messagesRaw].reverse().find((m) => m?.role === "user")?.content ?? "";
+
+  // ── Config check — degrade to static FAQ instead of failing ──
   if (!process.env.ANTHROPIC_API_KEY) {
-    return new Response(
-      JSON.stringify({ error: "fallback_not_configured", detail: "ANTHROPIC_API_KEY not set on Vercel" }),
-      { status: 503, headers: { "content-type": "application/json" } },
-    );
+    return staticFaqStream(latestUserMessage, "ANTHROPIC_API_KEY not set");
   }
   const ip = extractIp(req);
   if (rateLimited(ip)) {
@@ -122,14 +180,8 @@ export async function POST(req: Request) {
     );
   }
 
-  // ── Body ──
-  let body: { messages?: ChatMessage[]; wallet?: string };
-  try { body = await req.json(); }
-  catch { return new Response(JSON.stringify({ error: "invalid_json" }), { status: 400 }); }
-  const messages = Array.isArray(body.messages) ? body.messages.slice(-20) : [];
-  if (messages.length === 0) {
-    return new Response(JSON.stringify({ error: "no_messages" }), { status: 400 });
-  }
+  // ── Validate message shape — reuse already-parsed messagesRaw ──
+  const messages = messagesRaw;
   // Validate each message has the expected shape.
   for (const m of messages) {
     if (!m || (m.role !== "user" && m.role !== "assistant") || typeof m.content !== "string") {
@@ -155,28 +207,40 @@ export async function POST(req: Request) {
   // We translate Anthropic's SSE events into the same simple
   // {"type":"chunk","text":"..."} format the bot's streaming endpoint
   // emits, so the Pip client's parser doesn't need to branch.
-  const anthropicRes = await fetch(ANTHROPIC_API, {
-    method: "POST",
-    headers: {
-      "x-api-key": process.env.ANTHROPIC_API_KEY,
-      "anthropic-version": "2023-06-01",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      model: ANTHROPIC_MODEL,
-      max_tokens: MAX_TOKENS,
-      system: systemPrompt,
-      messages,
-      stream: true,
-    }),
-  });
+  let anthropicRes: Response;
+  try {
+    anthropicRes = await fetch(ANTHROPIC_API, {
+      method: "POST",
+      headers: {
+        "x-api-key": process.env.ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: ANTHROPIC_MODEL,
+        max_tokens: MAX_TOKENS,
+        system: systemPrompt,
+        messages,
+        stream: true,
+      }),
+      // 12s deadline — Vercel route has a 15s default budget, this
+      // gives us 3s of headroom to fall back to static FAQ if Anthropic
+      // hangs.
+      signal: AbortSignal.timeout(12_000),
+    });
+  } catch (err) {
+    // Network-level failure reaching Anthropic — last-resort static FAQ.
+    return staticFaqStream(latestUserMessage,
+      `anthropic_unreachable: ${(err as Error).message?.slice(0, 100)}`);
+  }
 
   if (!anthropicRes.ok || !anthropicRes.body) {
+    // Anthropic returned non-2xx — degrade to static FAQ rather than
+    // surfacing a hard error to Pip. The user gets a useful (if limited)
+    // answer instead of seeing chat completely fail.
     const errText = await anthropicRes.text().catch(() => "");
-    return new Response(
-      JSON.stringify({ error: "anthropic_upstream_failed", status: anthropicRes.status, detail: errText.slice(0, 500) }),
-      { status: 502, headers: { "content-type": "application/json" } },
-    );
+    return staticFaqStream(latestUserMessage,
+      `anthropic_${anthropicRes.status}: ${errText.slice(0, 100)}`);
   }
 
   const stream = new ReadableStream({
