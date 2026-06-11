@@ -66,6 +66,107 @@ const STORAGE_PREFIX = "magpie-pip-chat:";
 const MAX_PERSISTED_TURNS = 50;
 
 /**
+ * Detect whether the bot health probe says it's reachable. Cached
+ * for HEALTH_CACHE_MS so we don't flood the bot when Pip is busy.
+ *
+ * Returns true when the bot is up + serving, false when it's down or
+ * timing out. On any error we assume the bot is down — Pip then routes
+ * to the on-site fallback so the user never sees a broken experience.
+ */
+const HEALTH_CACHE_MS = 8_000;
+let _lastHealth: { ok: boolean; at: number } | null = null;
+async function isBotHealthy(botApiUrl: string): Promise<boolean> {
+  const now = Date.now();
+  if (_lastHealth && now - _lastHealth.at < HEALTH_CACHE_MS) return _lastHealth.ok;
+  try {
+    const url = botApiUrl
+      ? `${botApiUrl.replace(/\/$/, "")}/api/v1/health`
+      : "https://magpie-bot-production.up.railway.app/api/v1/health";
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 4_000);
+    const r = await fetch(url, { signal: ctl.signal, cache: "no-store" });
+    clearTimeout(t);
+    // 200 = healthy, 503 = degraded but REACHABLE — both let the bot
+    // serve chat (degraded sub-systems don't affect the chat path).
+    const ok = r.status === 200 || r.status === 503;
+    _lastHealth = { ok, at: now };
+    return ok;
+  } catch {
+    _lastHealth = { ok: false, at: now };
+    return false;
+  }
+}
+
+/**
+ * Stream a chat reply from the Vercel-hosted fallback endpoint.
+ *
+ * Used when the bot is unreachable. The fallback runs entirely on
+ * Vercel: it reads on-chain data directly via Helius RPC and uses
+ * the Anthropic API to generate replies. The user gets a Pip that
+ * still works — just without bot-only tools (no live credit score,
+ * no transaction-building, no custodial wallet info).
+ *
+ * Emits 'text' delta events (matching the bot's streaming shape)
+ * and a final 'done' event with a synthetic AiChatResult.
+ */
+async function fallbackChatStream(args: {
+  signerPubkey: string;
+  message: string;
+  history: { role: "user" | "assistant"; content: string }[];
+  onEvent: (e: { type: "text"; delta: string } | { type: "done"; result: { response: string; blockedReason: null; spendCapped: false; escalatedTicketId: null; proposedAction: null } } | { type: "error"; message: string }) => void;
+}): Promise<void> {
+  const messages = [
+    ...args.history,
+    { role: "user" as const, content: args.message },
+  ];
+  const res = await fetch("/api/fallback/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages, wallet: args.signerPubkey }),
+  });
+  if (!res.ok || !res.body) {
+    const errBody = await res.text().catch(() => "");
+    throw new Error(`fallback ${res.status}: ${errBody.slice(0, 200)}`);
+  }
+  let accumulated = "";
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buf.indexOf("\n\n")) !== -1) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 2);
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      try {
+        const evt = JSON.parse(payload);
+        if (evt.type === "chunk" && typeof evt.text === "string") {
+          accumulated += evt.text;
+          args.onEvent({ type: "text", delta: evt.text });
+        } else if (evt.type === "done") {
+          args.onEvent({
+            type: "done",
+            result: {
+              response: accumulated,
+              blockedReason: null,
+              spendCapped: false,
+              escalatedTicketId: null,
+              proposedAction: null,
+            },
+          });
+        } else if (evt.type === "error") {
+          args.onEvent({ type: "error", message: evt.message });
+        }
+      } catch { /* ignore malformed line */ }
+    }
+  }
+}
+
+/**
  * Translate raw Pip errors into user-facing messages.
  *
  * Why this exists:
@@ -344,6 +445,10 @@ export default function FloatingAiChatGlobal() {
   const [busy, setBusy] = useState(false);
   const [busyElapsed, setBusyElapsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  // True when Pip has fallen back to the Vercel-hosted chat because
+  // the bot is unreachable. Shows a "limited mode" pill in the header
+  // so the user knows certain actions aren't available right now.
+  const [usingFallback, setUsingFallback] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
@@ -636,50 +741,101 @@ export default function FloatingAiChatGlobal() {
       return next;
     });
 
+    // PROACTIVE FALLBACK ROUTING.
+    //
+    // Before invoking the bot's chat stream, probe the health endpoint.
+    // If the bot is down OR responds 5xx within 4s, route directly to
+    // the Vercel fallback chat. The user gets a working Pip; they don't
+    // see a network error or a hang.
+    //
+    // The 4s timeout means worst-case 4s latency before falling back.
+    // The 8s in-memory cache means the next message in the same session
+    // doesn't pay that latency at all.
+    let botHealthy = true;
     try {
-      await siteAiChatStream({
-        botApiUrl,
-        signerPubkey: walletStr,
-        signMessage,
-        message: trimmed,
-        pageContext: pathname || undefined,
-        onEvent: (evt) => {
-          if (evt.type === "text") {
-            setTurns((t) => {
-              if (agentTurnIndex < 0 || !t[agentTurnIndex]) return t;
-              const next = t.slice();
-              next[agentTurnIndex] = { ...next[agentTurnIndex], text: next[agentTurnIndex].text + evt.delta };
-              return next;
-            });
-          } else if (evt.type === "replace") {
-            setTurns((t) => {
-              if (agentTurnIndex < 0 || !t[agentTurnIndex]) return t;
-              const next = t.slice();
-              next[agentTurnIndex] = { ...next[agentTurnIndex], text: evt.text };
-              return next;
-            });
-          } else if (evt.type === "done") {
-            setTurns((t) => {
-              if (agentTurnIndex < 0 || !t[agentTurnIndex]) return t;
-              const next = t.slice();
-              next[agentTurnIndex] = {
-                ...next[agentTurnIndex],
-                // Replace with final text so any minor desync between
-                // accumulated deltas and the server's "final" response
-                // resolves on the server's side.
-                text: evt.result.response || next[agentTurnIndex].text,
-                streaming: false,
-                proposedAction: evt.result.proposedAction ?? null,
-              };
-              return next;
-            });
-          }
-          // 'tool' and 'error' events are intentionally ignored in the
-          // bubble — could surface a "looking up your loans…" hint
-          // later, but for now silence is fine since the streamed
-          // pre-tool text shows the user the AI is thinking.
-        },
-      });
+      botHealthy = await isBotHealthy(botApiUrl);
+    } catch { botHealthy = false; }
+    setUsingFallback(!botHealthy);
+
+    const handleStreamEvent = (evt: { type: string; [k: string]: unknown }) => {
+      if (evt.type === "text") {
+        setTurns((t) => {
+          if (agentTurnIndex < 0 || !t[agentTurnIndex]) return t;
+          const next = t.slice();
+          next[agentTurnIndex] = { ...next[agentTurnIndex], text: next[agentTurnIndex].text + (evt.delta as string) };
+          return next;
+        });
+      } else if (evt.type === "replace") {
+        setTurns((t) => {
+          if (agentTurnIndex < 0 || !t[agentTurnIndex]) return t;
+          const next = t.slice();
+          next[agentTurnIndex] = { ...next[agentTurnIndex], text: evt.text as string };
+          return next;
+        });
+      } else if (evt.type === "done") {
+        const result = evt.result as { response?: string; proposedAction?: ProposedAction | null };
+        setTurns((t) => {
+          if (agentTurnIndex < 0 || !t[agentTurnIndex]) return t;
+          const next = t.slice();
+          next[agentTurnIndex] = {
+            ...next[agentTurnIndex],
+            text: result.response || next[agentTurnIndex].text,
+            streaming: false,
+            proposedAction: result.proposedAction ?? null,
+          };
+          return next;
+        });
+      }
+    };
+
+    try {
+      if (!botHealthy) {
+        // Bot is unreachable — go straight to the Vercel fallback.
+        // History is the prior turns, mapped to Anthropic's format.
+        const history = turns
+          .filter((t) => !t.streaming)
+          .slice(-12) // bounded — fallback caps at 4000 chars / message
+          .map((t) => ({
+            role: (t.role === "user" ? "user" : "assistant") as "user" | "assistant",
+            content: t.text,
+          }));
+        await fallbackChatStream({
+          signerPubkey: walletStr,
+          message: trimmed,
+          history,
+          onEvent: handleStreamEvent,
+        });
+        return;
+      }
+
+      try {
+        await siteAiChatStream({
+          botApiUrl,
+          signerPubkey: walletStr,
+          signMessage,
+          message: trimmed,
+          pageContext: pathname || undefined,
+          onEvent: handleStreamEvent,
+        });
+      } catch (botErr) {
+        // Bot chat failed mid-flight (network, 5xx, abort). Fall back
+        // automatically so the user sees a working response.
+        console.warn("[Pip] bot chat failed; switching to fallback:", (botErr as Error).message?.slice(0, 100));
+        setUsingFallback(true);
+        const history = turns
+          .filter((t) => !t.streaming)
+          .slice(-12)
+          .map((t) => ({
+            role: (t.role === "user" ? "user" : "assistant") as "user" | "assistant",
+            content: t.text,
+          }));
+        await fallbackChatStream({
+          signerPubkey: walletStr,
+          message: trimmed,
+          history,
+          onEvent: handleStreamEvent,
+        });
+      }
     } catch (e) {
       setError(translatePipError(e));
       // Pop both the user message and the empty agent placeholder so
@@ -689,7 +845,7 @@ export default function FloatingAiChatGlobal() {
     } finally {
       setBusy(false);
     }
-  }, [walletStr, signMessage, linked, busy, botApiUrl, pathname]);
+  }, [walletStr, signMessage, linked, busy, botApiUrl, pathname, turns]);
 
   const handleSend = useCallback(() => sendMessage(input), [sendMessage, input]);
 
@@ -1003,8 +1159,21 @@ export default function FloatingAiChatGlobal() {
           <div className="flex items-center gap-3 min-w-0">
             <PipAvatar size={36} pulsing={busy} />
             <div className="min-w-0">
-              <div className="text-sm font-semibold leading-tight" style={{ color: "var(--ink)" }}>
+              <div className="text-sm font-semibold leading-tight flex items-center gap-2" style={{ color: "var(--ink)" }}>
                 {AGENT_NAME}
+                {usingFallback && (
+                  <span
+                    className="text-[10px] font-normal px-1.5 py-0.5 rounded-md border"
+                    style={{
+                      borderColor: "rgba(245, 158, 11, 0.4)",
+                      background: "rgba(245, 158, 11, 0.1)",
+                      color: "#f59e0b",
+                    }}
+                    title="Magpie API is recovering — Pip is using on-chain data and limited mode."
+                  >
+                    LIMITED MODE
+                  </span>
+                )}
               </div>
               <div className="text-[11px] leading-tight flex items-center gap-1" style={{ color: "var(--ink-soft)" }}>
                 {busy ? (
