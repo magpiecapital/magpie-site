@@ -328,25 +328,21 @@ export default function GovernancePage() {
                   <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-xs text-cyan-100">
                     MGP-001
                   </span>
-                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-mono text-[10px] uppercase text-white/70">
-                    A4 + operator-committed
-                  </span>
-                  <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-[10px] uppercase text-cyan-100">
-                    opens 2026-06-10 · binding · rescoped
+                  <span className="rounded-md bg-emerald-500/25 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-100">
+                    voting open
                   </span>
                   <span className="ml-auto text-[10px] uppercase tracking-wider text-white/50">
-                    closes 2026-06-13
+                    closes 2026-06-13 20:40 UTC
                   </span>
                 </div>
                 <h3 className="mt-3 font-medium text-white">
-                  Restructure the fee split — 60% $MAGPIE holders / 30% SOL LPs
+                  Restructure the loan-fee split — 70/10/10/10
                 </h3>
                 <p className="mt-2 text-sm text-white/70">
-                  Rescoped from the earlier 10→15% incremental step to the full target
-                  end state. Shift 50 pp from the LP share (80% → 30%) to holders
-                  (10% → 60%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%)
-                  unchanged. Outside Tier A4 bound — filed as a one-time Tier B → de-facto
-                  Tier A exception under operator commitment. Forward-only.
+                  Send 70% of every loan fee to $MAGPIE holders, 10% to SOL LPs, 10% to
+                  referrers, and 10% to the protocol reserve. Replaces the current 10%
+                  holder share with a holder-first split. Forward-only — distributions
+                  already accrued under the old split are not retroactively re-cut.
                 </p>
                 <p className="mt-3 text-xs text-cyan-300">Read the full proposal + cast your vote →</p>
               </Link>
