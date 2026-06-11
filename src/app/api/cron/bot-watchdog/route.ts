@@ -89,10 +89,18 @@ async function pingBot(): Promise<{ ok: boolean; status: number; detail: string 
 }
 
 async function sendOperatorAlert(text: string): Promise<{ sent: boolean; error?: string }> {
-  const token = process.env.MAGPIE_BOT_TOKEN;
+  // Prefer the dedicated alert bot's token if set. Falls back to the
+  // production bot's token for backward-compat during the transition
+  // to a separate alert bot. See magpie-site PR adding ALERT_BOT_TOKEN.
+  //
+  // Why a separate bot: if Vercel is compromised, attacker can only
+  // operate the alert bot (which has no commands, no users, no funds)
+  // — not the production bot @magpie_capital_bot which holds users'
+  // encrypted custodial keys.
+  const token = process.env.ALERT_BOT_TOKEN || process.env.MAGPIE_BOT_TOKEN;
   const chatId = process.env.OPERATOR_TG_CHAT_ID;
   if (!token || !chatId) {
-    return { sent: false, error: "watchdog_not_configured (set MAGPIE_BOT_TOKEN + OPERATOR_TG_CHAT_ID)" };
+    return { sent: false, error: "watchdog_not_configured (set ALERT_BOT_TOKEN + OPERATOR_TG_CHAT_ID)" };
   }
   try {
     const res = await fetch(
