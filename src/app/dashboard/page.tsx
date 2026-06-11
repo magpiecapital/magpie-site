@@ -151,6 +151,10 @@ interface ApprovedToken {
   capSol?: number | null;
   openSol?: number;
   remainingSol?: number | null;
+  // Collateral category from supported_mints. Used to route the
+  // borrow tx to the correct program (V1 for memecoin, V2 for
+  // stock/etf/metal). Required for RWA borrows.
+  category?: string | null;
 }
 
 interface EligibleHolding extends TokenHolding {
@@ -1085,6 +1089,11 @@ export default function DashboardPage() {
         collateralValueLamports,
         loanOption: tierOption,
         connection,
+        // CRITICAL — routes RWA borrows (stock/etf/metal) to V2 program.
+        // Without this, V1 rejects the borrow at Phantom's preflight
+        // with InvalidAccountData (which is how this bug surfaced for
+        // the first GLDx user on 2026-06-11).
+        category: holding.approved.category,
       });
 
       // PRE-SIMULATE before asking the wallet to sign. Phantom's docs

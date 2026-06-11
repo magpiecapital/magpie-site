@@ -15,7 +15,13 @@ import {
   createCloseAccountInstruction,
 } from "@solana/spl-token";
 import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
-import { LENDER_PUBKEY } from "./constants";
+import {
+  LENDER_PUBKEY,
+  PROGRAM_ID,
+  PROGRAM_ID_V2,
+  RWA_CATEGORIES,
+  chooseProgramIdForCategory,
+} from "./constants";
 import {
   poolPda,
   loanTokenVaultPda,
@@ -23,6 +29,7 @@ import {
   collateralVaultPda,
 } from "./pdas";
 import idl from "./magpie.json";
+import idlV2 from "./magpie-v2.json";
 
 /** Detect whether a mint uses Token-2022 or classic Token program. */
 async function getMintTokenProgram(
@@ -48,6 +55,15 @@ export interface BorrowParams {
   loanOption: number;
   /** Solana RPC connection */
   connection: Connection;
+  /**
+   * Collateral mint category from /api/v1/tokens — used to route the
+   * borrow to the correct program ID. "stock" | "etf" | "metal" →
+   * v2 (RWA pool). Anything else → v1 (memecoin pool). When omitted,
+   * defaults to v1 — callers that don't pass this MUST know the
+   * collateral is not an RWA, else V1 will reject the borrow at
+   * Phantom's preflight simulation with InvalidAccountData.
+   */
+  category?: string | null;
 }
 
 export interface BorrowResult {
@@ -67,12 +83,20 @@ export async function buildBorrowTransaction({
   collateralValueLamports,
   loanOption,
   connection,
+  category,
 }: BorrowParams): Promise<BorrowResult> {
   const collateralMintPk = new PublicKey(collateralMint);
   const loanTokenMintPk = NATIVE_MINT; // wSOL
 
-  const [pool] = poolPda(LENDER_PUBKEY);
-  const [loanTokenVault] = loanTokenVaultPda(pool);
+  // Route to V1 or V2 based on the collateral's category. RWAs
+  // (stock/etf/metal) MUST use V2 — V1 cannot process them. All PDAs
+  // derive against the chosen program (each program has its own pool,
+  // loan-token-vault, loan, collateral-vault, price-feed).
+  const targetProgramId = chooseProgramIdForCategory(category);
+  const isV2 = targetProgramId.equals(PROGRAM_ID_V2);
+
+  const [pool] = poolPda(LENDER_PUBKEY, targetProgramId);
+  const [loanTokenVault] = loanTokenVaultPda(pool, targetProgramId);
 
   const collateralTokenProgram = await getMintTokenProgram(
     connection,
@@ -89,8 +113,8 @@ export async function buildBorrowTransaction({
   // Matches the bot's TG-side loan_id construction in services/loans.js.
   const randomSuffix = Math.floor(Math.random() * 0x10000);
   const loanId = new BN(Date.now()).muln(0x10000).addn(randomSuffix);
-  const [loanAccount] = loanPda(borrower, loanId);
-  const [collateralVault] = collateralVaultPda(loanAccount);
+  const [loanAccount] = loanPda(borrower, loanId, targetProgramId);
+  const [collateralVault] = collateralVaultPda(loanAccount, targetProgramId);
 
   const borrowerCollateralAta = getAssociatedTokenAddressSync(
     collateralMintPk,
@@ -121,7 +145,7 @@ export async function buildBorrowTransaction({
     { commitment: "confirmed" },
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const program = new Program(idl as any, provider);
+  const program = new Program((isV2 ? idlV2 : idl) as any, provider);
 
   // Pre-instructions
   const preIxs = [
