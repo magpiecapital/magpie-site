@@ -84,16 +84,22 @@ export async function GET() {
       active_proposals: [
         {
           id: "MGP-001",
-          title: "Restructure the loan-fee split — 60% to $MAGPIE holders, 30% to SOL LPs",
+          title: "Restructure the loan-fee split — 70/10/10/10",
           scope_tier: "A4 — binding by operator commitment (one-time Tier B → de-facto Tier A exception, same path as MGP-003)",
           status: "active",
-          voting_window: "2026-06-10 to 2026-06-13",
-          voting_opens_at_iso: "2026-06-10T00:00:00Z",
-          voting_closes_at_iso: "2026-06-13T23:59:59Z",
-          summary: "Shift 50 percentage points from the SOL LP share (80% → 30%) to the $MAGPIE holder share (10% → 60%). Other splits (referrer 5%, LP loyalty 2%, protocol 3%) unchanged. Forward-only — does not affect distributions already accrued. Rescoped from the earlier 10→15% incremental step to put the full target end state on the ballot directly. Outside Tier A4 5%–15% bound; filed as a one-time operator-committed exception per the path documented in MGP-003. Voting window shifted to open 2026-06-10 to allow holders a clean day after the rescope.",
+          voting_window: "2026-06-10 22:00 UTC to 2026-06-13 22:00 UTC",
+          voting_opens_at_iso: "2026-06-10T22:00:00Z",
+          voting_closes_at_iso: "2026-06-13T22:00:00Z",
+          summary: "Send 70% of every loan fee to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, and 10% to the protocol reserve. Replaces the current 80/10/5/2/3 split with a holder-first model. Forward-only — distributions already accrued under the old split are not retroactively re-cut. Outside the Tier A4 5%–15% bound; filed as a one-time operator-committed exception per the path documented in MGP-003. Vote restarted 2026-06-10 22:00 UTC after the page was corrected from a stale 60/30 framing; the 18 votes cast under the stale framing were archived and removed from the live tally.",
+          new_split: {
+            holder_bps: 7000,
+            lp_bps: 1000,
+            referrer_bps: 1000,
+            protocol_reserve_bps: 1000,
+          },
           vote_url: `${base}/governance/proposal/MGP-001`,
           spec_url:
-            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-holder-distribution-share-15pct.md",
+            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-fee-split-70-10-10-10.md",
         },
         {
           id: "MGP-003",
