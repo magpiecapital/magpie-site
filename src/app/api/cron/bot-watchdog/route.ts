@@ -38,6 +38,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { runTgOutageProtection } from "@/lib/fallback/tg-outage-protection";
 
 const DEFAULT_HEALTH_URL =
   "https://magpie-bot-production.up.railway.app/api/v1/health";
@@ -125,6 +126,25 @@ export async function GET(req: Request) {
 
   const ping = await pingBot();
 
+  // ── TG user outage-protection sweep ──
+  // Runs on EVERY cron tick (not just on bot-down). When the bot has
+  // been down for OUTAGE_THRESHOLD consecutive ticks, this DMs every
+  // recently-active TG user a one-time status notice directing them
+  // to magpie.capital. When the bot recovers, sends an all-clear to
+  // everyone who got the down alert.
+  //
+  // Best-effort: if the DB or TG sends fail, we log + continue. The
+  // operator-DM path below is the load-bearing alert; this is a
+  // user-experience enhancement on top.
+  const tgOutageResult = await runTgOutageProtection({
+    botIsReachable: ping.ok,
+    botStatus: ping.status,
+    detail: ping.detail,
+  }).catch((err) => ({
+    error: (err as Error).message?.slice(0, 200) || "tg_outage_protection_threw",
+    triggered: false,
+  }));
+
   if (ping.ok) {
     // Bot reachable — nothing to alert about. Return the status for
     // debugging via the Vercel logs.
@@ -132,6 +152,7 @@ export async function GET(req: Request) {
       ok: true,
       bot_status: ping.status,
       detail: ping.detail,
+      tg_outage_protection: tgOutageResult,
       checked_at: new Date().toISOString(),
     });
   }
@@ -155,6 +176,7 @@ export async function GET(req: Request) {
       detail: ping.detail,
       alert_sent: alertResult.sent,
       alert_error: alertResult.error,
+      tg_outage_protection: tgOutageResult,
       checked_at: new Date().toISOString(),
     },
     { status: 503 },
