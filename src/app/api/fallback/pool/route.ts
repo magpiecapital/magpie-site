@@ -13,14 +13,8 @@
  * but Pip stays useful when the bot is down.
  */
 import { NextResponse } from "next/server";
-import { Connection } from "@solana/web3.js";
 import { fetchPoolStats } from "@/lib/solana/pool";
-
-const RPC_URL =
-  process.env.NEXT_PUBLIC_HELIUS_RPC_URL ||
-  process.env.HELIUS_RPC_URL ||
-  process.env.SOLANA_RPC_URL ||
-  "https://api.mainnet-beta.solana.com";
+import { makeResilientConnection } from "@/lib/fallback/rpc-with-backup";
 
 // 30s edge cache so repeated calls during a bot outage don't hammer
 // the RPC. Vercel re-renders the route per cache window.
@@ -28,7 +22,7 @@ export const revalidate = 30;
 
 export async function GET() {
   try {
-    const connection = new Connection(RPC_URL, "confirmed");
+    const connection = makeResilientConnection();
     const stats = await fetchPoolStats(connection);
     return NextResponse.json({
       ok: true,
