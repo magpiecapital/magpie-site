@@ -32,26 +32,11 @@
  */
 import { MAGPIE_KNOWLEDGE_BASE } from "@/lib/pip-fallback-knowledge";
 import { matchStaticFaq } from "@/lib/fallback/static-faq";
+import { checkAndRecord as checkRateLimit } from "@/lib/fallback/persistent-rate-limit";
 
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_MODEL = process.env.PIP_FALLBACK_MODEL || "claude-haiku-4-5-20251001";
 const MAX_TOKENS = 800;
-
-// Per-IP rate limit. In-process state — resets on cold start, which
-// is fine: the fallback is for emergencies, not sustained load.
-const ipBuckets = new Map<string, number[]>();
-const RPM_LIMIT = 10;
-
-function rateLimited(ip: string): boolean {
-  const now = Date.now();
-  const minuteAgo = now - 60_000;
-  const bucket = ipBuckets.get(ip) || [];
-  const recent = bucket.filter((t) => t > minuteAgo);
-  if (recent.length >= RPM_LIMIT) return true;
-  recent.push(now);
-  ipBuckets.set(ip, recent);
-  return false;
-}
 
 function extractIp(req: Request): string {
   const xff = req.headers.get("x-forwarded-for") || "";
@@ -172,11 +157,26 @@ export async function POST(req: Request) {
   if (!process.env.ANTHROPIC_API_KEY) {
     return staticFaqStream(latestUserMessage, "ANTHROPIC_API_KEY not set");
   }
+  // PERSISTENT rate limit via Postgres (not in-process). Closes the
+  // cold-start cost-burn window where an attacker rotating IPs across
+  // serverless invocations could drain Anthropic credits at >> 10rpm
+  // because the in-process Map reset every cold start.
   const ip = extractIp(req);
-  if (rateLimited(ip)) {
+  const rl = await checkRateLimit(ip);
+  if (!rl.allowed) {
     return new Response(
-      JSON.stringify({ error: "rate_limited", detail: "max 10 req/min in fallback mode" }),
-      { status: 429, headers: { "content-type": "application/json" } },
+      JSON.stringify({
+        error: "rate_limited",
+        detail: `max ${rl.limit} req/min in fallback mode`,
+        retry_after_seconds: rl.retry_after_seconds,
+      }),
+      {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          "retry-after": String(rl.retry_after_seconds ?? 60),
+        },
+      },
     );
   }
 
