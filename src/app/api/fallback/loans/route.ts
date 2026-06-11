@@ -14,14 +14,9 @@ import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import { PROGRAM_ID, PROGRAM_ID_V2 } from "@/lib/solana/constants";
+import { makeResilientConnection } from "@/lib/fallback/rpc-with-backup";
 import idl from "@/lib/solana/magpie.json";
 import idlV2 from "@/lib/solana/magpie-v2.json";
-
-const RPC_URL =
-  process.env.NEXT_PUBLIC_HELIUS_RPC_URL ||
-  process.env.HELIUS_RPC_URL ||
-  process.env.SOLANA_RPC_URL ||
-  "https://api.mainnet-beta.solana.com";
 
 export const revalidate = 15;
 
@@ -84,7 +79,7 @@ export async function GET(req: Request) {
   catch { return NextResponse.json({ error: "invalid_wallet" }, { status: 400 }); }
 
   try {
-    const connection = new Connection(RPC_URL, "confirmed");
+    const connection = makeResilientConnection();
     // Pull from BOTH program versions and merge — RWA loans live on
     // V2, memecoin loans live on V1. A single wallet can have both.
     const [v1, v2] = await Promise.all([
