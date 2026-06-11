@@ -1,8 +1,10 @@
 ---
 id: MGP-001
-title: Restructure the loan-fee split — 60% to $MAGPIE holders, 30% to SOL LPs (5% referrer / 2% LP loyalty / 3% protocol unchanged)
+title: "[SUPERSEDED] Restructure the loan-fee split — 60% to $MAGPIE holders, 30% to SOL LPs"
 scope_tier: A4 — binding by operator commitment (one-time Tier B → de-facto Tier A exception, same path as MGP-003)
-status: active
+status: superseded
+superseded_by: MGP-001-fee-split-70-10-10-10.md
+superseded_at: 2026-06-10
 voting_window: 2026-06-10 to 2026-06-13 (3 days; voting opens 2026-06-10 00:00 UTC)
 author: "@MagpieLoans"
 created_at: 2026-06-09
@@ -11,7 +13,9 @@ rescoped_at: 2026-06-09
 window_shifted_at: 2026-06-09
 ---
 
-# MGP-001 — Restructure the loan-fee split to 60% holders / 30% LPs
+> **SUPERSEDED 2026-06-10**: The operator confirmed the agreed proposal is 70/10/10/10, not 60/30. The canonical spec is now [MGP-001-fee-split-70-10-10-10.md](MGP-001-fee-split-70-10-10-10.md). The 18 votes cast against this stale framing were archived to `governance_votes_archive` and removed from the live tally; the voting window restarted at 2026-06-10 22:00 UTC. This file is preserved as historical record only.
+
+# [SUPERSEDED] MGP-001 — Restructure the loan-fee split to 60% holders / 30% LPs
 
 ## 1. Summary
 
