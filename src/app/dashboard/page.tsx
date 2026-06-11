@@ -1082,6 +1082,35 @@ export default function DashboardPage() {
       const collateralValueSol = (collateralUiAmount * priceUsd) / solPriceUsd;
       const collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
 
+      // PRE-ATTEST the on-chain price feed before building / signing.
+      // Without this, the wallet (Phantom) simulates the tx using its own
+      // RPC and may see a feed > 120s old → "Transaction rejected:
+      // StalePriceAttestation" appears BEFORE the user can sign. cosign-borrow
+      // also has a JIT attest, but that runs AFTER the wallet sign, too late
+      // for the simulation gate. Tied refresh to a soft 12s timeout so a
+      // flaky attestor doesn't hang the borrow flow indefinitely; on failure
+      // we still attempt the borrow (cosign-borrow's JIT might recover).
+      const botApiForRefresh = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+      try {
+        const refreshCtl = new AbortController();
+        const refreshTimer = setTimeout(() => refreshCtl.abort(), 12_000);
+        const refreshRes = await fetch(`${botApiForRefresh}/api/v1/price/refresh`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mint: holding.mint }),
+          signal: refreshCtl.signal,
+        });
+        clearTimeout(refreshTimer);
+        if (!refreshRes.ok) {
+          // Non-fatal — log and continue. cosign-borrow's server-side JIT
+          // attestation may still rescue the borrow. The wallet simulation
+          // may still fail; the user gets a retry path in that case.
+          console.warn("[borrow] price refresh non-200, proceeding:", refreshRes.status);
+        }
+      } catch (refreshErr) {
+        console.warn("[borrow] price refresh failed (proceeding):", (refreshErr as Error).message);
+      }
+
       const { transaction } = await buildBorrowTransaction({
         borrower: publicKey,
         collateralMint: holding.mint,
