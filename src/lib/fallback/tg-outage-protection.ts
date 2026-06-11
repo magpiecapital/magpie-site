@@ -78,11 +78,12 @@ export async function runTgOutageProtection({
   botStatus: number;
   detail: string;
 }): Promise<OutageProtectionResult> {
-  // If watchdog secrets aren't configured, skip — we won't be able
-  // to send DMs even if we detect an outage.
-  const token = process.env.MAGPIE_BOT_TOKEN;
+  // Prefer the dedicated alert bot's token if set. Falls back to the
+  // production bot's token for backward-compat. See the watchdog
+  // route for the security reasoning. If neither is set, skip.
+  const token = process.env.ALERT_BOT_TOKEN || process.env.MAGPIE_BOT_TOKEN;
   if (!token) {
-    return { triggered: false, detail: "MAGPIE_BOT_TOKEN not set; tg outage protection skipped" };
+    return { triggered: false, detail: "ALERT_BOT_TOKEN / MAGPIE_BOT_TOKEN not set; tg outage protection skipped" };
   }
   if (!process.env.DATABASE_URL) {
     return { triggered: false, detail: "DATABASE_URL not set; tg outage protection skipped" };
