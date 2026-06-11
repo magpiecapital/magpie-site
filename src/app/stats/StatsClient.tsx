@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -97,15 +97,15 @@ export default function StatsClient() {
       {/* ── Hero ── */}
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
-        <div className="mx-auto max-w-6xl px-6 pt-16 pb-12 md:pt-24 md:pb-16">
-          <div className="fade-up mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
+        <div className="mx-auto max-w-6xl px-5 pt-12 pb-8 sm:px-6 md:pt-24 md:pb-16">
+          <div className="fade-up mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-[11px] font-medium shadow-sm sm:text-xs">
             <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
             <span className="text-[var(--ink-faint)]">Live · auto-refreshes every 60s</span>
           </div>
-          <h1 className="fade-up fade-up-1 font-display text-5xl font-medium tracking-[-0.03em] md:text-7xl">
+          <h1 className="fade-up fade-up-1 font-display text-[2.25rem] font-medium leading-[1.05] tracking-[-0.03em] sm:text-5xl md:text-7xl">
             Protocol Transparency
           </h1>
-          <p className="fade-up fade-up-2 mt-4 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
+          <p className="fade-up fade-up-2 mt-4 max-w-2xl text-[15px] leading-relaxed text-[var(--ink-soft)] sm:text-lg">
             Every loan, every dollar, every reward — all verifiable on-chain.
             Updated live from the same database the bot writes to.
           </p>
@@ -113,8 +113,8 @@ export default function StatsClient() {
       </section>
 
       {/* ── Headline numbers ── */}
-      <section className="mx-auto max-w-6xl px-6 pb-12">
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="mx-auto max-w-6xl px-5 pb-8 sm:px-6 sm:pb-12">
+        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
           <HeadlineStat
             label="Liquidations · Lifetime"
             value={data ? fmtNum(data.headline.liquidations_lifetime) : "—"}
@@ -141,16 +141,12 @@ export default function StatsClient() {
 
       {/* ── Borrow volume ── */}
       <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-          <div className="mb-8 flex items-baseline justify-between">
-            <h2 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
-              Borrow activity
-            </h2>
-            <span className="text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-              SOL borrowed
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
+        <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+          <SectionHead
+            title="Borrow activity"
+            tag="SOL borrowed"
+          />
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-4">
             <Stat label="Last 24h" value={data ? fmtSol(data.loans.borrowed_24h_sol) : "—"} sub={data ? `${data.loans.new_24h} loans` : ""} />
             <Stat label="Lifetime borrowed" value={data ? fmtSol(data.loans.lifetime_borrowed_sol) : "—"} sub={data ? `${data.loans.total} loans` : ""} />
             <Stat label="Active loans" value={data ? fmtNum(data.loans.active) : "—"} sub="Currently outstanding" />
@@ -160,47 +156,33 @@ export default function StatsClient() {
       </section>
 
       {/* ── Collateral breakdown — every token currently in use ── */}
-      <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-        <div className="mb-6 flex items-baseline justify-between">
-          <h2 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
-            Collateral in use
-          </h2>
-          <span className="text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-            Most-used first
-          </span>
-        </div>
-        <p className="mb-6 max-w-2xl text-sm text-[var(--ink-soft)] leading-relaxed">
+      <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+        <SectionHead title="Collateral in use" tag="Most-used first" />
+        <p className="mb-5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
           Every token with at least one loan against it. Active count, lifetime count, and SOL borrowed — all verifiable on-chain.
         </p>
         <CollateralBreakdown />
       </section>
 
       {/* ── Live activity feed — the protocol breathing ── */}
-      <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-        <div className="mb-6 flex items-baseline justify-between">
-          <h2 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
-            Live activity
-          </h2>
-          <span className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-            <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
-            Streaming
-          </span>
-        </div>
+      <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+        <SectionHead
+          title="Live activity"
+          tagNode={
+            <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-xs">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+              Streaming
+            </span>
+          }
+        />
         <LiveActivityFeed />
       </section>
 
       {/* ── User-growth strip ── */}
       <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-          <div className="mb-8 flex items-baseline justify-between">
-            <h2 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
-              User growth
-            </h2>
-            <span className="text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-              New users
-            </span>
-          </div>
-          <div className="grid grid-cols-3 gap-5">
+        <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+          <SectionHead title="User growth" tag="New users" />
+          <div className="grid grid-cols-3 gap-3 sm:gap-5">
             <Stat label="Last 24h" value={data ? `+${fmtNum(data.users.new_24h)}` : "—"} sub="New signups" />
             <Stat label="Last 7d" value={data ? `+${fmtNum(data.users.new_7d)}` : "—"} sub="Weekly cohort" />
             <Stat label="Total" value={data ? fmtNum(data.users.total) : "—"} sub="All-time" />
@@ -212,7 +194,7 @@ export default function StatsClient() {
       <VerifyOnChain />
 
       {/* ── Error / freshness footer ── */}
-      <section className="mx-auto max-w-6xl px-6 py-10 text-center text-sm text-[var(--ink-faint)]">
+      <section className="mx-auto max-w-6xl px-5 py-8 text-center text-[13px] text-[var(--ink-faint)] sm:px-6 sm:py-10 sm:text-sm">
         {error ? (
           <span>Live data temporarily unavailable — refreshing…</span>
         ) : refreshedAt ? (
@@ -228,19 +210,19 @@ export default function StatsClient() {
           <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[var(--accent)]/20 blur-3xl drift" />
           <div className="absolute -left-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--accent-deep)]/15 blur-3xl drift" />
         </div>
-        <div className="relative mx-auto max-w-6xl px-6 py-20 text-center md:py-28">
-          <h2 className="font-display mx-auto max-w-3xl text-4xl font-medium tracking-[-0.03em] text-[var(--bg-elevated)] md:text-6xl">
+        <div className="relative mx-auto max-w-6xl px-5 py-14 text-center sm:px-6 sm:py-20 md:py-28">
+          <h2 className="font-display mx-auto max-w-3xl text-[2rem] font-medium leading-[1.1] tracking-[-0.03em] text-[var(--bg-elevated)] sm:text-4xl md:text-6xl">
             Borrow against bags. <span className="italic text-[var(--accent)]">Never sell.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-base text-[var(--bg-elevated)]/70">
+          <p className="mx-auto mt-4 max-w-md text-[15px] text-[var(--bg-elevated)]/70 sm:text-base">
             Telegram-native lending on Solana. Sub-1% liquidation rate by design.
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-4 md:flex-row">
+          <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:items-center sm:gap-4 md:mt-10 md:flex-row">
             <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-accent text-base">
               Start borrowing
               <span aria-hidden>→</span>
             </a>
-            <Link href="/tokens" className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10">
+            <Link href="/tokens" className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10">
               Browse collateral
             </Link>
           </div>
@@ -248,6 +230,35 @@ export default function StatsClient() {
       </section>
 
       <Footer />
+    </div>
+  );
+}
+
+/**
+ * SectionHead — responsive section header that stacks the title and the
+ * uppercase tag on mobile so the tag never overflows / wraps next to a
+ * long title. On sm+ it sits side-by-side at the baseline like the
+ * original design. Shared so every section is consistent.
+ */
+function SectionHead({
+  title,
+  tag,
+  tagNode,
+}: {
+  title: string;
+  tag?: string;
+  tagNode?: ReactNode;
+}) {
+  return (
+    <div className="mb-6 flex flex-col gap-1.5 sm:mb-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+      <h2 className="font-display text-xl font-medium tracking-[-0.02em] sm:text-2xl md:text-3xl">
+        {title}
+      </h2>
+      {tagNode ?? (tag ? (
+        <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-xs">
+          {tag}
+        </span>
+      ) : null)}
     </div>
   );
 }
@@ -266,15 +277,15 @@ function HeadlineStat({
   highlight?: boolean;
 }) {
   return (
-    <div className={`card card-hover p-6 ${highlight ? "ring-2 ring-[var(--accent)]" : ""}`}>
-      <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">
+    <div className={`card card-hover p-4 sm:p-6 ${highlight ? "ring-2 ring-[var(--accent)]" : ""}`}>
+      <div className="text-[9px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-[10px] sm:tracking-[0.22em]">
         {label}
       </div>
-      <div className={`mt-3 font-display tabular text-4xl font-medium tracking-[-0.03em] md:text-5xl ${highlight ? "text-[var(--accent-deep)]" : ""}`}>
+      <div className={`mt-2 font-display tabular text-2xl font-medium leading-[1.05] tracking-[-0.03em] sm:mt-3 sm:text-4xl md:text-5xl ${highlight ? "text-[var(--accent-deep)]" : ""}`}>
         {value}
       </div>
       {sub && (
-        <div className="mt-2 text-xs text-[var(--ink-soft)]">{sub}</div>
+        <div className="mt-1.5 text-[11px] leading-snug text-[var(--ink-soft)] sm:mt-2 sm:text-xs">{sub}</div>
       )}
     </div>
   );
@@ -282,10 +293,10 @@ function HeadlineStat({
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="card p-5">
-      <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">{label}</div>
-      <div className="mt-2 font-display tabular text-2xl font-medium tracking-[-0.02em] md:text-3xl">{value}</div>
-      {sub && <div className="mt-1 text-xs text-[var(--ink-soft)]">{sub}</div>}
+    <div className="card p-4 sm:p-5">
+      <div className="text-[9px] uppercase tracking-[0.14em] text-[var(--ink-faint)] sm:text-[10px] sm:tracking-[0.18em]">{label}</div>
+      <div className="mt-1.5 font-display tabular text-lg font-medium leading-[1.05] tracking-[-0.02em] sm:mt-2 sm:text-2xl md:text-3xl">{value}</div>
+      {sub && <div className="mt-1 text-[11px] leading-snug text-[var(--ink-soft)] sm:text-xs">{sub}</div>}
     </div>
   );
 }
@@ -396,18 +407,11 @@ const ONCHAIN_ACCOUNTS: { label: string; address: string; note: string }[] = [
 
 function VerifyOnChain() {
   return (
-    <section className="mx-auto max-w-6xl px-6 py-12 md:py-16">
-      <div className="mb-6 flex items-baseline justify-between">
-        <h2 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
-          Verify on-chain
-        </h2>
-        <span className="text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-          Trust nothing, check everything
-        </span>
-      </div>
-      <p className="mb-6 max-w-2xl text-sm text-[var(--ink-soft)] leading-relaxed">
+    <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+      <SectionHead title="Verify on-chain" tag="Trust nothing, check everything" />
+      <p className="mb-5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
         Every number on this page is derived from on-chain state — the accounts below.
-        Click any address to inspect it on Solscan. The lending pools, the programs,
+        Tap any address to inspect it on Solscan. The lending pools, the programs,
         the $MAGPIE mint, every loan, every distribution: all public, all verifiable
         without our cooperation.
       </p>
@@ -418,26 +422,27 @@ function VerifyOnChain() {
             href={`https://solscan.io/account/${acc.address}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="group block rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 transition hover:border-[var(--accent)]/40 hover:shadow-sm"
+            className="group block rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-3.5 transition active:border-[var(--accent)]/40 hover:border-[var(--accent)]/40 hover:shadow-sm sm:p-4"
           >
             <div className="flex items-center justify-between gap-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-soft)]">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--ink-soft)] sm:text-xs sm:tracking-[0.14em]">
                 {acc.label}
               </div>
-              <span className="text-[10px] text-[var(--accent-deep)] opacity-0 transition group-hover:opacity-100">
+              {/* On mobile (no hover) show a persistent arrow so users know it's tappable. */}
+              <span className="text-[10px] text-[var(--accent-deep)] opacity-100 sm:opacity-0 sm:transition sm:group-hover:opacity-100">
                 Solscan →
               </span>
             </div>
-            <div className="mt-2 font-mono text-[11px] text-[var(--ink)] break-all">
+            <div className="mt-2 font-mono text-[10px] leading-snug text-[var(--ink)] break-all sm:text-[11px]">
               {acc.address}
             </div>
-            <div className="mt-2 text-xs leading-relaxed text-[var(--ink-soft)]">
+            <div className="mt-2 text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-xs">
               {acc.note}
             </div>
           </a>
         ))}
       </div>
-      <p className="mt-6 max-w-2xl text-xs text-[var(--ink-soft)] leading-relaxed">
+      <p className="mt-5 max-w-2xl text-[12px] leading-relaxed text-[var(--ink-soft)] sm:mt-6 sm:text-xs">
         Want to verify a specific loan? Every borrow + repay shows a transaction
         signature in <Link href="/dashboard" className="underline hover:text-[var(--ink)]">your dashboard</Link>{" "}
         and the <a href="#" onClick={(e) => { e.preventDefault(); document.querySelector('[id^="live"]')?.scrollIntoView({ behavior: "smooth" }); }} className="underline hover:text-[var(--ink)]">live activity feed above</a>.
