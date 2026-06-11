@@ -65,6 +65,50 @@ function relativeTime(ms: number): string {
 const STORAGE_PREFIX = "magpie-pip-chat:";
 const MAX_PERSISTED_TURNS = 50;
 
+/**
+ * Translate raw Pip errors into user-facing messages.
+ *
+ * Why this exists:
+ *   When the bot's Railway service is down or restarting, fetch
+ *   surfaces errors like 'signal is aborted without reason (url: ...)'
+ *   or 'TypeError: Failed to fetch'. Showing those raw to users is
+ *   confusing and looks broken. We translate the most common
+ *   transient failures into hopeful, action-oriented copy.
+ *
+ *   The bot's URL leaks into the error — strip it so the chat
+ *   doesn't expose internal infrastructure.
+ */
+function translatePipError(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e || "");
+
+  // Common network-failure patterns when the bot is down/restarting.
+  if (
+    /signal is aborted|aborterror|fetch failed|network error|failed to fetch|err_connection|enotfound|econnrefused/i
+      .test(raw)
+  ) {
+    return "Couldn't reach Magpie just now. Looks like a network hiccup or the bot is restarting. Pip will be back in a second — try again.";
+  }
+  // Common timeout patterns.
+  if (/timeout|timed out/i.test(raw)) {
+    return "That took too long. Magpie may be under load — give it a moment and try again.";
+  }
+  // 5xx surfaces (when the bot returns an HTTP error code).
+  const m5xx = raw.match(/\b(50[0-4])\b/);
+  if (m5xx) {
+    if (m5xx[1] === "503") {
+      return "Magpie is in maintenance mode right now. Pip will be back shortly.";
+    }
+    return `Magpie's having a moment (status ${m5xx[1]}). Try again in a few seconds.`;
+  }
+  // Anything else — strip the bot URL from the message and surface
+  // a cleaned version so we don't leak infra and don't confuse users.
+  const cleaned = raw
+    .replace(/\(url: https?:\/\/[^\s)]+\)/g, "")
+    .replace(/https?:\/\/[^\s]+/g, "")
+    .trim();
+  return cleaned || "Pip ran into something unexpected. Try again or refresh.";
+}
+
 /* ─────────────── Avatar ─────────────── */
 function PipAvatar({ size = 32, pulsing = false }: { size?: number; pulsing?: boolean }) {
   return (
@@ -637,7 +681,7 @@ export default function FloatingAiChatGlobal() {
         },
       });
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(translatePipError(e));
       // Pop both the user message and the empty agent placeholder so
       // the user can edit and retry.
       setTurns((t) => t.slice(0, -2));
@@ -662,7 +706,7 @@ export default function FloatingAiChatGlobal() {
       // "Clear = everything resets".
       clearCachedSession(walletStr);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(translatePipError(e));
     } finally {
       setBusy(false);
     }
