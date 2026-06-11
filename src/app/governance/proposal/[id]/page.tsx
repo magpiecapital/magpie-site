@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { VoteButtons } from "./VoteButtons";
 import { VotingCountdown } from "./VotingCountdown";
+import { LiveResults } from "./LiveResults";
 import type { VoteChoice } from "@/lib/solana/site-governance-vote";
 
 interface ProposalQuestion {
@@ -136,74 +137,78 @@ export default async function ProposalPage({
   const botApiUrl =
     process.env.NEXT_PUBLIC_BOT_API_URL ||
     "https://magpie-bot-production.up.railway.app";
+  const question = p.questions?.[0];
 
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
-      <main className="mx-auto max-w-3xl px-5 py-16 sm:py-20">
+      <main className="mx-auto max-w-2xl px-4 pb-20 pt-10 sm:px-6 sm:pt-16">
         {/* ── Heading ─────────────────────────────────────────── */}
         <Reveal>
           <Link
             href="/governance"
-            className="text-xs uppercase tracking-wider text-white/50 hover:text-white/80"
+            className="text-xs uppercase tracking-wider text-white/45 transition hover:text-white/80"
           >
-            ← back to governance
+            ← Governance
           </Link>
-          <div className="mt-4 flex flex-wrap items-baseline gap-2">
-            <span className="rounded-md bg-cyan-500/30 px-2.5 py-1 font-mono text-xs text-cyan-100">
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <span className="rounded-md bg-cyan-500/25 px-2.5 py-1 font-mono text-[11px] text-cyan-100">
               {p.id}
             </span>
             <span
               className={
                 isActive
-                  ? "rounded-md bg-emerald-500/25 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-emerald-100"
+                  ? "inline-flex items-center gap-1.5 rounded-md bg-emerald-500/20 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-emerald-100"
                   : "rounded-md bg-white/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-white/60"
               }
             >
-              {p.status === "active" ? "voting open" : p.status}
+              {isActive && (
+                <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
+              )}
+              {p.status === "active" ? "live" : p.status}
             </span>
           </div>
-          <h1 className="mt-5 text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+          <h1 className="mt-5 text-[26px] font-semibold leading-[1.15] tracking-tight sm:text-[34px]">
             {p.title}
           </h1>
-          <p className="mt-4 text-lg leading-relaxed text-white/75">{p.tldr}</p>
+          <p className="mt-4 text-base leading-relaxed text-white/70 sm:text-lg">
+            {p.tldr}
+          </p>
         </Reveal>
 
-        {/* ── Vote card (the action) ──────────────────────────── */}
-        {isActive && p.questions && (
+        {/* ── Vote card (the primary action) ──────────────────── */}
+        {isActive && question && (
           <Reveal delay={0.05}>
-            <section className="mt-10 rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-cyan-500/10 to-cyan-500/0 p-6 sm:p-8">
-              <div className="flex flex-wrap items-baseline justify-between gap-3">
-                <h2 className="text-xl font-semibold">Cast your vote</h2>
-                <VotingCountdown closesAtIso={p.closes_at_iso} />
-              </div>
-              <p className="mt-2 text-sm text-white/60">{p.voting_window_human}</p>
-
-              {p.questions.map((q) => (
-                <div key={q.id} className="mt-5">
-                  <p className="text-white/85">{q.text}</p>
-                  {q.choices && (
-                    <VoteButtons
-                      proposalId={p.id}
-                      questionId={q.id}
-                      choices={q.choices}
-                      botApiUrl={botApiUrl}
-                      opensAtIso={p.opens_at_iso}
-                    />
-                  )}
+            <section className="mt-8 overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-cyan-500/[0.08] to-transparent">
+              <div className="border-b border-white/5 px-5 py-4 sm:px-6">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-white/55">
+                    Cast vote
+                  </h2>
+                  <VotingCountdown closesAtIso={p.closes_at_iso} />
                 </div>
-              ))}
-
-              <p className="mt-5 text-xs text-white/50">
-                Wallet message-sign only. No SOL moves. Re-vote any time before close — latest signature wins.
-              </p>
+              </div>
+              <div className="px-5 py-6 sm:px-6">
+                {question.choices && (
+                  <VoteButtons
+                    proposalId={p.id}
+                    questionId={question.id}
+                    choices={question.choices}
+                    botApiUrl={botApiUrl}
+                    opensAtIso={p.opens_at_iso}
+                  />
+                )}
+                <p className="mt-4 text-xs leading-relaxed text-white/45">
+                  Wallet message-sign only. No SOL moves, no gas. Re-vote any time before close — latest signature wins.
+                </p>
+              </div>
             </section>
           </Reveal>
         )}
 
         {!isActive && (
           <Reveal delay={0.05}>
-            <section className="mt-10 rounded-2xl border border-white/15 bg-white/5 p-6 sm:p-8">
+            <section className="mt-8 rounded-2xl border border-white/15 bg-white/5 p-5 sm:p-6">
               <p className="text-sm text-white/70">
                 <strong className="text-white/90">{p.voting_window_human}.</strong>{" "}
                 {p.summary}
@@ -212,72 +217,105 @@ export default async function ProposalPage({
           </Reveal>
         )}
 
-        {/* ── Details ─────────────────────────────────────────── */}
-        {p.parameters && (
+        {/* ── Live results ─────────────────────────────────────── */}
+        {isActive && question?.choices && (
           <Reveal delay={0.1}>
-            <section className="mt-12">
-              <h2 className="text-xl font-semibold">Details</h2>
-              <div className="mt-5 overflow-hidden rounded-xl border border-white/10">
-                <table className="w-full text-sm">
-                  <tbody>
-                    {p.parameters.map((row, i) => (
-                      <tr key={row.label} className={i % 2 === 0 ? "bg-white/5" : ""}>
-                        <td className="px-5 py-3 font-medium text-white/80">{row.label}</td>
-                        <td className="px-5 py-3 text-white/70">{row.value}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+            <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-white/55">
+                  Live results
+                </h2>
+                <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-emerald-200/80">
+                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
+                  refreshes every 30s
+                </span>
               </div>
-              {isActive && (
-                <p className="mt-5 text-sm leading-relaxed text-white/70">{p.summary}</p>
-              )}
+              <LiveResults
+                proposalId={p.id}
+                botApiUrl={botApiUrl}
+                choices={question.choices}
+              />
             </section>
           </Reveal>
         )}
 
-        {/* ── How to vote ──────────────────────────────────────── */}
+        {/* ── Voter eligibility note ──────────────────────────── */}
         {isActive && (
           <Reveal delay={0.15}>
-            <section className="mt-12 rounded-2xl border border-white/15 bg-white/5 p-6 sm:p-8">
-              <h2 className="text-xl font-semibold">How to vote</h2>
-              <ol className="mt-4 space-y-3 text-sm leading-relaxed text-white/70">
-                <li>
-                  <strong className="text-white/90">1.</strong> Connect a Phantom / Solflare / Backpack wallet (any that supports signMessage).
-                </li>
-                <li>
-                  <strong className="text-white/90">2.</strong> Click YES / NO / ABSTAIN above. The wallet pops a tiny message-sign — no SOL leaves your wallet, no gas.
-                </li>
-                <li>
-                  <strong className="text-white/90">3.</strong> Your voting weight is your $MAGPIE balance at the snapshot taken at vote activation (held tokens + collateralized tokens both count 1:1). Check it on the dashboard.
-                </li>
-                <li>
-                  <strong className="text-white/90">4.</strong> Re-vote any time before close. Aggregate result publishes at close; per-wallet choices stay private.
-                </li>
-              </ol>
-              <p className="mt-4 text-xs text-white/50">
-                Prefer Telegram?{" "}
-                <Link href="https://t.me/magpie_capital_bot" className="text-cyan-300 hover:text-cyan-200">
-                  DM @magpie_capital_bot
-                </Link>{" "}
-                and run /votingpower to see your weight.
+            <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-white/55">
+                Who can vote
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-white/75">
+                Anyone holding $MAGPIE at the activation snapshot. Tokens you have <strong className="text-white/95">on-loan as collateral</strong> count 1:1 alongside tokens in your wallet — using Magpie doesn&apos;t reduce your governance weight. LP providers in the SOL pool are also credited.
+              </p>
+              <p className="mt-3 text-xs text-white/45">
+                Whale cap: 2% per wallet. Re-vote any time before close.
               </p>
             </section>
           </Reveal>
         )}
 
-        {/* ── Full spec link ──────────────────────────────────── */}
-        <Reveal delay={0.2}>
-          <section className="mt-12">
+        {/* ── Details (collapsible-feel, low chrome) ──────────── */}
+        {p.parameters && (
+          <Reveal delay={0.2}>
+            <section className="mt-6">
+              <details className="group rounded-2xl border border-white/10 bg-white/[0.025] open:bg-white/[0.04]">
+                <summary className="flex cursor-pointer items-center justify-between px-5 py-4 text-sm font-semibold uppercase tracking-wider text-white/55 sm:px-6">
+                  Details
+                  <span className="text-white/40 transition group-open:rotate-180">
+                    ▾
+                  </span>
+                </summary>
+                <div className="border-t border-white/5 px-5 pb-5 pt-4 sm:px-6">
+                  <dl className="divide-y divide-white/5">
+                    {p.parameters.map((row) => (
+                      <div
+                        key={row.label}
+                        className="flex flex-col gap-1 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
+                      >
+                        <dt className="text-xs uppercase tracking-wider text-white/45">
+                          {row.label}
+                        </dt>
+                        <dd className="text-sm text-white/85 sm:text-right">
+                          {row.value}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                  {isActive && (
+                    <p className="mt-5 border-t border-white/5 pt-5 text-sm leading-relaxed text-white/65">
+                      {p.summary}
+                    </p>
+                  )}
+                </div>
+              </details>
+            </section>
+          </Reveal>
+        )}
+
+        {/* ── Footer actions ──────────────────────────────────── */}
+        <Reveal delay={0.25}>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link
               href={p.spec_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-5 py-3 text-sm font-medium text-white/80 transition hover:border-cyan-500/30 hover:bg-white/10 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/80 transition hover:border-cyan-500/30 hover:bg-white/10 hover:text-white"
             >
-              Read the full {p.id} spec on GitHub →
+              Full spec on GitHub
             </Link>
-          </section>
+            {isActive && (
+              <Link
+                href="https://t.me/magpie_capital_bot"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/80 transition hover:border-cyan-500/30 hover:bg-white/10 hover:text-white"
+              >
+                Vote via @magpie_capital_bot
+              </Link>
+            )}
+          </div>
         </Reveal>
       </main>
       <Footer />
