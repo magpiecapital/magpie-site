@@ -482,7 +482,7 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 </div>
               </div>
 
-              <h4 className="mt-8 text-lg font-medium">Where every loan fee goes</h4>
+              <h4 className="mt-8 text-lg font-medium">Where every loan fee goes (current split)</h4>
               <div className="mt-3 rounded-2xl border border-[var(--hairline)] overflow-hidden">
                 <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-[var(--ink)]/[0.03] text-xs uppercase tracking-widest text-[var(--ink-soft)]">
                   <div className="col-span-3">Recipient</div>
@@ -502,6 +502,26 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                     <div className="col-span-7 text-[var(--ink-soft)]">{how}</div>
                   </div>
                 ))}
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
+                <div className="flex items-baseline gap-2">
+                  <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-xs text-cyan-100">MGP-001</span>
+                  <span className="rounded-md bg-emerald-500/25 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-100">voting open</span>
+                </div>
+                <h5 className="mt-3 text-base font-medium">Holders-first split — 70/10/10/10</h5>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
+                  $MAGPIE holders are voting now on a proposal to send <strong>70% of every loan fee
+                  to holders, 10% to SOL LPs, 10% to referrers, and 10% to the protocol reserve</strong>.
+                  Forward-only — distributions already accrued under the current split are not retroactively re-cut.
+                  Voting open until 2026-06-13 22:00 UTC. Each $MAGPIE holder gets a vote weighted by their snapshot balance.
+                </p>
+                <a
+                  href="/governance/proposal/MGP-001"
+                  className="mt-3 inline-block text-sm text-cyan-300 hover:text-cyan-200"
+                >
+                  Read MGP-001 + cast your vote →
+                </a>
               </div>
 
               <h4 className="mt-8 text-lg font-medium">How $MAGPIE holders earn</h4>
