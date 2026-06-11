@@ -165,6 +165,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.95,
     },
     {
+      // Tokenized-stock landing page — focused marketing surface for the
+      // xStock collateral product (vol-aware LTV tiers, weekend cutoff,
+      // 5-layer scam defense). High SEO priority because it's the
+      // strategic positioning page that the rest of the funnel feeds.
+      url: `${SITE_URL}/xstocks`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${SITE_URL}/status`,
       lastModified: now,
       changeFrequency: "daily",
