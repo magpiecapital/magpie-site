@@ -22,10 +22,13 @@ import { useWallet } from "@solana/wallet-adapter-react";
 
 const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || "";
 
-// Active proposals — for now hardcoded to MGP-002. Future: replace with
-// fetch of /api/v1/governance/proposals (endpoint TBD). Hardcoding keeps
-// the dashboard card decoupled from a not-yet-implemented list endpoint.
-const ACTIVE_PROPOSAL_IDS = ["MGP-002"];
+// Active proposals — hardcoded list. Keep in sync with the canonical
+// list in /api/v1/governance/route.ts. Future: replace with a fetch of
+// /api/v1/governance/proposals (endpoint TBD). MGP-002 was withdrawn on
+// 2026-06-09; MGP-001 and MGP-003 are the two active proposals as of
+// 2026-06-10. Hardcoding keeps the dashboard card decoupled from a
+// not-yet-implemented list endpoint.
+const ACTIVE_PROPOSAL_IDS = ["MGP-001", "MGP-003"];
 
 interface VotingPower {
   eligible: boolean;
