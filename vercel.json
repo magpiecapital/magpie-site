@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/keep-warm",
       "schedule": "*/10 * * * *"
+    },
+    {
+      "path": "/api/cron/bot-watchdog",
+      "schedule": "* * * * *"
     }
   ]
 }
