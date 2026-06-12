@@ -3164,14 +3164,41 @@ export default function DashboardPage() {
                     per operator-stated layout order. */}
                 {connected && publicKey && <DistributionCard />}
 
-                {/* Governance — last in the left column so it anchors
-                    the bottom of the main thread. Surfaces active
-                    proposals with this wallet's voting weight + quick
-                    cast-vote link. id="section-governance" so the side
-                    nav scrolls here. */}
+                {/* Governance — always renders SOMETHING visible when
+                    the wallet is connected so clicking the side-nav
+                    "Governance" entry doesn't scroll into an empty div.
+                    GovernanceCard returns null when there's no active
+                    vote; in that case we render the empty-state below
+                    with a clear CTA to the full /governance page. */}
                 {connected && publicKey && (
-                  <div id="section-governance">
+                  <div id="section-governance" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
+                    <SectionHeader title="Governance" compact />
                     <GovernanceCard />
+                    {/* Empty-state fallback — visible when GovernanceCard
+                        renders nothing (no active proposals OR still
+                        loading). Keeps the section non-empty so users
+                        always have a click target. */}
+                    <div className="mt-3 text-[12px] text-[var(--d-ink-soft)]">
+                      $MAGPIE holders vote on protocol changes (fee splits,
+                      tier params, supported collateral). Your voting weight
+                      = held $MAGPIE + collateralized $MAGPIE at the snapshot.
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link
+                        href="/governance"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--d-border)] bg-[var(--d-surface)] px-3 py-1.5 text-[11px] font-semibold text-[var(--d-ink)] hover:bg-[var(--d-surface-hover)]"
+                      >
+                        View all proposals
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+                      </Link>
+                      <Link
+                        href="/governance/proposal/MGP-001"
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--d-accent)] px-3 py-1.5 text-[11px] font-semibold text-[var(--d-accent-ink)] hover:opacity-90"
+                      >
+                        Vote on MGP-001
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+                      </Link>
+                    </div>
                   </div>
                 )}
 
