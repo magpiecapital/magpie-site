@@ -12,6 +12,12 @@ import {
   CoinbaseWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
 import { BackpackWalletAdapter } from "@solana/wallet-adapter-backpack";
+import {
+  SolanaMobileWalletAdapter,
+  createDefaultAuthorizationResultCache,
+  createDefaultAddressSelector,
+  createDefaultWalletNotFoundHandler,
+} from "@solana-mobile/wallet-adapter-mobile";
 import type { WalletError } from "@solana/wallet-adapter-base";
 
 import "@solana/wallet-adapter-react-ui/styles.css";
@@ -31,6 +37,27 @@ const RPC_ENDPOINT = "https://www.magpie.capital/api/rpc";
 export function WalletProvider({ children }: { children: React.ReactNode }) {
   const wallets = useMemo(
     () => [
+      // SolanaMobileWalletAdapter — only activates on Android Chrome
+      // (and other browsers that support the Mobile Wallet Adapter
+      // protocol). When activated, the connect flow deep-links into
+      // the user's wallet app (Phantom, Solflare, Backpack) to sign
+      // there and return a signed response. Without this adapter,
+      // mobile users would only see "wallet not found" on tap.
+      //
+      // On desktop and iOS Safari this adapter is detected as
+      // unsupported and the standard browser-extension adapters below
+      // still own the connection flow.
+      new SolanaMobileWalletAdapter({
+        addressSelector: createDefaultAddressSelector(),
+        appIdentity: {
+          name: "Magpie",
+          uri: "https://www.magpie.capital",
+          icon: "favicon.ico",
+        },
+        authorizationResultCache: createDefaultAuthorizationResultCache(),
+        cluster: "mainnet-beta",
+        onWalletNotFound: createDefaultWalletNotFoundHandler(),
+      }),
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
       new BackpackWalletAdapter(),
