@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Mark, Wordmark } from "@/components/Logo";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
@@ -688,7 +689,19 @@ function SkeletonRows({ count = 3, layout = "row" }: { count?: number; layout?: 
 
 /* ───────────────────────── MAIN PAGE ───────────────────────── */
 
+// useSearchParams requires a Suspense boundary at build time for client
+// components in Next.js 14+. Wrap DashboardPageInner so static rendering
+// doesn't blow up; the boundary is invisible in practice (the page
+// hydrates instantly on the client).
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardPageInner />
+    </Suspense>
+  );
+}
+
+function DashboardPageInner() {
   const [copied, setCopied] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [prefs, setPrefs] = useState<SectionPrefs>(DEFAULT_PREFS);
@@ -738,6 +751,36 @@ export default function DashboardPage() {
   const [holdingsLoading, setHoldingsLoading] = useState(false);
   const [approvedTokens, setApprovedTokens] = useState<ApprovedToken[]>([]);
   const [approvedLoading, setApprovedLoading] = useState(false);
+
+  // ── Preselect-from-URL (?borrow=<mint>) ──
+  // Tokens-page Borrow button (PR #47) routes to /dashboard?borrow=<mint>.
+  // When holdings have loaded AND the mint is present in the user's
+  // holdings, auto-expand that row + scroll to it so the user lands on
+  // the right collateral with one click. If the mint isn't held, the
+  // tab still switches to Holdings — the empty-state CTA there explains
+  // they need to deposit first. The query param is stripped after we
+  // apply it so a refresh doesn't re-trigger the scroll.
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const borrowMintQuery = searchParams.get("borrow");
+  const [hasAppliedBorrowQuery, setHasAppliedBorrowQuery] = useState(false);
+  useEffect(() => {
+    if (!borrowMintQuery || hasAppliedBorrowQuery) return;
+    if (holdingsLoading) return; // wait for first holdings fetch
+    const match = holdings.find((h) => h.mint === borrowMintQuery);
+    setActiveNav("holdings");
+    if (match) {
+      setExpandedMint(borrowMintQuery);
+      // Defer scroll until the expanded row has rendered.
+      setTimeout(() => {
+        const el = document.querySelector(`[data-holding-mint="${borrowMintQuery}"]`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    }
+    setHasAppliedBorrowQuery(true);
+    // Strip the query param so a refresh doesn't re-trigger the scroll.
+    router.replace("/dashboard", { scroll: false });
+  }, [borrowMintQuery, holdings, holdingsLoading, hasAppliedBorrowQuery, router]);
 
   // ── Loans ──
   type Loan = {
@@ -2659,7 +2702,7 @@ export default function DashboardPage() {
                             { name: "Standard", tag: "Best rate, more time to repay", ltv: 0.20, days: 7, fee: 0.015, color: "var(--d-accent)" },
                           ];
                           return (
-                            <div key={h.mint}>
+                            <div key={h.mint} data-holding-mint={h.mint}>
                               {/* Row */}
                               <button
                                 onClick={() => setExpandedMint(isExpanded ? null : h.mint)}
