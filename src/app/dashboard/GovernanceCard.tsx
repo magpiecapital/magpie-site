@@ -30,17 +30,21 @@ const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || "";
 // not-yet-implemented list endpoint.
 const ACTIVE_PROPOSAL_IDS = ["MGP-001", "MGP-003"];
 
+// Mirrors the public response from
+// magpie-bot /api/v1/governance/voting-power. The bot intentionally
+// REDACTS the raw weight, held balance, collateralized balance, total
+// eligible weight, and exact snapshot timing — those are operator-
+// internal per the governance-snapshot privacy rule (any of them would
+// let an attacker game the next snapshot). The dashboard shows what
+// the bot actually returns: capped percentage of the eligible pool +
+// cap-state flags. The user's own raw $MAGPIE balance is something
+// they can verify in their wallet UI — we don't need to mirror it here.
 interface VotingPower {
   eligible: boolean;
   wallet: string;
-  raw_weight?: string;
-  held_raw?: string;
-  collateralized_raw?: string;
-  weight_pct_of_pool?: number;
   capped_pct_of_pool?: number;
   was_capped?: boolean;
   cap_fraction?: number;
-  snapshot_taken_at?: string;
   reason?: string;
   proposal: {
     id: string;
@@ -50,12 +54,6 @@ interface VotingPower {
     quorum_pct: number;
     threshold_pct: number;
   };
-}
-
-function fmtMagpie(rawStr?: string): string {
-  if (!rawStr) return "0";
-  const v = Number(rawStr) / 1e6;
-  return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
 function fmtCloses(iso?: string | null): { label: string; warn: boolean } {
@@ -160,26 +158,22 @@ export default function GovernanceCard() {
               {p.eligible ? (
                 <>
                   <div style={{ fontSize: 18, fontWeight: 600, marginTop: 4, color: "var(--d-ink)" }}>
-                    {fmtMagpie(p.raw_weight)} $MAGPIE
+                    {(p.capped_pct_of_pool ?? 0).toFixed(4)}% of eligible pool
                   </div>
                   <div style={{ fontSize: 12, color: "var(--d-ink-soft)", marginTop: 2 }}>
-                    {p.weight_pct_of_pool?.toFixed(4)}% of eligible pool
-                    {p.was_capped && (
-                      <span style={{ color: "var(--d-warn)", marginLeft: 8 }}>
-                        capped at {((p.cap_fraction ?? 0.02) * 100).toFixed(0)}% — counted as {p.capped_pct_of_pool?.toFixed(4)}%
+                    {p.was_capped ? (
+                      <span style={{ color: "var(--d-warn)" }}>
+                        Capped at {((p.cap_fraction ?? 0.02) * 100).toFixed(0)}% per-wallet maximum
                       </span>
+                    ) : (
+                      <span>Your share of the vote</span>
                     )}
                   </div>
-                  {Number(p.collateralized_raw ?? "0") > 0 && (
-                    <div style={{ fontSize: 11, color: "var(--d-ink-faint)", marginTop: 4 }}>
-                      Held: {fmtMagpie(p.held_raw)} · Locked as collateral: {fmtMagpie(p.collateralized_raw)}
-                    </div>
-                  )}
                 </>
               ) : (
                 <div style={{ fontSize: 13, color: "var(--d-ink-soft)", marginTop: 4 }}>
-                  Not eligible — {p.reason === "wallet_not_in_snapshot_or_zero_balance"
-                    ? "wallet had no $MAGPIE at snapshot time"
+                  Not eligible &mdash; {p.reason === "wallet_not_in_snapshot_or_zero_balance"
+                    ? "this wallet wasn't holding $MAGPIE when the snapshot was taken. If you bought after the snapshot, you'll be eligible for the next proposal."
                     : p.reason}
                 </div>
               )}
