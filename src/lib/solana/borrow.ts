@@ -148,6 +148,22 @@ export async function buildBorrowTransaction({
   const program = new Program((isV2 ? idlV2 : idl) as any, provider);
 
   // Pre-instructions
+  //
+  // The program needs three token accounts to exist BEFORE it tries to
+  // transfer through them:
+  //   1. borrower wSOL ATA           — receives loan proceeds
+  //   2. borrower COLLATERAL ATA     — source of collateral transfer (CRITICAL)
+  //   3. fee wallet wSOL ATA         — receives the origination fee
+  //
+  // The TG-side already creates all three idempotently
+  // (src/services/loans.js:229-241 on the bot repo). The site path
+  // historically only pre-created #1, which surfaced as
+  // "AccountNotInitialized" on the borrow tx when the user held their
+  // collateral in a non-canonical token account (common for Token-2022
+  // xStocks like SPCX/TSLAx where the Backpack issuance flow may not
+  // initialize the canonical ATA up front). Idempotent-create is cheap
+  // when the account exists and fixes the missing-ATA case when it
+  // doesn't — borrower pays ~0.002 SOL of rent one-time per ATA.
   const preIxs = [
     // Priority fee for fast confirmation during congestion.
     // 100k microLamports × 400k CU = 40k lamports = 0.00004 SOL extra.
@@ -157,6 +173,29 @@ export async function buildBorrowTransaction({
       borrower,
       borrowerWsolAta,
       borrower,
+      loanTokenMintPk,
+      loanTokenProgram,
+    ),
+    // Borrower's COLLATERAL ATA — uses the matching token program (classic
+    // SPL for memecoins, Token-2022 for xStocks). Without this idempotent
+    // create, the on-chain transfer from borrower_collateral_account
+    // fails with AccountNotInitialized when the user's collateral lives
+    // in a non-ATA token account.
+    createAssociatedTokenAccountIdempotentInstruction(
+      borrower,
+      borrowerCollateralAta,
+      borrower,
+      collateralMintPk,
+      collateralTokenProgram,
+    ),
+    // Fee wallet wSOL ATA — should normally exist on prod (every borrow
+    // touches it) but defensive idempotent create costs nothing when the
+    // account exists and prevents a one-borrow-loss-of-rent edge case
+    // where the fee ATA was closed (wSOL drained → auto-close).
+    createAssociatedTokenAccountIdempotentInstruction(
+      borrower,
+      feeWalletWsolAta,
+      LENDER_PUBKEY,
       loanTokenMintPk,
       loanTokenProgram,
     ),
