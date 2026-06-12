@@ -206,7 +206,7 @@ export async function armTakeProfit(args: {
   return body as ArmedTakeProfitResult;
 }
 
-function translateArmError(body: { error?: string; detail?: string; suggested_slippage_bps?: number }): string {
+export function translateArmError(body: { error?: string; detail?: string; suggested_slippage_bps?: number }): string {
   const code = body?.error;
   switch (code) {
     case "requires_linked_custodial_wallet":
