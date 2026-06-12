@@ -3205,8 +3205,24 @@ export default function DashboardPage() {
               </div>
               </DashboardProvider>
 
-              {/* ─── RIGHT COLUMN (4/12) ─── */}
-              <div className="xl:col-span-4 flex flex-col gap-6">
+              {/* ─── RIGHT COLUMN (4/12) ───
+                  User-flagged 2026-06-12: the right column "stops scrolling
+                  at a certain point" because the left column is much taller —
+                  once the user scrolls past the right column's last card,
+                  the right side appears empty. Fix: when the right column
+                  is shorter than the viewport on xl, pin its top to the
+                  scroll container with self-start + sticky. Empty space
+                  below it remains scrollable (the left column still has
+                  more content) without the user feeling like they've hit
+                  a dead end.
+
+                  Constraints:
+                  - `self-start` so the column doesn't stretch
+                    vertically alongside the (taller) left column.
+                  - `top-6` matches the main padding.
+                  - `xl:` only — on mobile the columns stack and stickying
+                    breaks the natural flow. */}
+              <div className="xl:col-span-4 flex flex-col gap-6 xl:self-start xl:sticky xl:top-6">
 
                 {/* CREDIT SCORE CARD */}
                 {prefs.credit && (
@@ -3518,13 +3534,39 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Mini footer */}
-            <div className="mt-6 flex items-center justify-between text-[11px] text-[var(--d-ink-faint)] pb-4">
-              <span>&copy; {new Date().getFullYear()} Magpie</span>
-              <div className="flex gap-4">
-                <Link href="/" className="hover:text-[var(--d-ink-soft)]">Home</Link>
-                <Link href="/docs" className="hover:text-[var(--d-ink-soft)]">Docs</Link>
-                <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--d-ink-soft)]">Telegram</a>
+            {/* Footer — community + resource links. Operator-flagged
+                2026-06-12 that the previous mini-footer only had Home /
+                Docs / Telegram (the wallet bot) — no community surface
+                from the dashboard. Replaced with the full link set:
+                Community group, X, GitHub plus the resource links. All
+                use real <a>/<Link> hyperlinks. */}
+            <div className="mt-8 border-t border-[var(--d-border)] pt-6 pb-4">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="flex flex-col gap-3 text-[11px]">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)] mb-1.5">Community</div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[var(--d-ink-soft)]">
+                      <a href="https://t.me/magpietalk" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-[var(--d-ink)] underline-offset-2 hover:underline">Telegram — @magpietalk</a>
+                      <a href="https://x.com/MagpieLoans" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-[var(--d-ink)] underline-offset-2 hover:underline">X — @MagpieLoans</a>
+                      <a href="https://github.com/magpiecapital" target="_blank" rel="noopener noreferrer" className="font-medium hover:text-[var(--d-ink)] underline-offset-2 hover:underline">GitHub</a>
+                      <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="font-medium hover:text-[var(--d-ink)] underline-offset-2 hover:underline">Wallet bot — @magpie_capital_bot</a>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--d-ink-faint)] mb-1.5">Resources</div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-[var(--d-ink-soft)]">
+                      <Link href="/" className="font-medium hover:text-[var(--d-ink)] underline-offset-2 hover:underline">Home</Link>
+                      <Link href="/docs" className="font-medium hover:text-[var(--d-ink)] underline-offset-2 hover:underline">Docs</Link>
+                      <Link href="/governance" className="font-medium hover:text-[var(--d-ink)] underline-offset-2 hover:underline">Governance</Link>
+                      <Link href="/stats" className="font-medium hover:text-[var(--d-ink)] underline-offset-2 hover:underline">Protocol Stats</Link>
+                      <Link href="/security" className="font-medium hover:text-[var(--d-ink)] underline-offset-2 hover:underline">Security</Link>
+                      <Link href="/privacy" className="font-medium hover:text-[var(--d-ink)] underline-offset-2 hover:underline">Privacy</Link>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-[10px] text-[var(--d-ink-faint)] md:text-right">
+                  &copy; {new Date().getFullYear()} Magpie · Built on Solana
+                </div>
               </div>
             </div>
           </div>
