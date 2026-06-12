@@ -16,6 +16,7 @@ import WalletsList from "./WalletsList";
 import PrefsPanel from "./PrefsPanel";
 import SiteStatusBanner from "./SiteStatusBanner";
 import { ApiHealthBanner } from "@/components/ApiHealthBanner";
+import { TakeProfitCard, useTakeProfitState } from "./TakeProfitCard";
 import { DashboardProvider } from "./DashboardContext";
 
 // Below-the-fold widgets are dynamically imported so the initial
@@ -892,6 +893,15 @@ export default function DashboardPage() {
   // events default) — clients with more lifetime activity would see
   // a lower total than reality. The bot's SUM is the source of truth.
   const [lifetimePoints, setLifetimePoints] = useState<number>(0);
+
+  // Take-profit state — one fetch for all loans on the connected wallet,
+  // polled every 60s. Lifted up so we don't fire N requests for N loans
+  // (one per <TakeProfitCard/>). Each card receives the state + a refresh
+  // callback via props.
+  const takeProfitState = useTakeProfitState(
+    process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app",
+    publicKey?.toBase58() ?? null,
+  );
 
   // ── Borrow state ──
   const [borrowing, setBorrowing] = useState(false);
@@ -2366,8 +2376,9 @@ export default function DashboardPage() {
                                 key={l.loan_pda}
                                 id={`loan-${l.loan_id ?? l.loan_pda}`}
                                 data-loan-id={String(l.loan_id ?? l.loan_pda)}
-                                className="flex items-center gap-3 px-4 py-3 transition-colors duration-500"
+                                className="px-4 py-3 transition-colors duration-500"
                               >
+                                <div className="flex items-center gap-3">
                                 <TokenIcon mint={l.collateral.mint} symbol={l.collateral.symbol || "?"} size={32} />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
@@ -2439,6 +2450,17 @@ export default function DashboardPage() {
                                     );
                                   })()}
                                 </div>
+                                </div>
+                                {l.loan_id && (
+                                  <TakeProfitCard
+                                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
+                                    loanIdChain={String(l.loan_id)}
+                                    loanDbId={Number((l as unknown as { id?: number; loan_db_id?: number }).id ?? (l as unknown as { id?: number; loan_db_id?: number }).loan_db_id ?? 0)}
+                                    collateralSymbol={l.collateral.symbol}
+                                    state={takeProfitState.state}
+                                    onMutated={takeProfitState.refresh}
+                                  />
+                                )}
                               </div>
                             );
                           })}
