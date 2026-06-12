@@ -1366,6 +1366,38 @@ export default function DashboardPage() {
     setRepaySuccessSig(null);
     setRepayPendingFor(loan.loan_pda);
     try {
+      // PRE-FLIGHT: SOL balance check.
+      // The Anchor repay instruction includes a System Program transfer of
+      // `owed_lamports` from the borrower to the lender vault. If the
+      // borrower has less SOL than that + a small reserve for tx fees,
+      // the on-chain tx fails with `InstructionError: [4, Custom(1)]`
+      // (System Program "result with negative lamports"). That error is
+      // technically correct but useless to the user — they have no idea
+      // they're short on SOL. We catch this case ourselves and surface
+      // the exact deficit + a concrete next step.
+      //
+      // Owed estimate: original_amount_lamports is the on-chain owed at
+      // the moment the loan was created. Real on-chain repay_amount
+      // can be a few lamports higher due to interest/rounding. We add a
+      // 0.005 SOL reserve to cover both the tx fee and that small drift.
+      const owedRaw = BigInt(loan.loan.original_amount_lamports ?? "0");
+      const repayLamportsExpected = pct === 100 ? owedRaw : (owedRaw * BigInt(pct)) / 100n;
+      const TX_FEE_RESERVE = 5_000_000n; // 0.005 SOL — priority fee + drift buffer
+      const userBalance = BigInt(await connection.getBalance(publicKey));
+      const needed = repayLamportsExpected + TX_FEE_RESERVE;
+      if (userBalance < needed) {
+        const deficitSol = Number(needed - userBalance) / 1e9;
+        const haveSol = Number(userBalance) / 1e9;
+        const needSol = Number(needed) / 1e9;
+        throw new Error(
+          `Not enough SOL to ${pct === 100 ? "repay this loan" : `partial-repay ${pct}%`}. ` +
+          `You have ${haveSol.toFixed(4)} SOL, need ~${needSol.toFixed(4)} SOL ` +
+          `(${(Number(repayLamportsExpected) / 1e9).toFixed(4)} repay + small reserve for tx fee). ` +
+          `Add ${deficitSol.toFixed(4)} SOL to your wallet and try again. ` +
+          `If you want to repay LESS, pick a smaller % (25/50/75) — that closes the loan partially.`
+        );
+      }
+
       const { PublicKey } = await import("@solana/web3.js");
       const { PROGRAM_ID } = await import("@/lib/solana/constants");
       const programId = loan.program_id ? new PublicKey(loan.program_id) : PROGRAM_ID;
@@ -1425,7 +1457,14 @@ export default function DashboardPage() {
       setRepaySuccessSig(sig);
       forceRefresh();
     } catch (e: unknown) {
-      setRepayError(e instanceof Error ? e.message : String(e));
+      // Translate Anchor's terse "InstructionError [4, Custom 1]" + the
+      // various RPC "insufficient lamports" formats into a clear,
+      // actionable message in the user's own language. The repay flow
+      // gets its own branch in translateTxError so the copy is specific
+      // to "you don't have enough SOL to repay" rather than the generic
+      // "fees" wording for withdraw.
+      const friendly = translateTxError(e, { flow: "repay" });
+      setRepayError(`${friendly.title}: ${friendly.body.split("\n").filter(Boolean).slice(0, 4).join(" — ")}`);
     } finally {
       setRepayPendingFor(null);
     }
