@@ -917,6 +917,14 @@ export default function DashboardPage() {
   } | null>(null);
   const [postBorrowTpBusy, setPostBorrowTpBusy] = useState(false);
   const [postBorrowTpError, setPostBorrowTpError] = useState<string | null>(null);
+  // Pre-borrow take-profit toggle. null = off; a number = arm at this
+  // multiplier automatically the moment the borrow tx confirms. Local
+  // state per page mount; the user re-picks for each borrow.
+  const [autoTakeProfitMultiplier, setAutoTakeProfitMultiplier] = useState<number | null>(null);
+  // After a successful auto-arm we DON'T show the inline post-borrow prompt
+  // (it would be redundant). This flag distinguishes "the auto path armed
+  // it" from "user dismissed and might want to manually pick later".
+  const [autoArmedAfterBorrow, setAutoArmedAfterBorrow] = useState<{ multiplier: number } | null>(null);
   const [borrowError, setBorrowError] = useState<string | null>(null);
   const { sendTransaction, signTransaction, signMessage } = useWallet();
 
@@ -1123,6 +1131,7 @@ export default function DashboardPage() {
     setBorrowError(null);
     setPostBorrowTakeProfit(null);
     setPostBorrowTpError(null);
+    setAutoArmedAfterBorrow(null);
 
     try {
       const uiAmount = Number(holding.amount) / Math.pow(10, holding.decimals);
@@ -1241,14 +1250,45 @@ export default function DashboardPage() {
 
       setBorrowTx(signature);
 
-      // Surface the 1-tap take-profit prompt right after the user sees
-      // their loan funded. chainLoanId is the u64 loan_id derived
-      // client-side during buildBorrowTransaction — it is the SAME id
-      // the bot wrote into loans.loan_id, so we can arm against it.
-      setPostBorrowTakeProfit({
-        chainLoanId: chainLoanId.toString(),
-        collateralSymbol: holding.symbol || "token",
-      });
+      // Pre-borrow toggle path: user pre-selected a multiplier before
+      // clicking borrow. Auto-arm right now without a second click. If
+      // the arm fails we still surface the manual 1-tap prompt below so
+      // the user can retry.
+      let autoArmedOk = false;
+      if (autoTakeProfitMultiplier != null && publicKey && signMessage) {
+        try {
+          const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+          await armTakeProfit({
+            botApiUrl: botApi2,
+            signerPubkey: publicKey.toBase58(),
+            signMessage,
+            request: {
+              from: publicKey.toBase58(),
+              loanIdChain: chainLoanId.toString(),
+              target: { kind: "multiplier", multiplier: autoTakeProfitMultiplier },
+              slippageBps: 200,
+              sellDestination: "sol",
+            },
+          });
+          autoArmedOk = true;
+          setAutoArmedAfterBorrow({ multiplier: autoTakeProfitMultiplier });
+          // Clear the toggle so the next borrow is a clean choice.
+          setAutoTakeProfitMultiplier(null);
+        } catch (err) {
+          console.warn("[borrow] auto take-profit arm failed (fall back to manual prompt):", err);
+        }
+      }
+
+      // Surface the 1-tap take-profit prompt only if the auto path didn't
+      // already arm. chainLoanId is the u64 loan_id derived client-side
+      // during buildBorrowTransaction — same id the bot wrote into
+      // loans.loan_id, so we can arm against it.
+      if (!autoArmedOk) {
+        setPostBorrowTakeProfit({
+          chainLoanId: chainLoanId.toString(),
+          collateralSymbol: holding.symbol || "token",
+        });
+      }
 
       // Safety net: trigger a sync-loan in case cosign-borrow's inline
       // recordLoan hit an RPC blip. cosign-borrow returns the loan_pda
@@ -1279,7 +1319,7 @@ export default function DashboardPage() {
     } finally {
       setBorrowing(false);
     }
-  }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
+  }, [publicKey, connected, connection, sendTransaction, signMessage, autoTakeProfitMultiplier, forceRefresh]);
 
   // Inline post-borrow take-profit arming. Called from the 1-tap prompt
   // rendered right under the "Loan executed" banner. Uses the chain
@@ -2778,6 +2818,35 @@ export default function DashboardPage() {
                                     </div>
                                   )}
 
+                                  {/* Pre-borrow take-profit toggle.
+                                      The user picks a multiplier here BEFORE clicking a tier;
+                                      handleBorrow auto-arms the take-profit the moment the
+                                      borrow tx confirms. Zero extra clicks, one signed message
+                                      total (the borrow + the arm both come from the same wallet
+                                      session). */}
+                                  <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--d-border)] bg-[var(--d-surface)]/40 px-3 py-2">
+                                    <span className="text-[11px] font-semibold text-[var(--d-ink)]">Auto take-profit:</span>
+                                    {[null, 1.5, 2, 3, 5].map((m) => {
+                                      const selected = autoTakeProfitMultiplier === m;
+                                      const label = m === null ? "Off" : `${m}x`;
+                                      return (
+                                        <button
+                                          key={String(m)}
+                                          type="button"
+                                          onClick={() => setAutoTakeProfitMultiplier(m)}
+                                          className={`px-2 py-1 rounded-md text-[10px] font-semibold transition border ${selected ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]" : "border-[var(--d-border)] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]"}`}
+                                        >
+                                          {label}
+                                        </button>
+                                      );
+                                    })}
+                                    {autoTakeProfitMultiplier != null && (
+                                      <span className="text-[10px] text-[var(--d-ink-faint)] ml-auto">
+                                        Will arm at {autoTakeProfitMultiplier}x right after the borrow lands.
+                                      </span>
+                                    )}
+                                  </div>
+
                                   {/* Tier cards */}
                                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     {tiers.map((tier) => {
@@ -2856,6 +2925,12 @@ export default function DashboardPage() {
                                       <div className="text-[11px] text-green-400 leading-relaxed">
                                         <span className="font-semibold">Loan executed!</span> SOL has been sent to your wallet.{" "}
                                         <a href={`https://solscan.io/tx/${borrowTx}`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-medium">View transaction</a>
+                                        {autoArmedAfterBorrow && (
+                                          <>
+                                            {" · "}
+                                            <span className="font-semibold">Take-profit armed at {autoArmedAfterBorrow.multiplier}x.</span>
+                                          </>
+                                        )}
                                       </div>
                                     </div>
                                   )}
