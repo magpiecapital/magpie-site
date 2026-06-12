@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatEst } from "@/lib/time";
 
 interface TallyBody {
   proposal_id: string;
@@ -181,7 +182,7 @@ export function LiveResults({ proposalId, botApiUrl, choices }: LiveResultsProps
 
       <p className="text-[11px] text-white/40">
         Live tally, refreshes every 30s. Aggregate weights only — per-wallet choices
-        stay private. Whale-cap 2% applied. Updated {new Date(tally.computed_at).toUTCString()}.
+        stay private. Whale-cap 2% applied. Updated {formatEst(tally.computed_at)}.
       </p>
     </div>
   );

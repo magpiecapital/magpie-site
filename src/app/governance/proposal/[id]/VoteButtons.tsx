@@ -3,6 +3,7 @@
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useState } from "react";
 import { siteCastVote, type VoteChoice } from "@/lib/solana/site-governance-vote";
+import { formatEst } from "@/lib/time";
 
 interface VoteButtonsProps {
   proposalId: string;
@@ -73,7 +74,7 @@ export function VoteButtons({
   }
 
   if (notYetOpen) {
-    const opensFmt = new Date(opensAt!).toUTCString();
+    const opensFmt = formatEst(new Date(opensAt!));
     return (
       <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
         <p className="text-sm font-medium text-amber-100">
