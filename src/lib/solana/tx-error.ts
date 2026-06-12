@@ -23,11 +23,11 @@ function fmtSol(lamports: bigint | number) {
 
 /**
  * @param raw — the caught error or rpc-returned `r.err` (string OR object)
- * @param ctx — flow context: "deposit" | "withdraw"
+ * @param ctx — flow context shapes the explanation copy
  */
 export function translateTxError(
   raw: unknown,
-  ctx: { flow: "deposit" | "withdraw"; sig?: string } = { flow: "deposit" },
+  ctx: { flow: "deposit" | "withdraw" | "repay"; sig?: string } = { flow: "deposit" },
 ): FriendlyError {
   const flow = ctx.flow;
   const message = raw instanceof Error ? raw.message : (typeof raw === "string" ? raw : JSON.stringify(raw));
@@ -43,9 +43,14 @@ export function translateTxError(
     };
   }
 
-  // 2) Insufficient SOL (most common real failure)
+  // 2) Insufficient SOL (most common real failure).
+  // Pattern coverage: Solana RPC string "insufficient lamports X, need Y",
+  // Anchor "custom program error: 0x1", and the JSON shape rpc-returned
+  // errors take when serialized via JSON.stringify:
+  // {"InstructionError":[N,{"Custom":1}]} from the System Program.
   const insufficientMatch = blob.match(/insufficient lamports\s+(\d+),\s*need\s+(\d+)/i);
-  if (insufficientMatch || /custom program error: 0x1\b/i.test(blob)) {
+  const isSysProgCustom1 = /"InstructionError"\s*:\s*\[\s*\d+\s*,\s*\{\s*"Custom"\s*:\s*1\s*\}/i.test(blob);
+  if (insufficientMatch || /custom program error: 0x1\b/i.test(blob) || isSysProgCustom1) {
     const have = insufficientMatch ? BigInt(insufficientMatch[1]) : null;
     const need = insufficientMatch ? BigInt(insufficientMatch[2]) : null;
     const short = have != null && need != null ? need - have : null;
@@ -59,6 +64,20 @@ export function translateTxError(
           short != null ? `Short by: ${fmtSol(short)} SOL` : "",
           "",
           "Top up your wallet a bit and try again — the extra is just for the network, not for the pool.",
+        ].filter(Boolean).join("\n"),
+      };
+    }
+    if (flow === "repay") {
+      return {
+        title: "Not enough SOL to repay this loan",
+        body: [
+          "Repaying a loan moves SOL from your wallet to the lender vault.",
+          "Your wallet doesn't have enough SOL to cover the full repay + a small network-fee buffer.",
+          have != null ? `Your wallet has: ${fmtSol(have)} SOL` : "",
+          need != null ? `Repay would need: ${fmtSol(need)} SOL` : "",
+          short != null ? `Short by: ${fmtSol(short)} SOL` : "",
+          "",
+          "Two options: (1) add SOL to your wallet and try again, or (2) use a partial-repay (25/50/75%) to chip down the debt without closing the loan.",
         ].filter(Boolean).join("\n"),
       };
     }
