@@ -37,7 +37,7 @@ const PROPOSALS: Record<string, Proposal> = {
     status: "active",
     opens_at_iso: "2026-06-10T20:40:00Z",
     closes_at_iso: "2026-06-13T20:40:00Z",
-    voting_window_human: "Opens 2026-06-10 20:40 UTC · closes 2026-06-13 20:40 UTC (72h)",
+    voting_window_human: "Opens Jun 10, 2026 4:40 PM EDT · closes Jun 13, 2026 4:40 PM EDT (72h)",
     summary:
       "Restructure the loan-fee split so 70% goes to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, and 10% to the protocol reserve. Replaces the current 10% holder share with a holder-first split. Forward-only — distributions already accrued under the old split are not retroactively re-cut.",
     spec_url:
@@ -86,7 +86,7 @@ const PROPOSALS: Record<string, Proposal> = {
     status: "active",
     opens_at_iso: "2026-06-12T00:00:00Z",
     closes_at_iso: "2026-06-15T23:59:59Z",
-    voting_window_human: "Opens 2026-06-12 · closes 2026-06-15 (3 days)",
+    voting_window_human: "Opens Jun 11, 2026 8:00 PM EDT · closes Jun 15, 2026 7:59 PM EDT (3 days)",
     summary:
       "On July 1, 2026 a Streamflow contract holding ~5% of $MAGPIE supply (~50M tokens) unlocks. Five options on the ballot: burn, re-lock 12 months, pro-rata distribution to holders (30-day stream), utility-weighted distribution to protocol users (30-day stream), or hybrid (50% burn + 25% holders + 25% users). Operator commits to honor the winning option. Execution must complete within 14 days of unlock.",
     spec_url:

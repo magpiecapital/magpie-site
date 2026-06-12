@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { MiniLiveResults } from "./MiniLiveResults";
 import { GovernanceCountdown } from "./GovernanceCountdown";
+import { formatEst } from "@/lib/time";
 
 export const metadata = {
   title: "Governance | Magpie",
@@ -153,13 +154,13 @@ function statusSubline(s: ProposalStatus) {
     case "active":
       return (
         <>
-          <GovernanceCountdown targetIso={s.closes_at_iso} label="left" /> · closes {new Date(s.closes_at_iso).toUTCString()}
+          <GovernanceCountdown targetIso={s.closes_at_iso} label="left" /> · closes {formatEst(s.closes_at_iso)}
         </>
       );
     case "draft":
       return s.activates_target_iso ? (
         <>
-          <GovernanceCountdown targetIso={s.activates_target_iso} label="until open" /> · opens {new Date(s.activates_target_iso).toUTCString()}
+          <GovernanceCountdown targetIso={s.activates_target_iso} label="until open" /> · opens {formatEst(s.activates_target_iso)}
         </>
       ) : (
         <>pending operator scope review</>
@@ -167,14 +168,14 @@ function statusSubline(s: ProposalStatus) {
     case "passed":
       return (
         <>
-          closed {new Date(s.closed_at_iso).toUTCString()}
-          {s.executed_at_iso ? ` · executed ${new Date(s.executed_at_iso).toUTCString()}` : " · execution pending"}
+          closed {formatEst(s.closed_at_iso)}
+          {s.executed_at_iso ? ` · executed ${formatEst(s.executed_at_iso)}` : " · execution pending"}
         </>
       );
     case "failed":
-      return <>closed {new Date(s.closed_at_iso).toUTCString()}</>;
+      return <>closed {formatEst(s.closed_at_iso)}</>;
     case "withdrawn":
-      return <>withdrawn {new Date(s.withdrawn_at_iso).toUTCString()}</>;
+      return <>withdrawn {formatEst(s.withdrawn_at_iso)}</>;
   }
 }
 
@@ -343,7 +344,7 @@ export default function GovernancePage() {
             <SectionHeading
               label="Active"
               count={active.length}
-              hint="Open for voting. Closes at the listed UTC time."
+              hint="Open for voting. Closes at the listed Eastern time."
               dotClass="bg-emerald-300"
             />
             <div className="mt-5 space-y-4">
