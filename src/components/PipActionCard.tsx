@@ -67,7 +67,7 @@ export function PipActionCard({
   action: ProposedAction;
   onResult: (msg: string) => void;
 }) {
-  const { publicKey, connected, sendTransaction, signTransaction } = useWallet();
+  const { publicKey, connected, sendTransaction, signTransaction, signMessage } = useWallet();
   const { connection } = useConnection();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -153,6 +153,43 @@ export function PipActionCard({
         return;
       }
 
+      if (action.type === "take_profit") {
+        // Arm flow doesn't build an on-chain tx. We send a signed
+        // Ed25519 envelope to the bot which INSERTs the order. The
+        // user's wallet adapter shows them the magpie-formatted envelope
+        // (collateral, target, slippage) BEFORE they confirm.
+        if (!signMessage) {
+          throw new Error("Your wallet doesn't support signMessage. Try Phantom or Solflare.");
+        }
+        const { armTakeProfit } = await import("@/lib/solana/site-take-profit");
+        const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || DEFAULT_BOT_API;
+        const result = await armTakeProfit({
+          botApiUrl: botApi,
+          signerPubkey: publicKey.toBase58(),
+          signMessage,
+          request: {
+            from: publicKey.toBase58(),
+            loanIdChain: action.loan_id,
+            target: action.multiplier != null
+              ? { kind: "multiplier", multiplier: action.multiplier }
+              : action.target_usd != null
+                ? { kind: "price_usd", usd: action.target_usd }
+                : { kind: "multiplier", multiplier: 2 },
+            slippageBps: action.slippage_bps,
+            sellDestination: action.sell_destination,
+            expire: action.order_expire || undefined,
+          },
+        });
+        setDoneSig(`order-${result.order_id}`);
+        const targetStr = result.target_usd
+          ? `$${result.target_usd < 0.01 ? result.target_usd.toFixed(8) : result.target_usd.toFixed(6)}`
+          : `${result.multiplier}×`;
+        onResult(
+          `✅ Take-profit armed for ${result.collateral_symbol ?? "your collateral"} at ${targetStr} (slip ${(result.slippage_bps / 100).toFixed(1)}%) · order #${result.order_id}`,
+        );
+        return;
+      }
+
       if (action.type === "partial_repay") {
         const { PublicKey } = await import("@solana/web3.js");
         const { buildPartialRepayTransaction } = await import("@/lib/solana/partial-repay");
@@ -225,7 +262,7 @@ export function PipActionCard({
     } finally {
       setBusy(false);
     }
-  }, [publicKey, connected, sendTransaction, signTransaction, connection, action, onResult, expired]);
+  }, [publicKey, connected, sendTransaction, signTransaction, signMessage, connection, action, onResult, expired]);
 
   // ── REPAY card ─────────────────────────────────────────────────
   if (action.type === "repay") {
@@ -347,6 +384,45 @@ export function PipActionCard({
           error={error}
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Sign & Pay down"}
           successVerb="Loan paid down"
+          onClick={handleSign}
+        />
+      </HeroCard>
+    );
+  }
+
+  // ── TAKE-PROFIT card ───────────────────────────────────────────
+  if (action.type === "take_profit") {
+    const targetStr =
+      action.target_usd != null
+        ? `$${action.target_usd < 0.01 ? action.target_usd.toFixed(8) : action.target_usd.toFixed(6)}/token`
+        : action.multiplier != null
+          ? `${action.multiplier}× current`
+          : "target";
+    const currentStr =
+      action.current_usd != null
+        ? `$${action.current_usd < 0.01 ? action.current_usd.toFixed(8) : action.current_usd.toFixed(6)}`
+        : null;
+    const symbol = action.collateral_symbol ?? "collateral";
+    return (
+      <HeroCard
+        title={`Take-profit on ${symbol}`}
+        kind="auto-sell"
+        heroLabel="Sell when"
+        heroValue={targetStr}
+        heroSub={currentStr ? `Currently ${currentStr}` : undefined}
+        reward={{ label: "Proceeds", value: action.sell_destination.toUpperCase() }}
+        meta={[
+          { label: "Slippage cap", value: `${(action.slippage_bps / 100).toFixed(1)}%` },
+          { label: "Order expiry", value: action.order_expire ?? "—" },
+        ]}
+      >
+        <Footer
+          busy={busy}
+          expired={expired}
+          doneSig={doneSig}
+          error={error}
+          buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Arm take-profit"}
+          successVerb="Take-profit armed"
           onClick={handleSign}
         />
       </HeroCard>

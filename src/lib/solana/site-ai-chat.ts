@@ -104,12 +104,37 @@ export interface ProposedPartialRepayAction {
   expires_at: number;
 }
 
+/**
+ * Take-profit (limit-close) arm proposal. Rendered as a Pip card with
+ * an "Arm take-profit" button — user signs the magpie: limit-close-arm/v1
+ * envelope via their wallet adapter.
+ */
+export interface ProposedTakeProfitAction {
+  type: "take_profit";
+  loan_id: string;
+  collateral_symbol: string | null;
+  // Pip's resolved target. The site re-resolves the multiplier just
+  // before arming (so the "current price" is fresh at sign time) —
+  // these fields are for display only.
+  multiplier: number | null;
+  current_usd: number | null;
+  target_usd: number | null;
+  slippage_bps: number;
+  sell_destination: "sol" | "usdc";
+  // expires_at on the proposal envelope (Pip's offer freshness) —
+  // distinct from any take-profit ORDER expiry.
+  expires_at: number;
+  // Optional order-expiry (passed through to the arm envelope's Expire field)
+  order_expire: string | null;
+}
+
 export type ProposedAction =
   | ProposedRepayAction
   | ProposedBorrowAction
   | ProposedTopupAction
   | ProposedExtendAction
-  | ProposedPartialRepayAction;
+  | ProposedPartialRepayAction
+  | ProposedTakeProfitAction;
 
 export interface AiChatResult {
   response: string;
