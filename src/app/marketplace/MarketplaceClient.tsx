@@ -52,33 +52,33 @@ function buildSteps(tokenCount: number) {
   return [
   {
     num: "1",
-    title: "Open the Telegram bot",
-    desc: "Start a chat with @magpie_capital_bot. Connect your Solana wallet when prompted.",
-    cmd: "/start",
+    title: "Open the dashboard",
+    desc: "Go to magpie.capital/dashboard and connect your wallet — or just ask Pip (the chat helper on every page) to start a loan for you.",
+    cmd: null,
   },
   {
     num: "2",
-    title: "Choose your collateral",
-    desc: `Pick from ${tokenCount} approved tokens. The bot shows your eligible tokens and their current value automatically.`,
-    cmd: "/borrow",
+    title: "Pick your collateral",
+    desc: `Your dashboard shows every supported holding in your wallet — pick from ${tokenCount} approved tokens. Live USD price, tier-aware caps, and exact SOL you'll receive — all visible before you commit.`,
+    cmd: null,
   },
   {
     num: "3",
     title: "Select a loan tier",
-    desc: "Express (30% LTV, 2 days), Quick (25%, 3 days), or Standard (20%, 7 days). You'll see the exact SOL you'll receive before confirming.",
+    desc: "Express (30% LTV, 2 days), Quick (25%, 3 days), or Standard (20%, 7 days) — memecoins. Tokenized stocks unlock higher LTVs and longer 15–30 day terms. The dashboard shows your exact payout before you confirm.",
     cmd: null,
   },
   {
     num: "4",
-    title: "Receive SOL instantly",
-    desc: "Confirm the transaction in your wallet. SOL is deposited to your wallet in seconds. An origination fee (1.5–3% depending on tier) is deducted upfront.",
+    title: "Sign and receive SOL",
+    desc: "Approve the transaction in your wallet. SOL lands in seconds. A 1.5–3% origination fee is deducted upfront depending on tier (RWA tiers have their own fee schedule).",
     cmd: null,
   },
   {
     num: "5",
     title: "Repay and get your tokens back",
-    desc: "Repay the loan amount before the term ends. Your collateral is returned immediately. On-time repayment builds your credit score.",
-    cmd: "/repay",
+    desc: "Repay from the dashboard before the term ends. Your collateral is returned the same instant. On-time repayment builds your on-chain credit score and unlocks better tiers next time.",
+    cmd: null,
   },
 ];
 }
@@ -196,20 +196,31 @@ export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
             Borrow SOL against<br className="hidden sm:block" /> your bags.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-[var(--ink-soft)]">
-            Magpie lends you SOL instantly. Deposit your memecoins as collateral, pick a loan tier,
-            and receive SOL in seconds — from the dashboard or a Telegram chat. No counterparty risk, no middlemen.
+            Magpie lends you SOL instantly. Deposit memecoins or tokenized stocks as collateral, pick a loan tier, and receive SOL in seconds &mdash; right from your dashboard. Prefer chat? The Telegram bot does the same job. No counterparty risk, no middlemen.
           </p>
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-7 py-3.5 text-base font-semibold text-[var(--accent-ink,#0a0a0a)] transition hover:bg-[var(--accent-hover,#e6b830)]"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="9" rx="1.5" />
+                <rect x="14" y="3" width="7" height="5" rx="1.5" />
+                <rect x="14" y="12" width="7" height="9" rx="1.5" />
+                <rect x="3" y="16" width="7" height="5" rx="1.5" />
+              </svg>
+              Open the dashboard
+            </Link>
             <a
               href={TELEGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-2xl bg-[var(--accent)] px-7 py-3.5 text-base font-semibold text-[var(--accent-ink,#0a0a0a)] transition hover:bg-[var(--accent-hover,#e6b830)]"
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--hairline-strong)] px-5 py-3 text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)] hover:border-[var(--accent)]"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.95 7.17l-1.95 9.2c-.15.67-.54.83-1.09.52l-3.02-2.22-1.46 1.4c-.16.16-.3.3-.61.3l.22-3.06 5.58-5.04c.24-.22-.05-.34-.38-.13l-6.9 4.34-2.97-.93c-.65-.2-.66-.65.13-.96l11.6-4.47c.54-.2 1.01.13.85.95z" />
               </svg>
-              Start borrowing
+              Or use Telegram
             </a>
             <a
               href="#how"
@@ -322,7 +333,7 @@ export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
             How to request a loan
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-center text-[var(--ink-soft)]">
-            Five steps, under a minute. Walk through them in the Telegram bot or the dashboard — same on-chain program.
+            Five steps, under a minute. Run it all from the dashboard &mdash; or use the Telegram bot if you prefer chat. Same on-chain program either way.
           </p>
 
           <div className="mt-10 grid grid-cols-1 items-start gap-10 lg:grid-cols-2 lg:gap-14">
@@ -446,8 +457,7 @@ export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
             Ready to borrow?
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-[var(--ink-soft)]">
-            Connect your wallet on the dashboard or open the Telegram bot, and get SOL in under a minute.
-            Your memecoins stay on-chain as collateral until you repay.
+            Connect your wallet on the dashboard &mdash; or chat with Pip / the Telegram bot if you&rsquo;d rather not click. SOL in your wallet in under a minute. Your memecoins or tokenized stocks stay on-chain as collateral until you repay.
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link

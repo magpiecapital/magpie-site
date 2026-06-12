@@ -597,14 +597,19 @@ export default function TokensClient() {
                           </svg>
                           Chart
                         </a>
-                        <a
-                          href={TELEGRAM_URL}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        {/* Operator direction (2026-06-12): site is the
+                            primary borrowing surface; TG stays as ancillary.
+                            "Borrow" goes to the Dashboard with the chosen
+                            token preselected — connecting a wallet there
+                            shows live holdings, tier-aware caps, and the
+                            full borrow flow without dropping the user out
+                            to Telegram. */}
+                        <Link
+                          href={`/dashboard?borrow=${t.mint}`}
                           className="inline-flex items-center rounded-lg bg-[var(--accent)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-ink)] transition hover:brightness-110"
                         >
                           Borrow
-                        </a>
+                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -896,11 +901,19 @@ function SubmitResultCard({ result, onReset }: { result: SubmitResult; onReset: 
           <Stat label="Age" value={`${result.ageHours ?? 0}h`} />
         </div>
         <p className="text-sm text-[var(--accent-deep)] font-medium">
-          This token is now live as collateral. You can borrow against it immediately on Telegram.
+          This token is now live as collateral. Open the dashboard to borrow against it &mdash; or use Telegram if you&rsquo;d rather chat.
         </p>
-        <button onClick={onReset} className="mt-4 text-sm font-medium text-[var(--accent)] underline underline-offset-2">
-          Submit another
-        </button>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <Link href={`/dashboard?borrow=${result.mint ?? ""}`} className="rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-ink)] transition hover:brightness-110">
+            Borrow on the dashboard &rarr;
+          </Link>
+          <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-xs font-medium text-[var(--ink-soft)] underline underline-offset-2 hover:text-[var(--ink)]">
+            Or use Telegram
+          </a>
+          <button onClick={onReset} className="ml-auto text-xs font-medium text-[var(--accent)] underline underline-offset-2">
+            Submit another
+          </button>
+        </div>
       </div>
     );
   }
