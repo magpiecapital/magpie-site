@@ -17,6 +17,7 @@ import PrefsPanel from "./PrefsPanel";
 import SiteStatusBanner from "./SiteStatusBanner";
 import { ApiHealthBanner } from "@/components/ApiHealthBanner";
 import { TakeProfitCard, useTakeProfitState } from "./TakeProfitCard";
+import { armTakeProfit } from "@/lib/solana/site-take-profit";
 import { DashboardProvider } from "./DashboardContext";
 
 // Below-the-fold widgets are dynamically imported so the initial
@@ -906,8 +907,18 @@ export default function DashboardPage() {
   // ── Borrow state ──
   const [borrowing, setBorrowing] = useState(false);
   const [borrowTx, setBorrowTx] = useState<string | null>(null);
+  // After a successful borrow, surface a 1-tap "lock in upside" prompt
+  // so the user can arm an autonomous take-profit immediately while
+  // they're already at the dashboard. Cleared on borrow start AND on
+  // explicit dismiss.
+  const [postBorrowTakeProfit, setPostBorrowTakeProfit] = useState<{
+    chainLoanId: string;
+    collateralSymbol: string;
+  } | null>(null);
+  const [postBorrowTpBusy, setPostBorrowTpBusy] = useState(false);
+  const [postBorrowTpError, setPostBorrowTpError] = useState<string | null>(null);
   const [borrowError, setBorrowError] = useState<string | null>(null);
-  const { sendTransaction, signTransaction } = useWallet();
+  const { sendTransaction, signTransaction, signMessage } = useWallet();
 
   // Site-repay / extend / topup are now the default — always render the
   // action buttons. The feature flag is retired (kept as a constant
@@ -1110,6 +1121,8 @@ export default function DashboardPage() {
     setBorrowing(true);
     setBorrowTx(null);
     setBorrowError(null);
+    setPostBorrowTakeProfit(null);
+    setPostBorrowTpError(null);
 
     try {
       const uiAmount = Number(holding.amount) / Math.pow(10, holding.decimals);
@@ -1160,7 +1173,7 @@ export default function DashboardPage() {
         console.warn("[borrow] price refresh failed (proceeding):", (refreshErr as Error).message);
       }
 
-      const { transaction } = await buildBorrowTransaction({
+      const { transaction, loanId: chainLoanId } = await buildBorrowTransaction({
         borrower: publicKey,
         collateralMint: holding.mint,
         collateralAmountRaw,
@@ -1228,6 +1241,15 @@ export default function DashboardPage() {
 
       setBorrowTx(signature);
 
+      // Surface the 1-tap take-profit prompt right after the user sees
+      // their loan funded. chainLoanId is the u64 loan_id derived
+      // client-side during buildBorrowTransaction — it is the SAME id
+      // the bot wrote into loans.loan_id, so we can arm against it.
+      setPostBorrowTakeProfit({
+        chainLoanId: chainLoanId.toString(),
+        collateralSymbol: holding.symbol || "token",
+      });
+
       // Safety net: trigger a sync-loan in case cosign-borrow's inline
       // recordLoan hit an RPC blip. cosign-borrow returns the loan_pda
       // in its response specifically so we can do this. Fail-soft.
@@ -1258,6 +1280,40 @@ export default function DashboardPage() {
       setBorrowing(false);
     }
   }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
+
+  // Inline post-borrow take-profit arming. Called from the 1-tap prompt
+  // rendered right under the "Loan executed" banner. Uses the chain
+  // loan_id the site already knows from buildBorrowTransaction — no
+  // need to wait for the bot to sync the new loan.
+  const armPostBorrowTakeProfit = useCallback(
+    async (multiplier: number) => {
+      if (!publicKey || !signMessage || !postBorrowTakeProfit) return;
+      setPostBorrowTpBusy(true);
+      setPostBorrowTpError(null);
+      try {
+        const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+        await armTakeProfit({
+          botApiUrl: botApi,
+          signerPubkey: publicKey.toBase58(),
+          signMessage,
+          request: {
+            from: publicKey.toBase58(),
+            loanIdChain: postBorrowTakeProfit.chainLoanId,
+            target: { kind: "multiplier", multiplier },
+            slippageBps: 200,
+            sellDestination: "sol",
+          },
+        });
+        setPostBorrowTakeProfit(null);
+        forceRefresh();
+      } catch (err) {
+        setPostBorrowTpError((err as Error).message || "Could not arm take-profit");
+      } finally {
+        setPostBorrowTpBusy(false);
+      }
+    },
+    [publicKey, signMessage, postBorrowTakeProfit, forceRefresh],
+  );
 
   // Site-repay handler. Routes to full or partial repay based on repayPct.
   // 100% → buildRepayTransaction (closes loan, collateral returns).
@@ -2807,6 +2863,48 @@ export default function DashboardPage() {
                                     <div className="mt-4 flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2.5">
                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10" /><line x1="15" y1="9" x2="9" y2="15" /><line x1="9" y1="9" x2="15" y2="15" /></svg>
                                       <p className="text-[11px] text-red-400 leading-relaxed">{borrowError}</p>
+                                    </div>
+                                  )}
+
+                                  {/* Post-borrow take-profit prompt — appears right after a successful
+                                      borrow so the user can lock in upside in one tap, without leaving
+                                      the dashboard. Matches the mental model: "I want SOL now AND if it
+                                      moons to 2x/4x I want to lock that in — without babysitting a chart." */}
+                                  {postBorrowTakeProfit && borrowTx && (
+                                    <div className="mt-3 rounded-lg border border-[var(--d-border)] bg-[var(--d-surface)]/60 px-3 py-3">
+                                      <div className="flex items-start gap-2">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--d-ink-faint)" strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-0.5"><path d="M12 2v20M2 12h20" /></svg>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-[11px] text-[var(--d-ink)] font-semibold">Lock in upside?</div>
+                                          <div className="text-[10px] text-[var(--d-ink-faint)] mt-0.5 leading-relaxed">
+                                            Auto-close + sell {postBorrowTakeProfit.collateralSymbol} if it hits your target.
+                                          </div>
+                                          <div className="mt-2 flex flex-wrap gap-1.5">
+                                            {[1.5, 2, 3, 5].map((m) => (
+                                              <button
+                                                key={m}
+                                                type="button"
+                                                disabled={postBorrowTpBusy}
+                                                onClick={() => armPostBorrowTakeProfit(m)}
+                                                className="px-2.5 py-1 rounded-md border border-[var(--d-border)] text-[10px] font-semibold hover:bg-[var(--d-surface)] disabled:opacity-50"
+                                              >
+                                                {postBorrowTpBusy ? "Signing..." : `Sell at ${m}x`}
+                                              </button>
+                                            ))}
+                                            <button
+                                              type="button"
+                                              disabled={postBorrowTpBusy}
+                                              onClick={() => { setPostBorrowTakeProfit(null); setPostBorrowTpError(null); }}
+                                              className="px-2.5 py-1 rounded-md text-[10px] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)] disabled:opacity-50"
+                                            >
+                                              No thanks
+                                            </button>
+                                          </div>
+                                          {postBorrowTpError && (
+                                            <p className="mt-2 text-[10px] text-red-400 leading-relaxed">{postBorrowTpError}</p>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
                                   )}
 
