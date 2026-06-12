@@ -885,6 +885,13 @@ export default function DashboardPage() {
     } | null;
   };
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
+  // Cumulative credit-event points across the user's ENTIRE history.
+  // Sourced from the bot's /api/v1/activity total_points field, which
+  // sums credit_events.score_delta server-side. We can't compute this
+  // from `activity` on the client because activity is limit-paged (30
+  // events default) — clients with more lifetime activity would see
+  // a lower total than reality. The bot's SUM is the source of truth.
+  const [lifetimePoints, setLifetimePoints] = useState<number>(0);
 
   // ── Borrow state ──
   const [borrowing, setBorrowing] = useState(false);
@@ -1553,13 +1560,20 @@ export default function DashboardPage() {
   // 0, and the old inline activity section showed "No activity yet"
   // even when the user had real on-chain history.
   useEffect(() => {
-    if (!connected || !publicKey) { setActivity([]); return; }
+    if (!connected || !publicKey) { setActivity([]); setLifetimePoints(0); return; }
     let cancelled = false;
     const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
     const fetchActivity = () => {
       fetch(`${botApi}/api/v1/activity?wallet=${publicKey.toBase58()}`)
         .then(r => r.json())
-        .then(d => { if (!cancelled && d.ok) setActivity(d.events ?? []); })
+        .then(d => {
+          if (!cancelled && d.ok) {
+            setActivity(d.events ?? []);
+            // Use the bot's cumulative total (server-side SUM across
+            // entire history) instead of summing limited paged events.
+            if (typeof d.total_points === "number") setLifetimePoints(d.total_points);
+          }
+        })
         .catch(() => { /* keep last good */ });
     };
     fetchActivity();
@@ -1616,11 +1630,17 @@ export default function DashboardPage() {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
-  // Total points = net sum of all credit-event deltas (repay_ontime +15,
-  // repay_early +20, borrow +3, topup +8, etc. — and liquidations subtract).
-  // Computed from the live activity feed so it updates the same tick as
-  // the activity entries appear.
-  const totalPoints = activity.reduce((sum, e) => sum + (e.score_delta || 0), 0);
+  // Total points = cumulative sum of credit-event deltas across the
+  // user's ENTIRE history (repay_ontime +15, repay_early +20, borrow +3,
+  // topup +8, liquidations subtract -40, etc).
+  //
+  // CHANGED 2026-06-12: previously computed from the paged `activity`
+  // array via reduce(), which silently under-counted users with > 30
+  // lifetime events. The bot's /api/v1/activity now returns a
+  // server-side SUM in `total_points` — we use that directly so a
+  // user who's done 50 borrows + 50 repays sees the correct ~1000
+  // points instead of ~600 (only last 30 counted).
+  const totalPoints = lifetimePoints;
   const animatedPoints = useAnimatedCounter(mounted ? totalPoints : 0);
 
   // Credit display values
