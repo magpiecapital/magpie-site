@@ -170,7 +170,7 @@ interface EligibleHolding extends TokenHolding {
 // Nav keys include SectionKey (toggleable user-pref sections) plus a
 // couple of fixed keys: "overview" (always shown) and "activity" (anchor
 // only — the activity feed is always-on for linked users).
-type NavItem = { key: SectionKey | "overview" | "activity"; label: string; icon: React.ReactNode };
+type NavItem = { key: SectionKey | "overview" | "activity" | "governance"; label: string; icon: React.ReactNode };
 
 const NAV_ITEMS: NavItem[] = [
   {
@@ -224,6 +224,19 @@ const NAV_ITEMS: NavItem[] = [
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+      </svg>
+    ),
+  },
+  // Governance — operator-flagged that voting was hard to find. Sits
+  // last in the section nav so users see Loans / Credit / Holdings
+  // first but can still get to active proposals in one click.
+  {
+    key: "governance",
+    label: "Governance",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2 L4 6 L4 13 C4 17 7 20 12 22 C17 20 20 17 20 13 L20 6 Z" />
+        <path d="M9 12 L11 14 L15 10" />
       </svg>
     ),
   },
@@ -2402,18 +2415,14 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* Unified activity feed for linked users. The wrapping
-                    div carries the section-activity anchor so the side
-                    nav's "Activity" entry scrolls here (the inline
-                    duplicate that previously owned this anchor was
-                    removed). */}
-                {connected && publicKey && (
-                  <div id="section-activity">
-                    <ActivityFeed
-                      botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
-                    />
-                  </div>
-                )}
+                {/* Activity moved to the right column (below the
+                    $MAGPIE Holders card) per operator-stated layout —
+                    Active Loans is the main thing the user came to do;
+                    the Activity feed is reference info that belongs
+                    alongside the credit / holders / lp stack on the
+                    right. The section-activity anchor still resolves
+                    in the side nav because the moved element retains
+                    the same id. */}
 
                 {/* Earnings summary (referrals + holder + LP yield) —
                     hides if user has zero across all three. */}
@@ -3148,16 +3157,23 @@ export default function DashboardPage() {
                     )}
                   </div>
                 )}
-                {/* Governance — surfaces active proposals with this wallet's
-                    voting weight + quick cast-vote link. Hides when no
-                    proposals are active or user not connected. */}
-                {connected && publicKey && <GovernanceCard />}
-
                 {/* Holder Distribution — shows the connected wallet's
                     expected SOL for the current/upcoming distribution
                     round + the tx link once sent. Hides if wallet not
-                    in the active distribution. */}
+                    in the active distribution. Sits ABOVE Governance
+                    per operator-stated layout order. */}
                 {connected && publicKey && <DistributionCard />}
+
+                {/* Governance — last in the left column so it anchors
+                    the bottom of the main thread. Surfaces active
+                    proposals with this wallet's voting weight + quick
+                    cast-vote link. id="section-governance" so the side
+                    nav scrolls here. */}
+                {connected && publicKey && (
+                  <div id="section-governance">
+                    <GovernanceCard />
+                  </div>
+                )}
 
               </div>
               </DashboardProvider>
@@ -3259,6 +3275,18 @@ export default function DashboardPage() {
                     How holder rewards work &rarr;
                   </Link>
                 </div>
+
+                {/* Activity feed — moved here from the left column per
+                    operator-stated layout. The side nav's "Activity"
+                    entry scrolls to this same id so the link still
+                    works without changes. */}
+                {connected && publicKey && (
+                  <div id="section-activity">
+                    <ActivityFeed
+                      botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    />
+                  </div>
+                )}
 
 {/* LP POSITION CARD — Top of right column so LPs see their position first */}
                 <div id="section-lp" className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-5">
