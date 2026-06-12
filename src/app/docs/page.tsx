@@ -26,6 +26,7 @@ const SECTIONS = [
   { id: "wallet-model", label: "Wallet Model" },
   { id: "supported-tokens", label: "Supported Tokens" },
   { id: "api-integration", label: "API & Integration" },
+  { id: "agents-x402", label: "Agents & x402" },
   { id: "governance", label: "Governance" },
 ];
 
@@ -588,6 +589,132 @@ export default async function DocsPage() {
        → Jupiter API: reprice collateral
        → If health < 1.1x → Anchor: liquidate
        → Telegram: alert user`}</CodeBlock>
+          </Section>
+
+          {/* ─── Agents & x402 ─── */}
+          <Section id="agents-x402" title="Agents & x402" chip="Programmatic">
+            <P>
+              Magpie exposes a paid agent surface for autonomous take-profit
+              orders. Agents (other on-chain programs, bots, or AI orchestrators)
+              can arm a take-profit on a borrower&apos;s loan after that borrower
+              explicitly delegates the capability via a signed delegation record.
+              The delegation is bounded &mdash; agents cannot widen slippage past
+              the borrower&apos;s stated max, cannot extend the agreed expiry,
+              cannot fire on a loan that wasn&apos;t named.
+            </P>
+
+            <H3>Delegation model</H3>
+            <P>
+              Before any agent can arm an order, the borrower writes an
+              <code className="mx-1 rounded bg-[var(--surface)] px-1 font-mono text-[12px]">agent_delegations</code>
+              row signing over the agent&apos;s public key, the maximum slippage
+              the agent is allowed to request, and an expiry. The bot
+              re-verifies that signature server-side and refuses to accept any
+              arm request from an agent without a valid, unexpired delegation.
+            </P>
+            <Table
+              headers={["Field", "Bounds", "Enforced by"]}
+              rows={[
+                ["agent_pubkey", "Ed25519 public key (32 bytes)", "Borrower signature over delegation"],
+                ["max_slippage_bps", "10..5000 (0.1% to 50%)", "Server-side CHECK + arm gate"],
+                ["expires_at", "ISO timestamp, up to 1 year out", "Arm gate rejects expired delegations"],
+                ["sell_destination", "sol or usdc (frozen at delegate time)", "Engine reads from delegation, not agent payload"],
+              ]}
+            />
+
+            <H3>Signed envelopes</H3>
+            <P>
+              Every arm and cancel request carries an Ed25519 signature over a
+              canonical envelope, with an action-bound header so an arm
+              signature cannot be replayed against the cancel endpoint and
+              vice versa. Replay window is bounded to 5 minutes from the
+              client clock; a 10s per-(agent, action) rate limit further
+              blocks burst replays.
+            </P>
+            <CodeBlock>{`POST /api/v1/internal-agent-limitclose
+
+Headers:
+  Content-Type: application/json
+  x402-version: 1
+  x-magpie-action: magpie: limit-close-arm/v1   ← action binding (REQUIRED)
+
+Body (canonical JSON, no extra whitespace):
+{
+  "from": "<agent_pubkey_base58>",
+  "issued_at": "<RFC3339 ISO timestamp>",
+  "borrower": "<borrower_wallet_base58>",
+  "loan_id_chain": "<u64 string>",
+  "target": {
+    "kind": "multiplier" | "price_usd" | "mc_usd",
+    "multiplier": 2,                      ← or
+    "price_usd_micro": "5000",            ← or
+    "mc_usd_micro": "150000000"
+  },
+  "slippage_bps": 200,
+  "signature_base58": "<sig over (action_header || canonical_body)>"
+}`}</CodeBlock>
+
+            <H3>Endpoints</H3>
+            <Table
+              headers={["Action", "Endpoint", "Action header"]}
+              rows={[
+                ["Arm", "POST /api/v1/internal-agent-limitclose", "magpie: limit-close-arm/v1"],
+                ["Cancel", "DELETE /api/v1/internal-agent-limitclose/:order_id", "magpie: limit-close-cancel/v1"],
+                ["List own armed orders", "GET /api/v1/agent/orders?agent_pubkey=...", "magpie: agent-orders-list/v1"],
+              ]}
+            />
+
+            <H3>Pricing (x402)</H3>
+            <P>
+              Arming a take-profit costs 0.001 SOL paid through an x402 receipt
+              attached to the request. The arm is rejected if the receipt is
+              invalid, double-spent, or insufficient. List + cancel are free
+              (delegation already paid for the relationship).
+            </P>
+
+            <H3>Fill-guarantee stack</H3>
+            <P>
+              The same five-layer execution stack as human-armed orders applies
+              to agent-armed orders. The borrower is the on-chain signer either
+              way; the agent is the dispatcher.
+            </P>
+            <Table
+              headers={["Layer", "Behavior"]}
+              rows={[
+                ["1. Initial slippage", "Starts at agent-requested value (must be <= delegation max)"],
+                ["2. Auto-escalation", "1.5x per revert toward delegation max (the cap, never above)"],
+                ["3. TWAP fallback", "If single-block won't fit at cap, slice into 4 chunks over ~2 min"],
+                ["4. Borrower intervention", "If layers 1-3 fail, the borrower (NOT the agent) gets a Telegram DM with Allow / Wait / Cancel — agents cannot widen the cap, only the borrower can"],
+                ["5. SOL reserve top-up", "Engine front-funds the borrower wallet with ~0.03 SOL for tx fees if low, reclaimed at settlement"],
+              ]}
+            />
+
+            <H3>Error codes</H3>
+            <Table
+              headers={["Code", "Cause", "Recovery"]}
+              rows={[
+                ["invalid_delegation_signature", "Delegation signature doesn't match", "Re-write delegation; agent may have rotated keys"],
+                ["delegation_expired", "Expiry passed", "Borrower re-issues delegation"],
+                ["delegation_not_found", "No delegation for this agent + borrower pair", "Borrower must write delegation first"],
+                ["slippage_exceeds_delegation_max", "Agent asked for > delegation cap", "Reduce slippage_bps or have borrower widen max"],
+                ["invalid_signature", "Envelope signature doesn't verify", "Check canonical-JSON encoding + action header"],
+                ["envelope_replayed_or_stale", "issued_at older than 5 min or signature seen before", "Re-sign with fresh timestamp"],
+                ["loan_not_found_for_borrower", "Loan id doesn't belong to the borrower in the delegation", "Confirm borrower owns the loan"],
+                ["loan_already_has_active_order", "An order is already armed on this loan", "Cancel existing first"],
+                ["preflight_insufficient_liquidity", "Even at delegation max, no Jupiter route clears the loan + fee", "Wait for deeper liquidity or have borrower repay manually"],
+                ["x402_receipt_invalid", "Payment receipt missing, malformed, or replayed", "Attach fresh valid receipt"],
+              ]}
+            />
+
+            <H3>Intervention semantics for agents</H3>
+            <P>
+              When an order enters Layer 4 (the borrower-decision DM), the
+              agent does not get a callback. The borrower&apos;s response is
+              authoritative: Allow widens the cap one-shot for that order
+              only, Wait pauses for 15 minutes, Cancel terminates the order.
+              Agents can poll the order status endpoint to learn the outcome
+              and re-arm on a new loan if appropriate.
+            </P>
           </Section>
 
           {/* ─── Governance ─── */}
