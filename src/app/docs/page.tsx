@@ -316,6 +316,48 @@ export default async function DocsPage() {
               in SOL. At Standard tier (1.5%), the fee is $4.50, so the user receives $295.50 in SOL.
               At Express tier (3%), the fee would be $9.00, netting $291.00. Extending once costs the same tier fee.
             </Callout>
+
+            <H3>Where the fees go (MGP-001 ratified)</H3>
+            <P>
+              Every loan origination + extension fee enters a four-channel split that the
+              community voted in via MGP-001. The split is enforced live in the bot&apos;s
+              fee accrual code and visible on /stats:
+            </P>
+            <Table
+              headers={["Channel", "Share", "Mechanism"]}
+              rows={[
+                ["$MAGPIE holders",   "70%", "Accrues to a holder pool; distributed periodically by snapshot of on-chain balances."],
+                ["SOL LPs",           "10%", "Accrues to LP loyalty pool; weighted by time-of-deposit so flippers earn near-zero."],
+                ["Referrers",         "10%", "Accrues per referred borrower; users claim via /claim on demand."],
+                ["Protocol reserve",  "10%", "Counter-cyclical buffer — covers bad-debt, emergency fixes, lender backstop. Spend is manual + governance-visible."],
+              ]}
+            />
+
+            <H3>Distribution flow (and why one wallet appears on Bubblemaps)</H3>
+            <P>
+              The $MAGPIE holder share is distributed via on-chain SOL transfers from a
+              protocol-owned <em>distributor wallet</em>. The wallet is funded by the
+              protocol&apos;s lender authority each snapshot, then broadcasts pro-rata SOL
+              to every eligible holder. The cadence is intentionally random within a 5-10
+              day window per snapshot so mercenary holders cannot time
+              buy-just-before / dump-just-after a distribution.
+            </P>
+            <P>
+              On Bubblemaps and similar concentration tools, this distributor wallet shows
+              up as a hub with many recipients — at a glance, that can read as
+              &ldquo;one entity controls X% of the graph.&rdquo;{" "}
+              <strong>It does not.</strong> The distributor wallet holds zero $MAGPIE, has
+              no token authority, and is purely a passthrough for fee revenue accruing to
+              existing holders.
+            </P>
+            <Callout>
+              <strong>How to verify:</strong>{" "}
+              the distributor wallet&apos;s SPL token balance for $MAGPIE is always zero
+              (anyone can check on Solscan). The cluster Bubblemaps draws is the
+              receiver-graph for one or more snapshot distributions — NOT a token-supply
+              concentration. Live accruing + distributed totals on{" "}
+              <a href="/stats" className="underline">/stats</a>.
+            </Callout>
           </Section>
 
           {/* ─── Credit System ─── */}
