@@ -39,6 +39,8 @@
 
 import { NextResponse } from "next/server";
 import { runTgOutageProtection } from "@/lib/fallback/tg-outage-protection";
+import { getPool, ensureSchema } from "@/lib/fallback/tg-outage-state";
+import { markBotHealthy, tryAutoRestart } from "@/lib/fallback/railway-restart";
 
 const DEFAULT_HEALTH_URL =
   "https://magpie-bot-production.up.railway.app/api/v1/health";
@@ -154,8 +156,13 @@ export async function GET(req: Request) {
   }));
 
   if (ping.ok) {
-    // Bot reachable — nothing to alert about. Return the status for
-    // debugging via the Vercel logs.
+    // Bot reachable — record the success in bot_health_marker so the
+    // backup-generator's "healthy-recently" gate has a fresh
+    // observation. Best-effort; failures don't degrade the watchdog.
+    try {
+      await ensureSchema();
+      await markBotHealthy(getPool());
+    } catch { /* non-fatal */ }
     return NextResponse.json({
       ok: true,
       bot_status: ping.status,
@@ -165,14 +172,43 @@ export async function GET(req: Request) {
     });
   }
 
-  // Bot UNREACHABLE — page the operator.
+  // ── Bot UNREACHABLE — page the operator AND attempt auto-restart ──
+  //
+  // Auto-restart only fires when the runTgOutageProtection step has
+  // already created/updated an outage row (so we have an outageId
+  // and consecutive_failures to pass in). On the very first failed
+  // tick the alert goes out plain; from the next tick onward we
+  // also consider firing the Railway redeploy.
+
+  // Try the auto-restart. Bail silently on misconfiguration — the
+  // alert path is the load-bearing signal.
+  let restartDecision = null;
+  const outageId = (tgOutageResult as { outage_id?: number } | undefined)?.outage_id;
+  const consecutiveFailures = (tgOutageResult as { consecutive_failures?: number } | undefined)?.consecutive_failures;
+  if (outageId && typeof consecutiveFailures === "number") {
+    try {
+      restartDecision = await tryAutoRestart(getPool(), { outageId, consecutiveFailures });
+    } catch (err) {
+      restartDecision = { triggered: false, reason: "exception", detail: (err as Error).message?.slice(0, 160) };
+    }
+  }
+
+  // Compose the alert. Includes the backup-generator status so the
+  // operator sees the autonomous action that was (or wasn't) taken.
+  const restartLine = restartDecision?.triggered
+    ? `\nbackup generator: ${restartDecision.reason} (attempt ${restartDecision.attempt_no})${restartDecision.detail ? " — " + restartDecision.detail : ""}`
+    : restartDecision
+      ? `\nbackup generator: skipped (${restartDecision.reason})${restartDecision.detail ? " — " + restartDecision.detail : ""}`
+      : "";
+
   const alert =
     `BOT DOWN — Magpie API unreachable.\n\n` +
     `time: ${new Date().toISOString()}\n` +
     `endpoint: ${process.env.MAGPIE_BOT_HEALTH_URL || DEFAULT_HEALTH_URL}\n` +
     `detail: ${ping.detail}\n` +
-    `http: ${ping.status || "no-response"}\n\n` +
-    `Site dashboard, /borrow, /repay, and Pip will all be broken until this recovers.\n` +
+    `http: ${ping.status || "no-response"}` +
+    restartLine +
+    `\n\nSite dashboard, /borrow, /repay, and Pip will all be broken until this recovers.\n` +
     `Check Railway service status + logs.`;
 
   const alertResult = await sendOperatorAlert(alert);
@@ -185,6 +221,7 @@ export async function GET(req: Request) {
       alert_sent: alertResult.sent,
       alert_error: alertResult.error,
       tg_outage_protection: tgOutageResult,
+      auto_restart: restartDecision,
       checked_at: new Date().toISOString(),
     },
     { status: 503 },
