@@ -752,6 +752,31 @@ function DashboardPageInner() {
   } | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
   const [holdings, setHoldings] = useState<TokenHolding[]>([]);
+  // Tier ladders fetched from the bot's /api/v1/loan-tiers endpoint.
+  // Falls back to hardcoded constants if the fetch fails (e.g. before
+  // the bot endpoint is deployed, or during a transient outage). The
+  // fetch is the source of truth so DB tuning of rwa_loan_tiers
+  // propagates without a site redeploy.
+  type ApiTier = { option: number; ltv_pct: number; duration_days: number; fee_bps: number; label: string };
+  const [tiersByCategory, setTiersByCategory] = useState<Record<string, ApiTier[]>>({});
+  useEffect(() => {
+    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+    let cancelled = false;
+    (async () => {
+      const cats = ["memecoin", "stock"]; // etf/metal can be added when seeded; resolver returns same as stock today
+      const next: Record<string, ApiTier[]> = {};
+      for (const cat of cats) {
+        try {
+          const r = await fetch(`${botApi}/api/v1/loan-tiers?category=${cat}`, { signal: AbortSignal.timeout(8000) });
+          if (!r.ok) continue;
+          const j = await r.json();
+          if (Array.isArray(j?.tiers) && j.tiers.length > 0) next[cat] = j.tiers as ApiTier[];
+        } catch { /* fall through to hardcoded fallback */ }
+      }
+      if (!cancelled && Object.keys(next).length > 0) setTiersByCategory(next);
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const [holdingsLoading, setHoldingsLoading] = useState(false);
   const [approvedTokens, setApprovedTokens] = useState<ApprovedToken[]>([]);
   const [approvedLoading, setApprovedLoading] = useState(false);
@@ -2714,27 +2739,54 @@ function DashboardPageInner() {
                           const isExpanded = expandedMint === h.mint;
                           const pct = loanPercent[h.mint] ?? 100;
                           const collateralUsd = h.valueUsd * (pct / 100);
-                          // Tier ladder by category. RWA (stock/etf/metal)
-                          // mirrors rwa_loan_tiers seed (bot migration 040):
-                          // 50/60/70% LTV at 7/15/30 days with 2.5/3.5/5%
-                          // fee. Memecoin keeps the legacy 30/25/20 ladder.
-                          // Source of truth for these numbers is the bot's
-                          // src/services/loan-tier-resolver.js; if it diverges
-                          // here, the borrow tx will be priced by the bot
-                          // (cosign-borrow.js does the LTV math), so the UI
-                          // would show the wrong preview vs the actual loan.
+                          // Tier ladder by category. First-choice source is
+                          // the bot's /api/v1/loan-tiers endpoint (fetched on
+                          // mount, cached in tiersByCategory). When the API
+                          // is unreachable — e.g. before the bot ships the
+                          // endpoint, or transient outage — we fall back to
+                          // hardcoded constants that mirror migration 040's
+                          // seed values. The bot's cosign-borrow.js does the
+                          // authoritative LTV math; this is purely the
+                          // preview number the user sees.
                           const isRwa = h.category === "stock" || h.category === "etf" || h.category === "metal";
-                          const tiers = isRwa
-                            ? [
-                                { name: "RWA Express", tag: "Short-term cash, conservative buffer", ltv: 0.50, days: 7, fee: 0.025, color: "var(--d-warn)" },
-                                { name: "RWA Quick", tag: "15-day term, balanced fee", ltv: 0.60, days: 15, fee: 0.035, color: "var(--d-accent)" },
-                                { name: "RWA Standard", tag: "30-day term, highest LTV", ltv: 0.70, days: 30, fee: 0.050, color: "var(--d-accent)" },
-                              ]
-                            : [
-                                { name: "Express", tag: "Fast cash, premium rate", ltv: 0.30, days: 2, fee: 0.03, color: "var(--d-bad)" },
-                                { name: "Quick", tag: "Balanced speed & value", ltv: 0.25, days: 3, fee: 0.02, color: "var(--d-warn)" },
-                                { name: "Standard", tag: "Best rate, more time to repay", ltv: 0.20, days: 7, fee: 0.015, color: "var(--d-accent)" },
-                              ];
+                          const apiCategory = isRwa ? "stock" : "memecoin";
+                          const apiTiers = tiersByCategory[apiCategory];
+                          // Color picker matches the previous ladder semantics:
+                          // Express = highest LTV / shortest term / highest fee → bad
+                          // Quick = mid → warn
+                          // Standard = lowest LTV / longest term / lowest fee → accent
+                          const colorForIdx = (idx: number, total: number) =>
+                            idx === 0 ? "var(--d-bad)" :
+                            idx === total - 1 ? "var(--d-accent)" :
+                            "var(--d-warn)";
+                          const tagForIdx = (idx: number, total: number, rwa: boolean) =>
+                            rwa
+                              ? (idx === 0 ? "Short-term cash, conservative buffer"
+                                 : idx === total - 1 ? `${30}-day term, highest LTV`
+                                 : "15-day term, balanced fee")
+                              : (idx === 0 ? "Fast cash, premium rate"
+                                 : idx === total - 1 ? "Best rate, more time to repay"
+                                 : "Balanced speed & value");
+                          const tiers = apiTiers
+                            ? apiTiers.map((t, idx) => ({
+                                name: t.label.split("(").pop()?.replace(")", "") || (isRwa ? `RWA ${["Express","Quick","Standard"][idx] ?? "Tier"}` : ["Express","Quick","Standard"][idx] ?? "Tier"),
+                                tag: tagForIdx(idx, apiTiers.length, isRwa),
+                                ltv: t.ltv_pct / 100,
+                                days: t.duration_days,
+                                fee: t.fee_bps / 10_000,
+                                color: colorForIdx(idx, apiTiers.length),
+                              }))
+                            : isRwa
+                              ? [
+                                  { name: "RWA Express", tag: "Short-term cash, conservative buffer", ltv: 0.50, days: 7, fee: 0.025, color: "var(--d-warn)" },
+                                  { name: "RWA Quick", tag: "15-day term, balanced fee", ltv: 0.60, days: 15, fee: 0.035, color: "var(--d-accent)" },
+                                  { name: "RWA Standard", tag: "30-day term, highest LTV", ltv: 0.70, days: 30, fee: 0.050, color: "var(--d-accent)" },
+                                ]
+                              : [
+                                  { name: "Express", tag: "Fast cash, premium rate", ltv: 0.30, days: 2, fee: 0.03, color: "var(--d-bad)" },
+                                  { name: "Quick", tag: "Balanced speed & value", ltv: 0.25, days: 3, fee: 0.02, color: "var(--d-warn)" },
+                                  { name: "Standard", tag: "Best rate, more time to repay", ltv: 0.20, days: 7, fee: 0.015, color: "var(--d-accent)" },
+                                ];
                           return (
                             <div key={h.mint} data-holding-mint={h.mint}>
                               {/* Row */}
