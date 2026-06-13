@@ -213,3 +213,74 @@ export async function getPoolOverview(): Promise<PoolOverview> {
     recent_loans: [],
   };
 }
+
+/* ─── Loan tier ladders (memecoin + RWA categories) ───────────────────
+ *
+ * Pulls from the bot's public /api/v1/loan-tiers endpoint so the site
+ * always shows the same numbers the bot quotes. The fallback constants
+ * mirror current DB state so a brief bot outage doesn't blank the
+ * marketplace page.
+ *
+ * When the operator tunes rwa_loan_tiers (or MEMECOIN_TIERS) in the
+ * bot, this picks the change up on the next 60s revalidation cycle —
+ * no site redeploy needed. That's the single-source-of-truth pattern
+ * called out in [[feedback_single_source_of_truth]] and the lesson
+ * from [[feedback_ship_marketing_in_sync]].
+ */
+
+export interface LoanTier {
+  option: number;
+  ltv_pct: number;
+  duration_days: number;
+  fee_bps: number;
+  label: string;
+}
+
+export type LoanTierCategory = "memecoin" | "stock" | "etf" | "metal";
+
+const MEMECOIN_FALLBACK: LoanTier[] = [
+  { option: 0, ltv_pct: 30, duration_days: 2, fee_bps: 300, label: "Express" },
+  { option: 1, ltv_pct: 25, duration_days: 3, fee_bps: 200, label: "Quick" },
+  { option: 2, ltv_pct: 20, duration_days: 7, fee_bps: 150, label: "Standard" },
+];
+
+const RWA_FALLBACK: LoanTier[] = [
+  { option: 0, ltv_pct: 50, duration_days: 7,  fee_bps: 250, label: "RWA Express" },
+  { option: 1, ltv_pct: 60, duration_days: 15, fee_bps: 350, label: "RWA Quick" },
+  { option: 2, ltv_pct: 70, duration_days: 30, fee_bps: 500, label: "RWA Standard" },
+];
+
+function fallbackForCategory(category: LoanTierCategory): LoanTier[] {
+  return category === "memecoin" ? MEMECOIN_FALLBACK : RWA_FALLBACK;
+}
+
+const tierCache = new Map<LoanTierCategory, { data: LoanTier[]; ts: number }>();
+const TIERS_TTL = 60_000;
+
+export async function getLoanTiers(category: LoanTierCategory): Promise<LoanTier[]> {
+  const now = Date.now();
+  const cached = tierCache.get(category);
+  if (cached && now - cached.ts < TIERS_TTL) return cached.data;
+
+  const botUrl = process.env.BOT_API_URL;
+  if (botUrl) {
+    try {
+      const res = await fetch(`${botUrl}/api/v1/loan-tiers?category=${category}`, {
+        signal: AbortSignal.timeout(5_000),
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const d = (await res.json()) as { tiers?: LoanTier[] };
+        if (Array.isArray(d?.tiers) && d.tiers.length > 0) {
+          tierCache.set(category, { data: d.tiers, ts: now });
+          return d.tiers;
+        }
+      }
+    } catch { /* fall through to constants */ }
+  }
+
+  const data = fallbackForCategory(category);
+  tierCache.set(category, { data, ts: now });
+  return data;
+}
+
