@@ -1142,6 +1142,13 @@ function DashboardPageInner() {
             mint: t.mint,
             amount: t.raw_amount,
             decimals: t.decimals,
+            // category from supported_mints — load-bearing for the tier
+            // ladder picker. Without this, every holding gets treated as
+            // memecoin (h.category is undefined → isRwa is false) and an
+            // RWA collateral shows the 20%/25%/30% memecoin ladder
+            // instead of the 50%/60%/70% RWA ladder. Caused the
+            // 2026-06-13 0.78-vs-2.68 SOL SPCX preview mismatch.
+            category: t.category ?? null,
           }));
           tokens.sort((a, b) => {
             const aNum = Number(a.amount) / Math.pow(10, a.decimals);
