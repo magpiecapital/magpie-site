@@ -29,14 +29,28 @@ interface TransparencyData {
   };
   users: { total: number; new_24h: number; new_7d: number };
   holder_rewards: {
-    // current_pool_sol is operator-private (NOT returned by the API);
-    // omitted from this type so we never accidentally reference it.
+    // 2026-06-13 (per operator request): current_pool_sol is NOW public.
+    // Timing (next_distribution_at) stays operator-private — the random
+    // 5-10 day window kills the snapshot-timing arb without hiding the
+    // amount itself.
+    current_pool_sol: number;
     lifetime_distributions: number;
     last_distribution_sol: number | null;
     last_distribution_at: string | null;
   };
-  lp_loyalty: { lifetime_distributions: number };
-  referrals: { lifetime_accrued_sol: number; lifetime_paid_sol: number };
+  lp_loyalty: {
+    current_pool_sol: number;
+    lifetime_distributions: number;
+  };
+  referrals: {
+    current_pool_sol: number;
+    lifetime_accrued_sol: number;
+    lifetime_paid_sol: number;
+  };
+  protocol_reserve: {
+    current_pool_sol: number;
+    lifetime_spent_sol: number;
+  };
   generated_at: string;
 }
 
@@ -176,6 +190,52 @@ export default function StatsClient() {
           }
         />
         <LiveActivityFeed />
+      </section>
+
+      {/* ── Snapshot rewards (MGP-001 four-channel split) ── */}
+      {/* 2026-06-13: per operator request, accruing pool sizes are now
+          public. Timing (next snapshot date) stays internal — the random
+          5-10 day window kills timing arbitrage by itself. */}
+      <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+        <SectionHead
+          title="Snapshot rewards"
+          tag="Accruing toward next distribution"
+        />
+        <p className="mb-5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+          Every loan origination + extension fee splits across four
+          channels per <Link href="/governance/proposal/MGP-001" className="underline hover:text-[var(--ink)]">MGP-001</Link>:
+          70% to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, 10% to the
+          protocol reserve. The numbers below are what&apos;s currently
+          accruing toward the next distribution snapshot.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat
+            label="$MAGPIE holders"
+            value={data ? fmtSol(data.holder_rewards.current_pool_sol) : "—"}
+            sub="70% of fees"
+          />
+          <Stat
+            label="SOL LPs"
+            value={data ? fmtSol(data.lp_loyalty.current_pool_sol) : "—"}
+            sub="10% of fees"
+          />
+          <Stat
+            label="Referrers"
+            value={data ? fmtSol(data.referrals.current_pool_sol) : "—"}
+            sub="10% of fees · claim-based"
+          />
+          <Stat
+            label="Protocol reserve"
+            value={data ? fmtSol(data.protocol_reserve.current_pool_sol) : "—"}
+            sub="10% of fees · buffer"
+          />
+        </div>
+        {data && data.holder_rewards.last_distribution_at && (
+          <p className="mt-5 text-[12px] text-[var(--ink-faint)] sm:text-[13px]">
+            Last $MAGPIE holder distribution: {fmtSol(data.holder_rewards.last_distribution_sol ?? 0)} —{" "}
+            {relTime(data.holder_rewards.last_distribution_at)}
+          </p>
+        )}
       </section>
 
       {/* ── User-growth strip ── */}

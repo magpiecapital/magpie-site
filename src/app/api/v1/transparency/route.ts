@@ -65,8 +65,13 @@ interface RefsRow {
   lifetime_paid: string;
 }
 
+interface ReserveRow {
+  current_pool_lamports: string | null;
+  spent_lamports: string | null;
+}
+
 export async function GET() {
-  const [loans, users, holders, lpLoy, refs] = await Promise.all([
+  const [loans, users, holders, lpLoy, refs, reserveRow] = await Promise.all([
     tryQuery<LoansRow>(
       `SELECT
          COUNT(*)::text AS total,
@@ -122,6 +127,15 @@ export async function GET() {
        FROM referral_earnings`,
       { lifetime_accrued: "0", lifetime_paid: "0" },
     ),
+    tryQuery<ReserveRow>(
+      // MGP-001 protocol reserve pool (migration 049). Safe to read on
+      // older deploys — tryQuery defaults to {null, null} on absence.
+      `SELECT
+         accrued_lamports::text AS current_pool_lamports,
+         spent_lamports::text   AS spent_lamports
+       FROM protocol_reserve_pool WHERE id = 1`,
+      { current_pool_lamports: null, spent_lamports: null },
+    ),
   ]);
 
   const repaid = Number(loans.repaid);
@@ -156,23 +170,37 @@ export async function GET() {
         new_7d: Number(users.new_users_7d),
       },
       holder_rewards: {
-        // current_pool_sol is OPERATOR-PRIVATE — exposing it would let
-        // mercenary holders front-run snapshots. We only publish
-        // historical distributions (which the chain already shows anyway).
+        // 2026-06-13 (per operator request): current_pool_sol is NOW
+        // public. The front-running concern relied on amount+timing;
+        // we still hide next_distribution_at (random 5-10 day window
+        // is operator-private per memory rule governance_snapshot_internal),
+        // so callers see the size but not WHEN, which kills the timing arb.
+        current_pool_sol: holders.current_pool_lamports
+          ? Number(holders.current_pool_lamports) / 1e9 : 0,
         lifetime_distributions: Number(holders.lifetime_distributions),
         last_distribution_sol: holders.last_distribution_lamports
           ? Number(holders.last_distribution_lamports) / 1e9 : null,
         last_distribution_at: holders.last_distribution_at,
       },
       lp_loyalty: {
-        // current_pool_sol is OPERATOR-PRIVATE for the same reason as
-        // holder_rewards — exposing accrued bonus would let LPs game
-        // entry/exit timing around predictable distributions.
+        current_pool_sol: lpLoy.current_pool_lamports
+          ? Number(lpLoy.current_pool_lamports) / 1e9 : 0,
         lifetime_distributions: Number(lpLoy.lifetime_distributions),
       },
       referrals: {
+        // current_pool_sol = accrued minus paid (still claimable).
+        current_pool_sol: (Number(refs.lifetime_accrued) - Number(refs.lifetime_paid)) / 1e9,
         lifetime_accrued_sol: Number(refs.lifetime_accrued) / 1e9,
         lifetime_paid_sol: Number(refs.lifetime_paid) / 1e9,
+      },
+      protocol_reserve: {
+        // MGP-001 channel — 10% of every loan fee accrues here as the
+        // counter-cyclical buffer. Spend is manual + governance-visible.
+        // Read may degrade to 0 if migration 049 hasn't applied yet.
+        current_pool_sol: reserveRow.current_pool_lamports
+          ? Number(reserveRow.current_pool_lamports) / 1e9 : 0,
+        lifetime_spent_sol: reserveRow.spent_lamports
+          ? Number(reserveRow.spent_lamports) / 1e9 : 0,
       },
       generated_at: new Date().toISOString(),
       cache_ttl_seconds: 60,
