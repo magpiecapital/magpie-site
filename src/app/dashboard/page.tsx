@@ -136,6 +136,10 @@ interface TokenHolding {
   mint: string;
   amount: string;
   decimals: number;
+  // Collateral category from supported_mints. Drives the tier ladder
+  // display (memecoin vs RWA) when this holding is rendered as
+  // eligible collateral in the borrow flow.
+  category?: string | null;
 }
 
 interface ApprovedToken {
@@ -748,6 +752,31 @@ function DashboardPageInner() {
   } | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
   const [holdings, setHoldings] = useState<TokenHolding[]>([]);
+  // Tier ladders fetched from the bot's /api/v1/loan-tiers endpoint.
+  // Falls back to hardcoded constants if the fetch fails (e.g. before
+  // the bot endpoint is deployed, or during a transient outage). The
+  // fetch is the source of truth so DB tuning of rwa_loan_tiers
+  // propagates without a site redeploy.
+  type ApiTier = { option: number; ltv_pct: number; duration_days: number; fee_bps: number; label: string };
+  const [tiersByCategory, setTiersByCategory] = useState<Record<string, ApiTier[]>>({});
+  useEffect(() => {
+    const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+    let cancelled = false;
+    (async () => {
+      const cats = ["memecoin", "stock"]; // etf/metal can be added when seeded; resolver returns same as stock today
+      const next: Record<string, ApiTier[]> = {};
+      for (const cat of cats) {
+        try {
+          const r = await fetch(`${botApi}/api/v1/loan-tiers?category=${cat}`, { signal: AbortSignal.timeout(8000) });
+          if (!r.ok) continue;
+          const j = await r.json();
+          if (Array.isArray(j?.tiers) && j.tiers.length > 0) next[cat] = j.tiers as ApiTier[];
+        } catch { /* fall through to hardcoded fallback */ }
+      }
+      if (!cancelled && Object.keys(next).length > 0) setTiersByCategory(next);
+    })();
+    return () => { cancelled = true; };
+  }, []);
   const [holdingsLoading, setHoldingsLoading] = useState(false);
   const [approvedTokens, setApprovedTokens] = useState<ApprovedToken[]>([]);
   const [approvedLoading, setApprovedLoading] = useState(false);
@@ -1141,6 +1170,10 @@ function DashboardPageInner() {
           mint: e.mint,
           amount: e.raw_amount,
           decimals: e.decimals,
+          // category drives the tier ladder display (RWA vs memecoin).
+          // Source: /api/v1/eligible-collateral which already joins
+          // supported_mints.category.
+          category: e.category,
           approved: approved
             ? {
                 ...approved,
@@ -2028,7 +2061,17 @@ function DashboardPageInner() {
       {SITE_REPAY_ENABLED && extendConfirmFor && (() => {
         const owed = Number(extendConfirmFor.loan.original_amount_lamports ?? 0) / 1e9;
         const ltv = extendConfirmFor.loan.ltv_percentage;
-        const feePct = ltv >= 30 ? 0.03 : ltv >= 25 ? 0.02 : 0.015;
+        // Fee per LTV bracket. Memecoin: 30%/25%/20% → 3%/2%/1.5%.
+        // RWA: 50%/60%/70% → 2.5%/3.5%/5%. The brackets don't overlap
+        // (RWA LTV starts at 50%, memecoin tops at 30%) so a single
+        // chain of conditions covers both ladders unambiguously.
+        const feePct =
+          ltv >= 70 ? 0.050 :   // RWA Standard
+          ltv >= 60 ? 0.035 :   // RWA Quick
+          ltv >= 50 ? 0.025 :   // RWA Express
+          ltv >= 30 ? 0.030 :   // Memecoin Express
+          ltv >= 25 ? 0.020 :   // Memecoin Quick
+                     0.015;     // Memecoin Standard (20%)
         const feeSol = owed * feePct;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setExtendConfirmFor(null)}>
@@ -2696,11 +2739,54 @@ function DashboardPageInner() {
                           const isExpanded = expandedMint === h.mint;
                           const pct = loanPercent[h.mint] ?? 100;
                           const collateralUsd = h.valueUsd * (pct / 100);
-                          const tiers = [
-                            { name: "Express", tag: "Fast cash, premium rate", ltv: 0.30, days: 2, fee: 0.03, color: "var(--d-bad)" },
-                            { name: "Quick", tag: "Balanced speed & value", ltv: 0.25, days: 3, fee: 0.02, color: "var(--d-warn)" },
-                            { name: "Standard", tag: "Best rate, more time to repay", ltv: 0.20, days: 7, fee: 0.015, color: "var(--d-accent)" },
-                          ];
+                          // Tier ladder by category. First-choice source is
+                          // the bot's /api/v1/loan-tiers endpoint (fetched on
+                          // mount, cached in tiersByCategory). When the API
+                          // is unreachable — e.g. before the bot ships the
+                          // endpoint, or transient outage — we fall back to
+                          // hardcoded constants that mirror migration 040's
+                          // seed values. The bot's cosign-borrow.js does the
+                          // authoritative LTV math; this is purely the
+                          // preview number the user sees.
+                          const isRwa = h.category === "stock" || h.category === "etf" || h.category === "metal";
+                          const apiCategory = isRwa ? "stock" : "memecoin";
+                          const apiTiers = tiersByCategory[apiCategory];
+                          // Color picker matches the previous ladder semantics:
+                          // Express = highest LTV / shortest term / highest fee → bad
+                          // Quick = mid → warn
+                          // Standard = lowest LTV / longest term / lowest fee → accent
+                          const colorForIdx = (idx: number, total: number) =>
+                            idx === 0 ? "var(--d-bad)" :
+                            idx === total - 1 ? "var(--d-accent)" :
+                            "var(--d-warn)";
+                          const tagForIdx = (idx: number, total: number, rwa: boolean) =>
+                            rwa
+                              ? (idx === 0 ? "Short-term cash, conservative buffer"
+                                 : idx === total - 1 ? `${30}-day term, highest LTV`
+                                 : "15-day term, balanced fee")
+                              : (idx === 0 ? "Fast cash, premium rate"
+                                 : idx === total - 1 ? "Best rate, more time to repay"
+                                 : "Balanced speed & value");
+                          const tiers = apiTiers
+                            ? apiTiers.map((t, idx) => ({
+                                name: t.label.split("(").pop()?.replace(")", "") || (isRwa ? `RWA ${["Express","Quick","Standard"][idx] ?? "Tier"}` : ["Express","Quick","Standard"][idx] ?? "Tier"),
+                                tag: tagForIdx(idx, apiTiers.length, isRwa),
+                                ltv: t.ltv_pct / 100,
+                                days: t.duration_days,
+                                fee: t.fee_bps / 10_000,
+                                color: colorForIdx(idx, apiTiers.length),
+                              }))
+                            : isRwa
+                              ? [
+                                  { name: "RWA Express", tag: "Short-term cash, conservative buffer", ltv: 0.50, days: 7, fee: 0.025, color: "var(--d-warn)" },
+                                  { name: "RWA Quick", tag: "15-day term, balanced fee", ltv: 0.60, days: 15, fee: 0.035, color: "var(--d-accent)" },
+                                  { name: "RWA Standard", tag: "30-day term, highest LTV", ltv: 0.70, days: 30, fee: 0.050, color: "var(--d-accent)" },
+                                ]
+                              : [
+                                  { name: "Express", tag: "Fast cash, premium rate", ltv: 0.30, days: 2, fee: 0.03, color: "var(--d-bad)" },
+                                  { name: "Quick", tag: "Balanced speed & value", ltv: 0.25, days: 3, fee: 0.02, color: "var(--d-warn)" },
+                                  { name: "Standard", tag: "Best rate, more time to repay", ltv: 0.20, days: 7, fee: 0.015, color: "var(--d-accent)" },
+                                ];
                           return (
                             <div key={h.mint} data-holding-mint={h.mint}>
                               {/* Row */}
@@ -2940,19 +3026,23 @@ function DashboardPageInner() {
 
                                   {/* Tier cards */}
                                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                    {tiers.map((tier) => {
+                                    {tiers.map((tier, tierIdx) => {
                                       const loanUsd = collateralUsd * tier.ltv;
                                       const feeUsd = loanUsd * tier.fee;
                                       const netUsd = loanUsd - feeUsd;
+                                      // "Best value" is the longest-term safest
+                                      // tier — last in the ladder for both
+                                      // memecoin and RWA paths.
+                                      const isBestValue = tierIdx === tiers.length - 1;
                                       return (
                                         <div
                                           key={tier.name}
-                                          className={`rounded-xl border bg-[var(--d-bg-card)] p-4 flex flex-col transition hover:shadow-sm ${tier.name === "Standard" ? "border-[var(--d-accent)]/50 ring-1 ring-[var(--d-accent)]/20" : "border-[var(--d-border)] hover:border-[var(--d-accent)]"}`}
+                                          className={`rounded-xl border bg-[var(--d-bg-card)] p-4 flex flex-col transition hover:shadow-sm ${isBestValue ? "border-[var(--d-accent)]/50 ring-1 ring-[var(--d-accent)]/20" : "border-[var(--d-border)] hover:border-[var(--d-accent)]"}`}
                                         >
                                           <div className="flex items-center justify-between mb-1">
                                             <div className="flex items-center gap-2">
                                               <span className="text-xs font-bold uppercase tracking-wider" style={{ color: tier.color }}>{tier.name}</span>
-                                              {tier.name === "Standard" && (
+                                              {isBestValue && (
                                                 <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[var(--d-accent)] text-[var(--d-accent-ink)]">Best value</span>
                                               )}
                                             </div>
@@ -2978,12 +3068,12 @@ function DashboardPageInner() {
                                               <div className="font-medium">{(uiAmount * pct / 100).toLocaleString(undefined, { maximumFractionDigits: 1 })} {h.symbol}</div>
                                             </div>
                                             <div>
-                                              <div className="text-[var(--d-ink-faint)]">Borrow more</div>
-                                              <div className="font-medium">{tier.ltv > 0.20 ? "Higher risk" : "Lower risk"}</div>
+                                              <div className="text-[var(--d-ink-faint)]">Risk</div>
+                                              <div className="font-medium">{tierIdx === 0 ? "Higher" : tierIdx === 1 ? "Mid" : "Lower"}</div>
                                             </div>
                                           </div>
                                           <button
-                                            onClick={() => handleBorrow(h, tier.name === "Express" ? 0 : tier.name === "Quick" ? 1 : 2, pct)}
+                                            onClick={() => handleBorrow(h, tierIdx, pct)}
                                             disabled={borrowing || !connected}
                                             className="mt-3 flex items-center justify-center gap-1.5 rounded-lg py-2.5 text-xs font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
                                             style={{
