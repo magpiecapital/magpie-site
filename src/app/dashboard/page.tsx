@@ -1331,10 +1331,23 @@ function DashboardPageInner() {
         loanOption: tierOption,
         connection,
         // CRITICAL — routes RWA borrows (stock/etf/metal) to V2 program.
-        // Without this, V1 rejects the borrow at Phantom's preflight
-        // with InvalidAccountData (which is how this bug surfaced for
-        // the first GLDx user on 2026-06-11).
-        category: holding.approved.category,
+        // 2026-06-13 fix: previously `holding.approved.category`. The
+        // `approved` object is built from /api/v1/tokens via a SEPARATE
+        // fetch with a hand-built fallback (line ~1244) that does NOT
+        // include category. So when approvedTokens hasn't loaded yet OR
+        // a mint isn't in the approvedTokens map, `approved.category` is
+        // undefined → chooseProgramIdForCategory defaults to V1 → V1
+        // program applies memecoin Standard 20% LTV → user receives 0.78
+        // SOL instead of the advertised 2.65 SOL on RWA Standard.
+        //
+        // `holding.category` is the AUTHORITATIVE field — sourced from
+        // /api/v1/eligible-collateral (which joins supported_mints.category
+        // server-side) and now also passed through the /wallet/balance
+        // mapping (PR #58). The eligibility fetch is the same one that
+        // gates whether the user can even see the borrow button, so by
+        // the time we reach handleBorrow, holding.category is reliably
+        // populated.
+        category: holding.category ?? holding.approved.category,
       });
 
       // PRE-SIMULATE before asking the wallet to sign. Phantom's docs
