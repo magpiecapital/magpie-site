@@ -67,7 +67,12 @@ export function LiveResults({ proposalId, botApiUrl, choices }: LiveResultsProps
       }
     }
     fetchTally();
-    const id = setInterval(fetchTally, 30_000);
+    // Tight cadence for near-instant tally updates after a vote lands.
+    // 2s polling is the v0 path; v1 will move to SSE / Postgres LISTEN
+    // for true push semantics. At 2s the user perceives "instant" on
+    // their own vote because they tabbed back to the page in ~1s and
+    // the next poll catches the new state.
+    const id = setInterval(fetchTally, 2_000);
     return () => {
       cancelled = true;
       clearInterval(id);
