@@ -119,10 +119,23 @@ function buildSteps(tokenCount: number, memeTiers: UiTier[], rwaTiers: UiTier[])
 
 /* ───────────────────────── TIER CARD ───────────────────────── */
 
-function TierCard({ tier: t, variant }: { tier: UiTier; variant?: "rwa" }) {
+// Each tier card is a click target — landing on the dashboard with the
+// matching category + tier pre-selected. Every interaction on the
+// marketplace should be a path to "open a loan", not a dead-end
+// presentation surface. The user gets:
+//   memecoin tiers  → /dashboard?category=memecoin&tier=N
+//   RWA tiers       → /dashboard?category=stock&tier=N    (covers
+//                     stock/etf/metal collectively — dashboard scopes
+//                     to RWA-eligible holdings)
+function TierCard({ tier: t, variant, index = 0 }: { tier: UiTier; variant?: "rwa"; index?: number }) {
   const barColor = variant === "rwa" ? "var(--accent-deep)" : "var(--accent)";
+  const category = variant === "rwa" ? "stock" : "memecoin";
+  const href = `/dashboard?category=${category}&tier=${index}`;
   return (
-    <div className="relative rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 transition hover:border-[var(--accent)] hover:shadow-md">
+    <Link
+      href={href}
+      className="group relative block rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 transition hover:border-[var(--accent)] hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-2 cursor-pointer"
+    >
       <div className="flex items-center justify-between">
         <h3 className="font-display text-xl font-semibold text-[var(--ink)]">{t.name}</h3>
         <span className="rounded-full bg-[var(--accent-dim)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent-deep)]">
@@ -158,7 +171,22 @@ function TierCard({ tier: t, variant }: { tier: UiTier; variant?: "rwa" }) {
           />
         </div>
       </div>
-    </div>
+
+      {/* Sales-mentality CTA — always visible (so users know it's
+          clickable on first scan), gains color + arrow translation on
+          hover/focus. Mobile users see it without needing to hover. */}
+      <div className="mt-5 flex items-center justify-between text-sm font-medium text-[var(--accent-deep)]">
+        <span className="opacity-80 transition group-hover:opacity-100 group-focus-visible:opacity-100">
+          Start borrowing at this tier
+        </span>
+        <span
+          aria-hidden
+          className="text-base transition-transform group-hover:translate-x-1 group-focus-visible:translate-x-1"
+        >
+          →
+        </span>
+      </div>
+    </Link>
   );
 }
 
@@ -391,8 +419,8 @@ export function MarketplaceClient({ tokenCount, stockCount, memeTiers, rwaTiers 
             Memecoin collateral
           </h3>
           <div className="mt-3 grid gap-5 md:grid-cols-3">
-            {meme.map((t) => (
-              <TierCard key={t.name} tier={t} />
+            {meme.map((t, i) => (
+              <TierCard key={t.name} tier={t} index={i} />
             ))}
           </div>
 
@@ -410,8 +438,8 @@ export function MarketplaceClient({ tokenCount, stockCount, memeTiers, rwaTiers 
                 Real-world assets carry meaningfully lower volatility than memecoins, so we&apos;re comfortable lending more against them — up to {Math.round(maxRwaLtv * 100)}% LTV and terms out to 30 days.
               </p>
               <div className="mt-3 grid gap-5 md:grid-cols-3">
-                {rwa.map((t) => (
-                  <TierCard key={t.name} tier={t} variant="rwa" />
+                {rwa.map((t, i) => (
+                  <TierCard key={t.name} tier={t} variant="rwa" index={i} />
                 ))}
               </div>
             </>
