@@ -351,11 +351,23 @@ export default async function DocsPage() {
               existing holders.
             </P>
             <Callout>
-              <strong>How to verify:</strong>{" "}
-              the distributor wallet&apos;s SPL token balance for $MAGPIE is always zero
-              (anyone can check on Solscan). The cluster Bubblemaps draws is the
-              receiver-graph for one or more snapshot distributions — NOT a token-supply
-              concentration. Live accruing + distributed totals on{" "}
+              <strong>How to verify (with the wallet address):</strong>{" "}
+              The distributor wallet is{" "}
+              <code className="font-mono text-xs">CHCAMWtnmgyjsJqHcq5MdeDdg4X3Ux1XAwA2rMCXj1Ac</code>.
+              Open it on{" "}
+              <a
+                href="https://solscan.io/account/CHCAMWtnmgyjsJqHcq5MdeDdg4X3Ux1XAwA2rMCXj1Ac"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                Solscan
+              </a>{" "}
+              and confirm the SPL token list is empty — it holds zero $MAGPIE, zero
+              anything. Its only activity is outgoing SOL transfers to holder wallets
+              during snapshot distributions. The Bubblemaps cluster you may see is
+              this receiver-graph — NOT a token-supply concentration. Live accruing +
+              distributed totals on{" "}
               <a href="/stats" className="underline">/stats</a>.
             </Callout>
           </Section>
