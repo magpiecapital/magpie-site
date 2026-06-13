@@ -1,41 +1,67 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { PhoneMock } from "@/components/PhoneMock";
+import type { LoanTier } from "@/lib/db";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
-/* ───────────────────────── LOAN TIERS ───────────────────────── */
+/* ───────────────────────── LOAN TIERS ─────────────────────────
+ *
+ * Tiers are fetched from /api/v1/loan-tiers (memecoin + stock) at
+ * page-render time and passed in as props. That keeps the displayed
+ * numbers in lock-step with what the bot quotes — when the operator
+ * tunes rwa_loan_tiers or MEMECOIN_TIERS, this page picks it up on
+ * the next 60s revalidation cycle. See [[feedback_single_source_of_truth]].
+ */
 
-const TIERS = [
-  {
-    name: "Express",
-    ltv: 0.3,
-    days: 2,
-    fee: 0.03,
-    tag: "Most SOL",
-    desc: "Maximum borrowing power. Best for short-term plays where you need the most capital.",
-  },
-  {
-    name: "Quick",
-    ltv: 0.25,
-    days: 3,
-    fee: 0.02,
-    tag: "Popular",
-    desc: "Balanced option. More time to repay with a comfortable loan-to-value ratio.",
-  },
-  {
-    name: "Standard",
-    ltv: 0.2,
-    days: 7,
-    fee: 0.015,
-    tag: "Safest",
-    desc: "Lowest LTV means more room before liquidation. A full week to repay.",
-  },
-];
+interface UiTier {
+  name: string;
+  ltv: number;     // fraction (0.30 = 30%)
+  days: number;
+  fee: number;     // fraction (0.015 = 1.5%)
+  tag: string;
+  desc: string;
+}
+
+const MEME_DESCRIPTIONS: Record<string, { tag: string; desc: string }> = {
+  Express:  { tag: "Most SOL", desc: "Maximum borrowing power. Best for short-term plays where you need the most capital." },
+  Quick:    { tag: "Popular",  desc: "Balanced option. More time to repay with a comfortable loan-to-value ratio." },
+  Standard: { tag: "Safest",   desc: "Lowest LTV means more room before liquidation. A full week to repay." },
+};
+
+const RWA_DESCRIPTIONS: Record<string, { tag: string; desc: string }> = {
+  "RWA Express":  { tag: "Short-term cash", desc: "Conservative LTV buffer with a one-week term. Most flexible RWA tier." },
+  "RWA Quick":    { tag: "New · 15-day",    desc: "Mid-term option built for tokenized stocks — higher LTV, two-week runway." },
+  "RWA Standard": { tag: "Max LTV",         desc: "Highest LTV on Magpie, 30-day term. Stocks/ETFs/metals only — lower volatility unlocks the deeper terms." },
+};
+
+function adaptTier(t: LoanTier, descs: Record<string, { tag: string; desc: string }>, fallbackName: string): UiTier {
+  // The bot's `label` is e.g. "Express" or "RWA Express"; the bare name
+  // is the first whitespace-delimited token that maps cleanly to our
+  // description dictionary. Fall back to the raw label if the dict
+  // doesn't recognize it (so a new tier from the bot still renders).
+  const labelMatch = t.label.match(/\(([^)]+)\)\s*$/);
+  const niceName = labelMatch ? labelMatch[1] : fallbackName;
+  const dictKey = Object.keys(descs).find((k) => t.label.includes(k)) || niceName;
+  const desc = descs[dictKey] || { tag: niceName, desc: "" };
+  return {
+    name: dictKey || niceName,
+    ltv: t.ltv_pct / 100,
+    days: t.duration_days,
+    fee: t.fee_bps / 10_000,
+    tag: desc.tag,
+    desc: desc.desc,
+  };
+}
+
+function fmtFeePct(fee: number) {
+  // Show one decimal for sub-2% rates, otherwise round (3% reads cleaner than 3.0%)
+  return (fee * 100).toFixed(fee < 0.02 ? 1 : 0);
+}
 
 /* ───────────────────────── CREDIT TIERS ───────────────────────── */
 
@@ -48,48 +74,110 @@ const CREDIT_TIERS = [
 
 /* ───────────────────────── HOW TO BORROW ───────────────────────── */
 
-function buildSteps(tokenCount: number) {
+function buildSteps(tokenCount: number, memeTiers: UiTier[], rwaTiers: UiTier[]) {
+  const memeSummary = memeTiers
+    .map((t) => `${Math.round(t.ltv * 100)}% LTV / ${t.days}d`)
+    .join(", ");
+  const rwaSummary = rwaTiers.length > 0
+    ? rwaTiers.map((t) => `${Math.round(t.ltv * 100)}% LTV / ${t.days}d`).join(", ")
+    : null;
   return [
-  {
-    num: "1",
-    title: "Open the dashboard",
-    desc: "Go to magpie.capital/dashboard and connect your wallet — or just ask Pip (the chat helper on every page) to start a loan for you.",
-    cmd: null,
-  },
-  {
-    num: "2",
-    title: "Pick your collateral",
-    desc: `Your dashboard shows every supported holding in your wallet — pick from ${tokenCount} approved tokens. Live USD price, tier-aware caps, and exact SOL you'll receive — all visible before you commit.`,
-    cmd: null,
-  },
-  {
-    num: "3",
-    title: "Select a loan tier",
-    desc: "Express (30% LTV, 2 days), Quick (25%, 3 days), or Standard (20%, 7 days) — memecoins. Tokenized stocks unlock higher LTVs and longer 15–30 day terms. The dashboard shows your exact payout before you confirm.",
-    cmd: null,
-  },
-  {
-    num: "4",
-    title: "Sign and receive SOL",
-    desc: "Approve the transaction in your wallet. SOL lands in seconds. A 1.5–3% origination fee is deducted upfront depending on tier (RWA tiers have their own fee schedule).",
-    cmd: null,
-  },
-  {
-    num: "5",
-    title: "Repay and get your tokens back",
-    desc: "Repay from the dashboard before the term ends. Your collateral is returned the same instant. On-time repayment builds your on-chain credit score and unlocks better tiers next time.",
-    cmd: null,
-  },
-];
+    {
+      num: "1",
+      title: "Open the dashboard",
+      desc: "Go to magpie.capital/dashboard and connect your wallet — or just ask Pip (the chat helper on every page) to start a loan for you.",
+      cmd: null,
+    },
+    {
+      num: "2",
+      title: "Pick your collateral",
+      desc: `Your dashboard shows every supported holding in your wallet — pick from ${tokenCount} approved tokens. Live USD price, tier-aware caps, and exact SOL you'll receive — all visible before you commit.`,
+      cmd: null,
+    },
+    {
+      num: "3",
+      title: "Select a loan tier",
+      desc: rwaSummary
+        ? `Memecoins: ${memeSummary}. Tokenized stocks, ETFs, metals: ${rwaSummary} — lower volatility unlocks higher LTVs and longer terms (up to 30 days). The dashboard shows your exact payout before you confirm.`
+        : `Memecoin tiers: ${memeSummary}. The dashboard shows your exact payout before you confirm.`,
+      cmd: null,
+    },
+    {
+      num: "4",
+      title: "Sign and receive SOL",
+      desc: "Approve the transaction in your wallet. SOL lands in seconds. A small origination fee is deducted upfront — memecoin tiers run 1.5–3%, RWA tiers 2.5–5%.",
+      cmd: null,
+    },
+    {
+      num: "5",
+      title: "Repay and get your tokens back",
+      desc: "Repay from the dashboard before the term ends. Your collateral is returned the same instant. On-time repayment builds your on-chain credit score and unlocks better tiers next time.",
+      cmd: null,
+    },
+  ];
+}
+
+/* ───────────────────────── TIER CARD ───────────────────────── */
+
+function TierCard({ tier: t, variant }: { tier: UiTier; variant?: "rwa" }) {
+  const barColor = variant === "rwa" ? "var(--accent-deep)" : "var(--accent)";
+  return (
+    <div className="relative rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 transition hover:border-[var(--accent)] hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <h3 className="font-display text-xl font-semibold text-[var(--ink)]">{t.name}</h3>
+        <span className="rounded-full bg-[var(--accent-dim)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent-deep)]">
+          {t.tag}
+        </span>
+      </div>
+      {t.desc ? <p className="mt-2 text-sm text-[var(--ink-soft)]">{t.desc}</p> : null}
+
+      <div className="mt-5 flex gap-4">
+        <div>
+          <div className="font-display text-3xl font-bold text-[var(--ink)]">{Math.round(t.ltv * 100)}%</div>
+          <div className="text-xs text-[var(--ink-faint)]">LTV</div>
+        </div>
+        <div className="border-l border-[var(--hairline)] pl-4">
+          <div className="font-display text-3xl font-bold text-[var(--ink)]">{t.days}</div>
+          <div className="text-xs text-[var(--ink-faint)]">days</div>
+        </div>
+        <div className="border-l border-[var(--hairline)] pl-4">
+          <div className="font-display text-3xl font-bold text-[var(--ink)]">{fmtFeePct(t.fee)}%</div>
+          <div className="text-xs text-[var(--ink-faint)]">fee</div>
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <div className="flex items-center justify-between text-[10px] text-[var(--ink-faint)]">
+          <span>Borrowed</span>
+          <span>Collateral buffer</span>
+        </div>
+        <div className="mt-1 flex h-3 overflow-hidden rounded-full bg-[var(--surface)]">
+          <div
+            className="rounded-full transition-all duration-500"
+            style={{ width: `${t.ltv * 100}%`, background: barColor }}
+          />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 /* ───────────────────────── MINI CALCULATOR ───────────────────────── */
 
-function LoanCalculator() {
+interface LoanCalculatorProps {
+  memeTiers: UiTier[];
+  rwaTiers: UiTier[];
+  hasRwa: boolean;
+}
+
+function LoanCalculator({ memeTiers, rwaTiers, hasRwa }: LoanCalculatorProps) {
   const [collateralValue, setCollateralValue] = useState(1000);
   const [selectedTier, setSelectedTier] = useState(0);
+  const [category, setCategory] = useState<"memecoin" | "rwa">("memecoin");
 
-  const tier = TIERS[selectedTier];
+  const activeTiers = category === "rwa" ? rwaTiers : memeTiers;
+  const safeIndex = Math.min(selectedTier, activeTiers.length - 1);
+  const tier = activeTiers[safeIndex];
   const loanAmount = collateralValue * tier.ltv;
   const fee = loanAmount * tier.fee;
   const payout = loanAmount - fee;
@@ -99,6 +187,29 @@ function LoanCalculator() {
     <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 sm:p-8">
       <h3 className="font-display text-lg font-semibold text-[var(--ink)]">Quick estimate</h3>
       <p className="mt-1 text-sm text-[var(--ink-soft)]">Drag to see how much SOL you can borrow.</p>
+
+      {/* Collateral category toggle */}
+      {hasRwa && (
+        <div className="mt-5 inline-flex rounded-xl border border-[var(--hairline)] bg-[var(--surface)] p-1 text-xs">
+          {(["memecoin", "rwa"] as const).map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => {
+                setCategory(c);
+                setSelectedTier(0);
+              }}
+              className={`rounded-lg px-3 py-1.5 font-medium transition ${
+                category === c
+                  ? "bg-[var(--accent-dim)] text-[var(--accent-deep)]"
+                  : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
+              }`}
+            >
+              {c === "memecoin" ? "Memecoin" : "Tokenized stock / ETF / metal"}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Collateral slider */}
       <div className="mt-6">
@@ -123,12 +234,12 @@ function LoanCalculator() {
 
       {/* Tier picker */}
       <div className="mt-5 grid grid-cols-3 gap-2">
-        {TIERS.map((t, i) => (
+        {activeTiers.map((t, i) => (
           <button
             key={t.name}
             onClick={() => setSelectedTier(i)}
             className={`rounded-xl border px-3 py-2.5 text-center text-sm font-medium transition ${
-              selectedTier === i
+              safeIndex === i
                 ? "border-[var(--accent)] bg-[var(--accent-dim)] text-[var(--ink)]"
                 : "border-[var(--hairline)] text-[var(--ink-soft)] hover:border-[var(--accent)]"
             }`}
@@ -158,7 +269,7 @@ function LoanCalculator() {
       </div>
 
       <div className="mt-4 flex items-center justify-between rounded-xl bg-[var(--surface)] px-4 py-3 text-sm">
-        <span className="text-[var(--ink-soft)]">Origination fee ({(tier.fee * 100).toFixed(0)}%)</span>
+        <span className="text-[var(--ink-soft)]">Origination fee ({fmtFeePct(tier.fee)}%)</span>
         <span className="font-medium text-[var(--ink)]">${fee.toFixed(2)}</span>
       </div>
       <div className="mt-2 flex items-center justify-between rounded-xl bg-[var(--surface)] px-4 py-3 text-sm">
@@ -180,8 +291,25 @@ function LoanCalculator() {
 
 /* ───────────────────────── MAIN PAGE ───────────────────────── */
 
-export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
-  const STEPS = buildSteps(tokenCount);
+interface MarketplaceClientProps {
+  tokenCount: number;
+  stockCount: number;
+  memeTiers: LoanTier[];
+  rwaTiers: LoanTier[];
+}
+
+export function MarketplaceClient({ tokenCount, stockCount, memeTiers, rwaTiers }: MarketplaceClientProps) {
+  const meme = useMemo(() => memeTiers.map((t, i) => adaptTier(t, MEME_DESCRIPTIONS, ["Express","Quick","Standard"][i] || `Tier ${i+1}`)), [memeTiers]);
+  const rwa  = useMemo(() => rwaTiers.map((t, i)  => adaptTier(t, RWA_DESCRIPTIONS,  ["RWA Express","RWA Quick","RWA Standard"][i] || `RWA Tier ${i+1}`)), [rwaTiers]);
+  const hasRwa = stockCount > 0 && rwa.length > 0;
+  const STEPS = buildSteps(tokenCount, meme, rwa);
+  const maxMemeLtv = Math.max(...meme.map((t) => t.ltv));
+  const maxRwaLtv  = hasRwa ? Math.max(...rwa.map((t) => t.ltv)) : 0;
+  const maxLtvLabel = hasRwa
+    ? `${Math.round(maxMemeLtv * 100)}% / ${Math.round(maxRwaLtv * 100)}%`
+    : `${Math.round(maxMemeLtv * 100)}%`;
+  const maxLtvSubLabel = hasRwa ? "Memecoin / RWA" : undefined;
+  const maxTermDays = Math.max(...meme.map((t) => t.days), ...rwa.map((t) => t.days));
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
       <Header />
@@ -235,14 +363,17 @@ export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
         {/* ── Key numbers ── */}
         <div className="mt-14 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
-            { label: "Approved tokens", value: `${tokenCount}+` },
-            { label: "Origination fee", value: "1.5–3%" },
-            { label: "Max LTV", value: "30%" },
-            { label: "Fastest loan", value: "~30s" },
+            { label: "Approved tokens", value: `${tokenCount}+`, sub: undefined as string | undefined },
+            { label: "Origination fee", value: hasRwa ? "1.5–5%" : "1.5–3%", sub: undefined },
+            { label: "Max LTV", value: maxLtvLabel, sub: maxLtvSubLabel },
+            { label: "Longest term", value: `${maxTermDays}d`, sub: undefined },
           ].map((s) => (
             <div key={s.label} className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-4 text-center">
               <div className="font-display text-2xl font-semibold text-[var(--ink)]">{s.value}</div>
               <div className="mt-0.5 text-[11px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">{s.label}</div>
+              {s.sub ? (
+                <div className="text-[10px] text-[var(--ink-faint)]">{s.sub}</div>
+              ) : null}
             </div>
           ))}
         </div>
@@ -256,51 +387,35 @@ export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
             LTV (Loan-to-Value) is the percentage of your collateral&apos;s value that you can borrow. Higher LTV means more SOL, but less room before liquidation.
           </p>
 
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {TIERS.map((t) => (
-              <div
-                key={t.name}
-                className="relative rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 transition hover:border-[var(--accent)] hover:shadow-md"
-              >
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display text-xl font-semibold text-[var(--ink)]">{t.name}</h3>
-                  <span className="rounded-full bg-[var(--accent-dim)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent-deep)]">
-                    {t.tag}
-                  </span>
-                </div>
-                <p className="mt-2 text-sm text-[var(--ink-soft)]">{t.desc}</p>
-
-                <div className="mt-5 flex gap-4">
-                  <div>
-                    <div className="font-display text-3xl font-bold text-[var(--ink)]">{Math.round(t.ltv * 100)}%</div>
-                    <div className="text-xs text-[var(--ink-faint)]">LTV</div>
-                  </div>
-                  <div className="border-l border-[var(--hairline)] pl-4">
-                    <div className="font-display text-3xl font-bold text-[var(--ink)]">{t.days}</div>
-                    <div className="text-xs text-[var(--ink-faint)]">days</div>
-                  </div>
-                  <div className="border-l border-[var(--hairline)] pl-4">
-                    <div className="font-display text-3xl font-bold text-[var(--ink)]">{(t.fee * 100).toFixed(t.fee === 0.015 ? 1 : 0)}%</div>
-                    <div className="text-xs text-[var(--ink-faint)]">fee</div>
-                  </div>
-                </div>
-
-                {/* Visual LTV bar */}
-                <div className="mt-5">
-                  <div className="flex items-center justify-between text-[10px] text-[var(--ink-faint)]">
-                    <span>Borrowed</span>
-                    <span>Collateral buffer</span>
-                  </div>
-                  <div className="mt-1 flex h-3 overflow-hidden rounded-full bg-[var(--surface)]">
-                    <div
-                      className="rounded-full transition-all duration-500"
-                      style={{ width: `${t.ltv * 100}%`, background: "var(--accent)" }}
-                    />
-                  </div>
-                </div>
-              </div>
+          <h3 className="mt-10 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+            Memecoin collateral
+          </h3>
+          <div className="mt-3 grid gap-5 md:grid-cols-3">
+            {meme.map((t) => (
+              <TierCard key={t.name} tier={t} />
             ))}
           </div>
+
+          {hasRwa ? (
+            <>
+              <div className="mt-12 flex items-center justify-between">
+                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                  Tokenized stocks · ETFs · metals
+                </h3>
+                <span className="rounded-full bg-[var(--accent-dim)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent-deep)]">
+                  Higher LTV · longer terms
+                </span>
+              </div>
+              <p className="mt-2 max-w-2xl text-sm text-[var(--ink-soft)]">
+                Real-world assets carry meaningfully lower volatility than memecoins, so we&apos;re comfortable lending more against them — up to {Math.round(maxRwaLtv * 100)}% LTV and terms out to 30 days.
+              </p>
+              <div className="mt-3 grid gap-5 md:grid-cols-3">
+                {rwa.map((t) => (
+                  <TierCard key={t.name} tier={t} variant="rwa" />
+                ))}
+              </div>
+            </>
+          ) : null}
 
           {/* LTV explainer */}
           <div className="mt-8 rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-6">
@@ -323,7 +438,7 @@ export function MarketplaceClient({ tokenCount }: { tokenCount: number }) {
             See exactly what you&apos;ll receive before opening the bot.
           </p>
           <div className="mt-8 mx-auto max-w-lg">
-            <LoanCalculator />
+            <LoanCalculator memeTiers={meme} rwaTiers={rwa} hasRwa={hasRwa} />
           </div>
         </section>
 
