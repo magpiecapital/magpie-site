@@ -792,7 +792,10 @@ function DashboardPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const borrowMintQuery = searchParams.get("borrow");
+  const categoryQuery = searchParams.get("category"); // memecoin | stock | etf | metal
+  const tierQuery = searchParams.get("tier");          // "0" | "1" | "2"
   const [hasAppliedBorrowQuery, setHasAppliedBorrowQuery] = useState(false);
+  const [hasAppliedCategoryQuery, setHasAppliedCategoryQuery] = useState(false);
   useEffect(() => {
     if (!borrowMintQuery || hasAppliedBorrowQuery) return;
     if (holdingsLoading) return; // wait for first holdings fetch
@@ -810,6 +813,48 @@ function DashboardPageInner() {
     // Strip the query param so a refresh doesn't re-trigger the scroll.
     router.replace("/dashboard", { scroll: false });
   }, [borrowMintQuery, holdings, holdingsLoading, hasAppliedBorrowQuery, router]);
+
+  // Marketplace tier-card click: ?category=memecoin|stock&tier=0|1|2
+  // Behavior:
+  //   1. Switch to the holdings nav
+  //   2. Find the FIRST eligible holding in that category (one the user
+  //      actually owns enough of) and auto-expand its borrow row,
+  //      pre-selected to the tier index from the param.
+  //   3. If the user has no holdings in that category, scroll to the
+  //      holdings list anyway so they see the "deposit collateral"
+  //      surface — every marketplace click should arrive somewhere
+  //      actionable.
+  useEffect(() => {
+    if (!categoryQuery || hasAppliedCategoryQuery) return;
+    if (holdingsLoading) return;
+    const isRwa = categoryQuery === "stock" || categoryQuery === "etf" || categoryQuery === "metal";
+    const wantedCategories = isRwa ? new Set(["stock", "etf", "metal"]) : new Set(["memecoin"]);
+    const match = holdings.find((h) => h.category && wantedCategories.has(h.category) && Number(h.amount) > 0);
+    setActiveNav("holdings");
+    if (match) {
+      setExpandedMint(match.mint);
+      const tierIdx = tierQuery && /^\d$/.test(tierQuery) ? Number(tierQuery) : 0;
+      // Stash the desired tier in sessionStorage so the borrow form
+      // can pick it up when it mounts. The borrow form already has
+      // tier selection wired; this is the deep-link plumbing only.
+      try { sessionStorage.setItem("magpie:marketplace-tier-hint", String(tierIdx)); } catch { /* private mode */ }
+      setTimeout(() => {
+        const el = document.querySelector(`[data-holding-mint="${match.mint}"]`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+    } else {
+      // No matching holdings — still scroll to the holdings section so
+      // the user lands somewhere actionable instead of the top of the
+      // page. Empty-state copy in the holdings list handles "deposit
+      // X to get started".
+      setTimeout(() => {
+        const el = document.querySelector("[data-section=\"holdings\"]") ?? document.querySelector("[data-holding-mint]");
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+    setHasAppliedCategoryQuery(true);
+    router.replace("/dashboard", { scroll: false });
+  }, [categoryQuery, tierQuery, holdings, holdingsLoading, hasAppliedCategoryQuery, router]);
 
   // ── Loans ──
   type Loan = {
