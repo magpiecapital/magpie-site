@@ -56,7 +56,10 @@ export function MiniLiveResults({ proposalId, botApiUrl }: MiniLiveResultsProps)
       }
     }
     fetchTally();
-    const id = setInterval(fetchTally, 60_000);
+    // Overview mini-card — 3s cadence. Slightly slower than the
+    // proposal-detail page (which polls every 2s) since this is
+    // peripheral context, not the action surface.
+    const id = setInterval(fetchTally, 3_000);
     return () => {
       cancelled = true;
       clearInterval(id);
