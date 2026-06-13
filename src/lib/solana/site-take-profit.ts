@@ -221,7 +221,10 @@ export function translateArmError(body: { error?: string; detail?: string; sugge
     case "loan_already_has_active_order":
       return "You already have an armed take-profit on this loan. Cancel it first.";
     case "rwa_collateral_not_supported_in_v1":
-      return "Take-profit isn't available for xStocks / RWA collateral yet — memecoin loans only.";
+      // Unreachable since 2026-06-13 bot PR #161 — the gate was flipped
+      // and the engine V2 fill path landed. Kept as a defensive case in
+      // the switch with a retry-prompt instead of the stale copy.
+      return "Take-profit on this collateral is now live — please try again.";
     case "user_concurrency_cap_reached":
       return "You've hit the limit of 10 armed take-profits. Cancel one to arm another.";
     case "slippage_too_low":
