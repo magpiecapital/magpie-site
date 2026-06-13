@@ -88,6 +88,30 @@ export async function ensureSchema(): Promise<void> {
       ON tg_outage_alerts(outage_id, alert_kind);
     CREATE INDEX IF NOT EXISTS tg_outage_state_open_idx
       ON tg_outage_state(ended_at) WHERE ended_at IS NULL;
+
+    -- Auto-restart "backup generator" state. Added 2026-06-13 after
+    -- the self-monitor.js duplicate-declaration outage. When the bot
+    -- has been down for AUTO_RESTART_THRESHOLD ticks AND we haven't
+    -- already kicked it in the recent past, the watchdog calls
+    -- Railway's redeploy mutation. last_restart_at gates the attempt
+    -- so we don't restart-loop a deploy that's broken by design.
+    ALTER TABLE tg_outage_state
+      ADD COLUMN IF NOT EXISTS last_restart_at      TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS last_restart_outcome TEXT,
+      ADD COLUMN IF NOT EXISTS restart_count        INT NOT NULL DEFAULT 0;
+
+    -- Singleton "last known healthy" timestamp. Lives in a one-row
+    -- table so the watchdog can answer "was the bot ever healthy
+    -- recently?" — protects against restart-looping a cold-deploy
+    -- that's never been green. Single id so an UPSERT works.
+    CREATE TABLE IF NOT EXISTS bot_health_marker (
+      id                   INT  PRIMARY KEY DEFAULT 1,
+      last_known_healthy_at TIMESTAMPTZ,
+      updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CHECK (id = 1)
+    );
+    INSERT INTO bot_health_marker (id) VALUES (1)
+      ON CONFLICT (id) DO NOTHING;
   `);
   _schemaEnsured = true;
 }
