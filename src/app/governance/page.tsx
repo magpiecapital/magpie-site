@@ -472,7 +472,7 @@ export default function GovernancePage() {
                   {[
                     { n: "1", label: "Draft", sub: "in @magpietalk community", body: "Anyone can post a proposal idea. Include scope tier (A1–A6), exact change requested, rationale, and expected protocol impact." },
                     { n: "2", label: "Active", sub: "3-day voting window", body: "Operator pins the proposal here. Holders connect wallet and vote YES / NO / ABSTAIN. Voting is gasless — votes are wallet-signed off-chain messages. Re-vote any time; latest signature wins. Live aggregate visible in real time." },
-                    { n: "3", label: "Closed", sub: "tally + threshold check", body: "Quorum: at least 10% of eligible weight must vote YES + NO. Pass: ≥66.6% of (YES + NO) must be YES. Both checked at vote close." },
+                    { n: "3", label: "Closed", sub: "tally + threshold check", body: "Quorum: at least 5% of eligible weight must vote YES + NO. Pass: ≥66.6% of (YES + NO) must be YES. Both checked at vote close." },
                     { n: "4", label: "Executed", sub: "within 14 days of pass", body: "Operator implements. On-chain changes have a public transaction signature. Config changes have a commit referencing the proposal ID. Failure to execute within 14 days is a one-strike trust event." },
                   ].map((step) => (
                     <div key={step.n} className="rounded-lg border border-white/10 bg-white/[0.03] p-3.5">
