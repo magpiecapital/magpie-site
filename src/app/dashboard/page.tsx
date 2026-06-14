@@ -3466,13 +3466,16 @@ function DashboardPageInner() {
                                       Each leg requires its own signed envelope (Phantom
                                       will prompt once per leg for ladders). */}
                                   <div className="mb-3 rounded-lg border border-[var(--d-border)] bg-[var(--d-surface)]/40 px-3 py-2">
+                                    <div className="text-[11px] font-semibold text-[var(--d-ink)] mb-1">Auto-sell plan (optional)</div>
+                                    <div className="text-[10px] text-[var(--d-ink-faint)] mb-2 leading-relaxed">
+                                      Pick a plan and we'll auto-sell your collateral when the target hits — repaying the loan and sending the proceeds to your wallet in one shot. Skip this and your loan opens with no auto-sell (you can set one up later from this dashboard or via the Telegram bot).
+                                    </div>
                                     <div className="flex flex-wrap items-center gap-2 mb-2">
-                                      <span className="text-[11px] font-semibold text-[var(--d-ink)]">Exit strategy:</span>
                                       {([
-                                        { key: "off", label: "Off", value: null as PreBorrowExits | null },
-                                        { key: "tp", label: "TP @ 2x", value: { kind: "tp_default" } as PreBorrowExits },
-                                        { key: "sl", label: "SL @ 0.7x", value: { kind: "sl_default" } as PreBorrowExits },
-                                        { key: "br", label: "Bracket", value: { kind: "bracket" } as PreBorrowExits },
+                                        { key: "off", label: "None", value: null as PreBorrowExits | null, hint: "borrow only" },
+                                        { key: "tp", label: "Sell at 2x", value: { kind: "tp_default" } as PreBorrowExits, hint: "lock profit if price doubles" },
+                                        { key: "sl", label: "Sell at 0.7x", value: { kind: "sl_default" } as PreBorrowExits, hint: "stop loss if price drops 30%" },
+                                        { key: "br", label: "Both (2x + 0.7x)", value: { kind: "bracket" } as PreBorrowExits, hint: "protect both directions" },
                                       ]).map((opt) => {
                                         const selected =
                                           (opt.value === null && preBorrowExits === null) ||
@@ -3482,6 +3485,7 @@ function DashboardPageInner() {
                                             key={opt.key}
                                             type="button"
                                             onClick={() => setPreBorrowExits(opt.value)}
+                                            title={opt.hint}
                                             className={`px-2 py-1 rounded-md text-[10px] font-semibold transition border ${selected ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]" : "border-[var(--d-border)] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]"}`}
                                           >
                                             {opt.label}
@@ -3490,7 +3494,7 @@ function DashboardPageInner() {
                                       })}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2">
-                                      <span className="text-[10px] text-[var(--d-ink-faint)]">Ladder:</span>
+                                      <span className="text-[10px] text-[var(--d-ink-faint)]" title="Sell in stages at multiple price targets instead of all at once.">Ladder (multi-step):</span>
                                       {(["conservative", "balanced", "aggressive"] as const).map((p) => {
                                         const tpSelected = preBorrowExits?.kind === "tp_ladder" && preBorrowExits.preset === p;
                                         const slSelected = preBorrowExits?.kind === "sl_ladder" && preBorrowExits.preset === p;
@@ -3500,24 +3504,24 @@ function DashboardPageInner() {
                                               type="button"
                                               onClick={() => setPreBorrowExits({ kind: "tp_ladder", preset: p })}
                                               className={`px-2 py-1 rounded-md text-[10px] font-semibold transition border ${tpSelected ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]" : "border-[var(--d-border)] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]"}`}
-                                              title={SITE_LADDER_PRESETS.tp[p].label}
+                                              title={`Sell in stages going UP — ${SITE_LADDER_PRESETS.tp[p].label}`}
                                             >
-                                              TP {p[0].toUpperCase() + p.slice(1)}
+                                              Profit {p[0].toUpperCase() + p.slice(1)}
                                             </button>
                                             <button
                                               type="button"
                                               onClick={() => setPreBorrowExits({ kind: "sl_ladder", preset: p })}
                                               className={`px-2 py-1 rounded-md text-[10px] font-semibold transition border ${slSelected ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]" : "border-[var(--d-border)] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]"}`}
-                                              title={SITE_LADDER_PRESETS.sl[p].label}
+                                              title={`Sell in stages going DOWN — ${SITE_LADDER_PRESETS.sl[p].label}`}
                                             >
-                                              SL {p[0].toUpperCase() + p.slice(1)}
+                                              Stop {p[0].toUpperCase() + p.slice(1)}
                                             </button>
                                           </span>
                                         );
                                       })}
                                     </div>
                                     <div className="flex flex-wrap items-center gap-2 mt-2">
-                                      <span className="text-[10px] text-[var(--d-ink-faint)]">Custom:</span>
+                                      <span className="text-[10px] text-[var(--d-ink-faint)]" title="Type any price target — we'll auto-sell when it hits.">Custom target:</span>
                                       <input
                                         type="text"
                                         value={customStrikeText}
@@ -3559,20 +3563,20 @@ function DashboardPageInner() {
                                     )}
                                     {preBorrowExits && (
                                       <div className="text-[10px] text-[var(--d-ink-faint)] mt-2">
-                                        {preBorrowExits.kind === "tp_default" && "Will arm a single TP at 2x current price right after the borrow lands."}
-                                        {preBorrowExits.kind === "sl_default" && "Will arm a single stop at 0.7x current price right after the borrow lands."}
-                                        {preBorrowExits.kind === "bracket" && "Will arm TP at 2x AND SL at 0.7x — first to trigger wins."}
+                                        {preBorrowExits.kind === "tp_default" && "We'll auto-sell the moment price doubles (2× current) — locking in profit and repaying the loan in one shot."}
+                                        {preBorrowExits.kind === "sl_default" && "We'll auto-sell if price drops to 0.7× current (30% loss) — limiting downside and repaying the loan."}
+                                        {preBorrowExits.kind === "bracket" && "We'll set both an upside auto-sell (2x) and a downside auto-sell (0.7x). Whichever target hits first fires; the other auto-cancels."}
                                         {preBorrowExits.kind === "tp_ladder" && (
-                                          <>Will arm a {SITE_LADDER_PRESETS.tp[preBorrowExits.preset].legs.length}-leg TP ladder: {SITE_LADDER_PRESETS.tp[preBorrowExits.preset].label}. One wallet prompt per leg.</>
+                                          <>We'll sell in {SITE_LADDER_PRESETS.tp[preBorrowExits.preset].legs.length} stages as price climbs: {SITE_LADDER_PRESETS.tp[preBorrowExits.preset].label}. Your wallet will prompt once per stage.</>
                                         )}
                                         {preBorrowExits.kind === "sl_ladder" && (
-                                          <>Will arm a {SITE_LADDER_PRESETS.sl[preBorrowExits.preset].legs.length}-leg SL ladder: {SITE_LADDER_PRESETS.sl[preBorrowExits.preset].label}. One wallet prompt per leg.</>
+                                          <>We'll sell in {SITE_LADDER_PRESETS.sl[preBorrowExits.preset].legs.length} stages as price drops: {SITE_LADDER_PRESETS.sl[preBorrowExits.preset].label}. Your wallet will prompt once per stage.</>
                                         )}
                                         {preBorrowExits.kind === "custom_tp" && (
-                                          <>Will arm a custom take-profit at <span className="font-mono">{preBorrowExits.strikeText}</span> right after the borrow lands.</>
+                                          <>We'll auto-sell when price reaches <span className="font-mono">{preBorrowExits.strikeText}</span> (upside target).</>
                                         )}
                                         {preBorrowExits.kind === "custom_sl" && (
-                                          <>Will arm a custom stop at <span className="font-mono">{preBorrowExits.strikeText}</span> right after the borrow lands.</>
+                                          <>We'll auto-sell when price drops to <span className="font-mono">{preBorrowExits.strikeText}</span> (downside stop).</>
                                         )}
                                       </div>
                                     )}
