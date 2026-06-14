@@ -21,6 +21,19 @@ const ENTRIES: Entry[] = [
   {
     date: "June 14, 2026",
     tag: "Feature",
+    title: "Auto-sell, built into the borrow — set your exit before the loan opens",
+    bullets: [
+      "Set your take-profit, your stop-loss, or both directly inside the /borrow flow on Telegram and the dashboard. Picker shows up after you pick a tier and before you sign — your exit is armed the moment the loan funds",
+      "Six one-tap defaults (sell at 2x, sell at 0.7x, both at once, plus three multi-stage ladders) and a free-text custom strike that accepts every natural format: '5x', '$0.02', '30m mc', '-30%', '+50%', '0.0025 sol'",
+      "Multi-stage ladders sell your collateral in legs at multiple price targets — e.g. 70% at 1.5x, 20% at 2x, 10% at 3x. Each leg fires independently when its target hits; the rest stay armed",
+      "Engine watches DEX prices every ~30 seconds and only fires when the target is confirmed across multiple sources (Jupiter, DexScreener, Pyth). When it fires, we repay your loan on-chain, swap your collateral via Jupiter, and send net SOL to your wallet — usually in a few seconds",
+      "Full transparency on retries: if the first fill attempt would exceed your slippage cap, you get a DM showing the new slippage and a Cancel button. We auto-escalate up to YOUR cap, never beyond it",
+      "Pip suggests an exit setup proactively when you ask for a borrow — same conversation, same signing surface. Works for both memecoin (v1) and tokenized stock (v3) collateral",
+    ],
+  },
+  {
+    date: "June 14, 2026",
+    tag: "Feature",
     title: "v3 RWA pool live — 7 / 15 / 30 day tiers at 50 / 60 / 70% LTV",
     bullets: [
       "v3 lending program is now routing new RWA borrows. Tokenized stocks, ETFs, and metals get a dedicated tier ladder: 50% LTV @ 7 days, 60% LTV @ 15 days, 70% LTV @ 30 days — the higher-LTV / longer-term economics that RWA collateral can actually support given its lower volatility",

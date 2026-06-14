@@ -856,6 +856,48 @@ export function MarketplaceClient({
           </section>
         ) : null}
 
+        {/* ── Auto-sell at borrow time — feature module ──
+            Operator wants this front and center on every collateral-
+            facing surface. Placed BEFORE "How the loan ends" so users
+            absorb the protection options first; lots of users were
+            previously bouncing on the liquidation copy. */}
+        <section className="mt-12 rounded-2xl border-2 border-[var(--accent)] bg-gradient-to-br from-[var(--accent)]/8 to-[var(--accent)]/0 p-6 sm:p-8">
+          <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
+            <div>
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--accent-deep)] mb-2">New · Built into every loan</div>
+              <h4 className="font-display text-xl sm:text-2xl font-bold text-[var(--ink)]">
+                Set your auto-sell before you borrow
+              </h4>
+            </div>
+            <Link href="/dashboard" className="text-sm font-medium text-[var(--accent-deep)] hover:underline whitespace-nowrap">
+              Try it on the dashboard →
+            </Link>
+          </div>
+          <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
+            Pick the price you want to sell at <em>when you open the loan</em>, not after. We watch the chart 24/7, and the moment your target hits we repay the loan and send net SOL to your wallet — no chart-staring, no 3am alerts, no manual repay.
+          </p>
+          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)] mb-1.5">Take profit</div>
+              <div className="text-sm font-semibold text-[var(--ink)]">Sell when price doubles</div>
+              <div className="mt-1 text-xs leading-relaxed text-[var(--ink-soft)]">Set <span className="font-mono">2x</span>, <span className="font-mono">$0.02</span>, or any custom target. Locks in gains hands-off.</div>
+            </div>
+            <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)] mb-1.5">Stop loss</div>
+              <div className="text-sm font-semibold text-[var(--ink)]">Stop the bleed</div>
+              <div className="mt-1 text-xs leading-relaxed text-[var(--ink-soft)]">Set a floor at <span className="font-mono">0.7x</span> or <span className="font-mono">-30%</span>. Caps downside before it spirals.</div>
+            </div>
+            <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4">
+              <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)] mb-1.5">Sell in stages</div>
+              <div className="text-sm font-semibold text-[var(--ink)]">Multi-step ladders</div>
+              <div className="mt-1 text-xs leading-relaxed text-[var(--ink-soft)]">Sell 70% at 1.5x, 20% at 2x, 10% at 3x. Lock some, let some ride.</div>
+            </div>
+          </div>
+          <p className="mt-4 text-[11px] text-[var(--ink-faint)] leading-relaxed">
+            Best-effort fill at your target. We auto-retry with widening slippage up to a cap <em>you set</em>. 1% protocol fee on proceeds. Works on every supported memecoin and tokenized stock — same flow on Telegram, dashboard, and Pip.
+          </p>
+        </section>
+
         {/* ── How the loan ends ── */}
         <section className="mt-12 rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-6 sm:p-7">
           <h4 className="font-display text-lg font-bold text-[var(--ink)]">How the loan ends</h4>
