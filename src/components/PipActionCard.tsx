@@ -190,6 +190,43 @@ export function PipActionCard({
         return;
       }
 
+      if (action.type === "stop_loss") {
+        // Stop-loss arm — same envelope as take-profit but with
+        // direction='below'. Site SDK encodes the direction line
+        // automatically when direction='below' is passed.
+        if (!signMessage) {
+          throw new Error("Your wallet doesn't support signMessage. Try Phantom or Solflare.");
+        }
+        const { armTakeProfit } = await import("@/lib/solana/site-take-profit");
+        const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || DEFAULT_BOT_API;
+        const result = await armTakeProfit({
+          botApiUrl: botApi,
+          signerPubkey: publicKey.toBase58(),
+          signMessage,
+          request: {
+            from: publicKey.toBase58(),
+            loanIdChain: action.loan_id,
+            direction: "below",
+            target: action.multiplier != null
+              ? { kind: "multiplier", multiplier: action.multiplier }
+              : action.target_usd != null
+                ? { kind: "price_usd", usd: action.target_usd }
+                : { kind: "multiplier", multiplier: 0.7 },
+            slippageBps: action.slippage_bps,
+            sellDestination: action.sell_destination,
+            expire: action.order_expire || undefined,
+          },
+        });
+        setDoneSig(`order-${result.order_id}`);
+        const floorStr = result.target_usd
+          ? `$${result.target_usd < 0.01 ? result.target_usd.toFixed(8) : result.target_usd.toFixed(6)}`
+          : `${result.multiplier}×`;
+        onResult(
+          `Stop-loss armed for ${result.collateral_symbol ?? "your collateral"} at ${floorStr} (slip ${(result.slippage_bps / 100).toFixed(1)}%) · order #${result.order_id}`,
+        );
+        return;
+      }
+
       if (action.type === "trailing_stop") {
         // Trailing stop arm — same envelope shape as take_profit but
         // emits Trailing instead of Target. armTakeProfit takes the
@@ -460,6 +497,52 @@ export function PipActionCard({
           error={error}
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Arm take-profit"}
           successVerb="Take-profit armed"
+          onClick={handleSign}
+        />
+      </HeroCard>
+    );
+  }
+
+  // ── STOP-LOSS card ─────────────────────────────────────────────
+  if (action.type === "stop_loss") {
+    const floorStr =
+      action.target_usd != null
+        ? `$${action.target_usd < 0.01 ? action.target_usd.toFixed(8) : action.target_usd.toFixed(6)}/token`
+        : action.multiplier != null
+          ? `${action.multiplier}× current`
+          : "floor";
+    const dropPct =
+      action.current_usd != null && action.target_usd != null && action.current_usd > 0
+        ? Math.round((1 - action.target_usd / action.current_usd) * 100)
+        : null;
+    const currentStr =
+      action.current_usd != null
+        ? `$${action.current_usd < 0.01 ? action.current_usd.toFixed(8) : action.current_usd.toFixed(6)}`
+        : null;
+    const symbol = action.collateral_symbol ?? "collateral";
+    const sub = dropPct != null
+      ? `Currently ${currentStr} — fires on a ${dropPct}% drop`
+      : currentStr ? `Currently ${currentStr}` : undefined;
+    return (
+      <HeroCard
+        title={`Stop-loss on ${symbol}`}
+        kind="downside-protect"
+        heroLabel="Sell if drops to"
+        heroValue={floorStr}
+        heroSub={sub}
+        reward={{ label: "Proceeds", value: action.sell_destination.toUpperCase() }}
+        meta={[
+          { label: "Slippage cap", value: `${(action.slippage_bps / 100).toFixed(1)}%` },
+          { label: "Order expiry", value: action.order_expire ?? "—" },
+        ]}
+      >
+        <Footer
+          busy={busy}
+          expired={expired}
+          doneSig={doneSig}
+          error={error}
+          buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Arm stop-loss"}
+          successVerb="Stop-loss armed"
           onClick={handleSign}
         />
       </HeroCard>
