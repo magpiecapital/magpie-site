@@ -68,6 +68,7 @@ interface TokenChip {
   symbol: string;
   name: string;
   mint: string;
+  category?: "memecoin" | "stock" | "etf" | "metal";
 }
 
 function ChipMarquee({ chips, accent }: { chips: TokenChip[]; accent: "amber" | "slate" }) {
@@ -259,14 +260,25 @@ function ClassPanel({ variant, tokenCountInClass, topLtv, topDays, feeRange, sam
   );
 }
 
-/* ───────────────────────── CREDIT TIERS ───────────────────────── */
-
-const CREDIT_TIERS = [
-  { name: "Bronze", range: "300–499", ltv: "20–30%", fee: "1.5–3%", term: "7 days" },
-  { name: "Silver", range: "500–649", ltv: "22–32%", fee: "1.5–3%", term: "7 days" },
-  { name: "Gold", range: "650–749", ltv: "25–35%", fee: "1.25–2.75%", term: "14 days" },
-  { name: "Platinum", range: "750–850", ltv: "28–38%", fee: "1.0–2.5%", term: "30 days" },
-];
+/* ───────────────────────── CREDIT TIERS ─────────────────────────
+ *
+ * 2026-06-14 — corrected after the operator's "never over-promise"
+ * audit. Earlier copy claimed each credit tier unlocks better LTV /
+ * fees / longer terms. That's NOT what the program does today: V1 +
+ * V3 take only (collateral_amount, loan_option, ..., category) as
+ * args; there is no credit-score account read on the borrow path.
+ * Every borrower — Bronze through Platinum — gets the same three
+ * tier options (30/25/20% LTV for memecoin, 50/60/70% for RWA).
+ *
+ * What credit score DOES today:
+ *   - tracks reputation across loans (repayments raise it, defaults
+ *     drop it)
+ *   - gates per-user max loan size limits via loan-limits.js
+ *   - surfaces in /stats, dashboard, leaderboard
+ *
+ * Credit-gated LTV/fee/term differentiation is on the roadmap but
+ * NOT live. The section below states this honestly.
+ */
 
 /* ───────────────────────── TIER CARD ───────────────────────── */
 
@@ -526,6 +538,109 @@ function buildSteps(tokenCount: number) {
   ];
 }
 
+/* ───────────────────────── TOKEN GRID ─────────────────────────
+ *
+ * Inline list of every approved token in the class. Each chip is a
+ * link to /dashboard?category=X&mint=Y so the user can go straight
+ * from "yes I hold that" → loan flow without leaving the page.
+ *
+ * Long lists collapse to ~30 visible chips with a "Show all N" toggle.
+ * Keeps the marketplace page from feeling like a directory dump while
+ * still letting users confirm a specific holding is supported. */
+function TokenGrid({
+  title,
+  tokens,
+  variant,
+}: {
+  title: string;
+  tokens: TokenChip[];
+  variant: "memecoin" | "rwa";
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const COLLAPSED = 30;
+  const visible = expanded ? tokens : tokens.slice(0, COLLAPSED);
+  const remaining = tokens.length - visible.length;
+  const isRwa = variant === "rwa";
+  const accentChip = isRwa
+    ? {
+        bg: "color-mix(in srgb, var(--accent-deep) 12%, var(--bg-elevated))",
+        border: "color-mix(in srgb, var(--accent-deep) 30%, transparent)",
+        dotBg: "var(--accent-deep)",
+        dotInk: "#fff",
+        headBand: "var(--accent-deep)",
+      }
+    : {
+        bg: "color-mix(in srgb, var(--accent) 14%, var(--bg-elevated))",
+        border: "color-mix(in srgb, var(--accent) 35%, transparent)",
+        dotBg: "var(--accent)",
+        dotInk: "var(--accent-ink, #0a0a0a)",
+        headBand: "var(--accent)",
+      };
+  const category = isRwa ? "stock" : "memecoin";
+  return (
+    <div className="mt-8">
+      <div className="flex items-center justify-between border-b border-[var(--hairline)] pb-3">
+        <div className="flex items-center gap-2">
+          <span aria-hidden className="inline-block h-3 w-3 rounded-full" style={{ background: accentChip.headBand }} />
+          <h3 className="font-display text-lg font-bold text-[var(--ink)]">{title}</h3>
+          <span className="text-sm text-[var(--ink-faint)]">{tokens.length} tokens</span>
+        </div>
+        <Link
+          href={`/dashboard?category=${category}`}
+          className="text-sm font-semibold text-[var(--accent-deep)] hover:underline"
+        >
+          Start a {isRwa ? "stock" : "memecoin"} loan →
+        </Link>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {visible.map((t) => (
+          <Link
+            key={t.mint}
+            href={`/dashboard?category=${category}&mint=${t.mint}`}
+            title={`${t.name} — borrow against ${t.symbol}`}
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold transition hover:-translate-y-0.5"
+            style={{
+              background: accentChip.bg,
+              border: `1px solid ${accentChip.border}`,
+              color: "var(--ink)",
+            }}
+          >
+            <span
+              className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[9px] font-bold"
+              style={{ background: accentChip.dotBg, color: accentChip.dotInk }}
+            >
+              {t.symbol.replace(/x$/i, "").slice(0, 2).toUpperCase()}
+            </span>
+            {t.symbol}
+          </Link>
+        ))}
+      </div>
+      {remaining > 0 && (
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="text-sm font-semibold text-[var(--accent-deep)] hover:underline"
+          >
+            Show all {tokens.length} {isRwa ? "tokenized assets" : "memecoins"}  →
+          </button>
+        </div>
+      )}
+      {expanded && tokens.length > COLLAPSED && (
+        <div className="mt-3 text-center">
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="text-xs font-medium text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"
+          >
+            Show less
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ───────────────────────── MAIN PAGE ───────────────────────── */
 
 interface MarketplaceClientProps {
@@ -535,6 +650,8 @@ interface MarketplaceClientProps {
   rwaTiers: LoanTier[];
   memeSamples: TokenChip[];
   rwaSamples: TokenChip[];
+  allMemes: TokenChip[];
+  allRwas: TokenChip[];
 }
 
 export function MarketplaceClient({
@@ -544,6 +661,8 @@ export function MarketplaceClient({
   rwaTiers,
   memeSamples,
   rwaSamples,
+  allMemes,
+  allRwas,
 }: MarketplaceClientProps) {
   const meme = useMemo(
     () => memeTiers.map((t, i) => adaptTier(t, MEME_DESCRIPTIONS, ["Express", "Quick", "Standard"][i] || `Tier ${i + 1}`)),
@@ -737,14 +856,21 @@ export function MarketplaceClient({
           </section>
         ) : null}
 
-        {/* ── LTV explainer ── */}
+        {/* ── How the loan ends ── */}
         <section className="mt-12 rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-6 sm:p-7">
-          <h4 className="font-display text-lg font-bold text-[var(--ink)]">What happens if my collateral drops?</h4>
+          <h4 className="font-display text-lg font-bold text-[var(--ink)]">How the loan ends</h4>
           <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
-            If the value of your collateral falls below <strong>1.1x</strong> the loan amount (the health ratio),
-            your position is at risk of liquidation. You can avoid this by topping up collateral, making a partial
-            repayment, or extending your loan (fee per extension matches your tier rate). The lower your LTV tier, the more buffer
-            you have before liquidation.
+            <strong>Two outcomes.</strong> You repay (full or partial) before the term ends — collateral comes back
+            the same instant. Or the term ends without repayment — the keeper network liquidates the loan and
+            the collateral is sold to repay the LPs. Liquidation is term-based: as long as the loan is repaid
+            on time, a temporary price drop does not auto-liquidate you.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
+            <strong>If price moves against you mid-term</strong>, you have three protections:
+            {" "}<Link href="/dashboard" className="font-medium text-[var(--accent-deep)] hover:underline">top up</Link> with more collateral,
+            {" "}<Link href="/dashboard" className="font-medium text-[var(--accent-deep)] hover:underline">extend</Link> for another tier-length term,
+            or arm a <Link href="/dashboard" className="font-medium text-[var(--accent-deep)] hover:underline">stop-loss</Link> that auto-closes the position at a price you pick.
+            Lower LTV tiers also have more room before the value of collateral equals the loan, so they give you more time to react.
           </p>
         </section>
 
@@ -783,22 +909,32 @@ export function MarketplaceClient({
           </ol>
         </section>
 
-        {/* ── Credit Score ── */}
+        {/* ── Credit Score — honest version ── */}
         <section className="mt-20">
           <div className="rounded-3xl border border-[var(--accent)]/25 bg-[var(--accent-dim)]/30 p-8 sm:p-10">
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-12">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
               <div className="flex-1">
                 <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--accent-deep)]">
-                  Better credit = better terms
+                  On-chain reputation
                 </div>
                 <h2 className="mt-2 font-display text-2xl font-bold text-[var(--ink)]">
                   Magpie Credit Score
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
-                  Every borrower starts at 500. On-time repayments increase your score; liquidations lower it.
-                  Higher scores unlock better LTV, lower fees, and longer terms. Your score is tied to your
-                  wallet and builds over time.
+                  Every borrower starts at 500. On-time repayments raise your score; missed terms lower it.
+                  Your score is tied to your wallet and follows you across every Magpie surface (dashboard,
+                  Telegram, Pip) — it&rsquo;s the closest thing the protocol has to a permissionless reputation
+                  primitive.
                 </p>
+                <div className="mt-4 text-sm text-[var(--ink-soft)]">
+                  <strong className="text-[var(--ink)]">What it does today:</strong> tracks reputation,
+                  gates per-user borrow-size limits, shows up on the leaderboard and your /stats card.
+                </div>
+                <div className="mt-2 text-sm text-[var(--ink-soft)]">
+                  <strong className="text-[var(--ink)]">What it doesn&rsquo;t do yet:</strong> change your
+                  tier LTV, fee, or term length. The three tier options shown above are the same for every
+                  wallet — Bronze through Platinum. Credit-gated tier upgrades are on the roadmap.
+                </div>
                 <div className="mt-4 text-sm text-[var(--ink-soft)]">
                   <strong className="text-[var(--ink)]">Score factors:</strong> Repayment history (40%), Loan volume (20%),
                   Account age (15%), Collateral diversity (15%), Liquidation history (10%)
@@ -812,52 +948,33 @@ export function MarketplaceClient({
                   </Link>
                 </div>
               </div>
-
-              <div className="w-full lg:w-auto">
-                <div className="overflow-hidden rounded-xl border border-[var(--hairline)]">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-[var(--surface)]">
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">Tier</th>
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">Score</th>
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">LTV</th>
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">Fee</th>
-                        <th className="px-4 py-2.5 text-left text-[10px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">Term</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {CREDIT_TIERS.map((t) => (
-                        <tr key={t.name} className="border-t border-[var(--hairline)]">
-                          <td className="px-4 py-2.5 font-medium text-[var(--ink)]">{t.name}</td>
-                          <td className="px-4 py-2.5 text-[var(--ink-soft)]">{t.range}</td>
-                          <td className="px-4 py-2.5 text-[var(--ink-soft)]">{t.ltv}</td>
-                          <td className="px-4 py-2.5 text-[var(--ink-soft)]">{t.fee}</td>
-                          <td className="px-4 py-2.5 text-[var(--ink-soft)]">{t.term}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
             </div>
           </div>
         </section>
 
-        {/* ── Approved tokens callout ── */}
-        <section className="mt-16 flex flex-col items-center gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-8 text-center sm:flex-row sm:text-left">
-          <div className="flex-1">
-            <h3 className="font-display text-lg font-bold text-[var(--ink)]">{tokenCount} approved tokens across both classes</h3>
-            <p className="mt-1 text-sm text-[var(--ink-soft)]">
-              Memecoins (BONK, WIF, FARTCOIN, POPCAT, PENGU and more) + tokenized stocks (NVDAx, COINx, MSTRx, TSLAx, HOODx) + ETFs + metals. Each token is risk-assessed in real time.
+        {/* ── All approved collateral — inline grids per class ── */}
+        <section className="mt-16">
+          <div className="text-center">
+            <h2 className="font-display text-2xl font-bold text-[var(--ink)] sm:text-3xl">
+              All approved collateral
+            </h2>
+            <p className="mx-auto mt-2 max-w-2xl text-[var(--ink-soft)]">
+              Every token below is live, risk-assessed, and ready to borrow against. Tap one to start a loan with that token pre-selected.
             </p>
           </div>
-          <Link
-            href="/tokens"
-            className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[var(--hairline)] px-5 py-2.5 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface)]"
-          >
-            Browse the full list
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-          </Link>
+          <TokenGrid title="Memecoins" tokens={allMemes} variant="memecoin" />
+          {allRwas.length > 0 ? (
+            <TokenGrid title="Tokenized stocks · ETFs · metals" tokens={allRwas} variant="rwa" />
+          ) : null}
+          <div className="mt-6 text-center">
+            <Link
+              href="/tokens"
+              className="inline-flex items-center gap-2 rounded-xl border border-[var(--hairline)] px-5 py-2.5 text-sm font-semibold text-[var(--ink)] transition hover:bg-[var(--surface)]"
+            >
+              Full token explorer with prices &amp; categories
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+            </Link>
+          </div>
         </section>
 
         {/* ── Final CTA ── */}
