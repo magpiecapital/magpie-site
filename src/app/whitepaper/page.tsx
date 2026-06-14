@@ -494,11 +494,10 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                   <div className="col-span-7">Mechanism</div>
                 </div>
                 {[
-                  ["LPs (pool depositors)", "80%", "Pro-rata to each LP's share of the SOL pool. Compounds in-pool."],
-                  ["$MAGPIE holders", "10%", "Distributed in SOL to wallets holding $MAGPIE at snapshot time. No claim tx required."],
-                  ["Referrers", "5%", "Pro-rata fee share to whoever referred the borrower (lifetime, on every loan they take)."],
-                  ["LP loyalty pool", "2%", "Bonus distribution to long-term LPs based on share-days held."],
-                  ["Protocol", "3%", "Treasury — covers infrastructure, audits, ongoing development."],
+                  ["$MAGPIE holders", "70%", "Distributed in SOL to wallets holding $MAGPIE at snapshot time. No claim tx required."],
+                  ["LP loyalty (pool depositors)", "10%", "Distributed in SOL to LPs by shares × time held. Same snapshot cadence as holder rewards."],
+                  ["Referrers", "10%", "Pro-rata fee share to whoever referred the borrower (lifetime, on every loan they take). Rolls back into the holder slice when there's no referrer."],
+                  ["Protocol reserve", "10%", "Counter-cyclical buffer — covers bad-debt cover, emergency fixes, lender-wallet backstop. Spend is operator-discretion + governance-visible."],
                 ].map(([who, pct, how]) => (
                   <div key={who} className="grid grid-cols-12 gap-4 px-5 py-4 border-t border-[var(--hairline)] text-sm items-start">
                     <div className="col-span-3 font-medium">{who}</div>
