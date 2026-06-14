@@ -19,6 +19,19 @@ interface Entry {
 
 const ENTRIES: Entry[] = [
   {
+    date: "June 14, 2026",
+    tag: "Feature",
+    title: "Trailing stops, brackets, and full Pip coverage for downside protection",
+    bullets: [
+      "Trailing stops — set a distance (e.g. 10%) and the floor floats UP with each new high, never down. Fires when price retraces that distance from the most recent peak. Available via /trailingstop in Telegram, the dashboard TakeProfitCard checkbox, and Pip (\"set a trailing 10% on my loan\")",
+      "Brackets — one command arms BOTH a take-profit and a stop-loss on the same loan. First leg to fire closes the loan and auto-cancels the other. /bracket 1234 tp=2x sl=0.7x in Telegram, a \"Bracket (both)\" inline button on every funded-loan card, and a /cancelbracket companion",
+      "/modifyorder gains trailing= — convert a regular stop-loss into a trailing stop in place (no cancel-and-rearm gap) or back to fixed. Floor reseeds from live price on first enable",
+      "Pip now has propose_stop_loss (was a coverage gap), propose_trailing_stop, and simulate_trailing_stop (projects worst-case net SOL if the initial floor fires) — Pip can resolve any protection conversation end-to-end with concrete numbers",
+      "/limitorders surfaces a TRAIL N% pill and the live peak so users can see what the floating floor is tracking",
+      "/lc-perf admin telemetry now slices trailing fire rate independently from fixed-SL fire rate and counts currently-active brackets + historical bracket events",
+    ],
+  },
+  {
     date: "June 9, 2026",
     tag: "Governance",
     title: "Magpie Governance v0 — off-chain signal voting for $MAGPIE holders",
