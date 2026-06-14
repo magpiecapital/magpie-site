@@ -31,6 +31,7 @@ import {
   type TakeProfitOrder, type TakeProfitLoan, type TakeProfitState,
 } from "@/lib/solana/site-take-profit";
 import { parseStrike } from "@/lib/strike-price-parser";
+import { LadderPanel } from "./LadderPanel";
 
 /**
  * One-shot preview helper for the free-text strike input. Wraps the
@@ -283,6 +284,10 @@ function LimitSlot(props: SlotProps) {
   // price at arm time and floats with each new high.
   const [trailingEnabled, setTrailingEnabled] = useState<boolean>(false);
   const [trailingPct, setTrailingPct] = useState<number>(10); // 10% default
+  // Ladder mode — when enabled, the slot renders a multi-leg picker
+  // (LadderPanel) instead of the single-strike form. Multi-leg arming
+  // signs N envelopes sequentially with a shared ladder_group_id.
+  const [ladderEnabled, setLadderEnabled] = useState<boolean>(false);
 
   const arm = useCallback(async () => {
     if (!publicKey || !signMessage) {
@@ -683,8 +688,8 @@ function LimitSlot(props: SlotProps) {
             <input
               type="checkbox"
               checked={trailingEnabled}
-              onChange={(e) => setTrailingEnabled(e.target.checked)}
-              disabled={busy}
+              onChange={(e) => { setTrailingEnabled(e.target.checked); if (e.target.checked) setLadderEnabled(false); }}
+              disabled={busy || ladderEnabled}
               className="accent-current"
               style={{ accentColor: armColor }}
             />
@@ -693,9 +698,38 @@ function LimitSlot(props: SlotProps) {
           <span className="opacity-60">— floats with peak as price climbs</span>
         </div>
       )}
-      {/* Fixed-floor presets + custom USD: hidden when trailing is on
-          since they're conceptually incompatible. */}
-      {!(isSl && trailingEnabled) && (
+      {/* Ladder toggle — multi-leg partial sells at different strikes. */}
+      <div className="mb-2 flex items-center gap-2 text-[10px]">
+        <label className="inline-flex items-center gap-1.5 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={ladderEnabled}
+            onChange={(e) => { setLadderEnabled(e.target.checked); if (e.target.checked) setTrailingEnabled(false); }}
+            disabled={busy || (isSl && trailingEnabled)}
+            className="accent-current"
+            style={{ accentColor: armColor }}
+          />
+          <span className="font-medium">Ladder (multi-leg)</span>
+        </label>
+        <span className="opacity-60">— sell portions at 2–6 different prices</span>
+      </div>
+      {/* When ladder mode is on, render the dedicated panel and skip
+          all other inputs. The LadderPanel signs N envelopes when the
+          user clicks "Arm N legs". */}
+      {ladderEnabled && (
+        <LadderPanel
+          botApiUrl={props.botApiUrl}
+          loanIdChain={props.loanIdChain}
+          isSl={isSl}
+          accentColor={armColor}
+          slippagePct={slippagePct}
+          onArmed={() => { setLadderEnabled(false); setExpanded(false); props.onMutated(); }}
+          onCancel={() => setLadderEnabled(false)}
+        />
+      )}
+      {/* Fixed-floor presets + custom USD: hidden when trailing or
+          ladder mode is on since they're conceptually incompatible. */}
+      {!(isSl && trailingEnabled) && !ladderEnabled && (
       <div className="flex flex-wrap gap-1.5 mb-2">
         {slotPresets.map((m) => (
           <button
@@ -719,7 +753,7 @@ function LimitSlot(props: SlotProps) {
         ))}
       </div>
       )}
-      {!(isSl && trailingEnabled) && (
+      {!(isSl && trailingEnabled) && !ladderEnabled && (
       <div className="flex flex-col gap-1 mb-2">
         <div className="flex items-center gap-2">
           <span className="text-[10px] opacity-60">or type a target</span>
@@ -785,6 +819,10 @@ function LimitSlot(props: SlotProps) {
         />
         <span className="text-[11px] tabular-nums w-10 text-right">{slippagePct.toFixed(1)}%</span>
       </div>
+      {/* Ladder mode owns its own preview + arm UI; skip the single-leg
+          machinery below entirely so the slot doesn't render a stale
+          single-target preview alongside the ladder picker. */}
+      {ladderEnabled ? null : (<>
       {/* ── Pre-arm preview ──
           Computes the resolved target USD from either the selected
           multiplier (× current) or the custom USD input, then shows
@@ -862,6 +900,7 @@ function LimitSlot(props: SlotProps) {
       >
         {busy ? "Signing…" : `Arm ${isSl ? "stop-loss" : "take-profit"}`}
       </button>
+      </>)}
       <div className="mt-1.5 text-[10px] opacity-60 leading-tight">
         {isSl
           ? "I'll repay your loan + sell the collateral the moment price drops to your floor. 1% protocol fee on proceeds. You can cancel any time."
