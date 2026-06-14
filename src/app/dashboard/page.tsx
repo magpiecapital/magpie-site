@@ -1509,6 +1509,46 @@ function DashboardPageInner() {
     [publicKey, signMessage, postBorrowTakeProfit, forceRefresh],
   );
 
+  // Stop-loss companion to armPostBorrowTakeProfit. Same loan, same
+  // signing flow, just Direction: below and multiplier < 1×. Lets the
+  // user lock in BOTH upside and downside in two taps right after
+  // borrow — the funnel today required leaving the post-borrow card
+  // and finding the loan in the active-loans list to set SL.
+  const armPostBorrowStopLoss = useCallback(
+    async (multiplier: number) => {
+      if (!publicKey || !signMessage || !postBorrowTakeProfit) return;
+      setPostBorrowTpBusy(true);
+      setPostBorrowTpError(null);
+      try {
+        const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+        await armTakeProfit({
+          botApiUrl: botApi,
+          signerPubkey: publicKey.toBase58(),
+          signMessage,
+          request: {
+            from: publicKey.toBase58(),
+            loanIdChain: postBorrowTakeProfit.chainLoanId,
+            direction: "below",
+            // SL needs a wider default slippage than TP — down-drafts
+            // thin liquidity faster. 3% matches the LimitSlot default.
+            target: { kind: "multiplier", multiplier },
+            slippageBps: 300,
+            sellDestination: "sol",
+          },
+        });
+        // Don't clear the post-borrow card — the user may want to also
+        // arm TP. forceRefresh updates the dashboard's order list so
+        // the LimitSlot below shows the new SL row immediately.
+        forceRefresh();
+      } catch (err) {
+        setPostBorrowTpError((err as Error).message || "Could not arm stop-loss");
+      } finally {
+        setPostBorrowTpBusy(false);
+      }
+    },
+    [publicKey, signMessage, postBorrowTakeProfit, forceRefresh],
+  );
+
   // Site-repay handler. Routes to full or partial repay based on repayPct.
   // 100% → buildRepayTransaction (closes loan, collateral returns).
   // <100 → buildPartialRepayTransaction (pays down debt, collateral stays locked).
@@ -3197,29 +3237,55 @@ function DashboardPageInner() {
                                       <div className="flex items-start gap-2">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--d-ink-faint)" strokeWidth="2" strokeLinecap="round" className="shrink-0 mt-0.5"><path d="M12 2v20M2 12h20" /></svg>
                                         <div className="flex-1 min-w-0">
-                                          <div className="text-[11px] text-[var(--d-ink)] font-semibold">Lock in upside?</div>
+                                          <div className="text-[11px] text-[var(--d-ink)] font-semibold">Protect this loan?</div>
                                           <div className="text-[10px] text-[var(--d-ink-faint)] mt-0.5 leading-relaxed">
-                                            Auto-close + sell {postBorrowTakeProfit.collateralSymbol} if it hits your target.
+                                            Auto-close + sell {postBorrowTakeProfit.collateralSymbol} when price hits your floor or ceiling. Each row signs independently — tap one or both.
                                           </div>
-                                          <div className="mt-2 flex flex-wrap gap-1.5">
-                                            {[1.5, 2, 3, 5].map((m) => (
-                                              <button
-                                                key={m}
-                                                type="button"
-                                                disabled={postBorrowTpBusy}
-                                                onClick={() => armPostBorrowTakeProfit(m)}
-                                                className="px-2.5 py-1 rounded-md border border-[var(--d-border)] text-[10px] font-semibold hover:bg-[var(--d-surface)] disabled:opacity-50"
-                                              >
-                                                {postBorrowTpBusy ? "Signing..." : `Sell at ${m}x`}
-                                              </button>
-                                            ))}
+                                          {/* Take-profit row */}
+                                          <div className="mt-2.5">
+                                            <div className="text-[10px] text-[var(--d-ink-faint)] mb-1 font-medium">Take-profit</div>
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {[1.5, 2, 3, 5].map((m) => (
+                                                <button
+                                                  key={`tp-${m}`}
+                                                  type="button"
+                                                  disabled={postBorrowTpBusy}
+                                                  onClick={() => armPostBorrowTakeProfit(m)}
+                                                  className="px-2.5 py-1 rounded-md border border-[var(--d-border)] text-[10px] font-semibold hover:bg-[var(--d-surface)] disabled:opacity-50"
+                                                  style={{ color: "rgb(34,197,94)" }}
+                                                >
+                                                  {postBorrowTpBusy ? "Signing..." : `Sell at ${m}×`}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          </div>
+                                          {/* Stop-loss row */}
+                                          <div className="mt-2.5">
+                                            <div className="text-[10px] text-[var(--d-ink-faint)] mb-1 font-medium">Stop-loss</div>
+                                            <div className="flex flex-wrap gap-1.5">
+                                              {[0.9, 0.8, 0.7, 0.5].map((m) => (
+                                                <button
+                                                  key={`sl-${m}`}
+                                                  type="button"
+                                                  disabled={postBorrowTpBusy}
+                                                  onClick={() => armPostBorrowStopLoss(m)}
+                                                  className="px-2.5 py-1 rounded-md border border-[var(--d-border)] text-[10px] font-semibold hover:bg-[var(--d-surface)] disabled:opacity-50"
+                                                  style={{ color: "rgb(220,38,38)" }}
+                                                >
+                                                  {postBorrowTpBusy ? "Signing..." : `Floor at ${m}×`}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          </div>
+                                          <div className="mt-2.5">
                                             <button
                                               type="button"
                                               disabled={postBorrowTpBusy}
                                               onClick={() => { setPostBorrowTakeProfit(null); setPostBorrowTpError(null); }}
                                               className="px-2.5 py-1 rounded-md text-[10px] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)] disabled:opacity-50"
                                             >
-                                              No thanks
+                                              {/* Once at least one slot is armed the order list updates and the LimitSlot under the loan handles the rest. */}
+                                              Done — close this prompt
                                             </button>
                                           </div>
                                           {postBorrowTpError && (
