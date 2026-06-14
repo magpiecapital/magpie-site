@@ -30,6 +30,41 @@ import {
   fetchTakeProfitState, armTakeProfit, cancelTakeProfit, modifyTakeProfit,
   type TakeProfitOrder, type TakeProfitLoan, type TakeProfitState,
 } from "@/lib/solana/site-take-profit";
+import { parseStrike } from "@/lib/strike-price-parser";
+
+/**
+ * One-shot preview helper for the free-text strike input. Wraps the
+ * shared parser with a tighter shape the JSX renderer can render
+ * directly. Reused below by both LimitSlot variants.
+ */
+function parseStrikePreview(raw: string, isSl: boolean):
+  | { ok: true; kind: "mc_usd" | "price_usd" | "price_sol" | "multiplier"; usd: number | null; multiplier: number | null; display: string }
+  | { ok: false; error: string }
+{
+  const trimmed = raw.trim();
+  if (!trimmed) return { ok: false, error: "" };
+  const r = parseStrike(trimmed, {
+    bareNumberDefaultKind: isSl ? "price_usd" : undefined,
+  });
+  if (!r.ok) return { ok: false, error: r.error };
+  if (r.impliedDirection && ((isSl && r.impliedDirection === "above") || (!isSl && r.impliedDirection === "below"))) {
+    return {
+      ok: false,
+      error: r.impliedDirection === "above"
+        ? "That's an upside target — use Take-Profit, not Stop-Loss."
+        : "That's a downside target — use Stop-Loss, not Take-Profit.",
+    };
+  }
+  return {
+    ok: true,
+    kind: r.kind,
+    usd: r.kind === "mc_usd" || r.kind === "price_usd"
+      ? Number(r.valueMicro!) / 1e6
+      : null,
+    multiplier: r.multiplier,
+    display: r.normalizedDisplay,
+  };
+}
 
 const POLL_MS = 60_000;
 const TP_PRESETS = [1.5, 2, 3, 5] as const;
@@ -278,11 +313,33 @@ function LimitSlot(props: SlotProps) {
           },
         });
       } else {
-        const usd = customUsd ? Number(customUsd) : null;
-        const target =
-          usd && usd > 0
-            ? { kind: "price_usd" as const, usd }
-            : { kind: "multiplier" as const, multiplier: selectedMultiplier };
+        // The customUsd field is now a free-text strike (e.g. "17M mc",
+        // "$0.005", "2x", "down 30%"). If it's set, parse it through
+        // the shared parser; otherwise fall back to the selected multiplier preset.
+        // The arm path on the bot side also re-parses authoritatively;
+        // this client-side parse just keeps the wallet sign-prompt
+        // showing a human-readable target.
+        let target:
+          | { kind: "price_usd"; usd: number }
+          | { kind: "mc_usd"; mcDollars: number }
+          | { kind: "multiplier"; multiplier: number };
+        if (customUsd.trim()) {
+          const p = parseStrikePreview(customUsd, isSl);
+          if (!p.ok) {
+            throw new Error(p.error || "Couldn't parse the target.");
+          }
+          if (p.kind === "multiplier" && p.multiplier != null) {
+            target = { kind: "multiplier", multiplier: p.multiplier };
+          } else if (p.kind === "mc_usd" && p.usd != null) {
+            target = { kind: "mc_usd", mcDollars: p.usd };
+          } else if (p.kind === "price_usd" && p.usd != null) {
+            target = { kind: "price_usd", usd: p.usd };
+          } else {
+            throw new Error("Only USD price, market cap, or multiplier strikes are supported for arming today.");
+          }
+        } else {
+          target = { kind: "multiplier", multiplier: selectedMultiplier };
+        }
         await armTakeProfit({
           botApiUrl: props.botApiUrl,
           signerPubkey: publicKey.toBase58(),
@@ -663,19 +720,34 @@ function LimitSlot(props: SlotProps) {
       </div>
       )}
       {!(isSl && trailingEnabled) && (
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-[10px] opacity-60">or custom $</span>
-        <input
-          type="number"
-          step="any"
-          placeholder={customPlaceholder}
-          value={customUsd}
-          onChange={(e) => setCustomUsd(e.target.value)}
-          disabled={busy}
-          className="flex-1 max-w-[140px] bg-transparent border-b border-[var(--d-border)] text-[12px] py-0.5 focus:outline-none focus:border-current"
-          style={{ borderColor: customUsd ? armColor : undefined }}
-        />
-        <span className="text-[10px] opacity-60">/ token</span>
+      <div className="flex flex-col gap-1 mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] opacity-60">or type a target</span>
+          <input
+            type="text"
+            placeholder={isSl ? "$0.005 · 5M mc · down 30% · 0.7x" : "$0.01 · 17M mc · 2x · +50%"}
+            value={customUsd}
+            onChange={(e) => setCustomUsd(e.target.value)}
+            disabled={busy}
+            className="flex-1 bg-transparent border-b border-[var(--d-border)] text-[12px] py-0.5 focus:outline-none focus:border-current"
+            style={{ borderColor: customUsd ? armColor : undefined }}
+          />
+        </div>
+        {/* Inline parse preview — when user has typed anything that
+            looks like a strike, run it through the shared parser
+            (byte-equivalent to TG /tp + Pip target_text) and show
+            "Got it: $17M MC" or the parse error. Pure feedback —
+            doesn't enforce, the arm path re-parses authoritatively. */}
+        {customUsd.trim() && (() => {
+          // Lazy import via dynamic require would block SSR; use top-level import.
+          // (Added at file top — see import { parseStrike } above.)
+          const r = parseStrikePreview(customUsd, isSl);
+          return (
+            <div className="text-[10px] pl-2" style={{ color: r.ok ? armColor : "var(--d-bad)" }}>
+              {r.ok ? `Got it: ${r.display}` : r.error}
+            </div>
+          );
+        })()}
       </div>
       )}
       {/* Trailing distance picker: percentage from peak. Replaces the
