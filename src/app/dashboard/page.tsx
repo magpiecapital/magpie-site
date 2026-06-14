@@ -19,6 +19,7 @@ import SiteStatusBanner from "./SiteStatusBanner";
 import { ApiHealthBanner } from "@/components/ApiHealthBanner";
 import { TakeProfitCard, useTakeProfitState } from "./TakeProfitCard";
 import { armTakeProfit } from "@/lib/solana/site-take-profit";
+import { parseStrike } from "@/lib/strike-price-parser";
 import { DashboardProvider } from "./DashboardContext";
 
 // Below-the-fold widgets are dynamically imported so the initial
@@ -1116,8 +1117,28 @@ function DashboardPageInner() {
     | { kind: "sl_default" }
     | { kind: "bracket" }
     | { kind: "tp_ladder"; preset: "conservative" | "balanced" | "aggressive" }
-    | { kind: "sl_ladder"; preset: "conservative" | "balanced" | "aggressive" };
+    | { kind: "sl_ladder"; preset: "conservative" | "balanced" | "aggressive" }
+    // Custom strikes use the parsed result inline. Stored shape excludes
+    // BigInt for localStorage round-trip safety — handleBorrow re-parses
+    // strikeText at arm time to recover the typed value.
+    | { kind: "custom_tp"; strikeText: string }
+    | { kind: "custom_sl"; strikeText: string };
   const PRE_BORROW_EXITS_KEY = "magpie-pre-borrow-exits";
+  const [customStrikeText, setCustomStrikeText] = useState<string>(() => {
+    // If the persisted exit was a custom strike, prime the input so the
+    // textfield matches what the picker preview says was selected.
+    if (typeof window === "undefined") return "";
+    try {
+      const raw = window.localStorage.getItem(PRE_BORROW_EXITS_KEY);
+      if (!raw) return "";
+      const parsed = JSON.parse(raw) as PreBorrowExits;
+      if (parsed?.kind === "custom_tp" || parsed?.kind === "custom_sl") {
+        return parsed.strikeText;
+      }
+    } catch {}
+    return "";
+  });
+  const [customStrikeError, setCustomStrikeError] = useState<string | null>(null);
   const [preBorrowExits, setPreBorrowExits] = useState<PreBorrowExits | null>(() => {
     // Hydrate from localStorage so the picker remembers the user's last
     // choice across page reloads. SSR-safe via typeof window check.
@@ -1547,6 +1568,56 @@ function DashboardPageInner() {
         } else if (ex.kind === "sl_default") {
           const r = await armSingle("SL @ 0.7x", "below", 0.7);
           autoArmedOk = r.ok;
+        } else if (ex.kind === "custom_tp" || ex.kind === "custom_sl") {
+          // Re-parse the strike at arm time. We store strikeText (not the
+          // parsed object) so localStorage can round-trip without BigInt
+          // serialization juggling. If the parse fails here it'll be the
+          // same failure the user would have seen at picker-time.
+          const parsed = parseStrike(ex.strikeText, {});
+          const direction = ex.kind === "custom_tp" ? "above" as const : "below" as const;
+          if (!parsed.ok) {
+            setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"}`, ok: false, error: parsed.error || "parse failed" }]);
+          } else {
+            // Map parser kinds to armTakeProfit target shape.
+            let target: import("@/lib/solana/site-take-profit").ArmTakeProfitRequest["target"];
+            if (parsed.kind === "multiplier") {
+              target = { kind: "multiplier", multiplier: parsed.multiplier as number };
+            } else if (parsed.kind === "price_usd") {
+              target = { kind: "price_usd", usd: Number(parsed.valueMicro) / 1e6 };
+            } else if (parsed.kind === "mc_usd") {
+              target = { kind: "mc_usd", mcDollars: Number(parsed.valueMicro) / 1e6 };
+            } else {
+              // price_sol — not currently in ArmTakeProfitRequest target
+              // shape (the bot armOrder accepts it but the site envelope
+              // doesn't have a Price-SOL line). Fall back to per-token
+              // arming via TakeProfitCard.
+              setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"}`, ok: false, error: "SOL-denominated strikes not supported pre-borrow yet" }]);
+              target = null as never;
+            }
+            if (target) {
+              try {
+                const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+                await armTakeProfit({
+                  botApiUrl: botApi2,
+                  signerPubkey: publicKey!.toBase58(),
+                  signMessage: signMessage!,
+                  request: {
+                    from: publicKey!.toBase58(),
+                    loanIdChain: chainLoanId.toString(),
+                    direction,
+                    target,
+                    slippageBps: direction === "below" ? 300 : 200,
+                    sellDestination: "sol",
+                  },
+                });
+                setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"} @ ${parsed.normalizedDisplay}`, ok: true }]);
+                autoArmedOk = true;
+              } catch (err) {
+                const msg = (err as Error).message || "arm failed";
+                setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"} @ ${parsed.normalizedDisplay}`, ok: false, error: msg }]);
+              }
+            }
+          }
         } else if (ex.kind === "bracket") {
           const tp = await armSingle("TP @ 2x", "above", 2);
           // Only attempt SL if TP succeeded — otherwise user gets a
@@ -3368,6 +3439,47 @@ function DashboardPageInner() {
                                         );
                                       })}
                                     </div>
+                                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                                      <span className="text-[10px] text-[var(--d-ink-faint)]">Custom:</span>
+                                      <input
+                                        type="text"
+                                        value={customStrikeText}
+                                        onChange={(e) => {
+                                          setCustomStrikeText(e.target.value);
+                                          setCustomStrikeError(null);
+                                        }}
+                                        placeholder="e.g. 5x, $0.02, 30m mc, -30%"
+                                        className="flex-1 min-w-[120px] px-2 py-1 rounded-md text-[10px] border border-[var(--d-border)] bg-[var(--d-bg-card)] text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)]"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const text = customStrikeText.trim();
+                                          if (!text) {
+                                            setCustomStrikeError("Type a strike first.");
+                                            return;
+                                          }
+                                          const parsed = parseStrike(text, {});
+                                          if (!parsed.ok) {
+                                            setCustomStrikeError(parsed.error || "Couldn't read that strike.");
+                                            return;
+                                          }
+                                          const direction = parsed.impliedDirection ?? "above";
+                                          setPreBorrowExits(
+                                            direction === "above"
+                                              ? { kind: "custom_tp", strikeText: text }
+                                              : { kind: "custom_sl", strikeText: text },
+                                          );
+                                          setCustomStrikeError(null);
+                                        }}
+                                        className="px-2 py-1 rounded-md text-[10px] font-semibold transition border border-[var(--d-border)] hover:border-[var(--d-accent)] text-[var(--d-ink)]"
+                                      >
+                                        Set
+                                      </button>
+                                    </div>
+                                    {customStrikeError && (
+                                      <div className="text-[10px] text-red-500 mt-1">{customStrikeError}</div>
+                                    )}
                                     {preBorrowExits && (
                                       <div className="text-[10px] text-[var(--d-ink-faint)] mt-2">
                                         {preBorrowExits.kind === "tp_default" && "Will arm a single TP at 2x current price right after the borrow lands."}
@@ -3378,6 +3490,12 @@ function DashboardPageInner() {
                                         )}
                                         {preBorrowExits.kind === "sl_ladder" && (
                                           <>Will arm a {SITE_LADDER_PRESETS.sl[preBorrowExits.preset].legs.length}-leg SL ladder: {SITE_LADDER_PRESETS.sl[preBorrowExits.preset].label}. One wallet prompt per leg.</>
+                                        )}
+                                        {preBorrowExits.kind === "custom_tp" && (
+                                          <>Will arm a custom take-profit at <span className="font-mono">{preBorrowExits.strikeText}</span> right after the borrow lands.</>
+                                        )}
+                                        {preBorrowExits.kind === "custom_sl" && (
+                                          <>Will arm a custom stop at <span className="font-mono">{preBorrowExits.strikeText}</span> right after the borrow lands.</>
                                         )}
                                       </div>
                                     )}
