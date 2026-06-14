@@ -282,6 +282,114 @@ function buildCancelMessage(args: { from: string; orderId: number; nonce: string
   ].join("\n");
 }
 
+/* ────────────────────────────────────────────────────────────────
+ * POST modify — in-place tweak armed order's trigger / slippage / etc.
+ *
+ * 2026-06-13: TG and x402 agent surfaces have always had modify; the
+ * site only had arm + cancel. Users wanting to tighten a stop-loss
+ * after a rally had to cancel + re-arm, which left a market-move gap
+ * where the order was unprotected. modify closes that gap.
+ *
+ * Envelope mirrors the bot's handleSiteLimitCloseModify expectation.
+ * At least one of price / slippageBps / sellDestination / expire must
+ * be supplied — the bot rejects no_changes_supplied otherwise.
+ * ──────────────────────────────────────────────────────────────── */
+
+export interface ModifyTakeProfitRequest {
+  orderId: number;
+  /** New trigger USD price/token. Pass either this OR mcUsd, not both. */
+  priceUsd?: number;
+  /** New market-cap trigger in raw USD (e.g. 150_000_000 for $150M). */
+  mcUsd?: number;
+  /** New initial slippage bps (10-2500). */
+  slippageBps?: number;
+  /** Change sell destination. */
+  sellDestination?: "sol" | "usdc";
+  /** New expiry ISO timestamp, or "none" to clear expiry. */
+  expires?: string | "none";
+}
+
+function buildModifyMessage(args: {
+  from: string;
+  orderId: number;
+  priceUsd?: number;
+  mcUsd?: number;
+  slippageBps?: number;
+  sellDestination?: "sol" | "usdc";
+  expires?: string | "none";
+  nonce: string;
+  issuedAt: string;
+}): string {
+  const lines = [
+    "magpie: limit-close-modify/v1",
+    `From: ${args.from}`,
+    `OrderId: ${args.orderId}`,
+  ];
+  // Trigger updates are mutually exclusive. Site UI uses Price; MC is
+  // here for parity with the bot envelope.
+  if (args.priceUsd != null) lines.push(`Price: ${args.priceUsd}`);
+  else if (args.mcUsd != null) lines.push(`MC: ${args.mcUsd}`);
+  if (args.slippageBps != null) lines.push(`Slippage: ${args.slippageBps}`);
+  if (args.sellDestination) lines.push(`Dest: ${args.sellDestination}`);
+  if (args.expires) lines.push(`Expires: ${args.expires}`);
+  lines.push(`Nonce: ${args.nonce}`);
+  lines.push(`IssuedAt: ${args.issuedAt}`);
+  return lines.join("\n");
+}
+
+export async function modifyTakeProfit(args: {
+  botApiUrl: string;
+  signerPubkey: string;
+  signMessage: SignMessageFn;
+  request: ModifyTakeProfitRequest;
+}): Promise<{ order_id: number; trigger_value_micro?: string; slippage_bps?: number }> {
+  if (!args.botApiUrl) throw new Error("Bot API URL not configured");
+  const { orderId, priceUsd, mcUsd, slippageBps, sellDestination, expires } = args.request;
+  if (
+    priceUsd == null &&
+    mcUsd == null &&
+    slippageBps == null &&
+    !sellDestination &&
+    !expires
+  ) {
+    throw new Error("Nothing to modify — supply at least one of price / slippage / dest / expires.");
+  }
+  const nonce = randomNonceHex();
+  const issuedAt = new Date().toISOString();
+  const messageText = buildModifyMessage({
+    from: args.signerPubkey,
+    orderId,
+    priceUsd,
+    mcUsd,
+    slippageBps,
+    sellDestination,
+    expires,
+    nonce,
+    issuedAt,
+  });
+  const messageBytes = new TextEncoder().encode(messageText);
+  let signature: Uint8Array;
+  try { signature = await args.signMessage(messageBytes); }
+  catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Wallet declined to sign: ${msg}`);
+  }
+  const res = await fetch(`${args.botApiUrl.replace(/\/$/, "")}/api/v1/site/limit-close/modify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      signedMessageBase64: bytesToBase64(messageBytes),
+      signatureBase58: bs58.encode(signature),
+      signerPubkey: args.signerPubkey,
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.ok) {
+    throw new Error(body?.error || `Modify failed (HTTP ${res.status})`);
+  }
+  return body as { order_id: number; trigger_value_micro?: string; slippage_bps?: number };
+}
+
 export async function cancelTakeProfit(args: {
   botApiUrl: string;
   signerPubkey: string;
