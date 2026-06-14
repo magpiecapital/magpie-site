@@ -93,6 +93,13 @@ interface EngineData {
   firesReverted24h: number;
   fireSuccessRate24h: number | null;
   jupiterHealth24h: number | null;
+  // 2026-06-14: auto-sell revenue rollup. firesLifetime is total successful
+  // fills, feesLifetimeSol / fees24hSol is the 1% protocol fee they
+  // generated (split 70/10/10/10 to holders / LP loyalty / referrer /
+  // protocol reserve via limit-close-fee-accrual-watcher).
+  firesLifetime?: number;
+  feesLifetimeSol?: number;
+  fees24hSol?: number;
 }
 
 interface MagpieBurnedData {
@@ -374,21 +381,19 @@ export default function StatsClient() {
         </div>
       </section>
 
-      {/* ── Autonomous limit-close engine reliability ──
-          Surfaces the engine that powers TP / SL on every loan. Off-
-          chain service that watches armed orders, fires repay+swap
-          when triggers hit. Public visibility builds trust that the
-          "set it and forget it" UX is backed by real infrastructure,
-          not vibes. */}
+      {/* ── Auto-sell engine reliability + revenue ──
+          Operator wants plain-English copy here ("Autonomous engine"
+          was too technical). Section now reads as "Auto-sell engine"
+          with a friendlier description AND a fees-collected line
+          item so users can see auto-sell revenue flowing into the
+          snapshot reward pools alongside borrow origination. */}
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
         <SectionHead
-          title="Autonomous engine"
-          tag="Take-profit / stop-loss"
+          title="Auto-sell engine"
+          tag="Watching your auto-sells 24/7"
         />
         <p className="mb-5 text-[13px] leading-relaxed text-[var(--ink-faint)] sm:text-sm">
-          The off-chain service that watches every armed take-profit and
-          stop-loss order. Fires repay + sell the moment a trigger hits.
-          Numbers below are live — refreshes with the rest of /stats.
+          Auto-closes your position at the price you set. When your target hits, we instantly repay your loan and sell the collateral — no chart-staring required. If the first attempt would exceed your slippage allowance, we auto-retry with a slightly wider one (up to your cap) so you don't miss a trigger. Every successful auto-sell collects a 1% protocol fee that flows into the snapshot reward pools (same 70/10/10/10 split as borrow fees).
         </p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">
           <Stat
@@ -396,45 +401,66 @@ export default function StatsClient() {
             value={engineStatusLabel(engine?.status)}
             sub={
               engine?.heartbeatAgeSec != null
-                ? `Last tick ${engine.heartbeatAgeSec}s ago`
+                ? `Last check ${engine.heartbeatAgeSec}s ago`
                 : "—"
             }
           />
           <Stat
             label="Armed right now"
             value={engine?.armedOrdersNow != null ? fmtNum(engine.armedOrdersNow) : "—"}
-            sub="TPs + SLs watching"
+            sub="Orders being watched"
           />
           <Stat
-            label="Fires last 24h"
+            label="Auto-sells last 24h"
             value={engine ? fmtNum(engine.firesSucceeded24h) : "—"}
             sub={
               engine && engine.firesFailed24h > 0
-                ? `${engine.firesFailed24h} failed`
-                : "Successful only"
+                ? `${engine.firesFailed24h} unable to fill`
+                : "All filled"
             }
           />
           <Stat
-            label="Success rate 24h"
+            label="Fill rate 24h"
             value={
               engine?.fireSuccessRate24h != null
                 ? `${(engine.fireSuccessRate24h * 100).toFixed(1)}%`
                 : "—"
             }
-            sub="Succeeded / committed"
+            sub="Filled / attempted"
           />
         </div>
-        <p className="mt-3 text-[11px] leading-relaxed text-[var(--ink-faint)] sm:text-[12px]">
-          {engine?.jupiterHealth24h != null && (
-            <>
-              Jupiter route health: <strong>{(engine.jupiterHealth24h * 100).toFixed(1)}%</strong> over the last 24h ·{" "}
-            </>
-          )}
-          Engine status is alive when the last tick was within 90s,
-          degraded between 90s and 5 min, offline beyond. Watchdogs
-          auto-restart on stall — see{" "}
+        {engine != null && (engine.firesLifetime ?? 0) > 0 && (
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">
+            <Stat
+              label="Lifetime auto-sells"
+              value={fmtNum(engine.firesLifetime ?? 0)}
+              sub="Successful fills, all time"
+            />
+            <Stat
+              label="Fees to rewards (24h)"
+              value={(engine.fees24hSol ?? 0).toFixed(4) + " SOL"}
+              sub="1% of proceeds → holders + LPs"
+            />
+            <Stat
+              label="Fees to rewards (lifetime)"
+              value={(engine.feesLifetimeSol ?? 0).toFixed(4) + " SOL"}
+              sub="Same 70/10/10/10 as borrow fees"
+            />
+            <Stat
+              label="Jupiter health 24h"
+              value={
+                engine.jupiterHealth24h != null
+                  ? `${(engine.jupiterHealth24h * 100).toFixed(1)}%`
+                  : "—"
+              }
+              sub="Swap-routing uptime"
+            />
+          </div>
+        )}
+        <p className="mt-4 text-[11px] leading-relaxed text-[var(--ink-faint)] sm:text-[12px]">
+          Engine is alive when the last check was within 90 seconds, degraded between 90 seconds and 5 minutes, offline beyond. Watchdogs auto-restart on stall — see{" "}
           <a href="/security" className="underline hover:text-[var(--ink-soft)]">
-            security & reliability
+            security &amp; reliability
           </a>{" "}
           for the full architecture.
         </p>

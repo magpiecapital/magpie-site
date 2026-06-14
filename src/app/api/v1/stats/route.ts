@@ -81,6 +81,12 @@ export async function GET() {
       // driven, manual operator burns, future buybacks). Single source of
       // truth shared with the TG /stats command and Pip.
       magpieBurnsResult,
+      // 2026-06-14: auto-sell (limit-close) fee rollup. Each successful
+      // fire collects a 1% protocol fee on proceeds; that fee accrues
+      // through the same 70/10/10/10 split as borrow origination via
+      // limit-close-fee-accrual-watcher. Surfacing the rollup here closes
+      // the operator-flagged transparency gap.
+      limitCloseFeeResult,
     ] = await Promise.all([
       query(
         `SELECT
@@ -164,6 +170,23 @@ export async function GET() {
           manual_raw: null,
           liquidation_default_raw: null,
           buyback_raw: null,
+        }],
+      })),
+      query(
+        `SELECT
+           COALESCE(SUM(protocol_fee_lamports::numeric)
+             FILTER (WHERE status = 'fired'), 0)::text AS fees_lifetime_lamports,
+           COALESCE(SUM(protocol_fee_lamports::numeric)
+             FILTER (WHERE status = 'fired' AND fired_at > NOW() - INTERVAL '24 hours'), 0)::text AS fees_24h_lamports,
+           COUNT(*) FILTER (WHERE status = 'fired')::int AS fires_lifetime_count,
+           COUNT(*) FILTER (WHERE status = 'fired' AND fired_at > NOW() - INTERVAL '24 hours')::int AS fires_24h_count
+         FROM limit_close_orders`,
+      ).catch(() => ({
+        rows: [{
+          fees_lifetime_lamports: null,
+          fees_24h_lamports: null,
+          fires_lifetime_count: null,
+          fires_24h_count: null,
         }],
       })),
     ]);
@@ -274,6 +297,32 @@ export async function GET() {
             firesReverted24h,
             fireSuccessRate24h,
             jupiterHealth24h,
+            // Lifetime + 24h fire counts and the protocol-fee revenue
+            // they generated. Each successful fire collects a 1% fee on
+            // the gross proceeds; the same accrual pipeline as borrow
+            // origination splits that into holders (70%) / LP loyalty
+            // (10%) / referrer (10%) / protocol reserve (10%). Surfacing
+            // these counters here closes the transparency gap where
+            // auto-sell revenue contribution to snapshot rewards was
+            // invisible to the public.
+            firesLifetime: (() => {
+              const lc = limitCloseFeeResult.rows[0];
+              return lc?.fires_lifetime_count != null
+                ? Number(lc.fires_lifetime_count)
+                : 0;
+            })(),
+            feesLifetimeSol: (() => {
+              const lc = limitCloseFeeResult.rows[0];
+              return lc?.fees_lifetime_lamports != null
+                ? Number(lc.fees_lifetime_lamports) / 1e9
+                : 0;
+            })(),
+            fees24hSol: (() => {
+              const lc = limitCloseFeeResult.rows[0];
+              return lc?.fees_24h_lamports != null
+                ? Number(lc.fees_24h_lamports) / 1e9
+                : 0;
+            })(),
           },
           // Defaulted-loan profit summary (2026-06-14 policy). When a
           // non-$MAGPIE collateralized loan defaults, the net profit
