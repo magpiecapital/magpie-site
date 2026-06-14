@@ -70,6 +70,13 @@ export async function GET() {
       // /lc-perf shows operator-internally.
       engineHeartbeatResult,
       engineMetricsResult,
+      // 2026-06-14: defaulted-loan profit summary. Non-$MAGPIE
+      // collateral defaults: net profit (proceeds − principal) routes
+      // 70/10/10/10 to holders / LP loyalty / referrer / protocol
+      // reserve. $MAGPIE defaults: seized tokens burned (operator-
+      // manual). Best-effort read — wrapped catch falls back to zeros
+      // on a fresh deploy that hasn't applied migration 059.
+      defaultProfitResult,
     ] = await Promise.all([
       query(
         `SELECT
@@ -109,6 +116,35 @@ export async function GET() {
          WHERE service = 'limit_close_watcher'
            AND hour > NOW() - INTERVAL '24 hours'`,
       ),
+      query(
+        `SELECT
+           COALESCE(SUM(net_profit_lamports) FILTER (
+             WHERE net_profit_lamports > 0 AND distribution_status != 'loss'
+           ), 0)::text AS profit_lifetime_lamports,
+           COALESCE(SUM(net_profit_lamports) FILTER (
+             WHERE net_profit_lamports > 0
+               AND distribution_status != 'loss'
+               AND sale_detected_at > NOW() - INTERVAL '24 hours'
+           ), 0)::text AS profit_24h_lamports,
+           COUNT(*) FILTER (
+             WHERE net_profit_lamports > 0 AND distribution_status != 'loss'
+           )::int AS profitable_count,
+           COUNT(*) FILTER (WHERE distribution_status = 'pending_sale')::int AS pending_sale_count,
+           COUNT(*) FILTER (WHERE distribution_status = 'awaiting_distribution')::int AS awaiting_dist_count,
+           COUNT(*) FILTER (WHERE distribution_status = 'magpie_burned')::int AS magpie_burned_count,
+           COUNT(*) FILTER (WHERE distribution_status = 'magpie_burn_pending')::int AS magpie_pending_count
+         FROM liquidation_economics`,
+      ).catch(() => ({
+        rows: [{
+          profit_lifetime_lamports: null,
+          profit_24h_lamports: null,
+          profitable_count: null,
+          pending_sale_count: null,
+          awaiting_dist_count: null,
+          magpie_burned_count: null,
+          magpie_pending_count: null,
+        }],
+      })),
     ]);
 
     const s = statsResult.rows[0];
@@ -218,6 +254,35 @@ export async function GET() {
             fireSuccessRate24h,
             jupiterHealth24h,
           },
+          // Defaulted-loan profit summary (2026-06-14 policy). When a
+          // non-$MAGPIE collateralized loan defaults, the net profit
+          // (sale proceeds − principal disbursed) is routed 70/10/10/10
+          // to holders / LP loyalty / referrer / protocol reserve. When
+          // $MAGPIE is the collateral, the seized tokens are burned
+          // (operator-manual). All values in SOL.
+          defaultedLoanProfit: (() => {
+            const dp = defaultProfitResult.rows[0];
+            if (!dp || dp.profit_lifetime_lamports == null) return null;
+            const lamportsToSol = (n: string | number | null) =>
+              n == null ? 0 : Number(n) / 1e9;
+            return {
+              lifetimeSol: lamportsToSol(dp.profit_lifetime_lamports),
+              last24hSol: lamportsToSol(dp.profit_24h_lamports),
+              profitableDefaultsCount: Number(dp.profitable_count ?? 0),
+              awaitingSaleCount: Number(dp.pending_sale_count ?? 0),
+              awaitingDistributionCount: Number(dp.awaiting_dist_count ?? 0),
+              magpieBurnedCount: Number(dp.magpie_burned_count ?? 0),
+              magpieBurnPendingCount: Number(dp.magpie_pending_count ?? 0),
+              policy: {
+                holderBps: 7000,
+                lpLoyaltyBps: 1000,
+                referrerBps: 1000,
+                protocolReserveBps: 1000,
+                referrerFallback: "rolls_to_holders",
+                magpieDefault: "burn_by_operator",
+              },
+            };
+          })(),
           timestamp: new Date().toISOString(),
         },
       },
