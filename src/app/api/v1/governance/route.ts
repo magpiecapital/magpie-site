@@ -83,25 +83,6 @@ export async function GET() {
       },
       active_proposals: [
         {
-          id: "MGP-001",
-          title: "Restructure the loan-fee split — 70/10/10/10",
-          scope_tier: "A4 — binding by operator commitment (one-time Tier B → de-facto Tier A exception, same path as MGP-003)",
-          status: "active",
-          voting_window: "2026-06-10 22:00 UTC to 2026-06-13 22:00 UTC",
-          voting_opens_at_iso: "2026-06-10T22:00:00Z",
-          voting_closes_at_iso: "2026-06-13T22:00:00Z",
-          summary: "Send 70% of every loan fee to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, and 10% to the protocol reserve. Replaces the current 80/10/5/2/3 split with a holder-first model. Forward-only — distributions already accrued under the old split are not retroactively re-cut. Outside the Tier A4 5%–15% bound; filed as a one-time operator-committed exception per the path documented in MGP-003. Vote restarted 2026-06-10 22:00 UTC after the page was corrected from a stale 60/30 framing; the 18 votes cast under the stale framing were archived and removed from the live tally.",
-          new_split: {
-            holder_bps: 7000,
-            lp_bps: 1000,
-            referrer_bps: 1000,
-            protocol_reserve_bps: 1000,
-          },
-          vote_url: `${base}/governance/proposal/MGP-001`,
-          spec_url:
-            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-fee-split-70-10-10-10.md",
-        },
-        {
           id: "MGP-003",
           title: "Allocation decision for the July 1, 2026 $MAGPIE Streamflow unlock (~5% of supply)",
           scope_tier: "A6 — binding by operator commitment (one-time Tier B → de-facto Tier A exception)",
@@ -121,6 +102,44 @@ export async function GET() {
       ],
       drafts: [],
       past_proposals: [
+        {
+          id: "MGP-001",
+          title: "Restructure the loan-fee split — 70/10/10/10",
+          scope_tier: "A4 — binding by operator commitment (one-time Tier B → de-facto Tier A exception, same path as MGP-003)",
+          status: "passed",
+          voting_window: "2026-06-10 22:00 UTC to 2026-06-13 22:00 UTC",
+          voting_opens_at_iso: "2026-06-10T22:00:00Z",
+          voting_closes_at_iso: "2026-06-13T22:00:00Z",
+          summary: "Send 70% of every loan fee to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, and 10% to the protocol reserve. Replaced the prior 80/10/5/2/3 split with a holder-first model. Forward-only — distributions already accrued under the old split were not retroactively re-cut. Outside the Tier A4 5%–15% bound; filed as a one-time operator-committed exception per the path documented in MGP-003.",
+          new_split: {
+            holder_bps: 7000,
+            lp_bps: 1000,
+            referrer_bps: 1000,
+            protocol_reserve_bps: 1000,
+          },
+          // Final tally at voting close (2026-06-13 22:00 UTC). Quorum
+          // and threshold both cleared; operator-honored execution per
+          // GOVERNANCE.md v0 commitment.
+          final_tally: {
+            voters_cast: 37,
+            eligible_voters: 2185,
+            participation_pct: 8.72,
+            quorum_pct: 5,
+            quorum_met: true,
+            yes_share_of_cast_pct: 98,
+            threshold_pct: 66.6,
+            threshold_met: true,
+            yes_weight: "64880876460291",
+            no_weight: "1324099519597",
+            abstain_weight: "0",
+            cast_weight: "66204975979888",
+          },
+          execution_status: "in_effect",
+          executed_at_iso: "2026-06-13T22:00:00Z",
+          vote_url: `${base}/governance/proposal/MGP-001`,
+          spec_url:
+            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-fee-split-70-10-10-10.md",
+        },
         {
           id: "MGP-002",
           title: "Signal poll — should Magpie add a Premium tier (30-day, 40% LTV, 5% fee, tokenized stocks only)?",
