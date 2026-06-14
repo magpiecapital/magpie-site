@@ -88,45 +88,60 @@ export async function buildBorrowTransaction({
   const collateralMintPk = new PublicKey(collateralMint);
   const loanTokenMintPk = NATIVE_MINT; // wSOL
 
-  // ── Server-side category fallback (2026-06-13 hardening) ────────
-  // If the caller didn't pass category — or passed null/undefined or
-  // an unrecognized value — fetch it from /api/v1/tokens by mint
-  // BEFORE we route. Without this, a stale client state (e.g.
-  // approvedTokens hasn't loaded yet, or a code path forgets to
-  // forward category) silently routes an RWA borrow to V1 and the V1
-  // program applies the memecoin 20% LTV → user receives ~29% of the
-  // advertised amount. The fetch is cheap (the tokens endpoint is
-  // CDN-cached and ~36KB) and adds one round-trip at borrow time only.
-  // 2026-06-13: shipped this AFTER PR #61 in case the stale-state
-  // pattern survives somewhere else in the codebase.
-  let resolvedCategory = category;
-  if (
-    !resolvedCategory ||
-    !["stock", "etf", "metal", "memecoin"].includes(resolvedCategory)
-  ) {
-    try {
-      const res = await fetch(`/api/v1/tokens`, { cache: "no-store" });
-      if (res.ok) {
-        const j = await res.json();
-        const tokens: Array<{ mint: string; category?: string }> = Array.isArray(j?.tokens)
-          ? j.tokens
-          : [];
-        const match = tokens.find((t) => t.mint === collateralMint);
-        if (match?.category) resolvedCategory = match.category;
+  // ── Server-side category resolution (2026-06-13 hardening, v2) ──
+  // Previous version trusted caller-passed category and only fell back
+  // to a fetch when it was missing/unrecognized. THIRD report of the
+  // SPCX dashboard/Phantom divergence after PR #58, #61, #63 suggests
+  // an upstream code path is passing the WRONG category (e.g., a stale
+  // client constructing TokenHolding with category="memecoin" even
+  // though the mint is stock).
+  //
+  // This version IGNORES the caller-passed category entirely when the
+  // mint resolves to a known supported_mints entry. The server is
+  // ALWAYS the source of truth — the caller's hint is treated as a
+  // best-effort optimization, never as authoritative.
+  //
+  // If the lookup fails (network error, mint not in supported_mints),
+  // we THROW rather than silently defaulting to V1. A failed borrow
+  // with a clear error is infinitely better than a wrong-amount borrow.
+  let resolvedCategory: string | null | undefined = category;
+  try {
+    const res = await fetch(`/api/v1/tokens`, { cache: "no-store" });
+    if (res.ok) {
+      const j = await res.json();
+      const tokens: Array<{ mint: string; category?: string }> = Array.isArray(j?.tokens)
+        ? j.tokens
+        : [];
+      const match = tokens.find((t) => t.mint === collateralMint);
+      if (match?.category) {
+        // Server-side wins. If caller hint disagreed, log it so we can
+        // see in the browser console which upstream path is buggy.
+        if (resolvedCategory && resolvedCategory !== match.category) {
+          console.warn(
+            `[borrow] caller passed category=${resolvedCategory} but server says ${match.category} for ${collateralMint.slice(0, 8)}…. Using server value.`,
+          );
+        }
+        resolvedCategory = match.category;
       }
-    } catch (err) {
-      // Non-fatal — fall through to chooseProgramIdForCategory's
-      // default-to-V1 behavior. The borrow may then route wrong; the
-      // catch keeps the flow alive but the comment above makes it
-      // explicit that lacking category is a correctness bug.
-      console.warn(
-        "[borrow] server-side category fallback failed:",
-        (err as Error).message,
-      );
     }
+  } catch (err) {
+    console.warn(
+      "[borrow] server-side category lookup failed:",
+      (err as Error).message,
+    );
   }
 
-  // Route to V1 or V2 based on the collateral's (resolved) category.
+  // Hard-fail if we still don't know the category. Silent default-to-V1
+  // is what caused the 0.78-vs-2.68-SOL bug; never again.
+  if (!resolvedCategory || !["stock", "etf", "metal", "memecoin"].includes(resolvedCategory)) {
+    throw new Error(
+      `Borrow refused: couldn't determine collateral category for ${collateralMint}. ` +
+        `This usually means the page is stale — hard-refresh (Cmd+Shift+R / Ctrl+Shift+R) and try again. ` +
+        `If it persists, the mint may not be in supported_mints.`,
+    );
+  }
+
+  // Route to V1 or V2 based on the collateral's (server-resolved) category.
   // RWAs (stock/etf/metal) MUST use V2 — V1 cannot process them. All
   // PDAs derive against the chosen program (each program has its own
   // pool, loan-token-vault, loan, collateral-vault, price-feed).
