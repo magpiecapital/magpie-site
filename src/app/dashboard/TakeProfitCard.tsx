@@ -43,6 +43,11 @@ interface Props {
   loanIdChain: string;     // chain loan_id
   loanDbId: number;        // DB primary key — matches order.loan_id
   collateralSymbol: string | null;
+  /** Collateral mint — needed for the in-card price lookup that drives
+   *  the pre-arm preview ("current → fires at") and the distance-to-
+   *  trigger context on the armed badge. Optional for back-compat;
+   *  when omitted, the price-driven hints quietly hide. */
+  collateralMint?: string | null;
   /** Lifted state — parent fetches once for all loans + passes the slice down */
   state: TakeProfitState | null;
   /** Called when the parent should refetch state (after arm/cancel) */
@@ -89,6 +94,7 @@ export function TakeProfitCard(props: Props) {
         loanIdChain={props.loanIdChain}
         loanDbId={props.loanDbId}
         collateralSymbol={props.collateralSymbol}
+        collateralMint={props.collateralMint ?? null}
         botApiUrl={props.botApiUrl}
         onMutated={props.onMutated}
       />
@@ -99,6 +105,7 @@ export function TakeProfitCard(props: Props) {
         loanIdChain={props.loanIdChain}
         loanDbId={props.loanDbId}
         collateralSymbol={props.collateralSymbol}
+        collateralMint={props.collateralMint ?? null}
         botApiUrl={props.botApiUrl}
         onMutated={props.onMutated}
       />
@@ -115,8 +122,60 @@ interface SlotProps {
   loanIdChain: string;
   loanDbId: number;
   collateralSymbol: string | null;
+  collateralMint: string | null;
   botApiUrl: string;
   onMutated: () => void;
+}
+
+/* In-memory price cache per collateral mint — many LimitSlots can
+ * render on the same dashboard view; each loan has 2 slots (TP+SL),
+ * so 5 active loans = 10 mounts. Without a cache that's 10 DexScreener
+ * round-trips on every dashboard render. Keyed by mint, 60s TTL —
+ * the engine's fire-side cross-source price is the load-bearing
+ * source of truth, this is purely UX preview math.
+ */
+const PRICE_CACHE = new Map<string, { usd: number; at: number }>();
+const PRICE_TTL_MS = 60_000;
+
+async function fetchCurrentPriceUsd(mint: string): Promise<number | null> {
+  const cached = PRICE_CACHE.get(mint);
+  if (cached && Date.now() - cached.at < PRICE_TTL_MS) return cached.usd;
+  try {
+    const res = await fetch(
+      `https://api.dexscreener.com/tokens/v1/solana/${mint}`,
+      { cache: "no-store" },
+    );
+    if (!res.ok) return null;
+    const data: unknown = await res.json();
+    const pairs = Array.isArray(data)
+      ? (data as Array<{ priceUsd?: string; liquidity?: { usd?: number } }>)
+      : ((data as { pairs?: Array<{ priceUsd?: string; liquidity?: { usd?: number } }> })?.pairs ?? []);
+    if (!Array.isArray(pairs) || pairs.length === 0) return null;
+    // Pick the deepest-liquidity pair — same heuristic the dashboard
+    // uses for SOL price elsewhere in page.tsx.
+    const best = pairs.reduce((b, p) =>
+      ((p.liquidity?.usd ?? 0) > (b.liquidity?.usd ?? 0) ? p : b),
+    );
+    const usd = parseFloat(String(best?.priceUsd ?? ""));
+    if (!Number.isFinite(usd) || usd <= 0) return null;
+    PRICE_CACHE.set(mint, { usd, at: Date.now() });
+    return usd;
+  } catch {
+    return null;
+  }
+}
+
+function formatPctMove(pct: number): string {
+  const sign = pct >= 0 ? "+" : "";
+  if (Math.abs(pct) >= 100) return `${sign}${pct.toFixed(0)}%`;
+  if (Math.abs(pct) >= 10) return `${sign}${pct.toFixed(1)}%`;
+  return `${sign}${pct.toFixed(2)}%`;
+}
+
+function formatUsdPerToken(usd: number): string {
+  if (usd >= 1) return `$${usd.toFixed(4)}`;
+  if (usd >= 0.01) return `$${usd.toFixed(6)}`;
+  return `$${usd.toFixed(8)}`;
 }
 
 function LimitSlot(props: SlotProps) {
@@ -124,6 +183,20 @@ function LimitSlot(props: SlotProps) {
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentUsd, setCurrentUsd] = useState<number | null>(null);
+
+  // Lazy-load the live price the first time the slot opens its form OR
+  // renders an armed badge. Keeps the dashboard's initial render cheap
+  // (no preview-only fetches for collapsed cards). Refreshes once per
+  // expand/cancel cycle — the 60s cache keeps thrash down.
+  useEffect(() => {
+    if (!props.collateralMint) return;
+    let cancelled = false;
+    fetchCurrentPriceUsd(props.collateralMint).then((p) => {
+      if (!cancelled) setCurrentUsd(p);
+    });
+    return () => { cancelled = true; };
+  }, [props.collateralMint]);
 
   const isSl = props.direction === "below";
   const slotLabel = isSl ? "Stop-loss" : "Take-profit";
@@ -243,6 +316,17 @@ function LimitSlot(props: SlotProps) {
   // Armed → show + cancel
   if (armed) {
     const trig = formatTrigger(armed.trigger_kind, armed.trigger_value_micro);
+    // Distance label: how far the current price is from the trigger.
+    // Only meaningful for price_usd / mc_usd — price_sol's denominator
+    // moves and the headline number isn't directly comparable.
+    let distanceLabel: string | null = null;
+    if (currentUsd != null && currentUsd > 0 && armed.trigger_kind === "price_usd") {
+      const triggerUsd = Number(armed.trigger_value_micro) / 1e6;
+      if (Number.isFinite(triggerUsd) && triggerUsd > 0) {
+        const pctMove = ((triggerUsd - currentUsd) / currentUsd) * 100;
+        distanceLabel = `${formatPctMove(pctMove)} from current`;
+      }
+    }
     return (
       <div className="rounded-md border px-2.5 py-1.5 text-[11px] flex items-center justify-between gap-2"
         style={{
@@ -254,6 +338,7 @@ function LimitSlot(props: SlotProps) {
         <span>
           <span className="font-medium">{slotLabel} armed</span>
           <span className="opacity-70"> · {trig} · slip {(armed.slippage_bps / 100).toFixed(1)}%</span>
+          {distanceLabel && <span className="opacity-70"> · {distanceLabel}</span>}
           {armed.source !== "site" && (
             <span className="opacity-50"> · via {armed.source === "tg" ? "Telegram" : "agent"}</span>
           )}
@@ -359,6 +444,45 @@ function LimitSlot(props: SlotProps) {
         />
         <span className="text-[11px] tabular-nums w-10 text-right">{slippagePct.toFixed(1)}%</span>
       </div>
+      {/* ── Pre-arm preview ──
+          Computes the resolved target USD from either the selected
+          multiplier (× current) or the custom USD input, then shows
+          "current ~$X → fires at $Y (Z%)" so the user sees both
+          numbers before signing. Catches the "I picked 0.5× but
+          actually wanted 0.95×" mistake at the form, not at fire-
+          time. Hidden when we don't have a price OR the trigger is
+          on the wrong side of current (the arm endpoint will reject
+          and the error block below renders the message). */}
+      {currentUsd != null && currentUsd > 0 && (() => {
+        const usd = customUsd ? Number(customUsd) : null;
+        const targetUsd =
+          usd && usd > 0 ? usd : currentUsd * selectedMultiplier;
+        if (!Number.isFinite(targetUsd) || targetUsd <= 0) return null;
+        const pctMove = ((targetUsd - currentUsd) / currentUsd) * 100;
+        // Wrong-side warning: TP must be > current, SL must be < current.
+        const wrongSide =
+          (isSl && targetUsd >= currentUsd) ||
+          (!isSl && targetUsd <= currentUsd);
+        const fireText = `Fires at ${formatUsdPerToken(targetUsd)} (${formatPctMove(pctMove)})`;
+        const currentText = `Current ~ ${formatUsdPerToken(currentUsd)}/token`;
+        return (
+          <div className="text-[10px] mb-1.5 rounded px-1.5 py-1 leading-tight"
+            style={{
+              background: wrongSide
+                ? "rgba(220,38,38,0.08)"
+                : "rgba(255,255,255,0.04)",
+              color: wrongSide ? "var(--bad, #ef4444)" : "var(--d-ink-faint)",
+            }}
+          >
+            <div>{currentText}</div>
+            <div className={wrongSide ? "font-medium" : ""}>
+              {wrongSide
+                ? `${isSl ? "Stop-loss" : "Take-profit"} must fire ${isSl ? "below" : "above"} current — your target is on the wrong side. Adjust the price or switch slots.`
+                : fireText}
+            </div>
+          </div>
+        );
+      })()}
       {error && (
         <div className="text-[10px] mb-1.5 rounded px-1.5 py-1"
           style={{ background: "rgba(220,38,38,0.08)", color: "var(--bad, #ef4444)" }}
