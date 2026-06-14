@@ -19,6 +19,7 @@ import {
   LENDER_PUBKEY,
   PROGRAM_ID,
   PROGRAM_ID_V2,
+  PROGRAM_ID_V3,
   RWA_CATEGORIES,
   chooseProgramIdForCategory,
 } from "./constants";
@@ -27,9 +28,11 @@ import {
   loanTokenVaultPda,
   loanPda,
   collateralVaultPda,
+  priceFeedPda,
 } from "./pdas";
 import idl from "./magpie.json";
 import idlV2 from "./magpie-v2.json";
+import idlV3 from "./magpie-v3.json";
 
 /** Detect whether a mint uses Token-2022 or classic Token program. */
 async function getMintTokenProgram(
@@ -141,12 +144,16 @@ export async function buildBorrowTransaction({
     );
   }
 
-  // Route to V1 or V2 based on the collateral's (server-resolved) category.
-  // RWAs (stock/etf/metal) MUST use V2 — V1 cannot process them. All
-  // PDAs derive against the chosen program (each program has its own
-  // pool, loan-token-vault, loan, collateral-vault, price-feed).
+  // Route to V1, V2, or V3 based on the collateral's (server-resolved)
+  // category. Memecoin → V1. RWA (stock/etf/metal) → V2 or V3 depending
+  // on NEXT_PUBLIC_ROUTE_RWA_TO_V3. All PDAs derive against the chosen
+  // program (each program has its own pool, loan-token-vault, loan,
+  // collateral-vault, price-feed). V3 uses a distinct "price_v3" seed
+  // for price-feed — priceFeedPda handles that branch internally.
   const targetProgramId = chooseProgramIdForCategory(resolvedCategory);
   const isV2 = targetProgramId.equals(PROGRAM_ID_V2);
+  const isV3 = targetProgramId.equals(PROGRAM_ID_V3);
+  const isRwa = !!resolvedCategory && RWA_CATEGORIES.has(resolvedCategory);
 
   const [pool] = poolPda(LENDER_PUBKEY, targetProgramId);
   const [loanTokenVault] = loanTokenVaultPda(pool, targetProgramId);
@@ -198,7 +205,7 @@ export async function buildBorrowTransaction({
     { commitment: "confirmed" },
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const program = new Program((isV2 ? idlV2 : idl) as any, provider);
+  const program = new Program((isV3 ? idlV3 : isV2 ? idlV2 : idl) as any, provider);
 
   // Pre-instructions
   //
@@ -265,13 +272,29 @@ export async function buildBorrowTransaction({
     ),
   ];
 
+  // V3 introduced a category arg (u8) to pick the right tier ladder:
+  //   0 = memecoin (30/25/20% LTV @ 2/3/7d)
+  //   1 = RWA      (50/60/70% LTV @ 7/15/30d)
+  // V1/V2 do not take this arg. Build args conditionally so each
+  // program's instruction signature matches its IDL.
+  const v3Category = isRwa ? 1 : 0;
+  const ixArgs = isV3
+    ? [
+        new BN(collateralAmountRaw),
+        loanOption,
+        new BN(collateralValueLamports),
+        loanId,
+        v3Category,
+      ]
+    : [
+        new BN(collateralAmountRaw),
+        loanOption,
+        new BN(collateralValueLamports),
+        loanId,
+      ];
+
   const tx = await program.methods
-    .requestAndFundLoan(
-      new BN(collateralAmountRaw),
-      loanOption,
-      new BN(collateralValueLamports),
-      loanId,
-    )
+    .requestAndFundLoan(...ixArgs)
     .accounts({
       pool,
       loanTokenVault,
