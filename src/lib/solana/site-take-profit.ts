@@ -77,6 +77,16 @@ export interface TakeProfitOrder {
   expires_at: string | null;
   source: "tg" | "site" | "agent_x402";
   source_agent_pubkey: string | null;
+  /**
+   * Trailing-stop distance in basis points (50-5000). When non-null,
+   * the trigger_value_micro floats with the highest observed price
+   * (peak_price_micros). Engine writes both fields on the same tick
+   * when peak rises. Always null on take-profit orders (TP fires at
+   * a fixed target by definition).
+   */
+  trailing_distance_bps?: number | null;
+  /** Highest price observed since arm. Updated by the watcher. */
+  peak_price_micros?: string | null;
 }
 
 export interface TakeProfitState {
@@ -112,10 +122,16 @@ export interface ArmTakeProfitRequest {
   loanIdChain: string;     // chain loan_id
   /** "above" = take-profit (default), "below" = stop-loss */
   direction?: "above" | "below";
-  target:                  // EXACTLY ONE of:
+  target?:                 // ONE of (or omitted when trailingDistanceBps is set):
     | { kind: "multiplier"; multiplier: number }     // 2 = "2x" TP, 0.7 = "0.7x" SL
     | { kind: "price_usd";  usd: number }            // explicit USD/token
     | { kind: "mc_usd";     mcDollars: number };     // explicit MC
+  /**
+   * Trailing-stop distance in basis points (50-5000). ONLY valid with
+   * direction='below'. When set, target is ignored — the watcher seeds
+   * peak = current price at arm and the trigger floats with the high.
+   */
+  trailingDistanceBps?: number;
   slippageBps?: number;    // default 200
   sellDestination?: "sol" | "usdc";
   expire?: string;         // "30d" / "12h" — optional
@@ -141,7 +157,8 @@ function buildArmMessage(args: {
   from: string;
   loanIdChain: string;
   direction: "above" | "below";
-  target: ArmTakeProfitRequest["target"];
+  target?: ArmTakeProfitRequest["target"];
+  trailingDistanceBps?: number;
   slippageBps: number;
   dest: "sol" | "usdc";
   expire?: string;
@@ -159,14 +176,19 @@ function buildArmMessage(args: {
   if (args.direction === "below") {
     lines.push(`Direction: below`);
   }
-  if (args.target.kind === "multiplier") {
-    lines.push(`Target: ${args.target.multiplier}x`);
-  } else if (args.target.kind === "price_usd") {
-    lines.push(`Price: ${args.target.usd}`);
-  } else {
-    // Express MC as raw dollars; bot accepts the unsuffixed value too
-    // via the regex. Easier than picking M/B suffixes client-side.
-    lines.push(`MC: ${args.target.mcDollars}`);
+  // Trailing supersedes target — emit only Trailing when set.
+  if (args.trailingDistanceBps != null) {
+    lines.push(`Trailing: ${args.trailingDistanceBps}`);
+  } else if (args.target) {
+    if (args.target.kind === "multiplier") {
+      lines.push(`Target: ${args.target.multiplier}x`);
+    } else if (args.target.kind === "price_usd") {
+      lines.push(`Price: ${args.target.usd}`);
+    } else {
+      // Express MC as raw dollars; bot accepts the unsuffixed value too
+      // via the regex. Easier than picking M/B suffixes client-side.
+      lines.push(`MC: ${args.target.mcDollars}`);
+    }
   }
   lines.push(`Slippage: ${args.slippageBps}`);
   lines.push(`Dest: ${args.dest}`);
@@ -187,6 +209,12 @@ export async function armTakeProfit(args: {
   const slippageBps = args.request.slippageBps ?? 200;
   const dest = args.request.sellDestination ?? "sol";
   const direction = args.request.direction ?? "above";
+  if (args.request.trailingDistanceBps != null && direction !== "below") {
+    throw new Error("Trailing stops are only valid with direction='below' (stop-loss).");
+  }
+  if (args.request.trailingDistanceBps == null && !args.request.target) {
+    throw new Error("Provide either target or trailingDistanceBps.");
+  }
   const nonce = randomNonceHex();
   const issuedAt = new Date().toISOString();
   const messageText = buildArmMessage({
@@ -194,6 +222,7 @@ export async function armTakeProfit(args: {
     loanIdChain: args.request.loanIdChain,
     direction,
     target: args.request.target,
+    trailingDistanceBps: args.request.trailingDistanceBps,
     slippageBps,
     dest,
     expire: args.request.expire,
