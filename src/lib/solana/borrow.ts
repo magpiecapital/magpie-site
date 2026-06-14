@@ -88,11 +88,49 @@ export async function buildBorrowTransaction({
   const collateralMintPk = new PublicKey(collateralMint);
   const loanTokenMintPk = NATIVE_MINT; // wSOL
 
-  // Route to V1 or V2 based on the collateral's category. RWAs
-  // (stock/etf/metal) MUST use V2 — V1 cannot process them. All PDAs
-  // derive against the chosen program (each program has its own pool,
-  // loan-token-vault, loan, collateral-vault, price-feed).
-  const targetProgramId = chooseProgramIdForCategory(category);
+  // ── Server-side category fallback (2026-06-13 hardening) ────────
+  // If the caller didn't pass category — or passed null/undefined or
+  // an unrecognized value — fetch it from /api/v1/tokens by mint
+  // BEFORE we route. Without this, a stale client state (e.g.
+  // approvedTokens hasn't loaded yet, or a code path forgets to
+  // forward category) silently routes an RWA borrow to V1 and the V1
+  // program applies the memecoin 20% LTV → user receives ~29% of the
+  // advertised amount. The fetch is cheap (the tokens endpoint is
+  // CDN-cached and ~36KB) and adds one round-trip at borrow time only.
+  // 2026-06-13: shipped this AFTER PR #61 in case the stale-state
+  // pattern survives somewhere else in the codebase.
+  let resolvedCategory = category;
+  if (
+    !resolvedCategory ||
+    !["stock", "etf", "metal", "memecoin"].includes(resolvedCategory)
+  ) {
+    try {
+      const res = await fetch(`/api/v1/tokens`, { cache: "no-store" });
+      if (res.ok) {
+        const j = await res.json();
+        const tokens: Array<{ mint: string; category?: string }> = Array.isArray(j?.tokens)
+          ? j.tokens
+          : [];
+        const match = tokens.find((t) => t.mint === collateralMint);
+        if (match?.category) resolvedCategory = match.category;
+      }
+    } catch (err) {
+      // Non-fatal — fall through to chooseProgramIdForCategory's
+      // default-to-V1 behavior. The borrow may then route wrong; the
+      // catch keeps the flow alive but the comment above makes it
+      // explicit that lacking category is a correctness bug.
+      console.warn(
+        "[borrow] server-side category fallback failed:",
+        (err as Error).message,
+      );
+    }
+  }
+
+  // Route to V1 or V2 based on the collateral's (resolved) category.
+  // RWAs (stock/etf/metal) MUST use V2 — V1 cannot process them. All
+  // PDAs derive against the chosen program (each program has its own
+  // pool, loan-token-vault, loan, collateral-vault, price-feed).
+  const targetProgramId = chooseProgramIdForCategory(resolvedCategory);
   const isV2 = targetProgramId.equals(PROGRAM_ID_V2);
 
   const [pool] = poolPda(LENDER_PUBKEY, targetProgramId);
