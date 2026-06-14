@@ -50,6 +50,59 @@ const nextConfig: NextConfig = {
           { key: "Cache-Control", value: "public, max-age=86400" },
         ],
       },
+      // ── Phantom Mobile webview cache busting (2026-06-13) ─────────
+      // Operator reported repeated stale-prompt bug: SPCX borrow shows
+      // 0.534 SOL in Phantom Mobile despite multiple deploys with the
+      // category-routing fix. Root cause: Phantom Mobile's in-app
+      // webview caches HTML separately from the OS browser. When the
+      // HTML is cached, it references OLD hashed JS chunks, so the
+      // cached pre-fix bundle keeps running.
+      //
+      // Force `no-store` on the borrow-critical surfaces so the webview
+      // re-fetches HTML every visit. Next.js' hashed JS chunks are
+      // content-addressed (immutable filenames) — fresh HTML → fresh
+      // chunk URLs → fresh code. Also no-store the API surface that
+      // borrow.ts reads from so cached responses can't stale the
+      // category lookup.
+      {
+        source: "/dashboard",
+        headers: [
+          { key: "Cache-Control", value: "no-store, must-revalidate" },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Expires", value: "0" },
+          {
+            key: "X-Magpie-Build",
+            value: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || "dev",
+          },
+        ],
+      },
+      {
+        source: "/dashboard/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, must-revalidate" },
+          { key: "Pragma", value: "no-cache" },
+          { key: "Expires", value: "0" },
+          {
+            key: "X-Magpie-Build",
+            value: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || "dev",
+          },
+        ],
+      },
+      {
+        // Token list + borrow endpoints — never cache. borrow.ts hits
+        // /api/v1/tokens for the authoritative category and any stale
+        // cache there reintroduces the SPCX-as-memecoin bug.
+        source: "/api/v1/tokens",
+        headers: [
+          { key: "Cache-Control", value: "no-store, must-revalidate" },
+        ],
+      },
+      {
+        source: "/api/v1/borrow/:path*",
+        headers: [
+          { key: "Cache-Control", value: "no-store, must-revalidate" },
+        ],
+      },
     ];
   },
 };
