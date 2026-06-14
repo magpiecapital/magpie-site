@@ -8,7 +8,10 @@
  *   - If wallet not custodial: render a thin CTA explaining the user
  *     needs a Magpie custodial keypair to enable take-profit. No arm
  *     form — the engine literally cannot fire without one.
- *   - If loan ineligible (size, RWA, already armed): show the reason.
+ *   - If loan ineligible (size, already armed): show the reason. As of
+ *     2026-06-13 RWA collateral is supported (bot PR #161 + engine
+ *     PR #16); the rwa_collateral_not_supported_in_v1 case in the
+ *     switch is kept defensively but unreachable.
  *   - If no order armed: collapsed CTA "Lock in upside" → expands to
  *     a small form with multiplier presets (1.5×, 2×, 3×, 5×) plus
  *     an explicit USD-price input.
@@ -317,7 +320,11 @@ function reasonToLabel(reason: string | undefined): string {
     case "collateral_not_enabled":
       return "this collateral isn't currently enabled in the protocol.";
     case "rwa_collateral_not_supported_in_v1":
-      return "take-profit isn't available for xStocks / RWA collateral yet.";
+      // Unreachable since 2026-06-13 (bot PR #161 flipped the gate +
+      // engine PR #16 shipped V2 fill path). Kept defensively in the
+      // switch with a retry-prompt — a stale agent SDK or cached
+      // client could still bubble this code.
+      return "take-profit on this collateral is now live — please reload + try again.";
     case "loan_already_has_active_order":
       return "another take-profit is already armed on this loan.";
     default:
