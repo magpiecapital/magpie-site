@@ -244,10 +244,16 @@ const MEMECOIN_FALLBACK: LoanTier[] = [
   { option: 2, ltv_pct: 20, duration_days: 7, fee_bps: 150, label: "Standard" },
 ];
 
+// 2026-06-13: realigned to V2 program's actual on-chain LTV ladder.
+// V2 hardcodes 30/25/20% LTV at options 0/1/2 — same as V1. The prior
+// 50/60/70% fallback was aspirational and led to dashboard-vs-Phantom
+// mismatches (e.g. site quoted 1.83 SOL, Phantom prompted 0.536 SOL).
+// Truly higher RWA LTVs require a V3 program deployment. See bot
+// migration 056 + commit history for forensics.
 const RWA_FALLBACK: LoanTier[] = [
-  { option: 0, ltv_pct: 50, duration_days: 7,  fee_bps: 250, label: "RWA Express" },
-  { option: 1, ltv_pct: 60, duration_days: 15, fee_bps: 350, label: "RWA Quick" },
-  { option: 2, ltv_pct: 70, duration_days: 30, fee_bps: 500, label: "RWA Standard" },
+  { option: 0, ltv_pct: 30, duration_days: 2, fee_bps: 300, label: "RWA Express" },
+  { option: 1, ltv_pct: 25, duration_days: 3, fee_bps: 200, label: "RWA Quick" },
+  { option: 2, ltv_pct: 20, duration_days: 7, fee_bps: 150, label: "RWA Standard" },
 ];
 
 function fallbackForCategory(category: LoanTierCategory): LoanTier[] {
