@@ -2752,6 +2752,7 @@ function DashboardPageInner() {
                                     loanIdChain={String(l.loan_id)}
                                     loanDbId={Number((l as unknown as { id?: number; loan_db_id?: number }).id ?? (l as unknown as { id?: number; loan_db_id?: number }).loan_db_id ?? 0)}
                                     collateralSymbol={l.collateral.symbol}
+                                    collateralMint={l.collateral.mint}
                                     state={takeProfitState.state}
                                     onMutated={takeProfitState.refresh}
                                   />
