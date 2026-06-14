@@ -10,7 +10,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "Lending — Magpie",
     description: hasRwa
-      ? `Borrow SOL instantly against ${count} approved tokens — memecoins and tokenized stocks. 30% / 25% / 20% LTV across Express / Quick / Standard tiers. Higher-LTV RWA tier ladder (50/60/70%) ships with the v3 program.`
+      ? `Borrow SOL instantly against ${count} approved tokens — memecoins and tokenized stocks. Memecoin tiers: 30% / 25% / 20% LTV across Express / Quick / Standard (2 / 3 / 7-day terms). RWA tiers (v3, live): 50% / 60% / 70% LTV at 7 / 15 / 30-day terms.`
       : `Borrow SOL instantly against your memecoins. Three loan tiers, ${count} approved tokens, and funds in under 30 seconds.`,
   };
 }

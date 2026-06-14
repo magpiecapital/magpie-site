@@ -226,7 +226,7 @@ export default async function DocsPage() {
                 {
                   n: "3",
                   title: "Tier selection & quote",
-                  body: "User selects a tier: Express (30% LTV, 2 days), Quick (25% LTV, 3 days), or Standard (20% LTV, 7 days). Oracle pricing via Jupiter API values the collateral in SOL and generates a quote.",
+                  body: "User selects a tier. Memecoin tiers: Express (30% LTV, 2 days), Quick (25% LTV, 3 days), Standard (20% LTV, 7 days). RWA tiers (v3): Express (50% LTV, 7 days, 2.5% fee), Quick (60% LTV, 15 days, 3.5% fee), Standard (70% LTV, 30 days, 5% fee). Oracle pricing via Jupiter API values the collateral in SOL and generates a quote.",
                 },
                 {
                   n: "4",
