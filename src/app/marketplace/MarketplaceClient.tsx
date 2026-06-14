@@ -79,6 +79,19 @@ const CREDIT_TIERS = [
 
 /* ───────────────────────── HOW TO BORROW ───────────────────────── */
 
+// True when memecoin and RWA tier ladders are economically identical
+// (same option, LTV, days, fee across the whole ladder). Today they are —
+// V2 program hardcodes the same ladder for both categories. When V3 routing
+// flips and the RWA ladder diverges (50/60/70% @ 7/15/30d), this returns
+// false and the differentiated UI comes back automatically.
+function laddersIdentical(a: UiTier[], b: UiTier[]): boolean {
+  if (a.length !== b.length || a.length === 0) return false;
+  return a.every((m, i) => {
+    const r = b[i];
+    return r.ltv === m.ltv && r.days === m.days && r.fee === m.fee;
+  });
+}
+
 function buildSteps(tokenCount: number, memeTiers: UiTier[], rwaTiers: UiTier[]) {
   const memeSummary = memeTiers
     .map((t) => `${Math.round(t.ltv * 100)}% LTV / ${t.days}d`)
@@ -86,6 +99,14 @@ function buildSteps(tokenCount: number, memeTiers: UiTier[], rwaTiers: UiTier[])
   const rwaSummary = rwaTiers.length > 0
     ? rwaTiers.map((t) => `${Math.round(t.ltv * 100)}% LTV / ${t.days}d`).join(", ")
     : null;
+  const unified = laddersIdentical(memeTiers, rwaTiers);
+  // Derive the actual current fee range from the live tier data so the
+  // copy can't drift from on-chain reality the way the previous "RWA tiers
+  // 2.5-5%" line did after mig 056 collapsed them to 1.5-3%.
+  const allFees = [...memeTiers, ...rwaTiers].map((t) => t.fee).filter((f) => f > 0);
+  const feeMin = allFees.length ? Math.min(...allFees) : 0.015;
+  const feeMax = allFees.length ? Math.max(...allFees) : 0.03;
+  const feeRangeStr = `${(feeMin * 100).toFixed(1)}–${(feeMax * 100).toFixed(0)}%`;
   return [
     {
       num: "1",
@@ -102,15 +123,17 @@ function buildSteps(tokenCount: number, memeTiers: UiTier[], rwaTiers: UiTier[])
     {
       num: "3",
       title: "Select a loan tier",
-      desc: rwaSummary
-        ? `Memecoins: ${memeSummary}. Tokenized stocks, ETFs, metals: ${rwaSummary} — lower volatility unlocks higher LTVs and longer terms (up to 30 days). The dashboard shows your exact payout before you confirm.`
-        : `Memecoin tiers: ${memeSummary}. The dashboard shows your exact payout before you confirm.`,
+      desc: unified
+        ? `Three tiers across all collateral: ${memeSummary}. Same ladder applies to memecoins and tokenized stocks today. Higher-LTV RWA tiers (50/60/70% @ 7/15/30d) ship with the v3 program — currently in deploy.`
+        : rwaSummary
+          ? `Memecoins: ${memeSummary}. Tokenized stocks, ETFs, metals: ${rwaSummary} — lower volatility unlocks higher LTVs and longer terms. The dashboard shows your exact payout before you confirm.`
+          : `Memecoin tiers: ${memeSummary}. The dashboard shows your exact payout before you confirm.`,
       cmd: null,
     },
     {
       num: "4",
       title: "Sign and receive SOL",
-      desc: "Approve the transaction in your wallet. SOL lands in seconds. A small origination fee is deducted upfront — memecoin tiers run 1.5–3%, RWA tiers 2.5–5%.",
+      desc: `Approve the transaction in your wallet. SOL lands in seconds. A small origination fee is deducted upfront — current ladder runs ${feeRangeStr}.`,
       cmd: null,
     },
     {
@@ -207,6 +230,9 @@ function LoanCalculator({ memeTiers, rwaTiers, hasRwa }: LoanCalculatorProps) {
   const [collateralValue, setCollateralValue] = useState(1000);
   const [selectedTier, setSelectedTier] = useState(0);
   const [category, setCategory] = useState<"memecoin" | "rwa">("memecoin");
+  // When the ladders are identical, hide the toggle — a toggle that doesn't
+  // change any number is the very mixed-signal we're fixing on this page.
+  const unifiedLadders = useMemo(() => laddersIdentical(memeTiers, rwaTiers), [memeTiers, rwaTiers]);
 
   const activeTiers = category === "rwa" ? rwaTiers : memeTiers;
   const safeIndex = Math.min(selectedTier, activeTiers.length - 1);
@@ -221,8 +247,10 @@ function LoanCalculator({ memeTiers, rwaTiers, hasRwa }: LoanCalculatorProps) {
       <h3 className="font-display text-lg font-semibold text-[var(--ink)]">Quick estimate</h3>
       <p className="mt-1 text-sm text-[var(--ink-soft)]">Drag to see how much SOL you can borrow.</p>
 
-      {/* Collateral category toggle */}
-      {hasRwa && (
+      {/* Collateral category toggle — only meaningful when ladders differ.
+          With v2 routing (today) the two categories share one ladder; the
+          toggle would just swap labels without changing any number. */}
+      {hasRwa && !unifiedLadders && (
         <div className="mt-5 inline-flex rounded-xl border border-[var(--hairline)] bg-[var(--surface)] p-1 text-xs">
           {(["memecoin", "rwa"] as const).map((c) => (
             <button
@@ -334,14 +362,25 @@ interface MarketplaceClientProps {
 export function MarketplaceClient({ tokenCount, stockCount, memeTiers, rwaTiers }: MarketplaceClientProps) {
   const meme = useMemo(() => memeTiers.map((t, i) => adaptTier(t, MEME_DESCRIPTIONS, ["Express","Quick","Standard"][i] || `Tier ${i+1}`)), [memeTiers]);
   const rwa  = useMemo(() => rwaTiers.map((t, i)  => adaptTier(t, RWA_DESCRIPTIONS,  ["RWA Express","RWA Quick","RWA Standard"][i] || `RWA Tier ${i+1}`)), [rwaTiers]);
+  // 2026-06-13: when memecoin and RWA ladders are economically identical
+  // (today, post mig 056), the differentiated UI is more confusing than
+  // helpful — users see "Express 30%" + "RWA Express 30%" and reasonably
+  // wonder what the difference is. Treat them as a single ladder until v3
+  // routing flips and the API genuinely returns different numbers.
+  const unifiedLadders = useMemo(() => laddersIdentical(meme, rwa), [meme, rwa]);
+  const showRwaSection = stockCount > 0 && rwa.length > 0 && !unifiedLadders;
   const hasRwa = stockCount > 0 && rwa.length > 0;
   const STEPS = buildSteps(tokenCount, meme, rwa);
   const maxMemeLtv = Math.max(...meme.map((t) => t.ltv));
   const maxRwaLtv  = hasRwa ? Math.max(...rwa.map((t) => t.ltv)) : 0;
-  const maxLtvLabel = hasRwa
-    ? `${Math.round(maxMemeLtv * 100)}% / ${Math.round(maxRwaLtv * 100)}%`
-    : `${Math.round(maxMemeLtv * 100)}%`;
-  const maxLtvSubLabel = hasRwa ? "Memecoin / RWA" : undefined;
+  const maxLtvLabel = unifiedLadders
+    ? `${Math.round(maxMemeLtv * 100)}%`
+    : hasRwa
+      ? `${Math.round(maxMemeLtv * 100)}% / ${Math.round(maxRwaLtv * 100)}%`
+      : `${Math.round(maxMemeLtv * 100)}%`;
+  const maxLtvSubLabel = unifiedLadders
+    ? undefined
+    : hasRwa ? "Memecoin / RWA" : undefined;
   const maxTermDays = Math.max(...meme.map((t) => t.days), ...rwa.map((t) => t.days));
   return (
     <div className="min-h-screen" style={{ background: "var(--bg)" }}>
@@ -397,7 +436,20 @@ export function MarketplaceClient({ tokenCount, stockCount, memeTiers, rwaTiers 
         <div className="mt-14 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
             { label: "Approved tokens", value: `${tokenCount}+`, sub: undefined as string | undefined },
-            { label: "Origination fee", value: hasRwa ? "1.5–5%" : "1.5–3%", sub: undefined },
+            // Origination fee range derived from live tier data (after mig 056
+            // the RWA / memecoin ranges collapsed to the same band). When the
+            // v3 routing flip diverges them again, the math here picks it up.
+            {
+              label: "Origination fee",
+              value: (() => {
+                const fees = [...meme, ...rwa].map((t) => t.fee).filter((f) => f > 0);
+                if (fees.length === 0) return "—";
+                const lo = (Math.min(...fees) * 100).toFixed(1);
+                const hi = (Math.max(...fees) * 100).toFixed(0);
+                return lo === hi ? `${lo}%` : `${lo}–${hi}%`;
+              })(),
+              sub: undefined,
+            },
             { label: "Max LTV", value: maxLtvLabel, sub: maxLtvSubLabel },
             { label: "Longest term", value: `${maxTermDays}d`, sub: undefined },
           ].map((s) => (
@@ -421,7 +473,9 @@ export function MarketplaceClient({ tokenCount, stockCount, memeTiers, rwaTiers 
           </p>
 
           <h3 className="mt-10 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">
-            Memecoin collateral
+            {unifiedLadders
+              ? "Three loan tiers (all collateral types)"
+              : "Memecoin collateral"}
           </h3>
           <div className="mt-3 grid gap-5 md:grid-cols-3">
             {meme.map((t, i) => (
@@ -429,7 +483,7 @@ export function MarketplaceClient({ tokenCount, stockCount, memeTiers, rwaTiers 
             ))}
           </div>
 
-          {hasRwa ? (
+          {showRwaSection ? (
             <>
               <div className="mt-12 flex items-center justify-between">
                 <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">
@@ -440,7 +494,7 @@ export function MarketplaceClient({ tokenCount, stockCount, memeTiers, rwaTiers 
                 </span>
               </div>
               <p className="mt-2 max-w-2xl text-sm text-[var(--ink-soft)]">
-                Real-world assets carry meaningfully lower volatility than memecoins, so we&apos;re comfortable lending more against them — up to {Math.round(maxRwaLtv * 100)}% LTV and terms out to 30 days.
+                Real-world assets carry meaningfully lower volatility than memecoins, so we&apos;re comfortable lending more against them — up to {Math.round(maxRwaLtv * 100)}% LTV.
               </p>
               <div className="mt-3 grid gap-5 md:grid-cols-3">
                 {rwa.map((t, i) => (
@@ -448,6 +502,26 @@ export function MarketplaceClient({ tokenCount, stockCount, memeTiers, rwaTiers 
                 ))}
               </div>
             </>
+          ) : null}
+
+          {/* When ladders are still unified, surface what's coming with v3
+              so xStock holders know the higher-LTV pitch is real, not vapor. */}
+          {unifiedLadders && hasRwa ? (
+            <div className="mt-8 rounded-2xl border border-[var(--hairline)] bg-[var(--accent-dim)]/30 p-6">
+              <div className="flex items-center gap-2">
+                <span className="rounded-full bg-[var(--accent)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--accent-ink,#0a0a0a)]">
+                  Coming with v3
+                </span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                  Higher-LTV tier for tokenized stocks / ETFs / metals
+                </span>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
+                When the v3 program goes live (deployed today, currently funding-only), a separate ladder unlocks for RWA collateral:
+                {" "}<strong>50% LTV @ 7 days</strong>, <strong>60% @ 15 days</strong>, <strong>70% @ 30 days</strong>{" "}
+                with origination fees 2.5–5%. Until then, all collateral classes share the same tier ladder shown above.
+              </p>
+            </div>
           ) : null}
 
           {/* LTV explainer */}
