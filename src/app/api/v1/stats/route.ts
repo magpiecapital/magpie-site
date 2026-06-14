@@ -1,8 +1,17 @@
 /**
  * GET /api/v1/stats
  *
- * Real-time protocol statistics. Backed by the same Railway Postgres
+ * Real-time protocol statistics. Backed by the same Postgres
  * the bot writes to, so numbers update as new loans are created.
+ *
+ * 2026-06-14: total loans + liquidations now come from the ON-CHAIN
+ * pool counters (via the bot's public /api/v1/pool/stats) when
+ * available. Reason: the DB had drifted (43 on-chain vs 11 DB
+ * liquidations) and the public /stats page was understating the real
+ * liquidation rate. On-chain is authoritative — that's what users
+ * can verify themselves on Solscan. The DB numbers stay as fallback
+ * for active/repaid splits and for the engine reliability data which
+ * is DB-only.
  *
  * Headline figures only — for the full transparency dashboard payload
  * (pool state, holder rewards, etc.) use /api/v1/transparency.
@@ -14,6 +23,37 @@ const HEADERS = {
   "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60",
   "X-Powered-By": "Magpie Protocol",
 };
+
+const BOT_POOL_STATS_URL =
+  process.env.BOT_POOL_STATS_URL ||
+  "https://magpie-bot-production.up.railway.app/api/v1/pool/stats";
+const POOL_STATS_TIMEOUT_MS = 4_000;
+
+interface OnChainPoolNumbers {
+  totalLoansIssued: number | null;
+  totalLiquidations: number | null;
+}
+
+async function fetchOnChainNumbers(): Promise<OnChainPoolNumbers> {
+  try {
+    const res = await fetch(BOT_POOL_STATS_URL, {
+      signal: AbortSignal.timeout(POOL_STATS_TIMEOUT_MS),
+      cache: "no-store",
+    });
+    if (!res.ok) return { totalLoansIssued: null, totalLiquidations: null };
+    const body = await res.json();
+    const pool = body?.pool;
+    if (!pool) return { totalLoansIssued: null, totalLiquidations: null };
+    const tli = pool.total_loans_issued;
+    const tlq = pool.total_liquidations;
+    return {
+      totalLoansIssued: tli != null ? Number(tli) : null,
+      totalLiquidations: tlq != null ? Number(tlq) : null,
+    };
+  } catch {
+    return { totalLoansIssued: null, totalLiquidations: null };
+  }
+}
 
 export async function GET() {
   try {
@@ -72,11 +112,32 @@ export async function GET() {
     ]);
 
     const s = statsResult.rows[0];
-    const totalLoans = Number(s.total_loans);
+    // On-chain counters are authoritative — fetch in parallel with the
+    // earlier DB queries above by doing it here right after they
+    // resolve. Adds one HTTP round-trip; cached via the route's
+    // s-maxage=30 so impact is bounded.
+    const onChain = await fetchOnChainNumbers();
+    // Prefer on-chain values when they're present and >= DB count
+    // (sanity guard against transient empty responses). Otherwise fall
+    // back to DB. Never quote a smaller number than the DB has — that
+    // would understate liquidation rate.
+    const dbTotalLoans = Number(s.total_loans);
+    const dbLiquidated = Number(s.liquidated_loans);
+    const totalLoans =
+      onChain.totalLoansIssued != null && onChain.totalLoansIssued >= dbTotalLoans
+        ? onChain.totalLoansIssued
+        : dbTotalLoans;
+    const liquidated =
+      onChain.totalLiquidations != null && onChain.totalLiquidations >= dbLiquidated
+        ? onChain.totalLiquidations
+        : dbLiquidated;
     const repaid = Number(s.repaid_loans);
-    const liquidated = Number(s.liquidated_loans);
-    const finalized = repaid + liquidated;
-    const liquidationRate = finalized > 0 ? liquidated / finalized : 0;
+    // Liquidation rate = liquidated / totalLoans (lifetime). Was previously
+    // liquidated / (repaid + liquidated) which under-counts because
+    // pending/active loans should be in the denominator (every loan IS at
+    // risk of liquidation, not just finalized ones). Using totalLoans
+    // matches the on-chain pool's accounting.
+    const liquidationRate = totalLoans > 0 ? liquidated / totalLoans : 0;
 
     // Tier distribution
     const tiers: Record<string, number> = { express: 0, quick: 0, standard: 0 };
@@ -136,6 +197,10 @@ export async function GET() {
           activeLoans: Number(s.active_loans),
           repaidLoans: repaid,
           liquidatedLoans: liquidated,
+          // Provenance: lets API consumers and Pip surface the right
+          // caveat ("verifiable on-chain") when the numbers come from
+          // the pool counter rather than the indexer DB.
+          countsSource: onChain.totalLoansIssued != null ? "on-chain" : "db-indexer",
           totalSolLent: Number(s.total_borrowed_lamports) / 1e9,
           totalUsers: Number(usersResult.rows[0].total_users),
           liquidationRate,
