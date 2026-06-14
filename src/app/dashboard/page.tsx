@@ -2166,17 +2166,13 @@ function DashboardPageInner() {
       {SITE_REPAY_ENABLED && extendConfirmFor && (() => {
         const owed = Number(extendConfirmFor.loan.original_amount_lamports ?? 0) / 1e9;
         const ltv = extendConfirmFor.loan.ltv_percentage;
-        // Fee per LTV bracket. Memecoin: 30%/25%/20% → 3%/2%/1.5%.
-        // RWA: 50%/60%/70% → 2.5%/3.5%/5%. The brackets don't overlap
-        // (RWA LTV starts at 50%, memecoin tops at 30%) so a single
-        // chain of conditions covers both ladders unambiguously.
+        // Fee per LTV bracket. 2026-06-13: V2 program's on-chain LTV
+        // ladder is identical to V1 (30/25/20% — see bot mig 056), so
+        // both memecoin and RWA loans share the same fee schedule.
         const feePct =
-          ltv >= 70 ? 0.050 :   // RWA Standard
-          ltv >= 60 ? 0.035 :   // RWA Quick
-          ltv >= 50 ? 0.025 :   // RWA Express
-          ltv >= 30 ? 0.030 :   // Memecoin Express
-          ltv >= 25 ? 0.020 :   // Memecoin Quick
-                     0.015;     // Memecoin Standard (20%)
+          ltv >= 30 ? 0.030 :   // Express (option 0)
+          ltv >= 25 ? 0.020 :   // Quick (option 1)
+                     0.015;     // Standard (option 2, 20%)
         const feeSol = owed * feePct;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setExtendConfirmFor(null)}>
@@ -2884,9 +2880,11 @@ function DashboardPageInner() {
                               }))
                             : isRwa
                               ? [
-                                  { name: "RWA Express", tag: "Short-term cash, conservative buffer", ltv: 0.50, days: 7, fee: 0.025, color: "var(--d-warn)" },
-                                  { name: "RWA Quick", tag: "15-day term, balanced fee", ltv: 0.60, days: 15, fee: 0.035, color: "var(--d-accent)" },
-                                  { name: "RWA Standard", tag: "30-day term, highest LTV", ltv: 0.70, days: 30, fee: 0.050, color: "var(--d-accent)" },
+                                  // 2026-06-13 realigned to V2 on-chain LTV ladder (30/25/20%)
+                                  // — see bot mig 056. Truly higher RWA LTVs require V3.
+                                  { name: "RWA Express", tag: "Fast cash, premium rate", ltv: 0.30, days: 2, fee: 0.030, color: "var(--d-warn)" },
+                                  { name: "RWA Quick", tag: "Balanced speed & value", ltv: 0.25, days: 3, fee: 0.020, color: "var(--d-accent)" },
+                                  { name: "RWA Standard", tag: "Best rate, more time to repay", ltv: 0.20, days: 7, fee: 0.015, color: "var(--d-accent)" },
                                 ]
                               : [
                                   { name: "Express", tag: "Fast cash, premium rate", ltv: 0.30, days: 2, fee: 0.03, color: "var(--d-bad)" },

@@ -33,10 +33,15 @@ const MEME_DESCRIPTIONS: Record<string, { tag: string; desc: string }> = {
   Standard: { tag: "Safest",   desc: "Lowest LTV means more room before liquidation. A full week to repay." },
 };
 
+// 2026-06-13: RWA tiers now mirror memecoin LTVs (30/25/20%) because V2
+// program hardcodes the same ladder. Descriptions updated to remove the
+// "max LTV / 30-day" copy that was never accurate on-chain. A future V3
+// program with truly higher LTVs is the only path to differentiate
+// RWA pricing.
 const RWA_DESCRIPTIONS: Record<string, { tag: string; desc: string }> = {
-  "RWA Express":  { tag: "Short-term cash", desc: "Conservative LTV buffer with a one-week term. Most flexible RWA tier." },
-  "RWA Quick":    { tag: "New · 15-day",    desc: "Mid-term option built for tokenized stocks — higher LTV, two-week runway." },
-  "RWA Standard": { tag: "Max LTV",         desc: "Highest LTV on Magpie, 30-day term. Stocks/ETFs/metals only — lower volatility unlocks the deeper terms." },
+  "RWA Express":  { tag: "Fast cash",   desc: "Stocks / ETFs / metals as collateral, same 2-day Express term. Premium rate, most SOL upfront." },
+  "RWA Quick":    { tag: "Balanced",    desc: "Mid-term option for tokenized stocks. Comfortable LTV with three days to repay." },
+  "RWA Standard": { tag: "Best rate",   desc: "Lowest fee, a full week to repay. Stocks / ETFs / metals only — same on-chain math as memecoin Standard, different collateral class." },
 };
 
 function adaptTier(t: LoanTier, descs: Record<string, { tag: string; desc: string }>, fallbackName: string): UiTier {
