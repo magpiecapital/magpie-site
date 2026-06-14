@@ -101,10 +101,19 @@ export async function GET() {
       { total_users: "0", new_users_24h: "0", new_users_7d: "0" },
     ),
     tryQuery<HoldersRow>(
+      // 2026-06-14: column reference fix. The query previously named
+      // `total_distributed_lamports` which doesn't exist on
+      // magpie_holder_distributions — the actual column is `pool_lamports`.
+      // The whole subquery was failing, tryQuery defaulted to null, and
+      // /stats showed "$MAGPIE holders: 0.0000 SOL" even though the
+      // backing magpie_holder_pool ledger had real value (2.35 SOL when
+      // this was caught). Other pools (lp_loyalty, protocol_reserve)
+      // were unaffected because their queries didn't reference the
+      // missing column.
       `SELECT
          (SELECT accrued_lamports::text FROM magpie_holder_pool WHERE id = 1) AS current_pool_lamports,
          (SELECT COUNT(*)::text FROM magpie_holder_distributions) AS lifetime_distributions,
-         (SELECT total_distributed_lamports::text FROM magpie_holder_distributions
+         (SELECT pool_lamports::text FROM magpie_holder_distributions
             ORDER BY id DESC LIMIT 1) AS last_distribution_lamports,
          (SELECT created_at FROM magpie_holder_distributions ORDER BY id DESC LIMIT 1)
            AS last_distribution_at`,
