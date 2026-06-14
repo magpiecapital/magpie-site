@@ -336,6 +336,13 @@ export interface ModifyTakeProfitRequest {
   sellDestination?: "sol" | "usdc";
   /** New expiry ISO timestamp, or "none" to clear expiry. */
   expires?: string | "none";
+  /**
+   * New trailing distance in bps (50-5000), or null to clear trailing
+   * (back to a regular fixed-floor stop-loss). Only valid on stop-loss
+   * direction orders. First-time enable seeds peak from live price;
+   * later changes recompute trigger from existing peak.
+   */
+  trailingDistanceBps?: number | null;
 }
 
 function buildModifyMessage(args: {
@@ -346,6 +353,7 @@ function buildModifyMessage(args: {
   slippageBps?: number;
   sellDestination?: "sol" | "usdc";
   expires?: string | "none";
+  trailingDistanceBps?: number | null;
   nonce: string;
   issuedAt: string;
 }): string {
@@ -361,6 +369,10 @@ function buildModifyMessage(args: {
   if (args.slippageBps != null) lines.push(`Slippage: ${args.slippageBps}`);
   if (args.sellDestination) lines.push(`Dest: ${args.sellDestination}`);
   if (args.expires) lines.push(`Expires: ${args.expires}`);
+  // Trailing: null = clear back to fixed SL, number = new distance bps.
+  // The bot endpoint accepts "none" or the bps value.
+  if (args.trailingDistanceBps === null) lines.push(`Trailing: none`);
+  else if (args.trailingDistanceBps != null) lines.push(`Trailing: ${args.trailingDistanceBps}`);
   lines.push(`Nonce: ${args.nonce}`);
   lines.push(`IssuedAt: ${args.issuedAt}`);
   return lines.join("\n");
@@ -373,15 +385,23 @@ export async function modifyTakeProfit(args: {
   request: ModifyTakeProfitRequest;
 }): Promise<{ order_id: number; trigger_value_micro?: string; slippage_bps?: number }> {
   if (!args.botApiUrl) throw new Error("Bot API URL not configured");
-  const { orderId, priceUsd, mcUsd, slippageBps, sellDestination, expires } = args.request;
+  const { orderId, priceUsd, mcUsd, slippageBps, sellDestination, expires, trailingDistanceBps } = args.request;
   if (
     priceUsd == null &&
     mcUsd == null &&
     slippageBps == null &&
     !sellDestination &&
-    !expires
+    !expires &&
+    trailingDistanceBps === undefined
   ) {
-    throw new Error("Nothing to modify — supply at least one of price / slippage / dest / expires.");
+    throw new Error("Nothing to modify — supply at least one of price / slippage / dest / expires / trailing.");
+  }
+  // Trailing must be null (clear), or an integer in the valid range.
+  // Mirror the bot's gate so a typo'd value gets caught client-side.
+  if (trailingDistanceBps !== undefined && trailingDistanceBps !== null) {
+    if (!Number.isInteger(trailingDistanceBps) || trailingDistanceBps < 50 || trailingDistanceBps > 5000) {
+      throw new Error("trailingDistanceBps must be an integer in [50, 5000] bps, or null to clear.");
+    }
   }
   const nonce = randomNonceHex();
   const issuedAt = new Date().toISOString();
@@ -393,6 +413,7 @@ export async function modifyTakeProfit(args: {
     slippageBps,
     sellDestination,
     expires,
+    trailingDistanceBps,
     nonce,
     issuedAt,
   });
