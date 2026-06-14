@@ -180,8 +180,9 @@ export default async function WhitepaperPage() {
 
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[
-                  { label: "Three risk tiers", detail: "Express (30% LTV, 2d), Quick (25% LTV, 3d), Standard (20% LTV, 7d)" },
-                  { label: "Tiered origination fees (1.5–3%)", detail: "Express 3%, Quick 2%, Standard 1.5%. No hidden rates, no dynamic APR" },
+                  { label: "Memecoin risk tiers", detail: "Express (30% LTV, 2d), Quick (25% LTV, 3d), Standard (20% LTV, 7d)" },
+                  { label: "RWA risk tiers (v3, live)", detail: "Express (50% LTV, 7d), Quick (60% LTV, 15d), Standard (70% LTV, 30d) — tokenized stocks / ETFs / metals" },
+                  { label: "Tiered origination fees (1.5–5%)", detail: "Memecoin: 3% / 2% / 1.5%. RWA: 2.5% / 3.5% / 5%. No hidden rates, no dynamic APR" },
                   { label: "Non-custodial wallet model", detail: "Exportable keys — import into Phantom, Solflare, any Solana wallet" },
                   { label: "On-chain program (Anchor)", detail: "Deterministic loan execution, collateral custody, and liquidation" },
                   { label: "Credit system", detail: "Build reputation across loans, unlock better LTV and reduced fees" },
@@ -273,11 +274,14 @@ Liquidation triggers when Health < 1.1`}</CodeBlock>
 
               <H3>Tier comparison</H3>
               <Table
-                headers={["Tier", "LTV", "Term", "Use case"]}
+                headers={["Pool", "Tier", "LTV", "Term", "Fee", "Use case"]}
                 rows={[
-                  ["Express", "30%", "2 days", "Maximum liquidity, short-term needs"],
-                  ["Quick", "25%", "3 days", "Balanced risk/reward"],
-                  ["Standard", "20%", "7 days", "Conservative, extended timeline"],
+                  ["Memecoin (v1)", "Express",  "30%", "2 days",  "3.00%", "Maximum liquidity, short-term needs"],
+                  ["Memecoin (v1)", "Quick",    "25%", "3 days",  "2.00%", "Balanced risk/reward"],
+                  ["Memecoin (v1)", "Standard", "20%", "7 days",  "1.50%", "Conservative, extended timeline"],
+                  ["RWA (v3)",     "Express",  "50%", "7 days",  "2.50%", "Tokenized stocks/ETFs/metals — short bridge"],
+                  ["RWA (v3)",     "Quick",    "60%", "15 days", "3.50%", "Tokenized stocks/ETFs/metals — half-month"],
+                  ["RWA (v3)",     "Standard", "70%", "30 days", "5.00%", "Tokenized stocks/ETFs/metals — full month"],
                 ]}
               />
             </Section>
