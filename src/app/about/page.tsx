@@ -48,8 +48,8 @@ function makeStats(approvedCount: number) {
   return [
   { value: `${approvedCount}+`, label: "Approved Tokens" },
   { value: "<10s", label: "Average Funding Time" },
-  { value: "1.5–3%", label: "Tiered Fee" },
-  { value: "3", label: "Lending Tiers" },
+  { value: "1.5–5%", label: "Tiered Fee" },
+  { value: "6", label: "Lending Tiers" },
   { value: "850", label: "Max Credit Score" },
   { value: "24/7", label: "Live on Solana" },
   ];
