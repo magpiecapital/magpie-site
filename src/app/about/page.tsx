@@ -41,6 +41,10 @@ function makeFeatures(approvedCount: number) {
     title: "Sub-10-Second Funding",
     body: "Deposit confirms, SOL arrives. The entire flow takes less time than reading this card.",
   },
+  {
+    title: "Auto-Sell, Built In",
+    body: "Set your exit price when you take the loan — not after. Pick a take-profit, a stop-loss, both, or a multi-stage ladder. Our engine watches the chart 24/7 and executes the moment your target hits, repaying the loan and sending net SOL to your wallet automatically.",
+  },
   ];
 }
 
