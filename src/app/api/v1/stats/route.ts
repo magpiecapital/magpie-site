@@ -77,6 +77,10 @@ export async function GET() {
       // manual). Best-effort read — wrapped catch falls back to zeros
       // on a fresh deploy that hasn't applied migration 059.
       defaultProfitResult,
+      // 2026-06-14: $MAGPIE burn ledger. Sums every burn path (default-
+      // driven, manual operator burns, future buybacks). Single source of
+      // truth shared with the TG /stats command and Pip.
+      magpieBurnsResult,
     ] = await Promise.all([
       query(
         `SELECT
@@ -143,6 +147,23 @@ export async function GET() {
           awaiting_dist_count: null,
           magpie_burned_count: null,
           magpie_pending_count: null,
+        }],
+      })),
+      query(
+        `SELECT
+           COALESCE(SUM(amount_raw), 0)::text                                            AS total_raw,
+           COUNT(*)::int                                                                  AS burn_count,
+           COALESCE(SUM(amount_raw) FILTER (WHERE source = 'manual'), 0)::text             AS manual_raw,
+           COALESCE(SUM(amount_raw) FILTER (WHERE source = 'liquidation_default'), 0)::text AS liquidation_default_raw,
+           COALESCE(SUM(amount_raw) FILTER (WHERE source = 'buyback'), 0)::text            AS buyback_raw
+         FROM magpie_burns`,
+      ).catch(() => ({
+        rows: [{
+          total_raw: null,
+          burn_count: null,
+          manual_raw: null,
+          liquidation_default_raw: null,
+          buyback_raw: null,
         }],
       })),
     ]);
@@ -281,6 +302,29 @@ export async function GET() {
                 referrerFallback: "rolls_to_holders",
                 magpieDefault: "burn_by_operator",
               },
+            };
+          })(),
+          // $MAGPIE burn ledger summary — supply contraction. Includes
+          // the dev-wallet baseline burn (2M $MAGPIE) seeded by migration
+          // 061 plus every operator-confirmed default burn and future
+          // buyback burn. 6 decimals; total_raw is the on-chain base
+          // unit count; total_tokens is the human-readable token count.
+          magpieBurned: (() => {
+            const mb = magpieBurnsResult.rows[0];
+            if (!mb || mb.total_raw == null) return null;
+            const rawDivisor = 1_000_000; // 10^6 for 6 decimals
+            const rawToTokens = (r: string | number | null) =>
+              r == null ? 0 : Number(BigInt(r) / BigInt(rawDivisor));
+            return {
+              totalRaw: String(mb.total_raw),
+              totalTokens: rawToTokens(mb.total_raw),
+              burnCount: Number(mb.burn_count ?? 0),
+              bySource: {
+                manualTokens: rawToTokens(mb.manual_raw),
+                liquidationDefaultTokens: rawToTokens(mb.liquidation_default_raw),
+                buybackTokens: rawToTokens(mb.buyback_raw),
+              },
+              decimals: 6,
             };
           })(),
           timestamp: new Date().toISOString(),

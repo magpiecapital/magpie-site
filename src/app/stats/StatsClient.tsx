@@ -95,9 +95,29 @@ interface EngineData {
   jupiterHealth24h: number | null;
 }
 
+interface MagpieBurnedData {
+  totalRaw: string;
+  totalTokens: number;
+  burnCount: number;
+  bySource: {
+    manualTokens: number;
+    liquidationDefaultTokens: number;
+    buybackTokens: number;
+  };
+  decimals: number;
+}
+
+interface DefaultedLoanProfitData {
+  lifetimeSol: number;
+  last24hSol: number;
+  profitableDefaultsCount: number;
+}
+
 export default function StatsClient() {
   const [data, setData] = useState<TransparencyData | null>(null);
   const [engine, setEngine] = useState<EngineData | null>(null);
+  const [magpieBurned, setMagpieBurned] = useState<MagpieBurnedData | null>(null);
+  const [defaultedProfit, setDefaultedProfit] = useState<DefaultedLoanProfitData | null>(null);
   const [error, setError] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
 
@@ -123,9 +143,20 @@ export default function StatsClient() {
           throw new Error(`HTTP ${tRes.value.status}`);
         }
         if (sRes.status === "fulfilled" && sRes.value.ok) {
-          const json = (await sRes.value.json()) as { ok: boolean; data?: { limitCloseEngine?: EngineData } };
+          const json = (await sRes.value.json()) as {
+            ok: boolean;
+            data?: {
+              limitCloseEngine?: EngineData;
+              magpieBurned?: MagpieBurnedData | null;
+              defaultedLoanProfit?: DefaultedLoanProfitData | null;
+            };
+          };
           const e = json?.data?.limitCloseEngine;
           if (e && !cancelled) setEngine(e);
+          const mb = json?.data?.magpieBurned;
+          if (mb && !cancelled) setMagpieBurned(mb);
+          const dp = json?.data?.defaultedLoanProfit;
+          if (dp && !cancelled) setDefaultedProfit(dp);
         }
       } catch (err) {
         console.warn("stats fetch failed:", err);
@@ -274,6 +305,62 @@ export default function StatsClient() {
           </p>
         )}
       </section>
+
+      {/* ── Default economics: $MAGPIE burned + non-$MAGPIE profit ──
+          When a $MAGPIE-collateralized loan defaults, the seized
+          $MAGPIE is burned (supply contraction → larger pro-rata
+          slice for remaining holders). When a non-$MAGPIE asset
+          defaults, the protocol sells the collateral and routes the
+          net profit 70/10/10/10 into the same four pools above —
+          additive to the snapshot, not a separate distribution. */}
+      {(magpieBurned || defaultedProfit) && (
+        <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+          <SectionHead
+            title="Default economics"
+            tag="Burns + profit-to-rewards"
+          />
+          <p className="mb-5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+            Defaulted loans don&apos;t leak value out of the system.
+            $MAGPIE collateral gets burned (operator-manual) — that
+            shrinks supply and grows every holder&apos;s slice of the
+            next payout. Any other collateral is sold and the net
+            profit flows back into the same four reward channels
+            above. Both figures here are running totals.
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Stat
+              label="$MAGPIE burned"
+              value={magpieBurned
+                ? magpieBurned.totalTokens.toLocaleString("en-US")
+                : "—"}
+              sub={magpieBurned
+                ? `${magpieBurned.burnCount} burn${magpieBurned.burnCount === 1 ? "" : "s"} on-ledger`
+                : "Supply contraction"}
+            />
+            <Stat
+              label="  via defaults"
+              value={magpieBurned
+                ? magpieBurned.bySource.liquidationDefaultTokens.toLocaleString("en-US")
+                : "—"}
+              sub="$MAGPIE seized + burned"
+            />
+            <Stat
+              label="Default profit"
+              value={defaultedProfit
+                ? fmtSol(defaultedProfit.lifetimeSol)
+                : "—"}
+              sub="Lifetime · routes to rewards"
+            />
+            <Stat
+              label="Profitable defaults"
+              value={defaultedProfit
+                ? fmtNum(defaultedProfit.profitableDefaultsCount)
+                : "—"}
+              sub="Non-$MAGPIE defaults"
+            />
+          </div>
+        </section>
+      )}
 
       {/* ── User-growth strip ── */}
       <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
