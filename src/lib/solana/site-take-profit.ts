@@ -135,6 +135,16 @@ export interface ArmTakeProfitRequest {
   slippageBps?: number;    // default 200
   sellDestination?: "sol" | "usdc";
   expire?: string;         // "30d" / "12h" — optional
+  /**
+   * Ladder leg slice in basis points. Default 10000 = 100% = full close
+   * (single-leg arm; unchanged from pre-ladder behavior). Set <10000 to
+   * arm a ladder leg that sells slice/10000 of original collateral when
+   * the trigger hits. Multiple legs on the same loan/direction with
+   * sum(slicePctBps) <= 10000 are stitched together by the bot via a
+   * shared ladder_group_id. The bot's site-limit-close handler reads
+   * the Slice envelope field and forwards to arm-core.
+   */
+  slicePctBps?: number;
 }
 
 export interface ArmedTakeProfitResult {
@@ -164,6 +174,10 @@ function buildArmMessage(args: {
   expire?: string;
   nonce: string;
   issuedAt: string;
+  /** Ladder leg slice in basis points (1..10000). Default 10000 = full
+   *  close; omit the Slice field on the wire entirely when the leg is
+   *  a single full-close arm so older bot deploys still parse cleanly. */
+  slicePctBps?: number;
 }): string {
   const lines = [
     "magpie: limit-close-arm/v1",
@@ -193,6 +207,12 @@ function buildArmMessage(args: {
   lines.push(`Slippage: ${args.slippageBps}`);
   lines.push(`Dest: ${args.dest}`);
   if (args.expire) lines.push(`Expire: ${args.expire}`);
+  // Omit Slice field entirely for default full-close arms (Slice=10000)
+  // so the envelope is byte-identical to pre-ladder messages — older bot
+  // deploys mid-rollout still parse cleanly.
+  if (args.slicePctBps != null && args.slicePctBps < 10000) {
+    lines.push(`Slice: ${args.slicePctBps}`);
+  }
   lines.push(`Nonce: ${args.nonce}`);
   lines.push(`IssuedAt: ${args.issuedAt}`);
   return lines.join("\n");
@@ -228,6 +248,7 @@ export async function armTakeProfit(args: {
     expire: args.request.expire,
     nonce,
     issuedAt,
+    slicePctBps: args.request.slicePctBps,
   });
 
   const messageBytes = new TextEncoder().encode(messageText);
