@@ -134,6 +134,26 @@ export interface ProposedTakeProfitAction {
 }
 
 /**
+ * Stop-loss arm proposal. Mirror of ProposedTakeProfitAction with
+ * direction='below' — the engine treats them symmetrically (same
+ * envelope, same fill path), only the trigger comparison flips. Pip
+ * shows the resolved floor + current price so the user sees the
+ * implied drop in plain language before signing.
+ */
+export interface ProposedStopLossAction {
+  type: "stop_loss";
+  loan_id: string;
+  collateral_symbol: string | null;
+  multiplier: number | null;
+  current_usd: number | null;
+  target_usd: number | null;
+  slippage_bps: number;
+  sell_destination: "sol" | "usdc";
+  expires_at: number;
+  order_expire: string | null;
+}
+
+/**
  * Trailing-stop arm proposal. Same envelope path as take-profit
  * (magpie: limit-close-arm/v1) but the envelope carries a Trailing
  * field instead of Target. The floor is a floating value computed
@@ -161,6 +181,7 @@ export type ProposedAction =
   | ProposedExtendAction
   | ProposedPartialRepayAction
   | ProposedTakeProfitAction
+  | ProposedStopLossAction
   | ProposedTrailingStopAction;
 
 export interface AiChatResult {
