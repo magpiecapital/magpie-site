@@ -133,13 +133,35 @@ export interface ProposedTakeProfitAction {
   order_expire: string | null;
 }
 
+/**
+ * Trailing-stop arm proposal. Same envelope path as take-profit
+ * (magpie: limit-close-arm/v1) but the envelope carries a Trailing
+ * field instead of Target. The floor is a floating value computed
+ * from the running peak — Pip shows the initial floor for clarity
+ * but the engine keeps it updated each tick.
+ */
+export interface ProposedTrailingStopAction {
+  type: "trailing_stop";
+  loan_id: string;
+  collateral_symbol: string | null;
+  distance_bps: number;
+  distance_pct: number;
+  current_usd: number | null;
+  initial_floor_usd: number | null;
+  slippage_bps: number;
+  sell_destination: "sol" | "usdc";
+  expires_at: number;
+  order_expire: string | null;
+}
+
 export type ProposedAction =
   | ProposedRepayAction
   | ProposedBorrowAction
   | ProposedTopupAction
   | ProposedExtendAction
   | ProposedPartialRepayAction
-  | ProposedTakeProfitAction;
+  | ProposedTakeProfitAction
+  | ProposedTrailingStopAction;
 
 export interface AiChatResult {
   response: string;
