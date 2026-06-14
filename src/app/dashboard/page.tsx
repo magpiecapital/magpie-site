@@ -1171,6 +1171,15 @@ function DashboardPageInner() {
   // Per-leg arm progress for ladder/bracket. Surfaced in the post-borrow
   // banner so the user sees each leg landing in real time.
   const [autoArmLegProgress, setAutoArmLegProgress] = useState<Array<{ label: string; ok: boolean | null; error?: string }>>([]);
+  // When a multi-leg ladder partially arms (leg N fails, legs N+1...M
+  // didn't get attempted), capture the un-armed remainder so the user
+  // can one-tap retry just those instead of re-doing the picker.
+  const [retryRemainingLegs, setRetryRemainingLegs] = useState<{
+    loanIdChain: string;
+    direction: "above" | "below";
+    legs: Array<{ multiplier: number; sliceBps: number; label: string }>;
+  } | null>(null);
+  const [retryingRemainingBusy, setRetryingRemainingBusy] = useState(false);
   const [borrowError, setBorrowError] = useState<string | null>(null);
   const { sendTransaction, signTransaction, signMessage } = useWallet();
 
@@ -1634,16 +1643,36 @@ function DashboardPageInner() {
             ? SITE_LADDER_PRESETS.tp[ex.preset]
             : SITE_LADDER_PRESETS.sl[ex.preset];
           let allOk = true;
-          for (const leg of preset.legs) {
+          let firstFailIndex = -1;
+          for (let i = 0; i < preset.legs.length; i++) {
+            const leg = preset.legs[i];
             const r = await armSingle(
               `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
               direction,
               leg.multiplier,
               leg.sliceBps,
             );
-            if (!r.ok) { allOk = false; break; }
+            if (!r.ok) {
+              allOk = false;
+              firstFailIndex = i;
+              break;
+            }
           }
           autoArmedOk = allOk;
+          // Surface remaining legs so the user can one-tap retry the rest
+          // without re-arming the legs that already landed.
+          if (!allOk && firstFailIndex >= 0) {
+            const remaining = preset.legs.slice(firstFailIndex).map((leg) => ({
+              multiplier: leg.multiplier,
+              sliceBps: leg.sliceBps,
+              label: `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
+            }));
+            setRetryRemainingLegs({
+              loanIdChain: chainLoanId.toString(),
+              direction,
+              legs: remaining,
+            });
+          }
         }
         if (autoArmedOk) {
           setAutoArmedAfterBorrow({ multiplier: 0 });
@@ -1715,6 +1744,54 @@ function DashboardPageInner() {
       setBorrowing(false);
     }
   }, [publicKey, connected, connection, sendTransaction, signMessage, autoTakeProfitMultiplier, preBorrowExits, forceRefresh]);
+
+  // Re-arms the legs captured when a multi-leg ladder partially failed
+  // mid-arm. Walks the remaining list and updates progress/state as
+  // each leg lands; on full success, clears the retry banner.
+  const handleRetryRemainingLegs = useCallback(async () => {
+    if (!retryRemainingLegs || !publicKey || !signMessage) return;
+    setRetryingRemainingBusy(true);
+    let allOk = true;
+    let firstFailIndex = -1;
+    for (let i = 0; i < retryRemainingLegs.legs.length; i++) {
+      const leg = retryRemainingLegs.legs[i];
+      try {
+        const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+        await armTakeProfit({
+          botApiUrl: botApi,
+          signerPubkey: publicKey.toBase58(),
+          signMessage,
+          request: {
+            from: publicKey.toBase58(),
+            loanIdChain: retryRemainingLegs.loanIdChain,
+            direction: retryRemainingLegs.direction,
+            target: { kind: "multiplier", multiplier: leg.multiplier },
+            slippageBps: retryRemainingLegs.direction === "below" ? 300 : 200,
+            sellDestination: "sol",
+            slicePctBps: leg.sliceBps < 10000 ? leg.sliceBps : undefined,
+          },
+        });
+        setAutoArmLegProgress((prev) => [...prev, { label: leg.label, ok: true }]);
+      } catch (err) {
+        const msg = (err as Error).message || "arm failed";
+        setAutoArmLegProgress((prev) => [...prev, { label: leg.label, ok: false, error: msg }]);
+        allOk = false;
+        firstFailIndex = i;
+        break;
+      }
+    }
+    if (allOk) {
+      setRetryRemainingLegs(null);
+    } else if (firstFailIndex >= 0) {
+      // Tighten the remaining list to what's still un-armed so the next
+      // retry attempt only walks the un-touched tail.
+      setRetryRemainingLegs((prev) => prev
+        ? { ...prev, legs: prev.legs.slice(firstFailIndex) }
+        : null);
+    }
+    setRetryingRemainingBusy(false);
+    forceRefresh();
+  }, [retryRemainingLegs, publicKey, signMessage, forceRefresh]);
 
   // Inline post-borrow take-profit arming. Called from the 1-tap prompt
   // rendered right under the "Loan executed" banner. Uses the chain
@@ -3600,6 +3677,27 @@ function DashboardPageInner() {
                                               {!leg.ok && leg.error && <span className="opacity-70"> — {leg.error}</span>}
                                             </div>
                                           ))}
+                                        </div>
+                                      )}
+                                      {retryRemainingLegs && retryRemainingLegs.legs.length > 0 && (
+                                        <div className="mt-2 pl-5 flex items-center gap-2">
+                                          <button
+                                            type="button"
+                                            disabled={retryingRemainingBusy}
+                                            onClick={handleRetryRemainingLegs}
+                                            className="text-[10px] font-semibold px-2 py-1 rounded-md border border-amber-500/40 bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 disabled:opacity-50"
+                                          >
+                                            {retryingRemainingBusy
+                                              ? "Retrying..."
+                                              : `Retry ${retryRemainingLegs.legs.length} remaining leg${retryRemainingLegs.legs.length === 1 ? "" : "s"}`}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setRetryRemainingLegs(null)}
+                                            className="text-[10px] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]"
+                                          >
+                                            Dismiss
+                                          </button>
                                         </div>
                                       )}
                                     </div>
