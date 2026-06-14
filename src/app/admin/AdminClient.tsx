@@ -315,14 +315,13 @@ export default function AdminClient() {
             </div>
           </div>
           <p className="mt-1 text-xs text-[var(--ink-soft)]">
-            Of every loan fee: <span className="font-mono">80% LPs · 10% $MAGPIE holders · 5% referrers · 2% LP loyalty · 3% treasury</span>
+            Of every loan fee (post-MGP-001): <span className="font-mono">70% $MAGPIE holders · 10% LP loyalty · 10% referrers · 10% protocol reserve</span>
           </p>
-          <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-5">
-            <Card label="LP yield (80%)" value={`${fmtSol(lifetime.fee_split.lp_yield_lamports, 6)} SOL`} sub="auto-accrues to share value" />
-            <Card label="$MAGPIE holders (10%)" value={`${fmtSol(lifetime.fee_split.magpie_holders_lamports, 6)} SOL`} sub={lifetime.magpie_holders.distributions_to_date > 0 ? `${lifetime.magpie_holders.distributions_to_date} distributions` : "first snapshot pending"} />
-            <Card label="Referrers (5%)" value={`${fmtSol(lifetime.fee_split.referrers_lamports, 6)} SOL`} sub={`${lifetime.referrals.unique_referrers_paid} unique referrers · ${lifetime.referrals.reward_events} events`} />
-            <Card label="LP loyalty (2%)" value={`${fmtSol(lifetime.fee_split.lp_loyalty_lamports, 6)} SOL`} sub={`${lifetime.lp_loyalty.distributions_to_date} distributions`} />
-            <Card label="Treasury (3%)" value={`${fmtSol(lifetime.fee_split.protocol_treasury_lamports, 6)} SOL`} sub="protocol cut" />
+          <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <Card label="$MAGPIE holders (70%)" value={`${fmtSol(lifetime.fee_split.magpie_holders_lamports, 6)} SOL`} sub={lifetime.magpie_holders.distributions_to_date > 0 ? `${lifetime.magpie_holders.distributions_to_date} distributions` : "first snapshot pending"} />
+            <Card label="LP loyalty (10%)" value={`${fmtSol(lifetime.fee_split.lp_loyalty_lamports, 6)} SOL`} sub={`${lifetime.lp_loyalty.distributions_to_date} distributions · shares × time held`} />
+            <Card label="Referrers (10%)" value={`${fmtSol(lifetime.fee_split.referrers_lamports, 6)} SOL`} sub={`${lifetime.referrals.unique_referrers_paid} unique referrers · ${lifetime.referrals.reward_events} events`} />
+            <Card label="Protocol reserve (10%)" value={`${fmtSol(lifetime.fee_split.protocol_treasury_lamports, 6)} SOL`} sub="buffer / treasury" />
           </div>
 
           {/* Distribution status grid */}

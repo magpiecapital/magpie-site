@@ -8,10 +8,12 @@ import { Header } from "@/components/Header";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PUMP_URL = "https://pump.fun/coin/9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump";
-const REWARD_PCT = 10;
-const LP_PCT = 80;
-const REFERRER_PCT = 5;
-const PROTOCOL_PCT = 5;
+// Post-MGP-001 split, ratified 2026-06-13: 70/10/10/10.
+// 70% holders, 10% LP loyalty, 10% referrer, 10% protocol reserve.
+const REWARD_PCT = 70;
+const LP_PCT = 10;
+const REFERRER_PCT = 10;
+const PROTOCOL_PCT = 10;
 
 interface HolderData {
   magpie_balance_raw: string;
@@ -179,8 +181,7 @@ export default function HoldersClient() {
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             <Step n={1} title="Loans pay fees">
-              Every borrow + extend on Magpie charges a fee. 80% flows to LPs, 5% to
-              referrers, 10% to $MAGPIE holders, 5% to the protocol.
+              Every borrow + extend on Magpie charges a fee. Per MGP-001 (passed 2026-06-13), the split is 70% to $MAGPIE holders, 10% to LP loyalty, 10% to referrers, 10% to the protocol reserve.
             </Step>
             <Step n={2} title="Periodic snapshots">
               The protocol snapshots every wallet holding $MAGPIE on-chain (excluding
@@ -204,20 +205,21 @@ export default function HoldersClient() {
           <div className="grid gap-8 md:grid-cols-2">
             <div>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                LPs untouched. Real revenue for holders.
+                Holder-first. Real revenue, real on-chain.
               </h2>
               <p className="mt-4 max-w-xl text-base text-[var(--ink-soft)]">
-                The holder reward comes from the protocol's own share of fees — not from
-                LP yield. Depositors keep their full 80%, and $MAGPIE holders get a 10%
-                slice of the protocol's revenue, sourced sustainably from real loan
-                activity.
+                Per MGP-001 (ratified 2026-06-13), every loan fee splits 70/10/10/10
+                across $MAGPIE holders, LP loyalty, referrers, and the protocol reserve.
+                Holders get the largest slice — paid in real SOL, sourced from real
+                loan activity. Snapshot fires on a 5–10 day random cadence; SOL lands
+                in any wallet holding $MAGPIE at snapshot time.
               </p>
             </div>
             <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 sm:p-8">
-              <Row label="LPs (depositors)" pct={LP_PCT} highlight={false} />
               <Row label="$MAGPIE holders" pct={REWARD_PCT} highlight />
+              <Row label="LP loyalty (depositors)" pct={LP_PCT} highlight={false} />
               <Row label="Referrers" pct={REFERRER_PCT} highlight={false} />
-              <Row label="Protocol" pct={PROTOCOL_PCT} highlight={false} />
+              <Row label="Protocol reserve" pct={PROTOCOL_PCT} highlight={false} />
             </div>
           </div>
         </div>
@@ -256,9 +258,8 @@ export default function HoldersClient() {
               stays earmarked until it lands in your wallet — nothing is lost to RPC
               flakiness.
             </Faq>
-            <Faq q="Does this dilute LP yield?">
-              No. LPs still earn their full 80% of every fee. The 10% holder reward comes
-              from the protocol's existing share, not from LP yield.
+            <Faq q="How are LPs compensated under MGP-001?">
+              LPs receive the 10% LP loyalty slice of every loan fee, distributed by shares × time held on the same snapshot cadence. Pre-MGP-001 LPs kept 80% as share-price growth; voters chose to reweight more heavily toward $MAGPIE holders (the 70% slice) when MGP-001 passed 2026-06-13. The lending pool is still safety-stacked the same way — LP capital still backs the loan book.
             </Faq>
           </div>
           <div className="mt-12 flex flex-wrap items-center gap-3">

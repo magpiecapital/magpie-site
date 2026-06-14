@@ -3668,14 +3668,14 @@ function DashboardPageInner() {
                             </div>
                           </div>
                           <div className="mt-1 text-[10px] text-[var(--d-ink-faint)]">
-                            Time-weighted bonus on top of base 80% LP yield. Auto-paid in SOL.
+                            Post-MGP-001 LP yield. 10% of every loan fee, distributed by shares × time held on the 5–10 day snapshot cadence. Auto-paid in SOL.
                           </div>
                         </div>
                       )}
                     </>
                   ) : (
                     <p className="text-sm text-[var(--d-ink-soft)]">
-                      No LP position yet. Deposit SOL → earn <span className="font-semibold text-[var(--d-accent-deep)]">80%</span> of every loan fee pro-rata to your share, PLUS time-weighted Loyalty Bonus that rewards long-term holders.
+                      No LP position yet. Deposit SOL → earn the <span className="font-semibold text-[var(--d-accent-deep)]">10% LP loyalty share</span> of every loan fee per MGP-001. Distributed in SOL on the snapshot cadence, weighted by shares × time held — long-tenured LPs earn proportionally more.
                     </p>
                   )}
                   <Link href="/earn" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
