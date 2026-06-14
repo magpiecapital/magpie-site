@@ -2853,6 +2853,19 @@ function DashboardPageInner() {
                           const isRwa = h.category === "stock" || h.category === "etf" || h.category === "metal";
                           const apiCategory = isRwa ? "stock" : "memecoin";
                           const apiTiers = tiersByCategory[apiCategory];
+                          const memeApiTiers = tiersByCategory["memecoin"];
+                          // 2026-06-13: detect when the API returns the same
+                          // ladder for both categories (post mig 056). When
+                          // unified, drop the "RWA" prefix from tier names —
+                          // it'd just confuse users into thinking the numbers
+                          // differ when they don't. When divergent (post v3
+                          // routing), prefix returns automatically.
+                          const isUnifiedLadder = isRwa && apiTiers && memeApiTiers
+                            && apiTiers.length === memeApiTiers.length
+                            && apiTiers.every((t, i) =>
+                              t.ltv_pct === memeApiTiers[i].ltv_pct
+                                && t.duration_days === memeApiTiers[i].duration_days
+                                && t.fee_bps === memeApiTiers[i].fee_bps);
                           // Color picker matches the previous ladder semantics:
                           // Express = highest LTV / shortest term / highest fee → bad
                           // Quick = mid → warn
@@ -2861,18 +2874,25 @@ function DashboardPageInner() {
                             idx === 0 ? "var(--d-bad)" :
                             idx === total - 1 ? "var(--d-accent)" :
                             "var(--d-warn)";
-                          const tagForIdx = (idx: number, total: number, rwa: boolean) =>
-                            rwa
-                              ? (idx === 0 ? "Short-term cash, conservative buffer"
-                                 : idx === total - 1 ? `${30}-day term, highest LTV`
-                                 : "15-day term, balanced fee")
-                              : (idx === 0 ? "Fast cash, premium rate"
-                                 : idx === total - 1 ? "Best rate, more time to repay"
-                                 : "Balanced speed & value");
+                          // Truthful tag text derived from real API values
+                          // rather than the prior memecoin/RWA fork which
+                          // hardcoded 15d/30d copy that didn't match what
+                          // V2 actually delivered. Derives "days" labels
+                          // from the live tier data so it can never drift.
+                          const tagForIdx = (idx: number, total: number, t: { duration_days: number }) =>
+                            idx === 0 ? `Fast cash, ${t.duration_days}-day term`
+                              : idx === total - 1 ? `Best rate, ${t.duration_days}-day term`
+                              : `Balanced speed & value, ${t.duration_days}-day term`;
                           const tiers = apiTiers
                             ? apiTiers.map((t, idx) => ({
-                                name: t.label.split("(").pop()?.replace(")", "") || (isRwa ? `RWA ${["Express","Quick","Standard"][idx] ?? "Tier"}` : ["Express","Quick","Standard"][idx] ?? "Tier"),
-                                tag: tagForIdx(idx, apiTiers.length, isRwa),
+                                // When ladders are unified, use the plain tier
+                                // names (Express/Quick/Standard). When divergent
+                                // (v3+), preserve the "RWA" prefix that the API
+                                // label naturally provides.
+                                name: isUnifiedLadder
+                                  ? (["Express","Quick","Standard"][idx] ?? "Tier")
+                                  : (t.label.split("(").pop()?.replace(")", "") || (isRwa ? `RWA ${["Express","Quick","Standard"][idx] ?? "Tier"}` : ["Express","Quick","Standard"][idx] ?? "Tier")),
+                                tag: tagForIdx(idx, apiTiers.length, t),
                                 ltv: t.ltv_pct / 100,
                                 days: t.duration_days,
                                 fee: t.fee_bps / 10_000,
