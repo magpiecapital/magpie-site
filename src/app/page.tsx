@@ -40,6 +40,11 @@ const PROTOCOL_FEATURES = [
     icon: "◈",
   },
   {
+    title: "Auto-sell built in",
+    desc: "Set your exit price when you borrow — take profit, stop loss, both, or a multi-step ladder. Engine watches the chart 24/7 and executes the moment your target hits.",
+    icon: "◬",
+  },
+  {
     title: "Agent-native via x402",
     desc: "AI agents pay in SOL to query our credit and loan data — no API keys, no accounts, no custody. The first paid agent API for permissionless lending on Solana.",
     icon: "⌬",
@@ -664,6 +669,96 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
             </div>
           </Reveal>
         </div>
+      </section>
+
+      {/* ══════════ AUTO-SELL — pre-borrow exit automation ══════════
+          New feature shipped 2026-06-14. The pitch lives here because
+          users arriving from "how it works" have just absorbed the
+          borrow flow and are primed to think about what happens AFTER.
+          Sales angle: zero babysitting, conditional execution, your
+          rules. Honesty angle: best-effort fill subject to liquidity,
+          1% protocol fee on proceeds, slippage cap is yours not ours. */}
+      <section id="auto-sell" className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-32">
+        <Reveal>
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
+            <div>
+              <div className="chip mb-4 md:mb-5">Auto-sell, built in</div>
+              <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-7xl">
+                Borrow now.
+                <br />
+                <span className="italic text-[var(--ink-soft)]">Set the exit too.</span>
+              </h2>
+            </div>
+            <p className="max-w-md text-base text-[var(--ink-soft)] leading-relaxed sm:text-lg">
+              Pick the price you want to sell at — when you take the loan, not after. We watch the chart for you and execute the moment your target hits.
+            </p>
+          </div>
+        </Reveal>
+
+        <div className="mt-12 grid grid-cols-1 gap-5 sm:mt-16 md:grid-cols-3 md:gap-6">
+          <Reveal>
+            <div className="h-full rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-7">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">Lock in profit</div>
+              <div className="font-display text-2xl tracking-tight mb-2">Sell when price doubles</div>
+              <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
+                Set a target like <span className="font-mono text-[var(--ink)]">2x</span>, <span className="font-mono text-[var(--ink)]">$0.02</span>, or <span className="font-mono text-[var(--ink)]">30M market cap</span>. When the price gets there, we repay your loan and send you the net SOL automatically.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal delay={100}>
+            <div className="h-full rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-7">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">Protect downside</div>
+              <div className="font-display text-2xl tracking-tight mb-2">Stop the bleed</div>
+              <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
+                Set a floor — <span className="font-mono text-[var(--ink)]">0.7x</span>, <span className="font-mono text-[var(--ink)]">-30%</span>, or any dollar price. If your token drops to it, we close the position before the loss gets worse. You don't have to be online.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal delay={200}>
+            <div className="h-full rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-7">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">Sell in stages</div>
+              <div className="font-display text-2xl tracking-tight mb-2">Multi-step ladders</div>
+              <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
+                Sell 70% at 1.5x, 20% at 2x, 10% at 3x. Or any custom mix. We split the position into legs and fire each one independently as the price climbs (or falls).
+              </p>
+            </div>
+          </Reveal>
+        </div>
+
+        <Reveal delay={250}>
+          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
+            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-7">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">How it actually executes</div>
+              <ul className="space-y-2.5 text-sm leading-relaxed text-[var(--ink-soft)]">
+                <li>• Our engine polls live DEX prices every ~30 seconds and only fires when your target is confirmed across multiple sources.</li>
+                <li>• When the target hits, we repay your loan on-chain, swap your collateral via Jupiter, and send the net SOL to your wallet — usually in a few seconds.</li>
+                <li>• You'll get a DM the moment it fires, with the repay tx, the sale tx, and the net you received.</li>
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-7">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">What we don't promise</div>
+              <ul className="space-y-2.5 text-sm leading-relaxed text-[var(--ink-soft)]">
+                <li>• Fill price equals your target *if liquidity allows*. Thin liquidity means slippage — we auto-retry with widening slippage up to a cap you pick, then stop.</li>
+                <li>• A 1% protocol fee comes off the proceeds. Ladders pay a small re-borrow fee on each remaining leg.</li>
+                <li>• If your token's price wicks past your trigger and reverses before our engine confirms, the order stays armed and waits for the next move.</li>
+              </ul>
+            </div>
+          </div>
+        </Reveal>
+
+        <Reveal delay={300}>
+          <div className="mt-10 flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-center sm:gap-6">
+            <Link href="/dashboard" className="btn-accent text-sm">
+              Set it up on the dashboard
+            </Link>
+            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost text-sm">
+              Or set it on Telegram
+            </a>
+            <span className="text-xs text-[var(--ink-faint)]">
+              Available on every supported memecoin and tokenized stock — same flow.
+            </span>
+          </div>
+        </Reveal>
       </section>
 
       {/* ══════════ TWO TELEGRAM SURFACES — clarity, not confusion ══════════
