@@ -19,36 +19,43 @@ interface TokenChip {
   symbol: string;
   name: string;
   mint: string;
+  category: "memecoin" | "stock" | "etf" | "metal";
 }
 
 /**
- * Pulls a small representative slice of approved tokens per category to
- * render as chips on the marketplace dual-class panels. The chips are
- * decorative — the canonical token list lives at /tokens — but they're
- * the fastest way to communicate "you can borrow against X" at-a-glance.
+ * Pulls the full approved-tokens list split per category. The hero
+ * panels show a marquee of the first ~14 per class for at-a-glance
+ * recognition; the dedicated "All approved collateral" section below
+ * renders the complete list so users can confirm a specific holding
+ * is supported without navigating away.
  *
- * Uses the bot's /api/v1/tokens endpoint (already battle-tested and
- * cached). Falls back to an empty list on failure — the panels render
- * fine without chips, just less marketing-pop.
+ * Uses the bot's /api/v1/tokens endpoint (cached). Falls back to
+ * empty lists on failure — the marketplace renders cleanly without
+ * the token grid, just less marketing-pop.
  */
-async function fetchCategorySamples(): Promise<{ memecoin: TokenChip[]; rwa: TokenChip[] }> {
+async function fetchTokensByCategory(): Promise<{ memecoin: TokenChip[]; rwa: TokenChip[] }> {
   const botUrl = process.env.BOT_API_URL;
   if (!botUrl) return { memecoin: [], rwa: [] };
   try {
-    const res = await fetch(`${botUrl}/api/v1/tokens?limit=300`, {
+    const res = await fetch(`${botUrl}/api/v1/tokens?limit=500`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return { memecoin: [], rwa: [] };
-    const d = await res.json() as { tokens?: Array<{ symbol: string; name: string; mint: string; category?: string }> };
+    const d = await res.json() as {
+      tokens?: Array<{ symbol: string; name: string; mint: string; category?: string }>;
+    };
     if (!d.tokens) return { memecoin: [], rwa: [] };
-    const memecoin = d.tokens
+    const memecoin: TokenChip[] = d.tokens
       .filter((t) => t.category === "memecoin" || !t.category)
-      .slice(0, 14)
-      .map((t) => ({ symbol: t.symbol, name: t.name, mint: t.mint }));
-    const rwa = d.tokens
+      .map((t) => ({ symbol: t.symbol, name: t.name, mint: t.mint, category: "memecoin" }));
+    const rwa: TokenChip[] = d.tokens
       .filter((t) => t.category === "stock" || t.category === "etf" || t.category === "metal")
-      .slice(0, 14)
-      .map((t) => ({ symbol: t.symbol, name: t.name, mint: t.mint }));
+      .map((t) => ({
+        symbol: t.symbol,
+        name: t.name,
+        mint: t.mint,
+        category: (t.category as "stock" | "etf" | "metal"),
+      }));
     return { memecoin, rwa };
   } catch {
     return { memecoin: [], rwa: [] };
@@ -56,11 +63,11 @@ async function fetchCategorySamples(): Promise<{ memecoin: TokenChip[]; rwa: Tok
 }
 
 export default async function MarketplacePage() {
-  const [{ count, stockCount }, memeTiers, rwaTiers, samples] = await Promise.all([
+  const [{ count, stockCount }, memeTiers, rwaTiers, allTokens] = await Promise.all([
     getTokenStats(),
     getLoanTiers("memecoin"),
     getLoanTiers("stock"),
-    fetchCategorySamples(),
+    fetchTokensByCategory(),
   ]);
   return (
     <MarketplaceClient
@@ -68,8 +75,10 @@ export default async function MarketplacePage() {
       stockCount={stockCount}
       memeTiers={memeTiers}
       rwaTiers={rwaTiers}
-      memeSamples={samples.memecoin}
-      rwaSamples={samples.rwa}
+      memeSamples={allTokens.memecoin.slice(0, 14)}
+      rwaSamples={allTokens.rwa.slice(0, 14)}
+      allMemes={allTokens.memecoin}
+      allRwas={allTokens.rwa}
     />
   );
 }
