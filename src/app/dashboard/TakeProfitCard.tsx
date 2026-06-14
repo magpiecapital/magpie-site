@@ -111,11 +111,11 @@ export function TakeProfitCard(props: Props) {
   if (!linked || !custodial) {
     return (
       <div className="mt-2 text-[11px] text-[var(--d-ink-faint)]">
-        <span className="opacity-70">Limit orders:</span>{" "}
+        <span className="opacity-70">Auto-sells:</span>{" "}
         <span>
           {linked
             ? "needs a Magpie custodial keypair — connect via the Telegram bot to enable."
-            : "link this wallet to a Magpie account to enable autonomous take-profit / stop-loss."}
+            : "link this wallet to a Magpie account to enable automatic sells on price triggers."}
         </span>
       </div>
     );
@@ -243,8 +243,12 @@ function LimitSlot(props: SlotProps) {
   }, [props.collateralMint]);
 
   const isSl = props.direction === "below";
-  const slotLabel = isSl ? "Stop-loss" : "Take-profit";
-  const slotVerb = isSl ? "Set stop-loss" : "Set take-profit";
+  // Plain-language slot labels — the operator's "TP/SL is jargon"
+  // sweep continues here. We keep the take-profit / stop-loss form in
+  // parens once at the very top of the card (in armedTitle below) for
+  // search/SEO, but the button + body verbs lead with the verb.
+  const slotLabel = isSl ? "Auto-sell on drop" : "Auto-sell on rise";
+  const slotVerb = isSl ? "Set downside auto-sell" : "Set upside auto-sell";
   const slotPresets = isSl ? SL_PRESETS : TP_PRESETS;
   const defaultMultiplier = isSl ? 0.7 : 2;
   const armColor = isSl
@@ -291,7 +295,7 @@ function LimitSlot(props: SlotProps) {
 
   const arm = useCallback(async () => {
     if (!publicKey || !signMessage) {
-      setError(`Connect your wallet to set a ${isSl ? "stop-loss" : "take-profit"}.`);
+      setError(`Connect your wallet to set an auto-sell.`);
       return;
     }
     setError(null);
@@ -373,7 +377,7 @@ function LimitSlot(props: SlotProps) {
 
   const cancel = useCallback(async () => {
     if (!publicKey || !signMessage || !armed) return;
-    if (!confirm(`Cancel your ${isSl ? "stop-loss" : "take-profit"} on this loan?`)) return;
+    if (!confirm(`Cancel your ${isSl ? "downside" : "upside"} auto-sell on this loan?`)) return;
     setError(null);
     setBusy(true);
     try {
@@ -898,7 +902,7 @@ function LimitSlot(props: SlotProps) {
           color: "var(--d-bg-panel, white)",
         }}
       >
-        {busy ? "Signing…" : `Arm ${isSl ? "stop-loss" : "take-profit"}`}
+        {busy ? "Signing…" : `Arm ${isSl ? "downside" : "upside"} auto-sell`}
       </button>
       </>)}
       <div className="mt-1.5 text-[10px] opacity-60 leading-tight">

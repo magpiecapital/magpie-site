@@ -77,9 +77,9 @@ const INTENTS: Intent[] = [
   },
   {
     id: "limit_close",
-    keywords: [["limit close", "limitclose", "take profit", "auto sell", "limit order"]],
+    keywords: [["auto sell", "auto-sell", "take profit", "stop loss", "limit close", "limitclose", "limit order", "tp", "sl"]],
     answer:
-      "Set a take-profit on a Telegram loan with /limitclose. When your collateral hits a target market cap or price, the engine auto-repays the loan and sells the collateral. Slippage caps are enforced and the protocol takes a 1% fee on proceeds.",
+      "Pre-arm an auto-sell when you take the loan, or set one up later from the dashboard or with /limitclose in Telegram. Pick a target price (e.g. \"sell at 2x\", \"sell if it drops 30%\", or a custom dollar/market-cap target). When the price hits, the engine repays your loan and sells the collateral automatically. Slippage caps are yours to set, the engine auto-retries up to your cap, and a 1% protocol fee comes off the proceeds. Works on every supported collateral.",
   },
   {
     id: "wallet_connection",
