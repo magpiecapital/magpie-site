@@ -188,6 +188,10 @@ function LimitSlot(props: SlotProps) {
   const [editing, setEditing] = useState(false);
   const [editPriceUsd, setEditPriceUsd] = useState<string>("");
   const [editSlippagePct, setEditSlippagePct] = useState<number | null>(null);
+  // Trailing distance editor — only meaningful when armed.trailing_distance_bps != null.
+  // Stays null until the user pulls the slider; modify() compares against
+  // the live distance to decide whether to send Trailing in the envelope.
+  const [editTrailingPct, setEditTrailingPct] = useState<number | null>(null);
 
   // Lazy-load the live price the first time the slot opens its form OR
   // renders an armed badge. Keeps the dashboard's initial render cheap
@@ -333,12 +337,30 @@ function LimitSlot(props: SlotProps) {
     const newPrice = editPriceUsd ? Number(editPriceUsd) : null;
     const newSlippageBps =
       editSlippagePct != null ? Math.round(editSlippagePct * 100) : null;
-    if (newPrice == null && newSlippageBps == null) {
-      setError("Change at least one of price or slippage before saving.");
+    // Trailing distance — only meaningful when the armed order is
+    // already a trailing stop. State stays at the current distance by
+    // default; a change here sends Trailing: <bps>.
+    const currentTrailingPct = armed.trailing_distance_bps != null
+      ? armed.trailing_distance_bps / 100
+      : null;
+    const newTrailingPct = editTrailingPct;
+    const trailingChanged =
+      currentTrailingPct != null &&
+      newTrailingPct != null &&
+      Math.abs(newTrailingPct - currentTrailingPct) > 0.01;
+    const newTrailingBps = trailingChanged
+      ? Math.round(newTrailingPct * 100)
+      : null;
+    if (newPrice == null && newSlippageBps == null && newTrailingBps == null) {
+      setError("Change price, slippage, or trailing distance before saving.");
       return;
     }
     if (newPrice != null && !(Number.isFinite(newPrice) && newPrice > 0)) {
       setError("Price must be a positive number.");
+      return;
+    }
+    if (newTrailingBps != null && (newTrailingBps < 50 || newTrailingBps > 5000)) {
+      setError("Trailing distance must be 0.5%-50% (50-5000 bps).");
       return;
     }
     setError(null);
@@ -352,18 +374,20 @@ function LimitSlot(props: SlotProps) {
           orderId: armed.id,
           priceUsd: newPrice ?? undefined,
           slippageBps: newSlippageBps ?? undefined,
+          trailingDistanceBps: newTrailingBps ?? undefined,
         },
       });
       setEditing(false);
       setEditPriceUsd("");
       setEditSlippagePct(null);
+      setEditTrailingPct(null);
       props.onMutated();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
     }
-  }, [publicKey, signMessage, armed, editPriceUsd, editSlippagePct, props]);
+  }, [publicKey, signMessage, armed, editPriceUsd, editSlippagePct, editTrailingPct, props]);
 
   // Ineligible reason that's specific to this slot (not generic loan
   // size / collateral disabled). The "other-slot-armed" case is
@@ -490,6 +514,29 @@ function LimitSlot(props: SlotProps) {
                 {(editSlippagePct ?? armed.slippage_bps / 100).toFixed(1)}%
               </span>
             </div>
+            {/* Trailing distance editor — only renders when the armed
+              * order is a trailing stop. The bot's modify path supports
+              * Trailing: <bps> for live retuning; first-time enabling
+              * trailing on a fixed SL goes through the arm form, not
+              * the edit panel, because it requires a fresh peak seed. */}
+            {armed.trailing_distance_bps != null && (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] opacity-60 w-14">Trail</span>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="50"
+                  step="0.5"
+                  value={editTrailingPct ?? armed.trailing_distance_bps / 100}
+                  onChange={(e) => setEditTrailingPct(Number(e.target.value))}
+                  disabled={busy}
+                  className="flex-1"
+                />
+                <span className="text-[11px] tabular-nums w-10 text-right">
+                  {(editTrailingPct ?? armed.trailing_distance_bps / 100).toFixed(1)}%
+                </span>
+              </div>
+            )}
             {error && (
               <div className="text-[10px] mb-1.5 rounded px-1.5 py-1"
                 style={{ background: "rgba(220,38,38,0.08)", color: "var(--bad, #ef4444)" }}
@@ -515,6 +562,7 @@ function LimitSlot(props: SlotProps) {
                   setEditing(false);
                   setEditPriceUsd("");
                   setEditSlippagePct(null);
+                  setEditTrailingPct(null);
                   setError(null);
                 }}
                 disabled={busy}
