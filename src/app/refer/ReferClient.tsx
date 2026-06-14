@@ -6,9 +6,13 @@ import { GiftIcon } from "@/components/icons";
 import { Header } from "@/components/Header";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
-const REWARD_PCT = 5;
-const LP_PCT = 80;
-const PROTOCOL_PCT = 15;
+// Post-MGP-001 split, ratified 2026-06-13: 70/10/10/10.
+// Referrer share is now 10% (up from pre-MGP-001 5%). When the borrower
+// has no referrer, the slice rolls back into the holder pool.
+const REWARD_PCT = 10;
+const HOLDER_PCT = 70;
+const LP_PCT = 10;
+const PROTOCOL_PCT = 10;
 
 interface ReferralData {
   linked: boolean;
@@ -254,18 +258,17 @@ export default function ReferClient() {
           <div className="grid gap-8 md:grid-cols-2">
             <div>
               <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Sourced from protocol revenue. LPs unaffected.
+                Real on-chain SOL. Sourced from real loan activity.
               </h2>
               <p className="mt-4 max-w-xl text-base text-[var(--ink-soft)]">
-                Every Magpie loan charges a fee. 80% flows to liquidity providers — the
-                people funding the protocol. The remaining 20% is the protocol’s share.
-                Referrers get a slice of that protocol share — not a cut of LP yield.
+                Per MGP-001 (ratified 2026-06-13), every loan fee splits 70% to $MAGPIE holders, 10% to LP loyalty, 10% to referrers, and 10% to the protocol reserve. Your 10% referrer slice comes out of that split, not out of LP yield. If a borrower you referred has no referrer marked at the time the loan opens, the slice rolls back into the holder pool — so $MAGPIE holders also benefit when referrals aren&apos;t set.
               </p>
             </div>
             <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 sm:p-8">
-              <Row label="LPs (depositors)" pct={LP_PCT} highlight={false} />
+              <Row label="$MAGPIE holders" pct={HOLDER_PCT} highlight={false} />
+              <Row label="LP loyalty" pct={LP_PCT} highlight={false} />
               <Row label="You (referrer)" pct={REWARD_PCT} highlight />
-              <Row label="Protocol" pct={PROTOCOL_PCT} highlight={false} />
+              <Row label="Protocol reserve" pct={PROTOCOL_PCT} highlight={false} />
               <div className="mt-5 border-t border-[var(--hairline)] pt-4 text-xs text-[var(--ink-faint)]">
                 Example · friend borrows 1 SOL at 30% LTV (3% fee, 0.03 SOL):
                 <ul className="mt-2 space-y-1 font-mono text-[var(--ink-soft)]">

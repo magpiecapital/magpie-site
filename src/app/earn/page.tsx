@@ -60,8 +60,9 @@ export default function EarnPage() {
   } | null>(null);
   const recentLoanEvents = poolApi?.recent_loans ?? [];
 
-  // Annualize trailing 7d LP fee yield into APY. LP gets 80% of every fee.
-  // Formula: (7d_fees × 0.80 / pool_TVL) × 52  (weeks/year). Returns null
+  // Annualize trailing 7d LP fee yield into APY. Post-MGP-001 LPs receive
+  // the 10% LP loyalty slice of every loan fee.
+  // Formula: (7d_fees × 0.10 / pool_TVL) × 52 (weeks/year). Returns null
   // when there's not enough signal yet (no fees in window or zero TVL).
   const lpApy = (() => {
     if (!pool || !poolApi?.fees) return null;
@@ -69,8 +70,10 @@ export default function EarnPage() {
     if (!tvl) return null;
     const sevenDFees = Number(poolApi.fees.last_7d_lamports) || 0;
     if (sevenDFees <= 0) return null;
-    const lpShareBps = 10_000 - pool.protocolFeeBps;
-    const lpFees7d = (sevenDFees * lpShareBps) / 10_000;
+    // Post-MGP-001 LP loyalty bps. Hardcoded mirrors V3_RWA_TIERS/holder constants;
+    // governance_config.lp_loyalty_bps is the authoritative server-side number.
+    const LP_LOYALTY_BPS = 1000;
+    const lpFees7d = (sevenDFees * LP_LOYALTY_BPS) / 10_000;
     return (lpFees7d / tvl) * 52 * 100;
   })();
 
@@ -702,7 +705,7 @@ export default function EarnPage() {
               <h3 className="font-display text-base font-semibold sm:text-lg">What you earn</h3>
             </div>
             <p className="text-sm text-[var(--ink-soft)] mb-4">
-              LPs receive <span className="font-semibold text-[var(--ink)]">80% of every loan fee</span>, proportional to share of the pool. Fees accrue directly — your position grows passively as borrowers pay.
+              Per MGP-001 (ratified 2026-06-13), LPs receive <span className="font-semibold text-[var(--ink)]">the 10% LP loyalty slice</span> of every loan fee. Distributed on the same 5–10 day random snapshot cadence as $MAGPIE holder rewards, allocated by <span className="font-mono text-xs">shares × time held</span> — longer-tenured LPs get a bigger slice.
             </p>
             <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] overflow-hidden">
               <div className="grid grid-cols-3 border-b border-[var(--hairline)] bg-[var(--surface)] px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
@@ -895,7 +898,7 @@ export default function EarnPage() {
               <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
                 <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">Pool activity</h3>
                 <p className="text-[11px] text-[var(--ink-faint)] mb-3">
-                  Loan events flowing through the pool. 80% of each fee accrues to LPs proportionally.
+                  Loan events flowing through the pool. Per MGP-001, 10% of each fee is earmarked for LP loyalty distribution.
                 </p>
                 <div className="space-y-2">
                   {recentLoanEvents.slice(0, 6).map((e, i) => {
@@ -934,22 +937,22 @@ export default function EarnPage() {
                 <h3 className="font-display text-base font-semibold sm:text-lg">How you earn</h3>
               </div>
               <p className="text-sm text-[var(--ink-soft)] mb-4">
-                LPs receive <span className="font-semibold text-[var(--ink)]">80% of every loan fee</span>, proportional to share of the pool. Fees accrue directly into the pool, so your position grows passively.
+                Per MGP-001, LPs receive <span className="font-semibold text-[var(--ink)]">the 10% LP loyalty share</span> of every loan fee. Distributed periodically (random 5–10 day cadence), allocated by <span className="font-mono text-xs">shares × time held</span> so longer-tenured LPs get a bigger slice.
               </p>
 
               <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] overflow-hidden">
                 <div className="grid grid-cols-3 border-b border-[var(--hairline)] bg-[var(--surface)] px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
                   <div>Tier</div>
                   <div className="text-right">Borrower fee</div>
-                  <div className="text-right">Your share</div>
+                  <div className="text-right">Your LP loyalty share</div>
                 </div>
                 {[
-                  { tier: "Memecoin Express · 30% LTV · 2d", fee: "3.00%", lp: "2.40%" },
-                  { tier: "Memecoin Quick · 25% LTV · 3d",   fee: "2.00%", lp: "1.60%" },
-                  { tier: "Memecoin Standard · 20% LTV · 7d", fee: "1.50%", lp: "1.20%" },
-                  { tier: "RWA Express · 50% LTV · 7d (v3)",  fee: "2.50%", lp: "2.00%" },
-                  { tier: "RWA Quick · 60% LTV · 15d (v3)",   fee: "3.50%", lp: "2.80%" },
-                  { tier: "RWA Standard · 70% LTV · 30d (v3)", fee: "5.00%", lp: "4.00%" },
+                  { tier: "Memecoin Express · 30% LTV · 2d",  fee: "3.00%", lp: "0.300%" },
+                  { tier: "Memecoin Quick · 25% LTV · 3d",    fee: "2.00%", lp: "0.200%" },
+                  { tier: "Memecoin Standard · 20% LTV · 7d", fee: "1.50%", lp: "0.150%" },
+                  { tier: "RWA Express · 50% LTV · 7d (v3)",  fee: "2.50%", lp: "0.250%" },
+                  { tier: "RWA Quick · 60% LTV · 15d (v3)",   fee: "3.50%", lp: "0.350%" },
+                  { tier: "RWA Standard · 70% LTV · 30d (v3)", fee: "5.00%", lp: "0.500%" },
                 ].map((row) => (
                   <div key={row.tier} className="grid grid-cols-3 border-b border-[var(--hairline)] px-3 py-2 text-xs last:border-b-0">
                     <div className="text-[var(--ink-soft)]">{row.tier}</div>
@@ -961,8 +964,8 @@ export default function EarnPage() {
 
               <ul className="mt-4 space-y-2 text-[12px] text-[var(--ink-soft)]">
                 <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> No lock-up — withdraw any time (subject to available liquidity)</li>
-                <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> Yield is variable, paid in SOL, accrues every loan that closes</li>
-                <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> Share value grows as fees flow in — track it in your position panel</li>
+                <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> Yield is variable, paid in SOL on the snapshot cadence</li>
+                <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> Longer-tenured LPs earn proportionally more (shares × time held)</li>
                 <li className="flex gap-2"><span className="text-[var(--accent-deep)]">✓</span> Permissionless and on-chain — no off-chain rewards program, no claim step</li>
               </ul>
             </div>
@@ -972,9 +975,9 @@ export default function EarnPage() {
               <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">How it works</h3>
               <ol className="space-y-3 text-sm text-[var(--ink-soft)]">
                 <HowStep n={1} text="Deposit SOL into the lending pool — you receive shares proportional to your stake" />
-                <HowStep n={2} text="Borrowers take loans against approved memecoins, paying a 1.5–3% fee upfront" />
-                <HowStep n={3} text="80% of every fee flows back into the pool, lifting share value for all LPs" />
-                <HowStep n={4} text="Withdraw anytime: redeem shares for principal + accrued fees in SOL" />
+                <HowStep n={2} text="Borrowers take loans against approved collateral (memecoins on v1: 1.5–3% fee; RWA on v3: 2.5–5% fee)" />
+                <HowStep n={3} text="Per MGP-001, every loan fee splits 70/10/10/10: 70% to $MAGPIE holders, 10% to LP loyalty (you), 10% to referrer, 10% to protocol reserve" />
+                <HowStep n={4} text="Withdraw your principal any time; LP loyalty SOL pays out automatically on the snapshot cadence" />
               </ol>
             </div>
 
@@ -983,43 +986,37 @@ export default function EarnPage() {
               <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">How LP yield works in detail</h3>
               <div className="space-y-3 text-sm text-[var(--ink-soft)]">
                 <p>
-                  Your yield isn&apos;t a payout event — it&apos;s share-price appreciation. The math runs at the moment you withdraw:
+                  Post-MGP-001 (ratified 2026-06-13), 100% of every loan fee is routed off to four separate distribution pools (70/10/10/10: holders / LP loyalty / referrer / protocol reserve). The lending pool itself doesn&apos;t retain interest, so share value tracks principal not yield. Your LP yield comes through the <span className="font-semibold text-[var(--ink)]">10% LP loyalty distribution</span> instead — a snapshot-based payout in SOL.
                 </p>
                 <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface)] p-3 font-mono text-[12px] text-[var(--ink)] sm:text-[13px]">
-                  payout = your_shares × (current_vault_balance / total_shares)
+                  withdraw = your_shares × (current_vault_balance / total_shares)
+                  <br/>
+                  loyalty_payout = (your_shares × seconds_held / total_share_seconds) × loyalty_pool
                 </div>
                 <p>
-                  No snapshot, no eligibility window. Whoever holds shares at the moment of withdrawal takes their pro-rata slice of the vault as it exists right then. Earlier depositors automatically earn more because they bought shares at a lower price.
+                  Withdrawals are still instant and pro-rata — you can exit any time the vault has liquidity. The LP loyalty payout pays separately on the same random 5–10 day cadence as $MAGPIE holder distributions, weighted by <span className="font-mono text-[12px]">shares × time held</span> so long-tenured LPs earn proportionally more.
                 </p>
 
-                <h4 className="font-semibold pt-2 text-[var(--ink)]">Concrete example</h4>
+                <h4 className="font-semibold pt-2 text-[var(--ink)]">Concrete example (post-MGP-001 model)</h4>
                 <ul className="list-disc pl-5 space-y-2">
                   <li>
-                    <span className="text-[var(--ink)]">Day 1.</span> Alice deposits 10 SOL when the vault is empty. She gets 10 shares. Share price: 1.00 SOL.
+                    <span className="text-[var(--ink)]">Day 1.</span> Alice deposits 10 SOL when the vault is empty. She gets 10 shares.
                   </li>
                   <li>
-                    <span className="text-[var(--ink)]">Day 10.</span> The pool has earned 1 SOL in fees. Vault is now 11 SOL across 10 shares. Share price: 1.10 SOL.
+                    <span className="text-[var(--ink)]">Day 10.</span> Bob deposits 5 SOL. He gets 5 shares. Vault = 15 SOL across 15 shares (share value still 1.00 SOL — no in-pool interest accrual under MGP-001).
                   </li>
                   <li>
-                    <span className="text-[var(--ink)]">Day 10.</span> Bob deposits 5 SOL at the new higher price. He gets 5 / 1.10 = 4.545 shares (fewer per SOL because the pool is richer).
+                    <span className="text-[var(--ink)]">Day 30.</span> Across the period, fees totalling 30 SOL flow through the protocol. 3 SOL (the 10% LP loyalty slice) goes into the LP loyalty pool.
                   </li>
                   <li>
-                    <span className="text-[var(--ink)]">Day 30.</span> Vault has earned another 2 SOL. Vault = 18 SOL across 14.545 shares. Share price: 1.2375 SOL.
+                    <span className="text-[var(--ink)]">Snapshot fires.</span> Alice held 10 shares for 30 days = 300 share-days. Bob held 5 shares for 20 days = 100 share-days. Total = 400 share-days. Alice gets 3 × (300/400) = 2.25 SOL. Bob gets 3 × (100/400) = 0.75 SOL.
                   </li>
                   <li>
-                    <span className="text-[var(--ink)]">Day 30.</span> Alice withdraws her 10 shares → receives 12.375 SOL (10 deposited + 2.375 SOL of yield).
-                  </li>
-                  <li>
-                    <span className="text-[var(--ink)]">Day 30.</span> Bob withdraws his 4.545 shares → receives 5.625 SOL (5 deposited + 0.625 SOL of yield).
+                    <span className="text-[var(--ink)]">Anytime.</span> Either can withdraw their principal (Alice 10 SOL, Bob 5 SOL) by redeeming shares against the vault. The LP loyalty SOL lands separately at the snapshot.
                   </li>
                 </ul>
                 <p>
-                  Alice earned more because she was in longer and bought at a lower share price. Bob earned less because he came in later at a higher price. Neither needed a snapshot — the share-price-at-withdrawal does all the work mechanically.
-                </p>
-
-                <h4 className="font-semibold pt-2 text-[var(--ink)]">What about the 2% LP loyalty bonus?</h4>
-                <p>
-                  Separately from the 80% yield, 2% of every loan fee accrues to an LP loyalty bonus pool. That one DOES use a snapshot — distributed by <span className="font-mono text-[12px]">shares × time held</span>, so longest-tenured LPs get a bigger slice when it pays out. It is an additional discrete payment on top of the share-price growth, not a substitute for it.
+                  Longer-tenured LPs always earn proportionally more. The mechanism is share-weighted-by-time, not share-price growth. This change happened when MGP-001 passed 2026-06-13 — voters chose to reweight more aggressively toward $MAGPIE holders (the 70% slice).
                 </p>
               </div>
             </div>

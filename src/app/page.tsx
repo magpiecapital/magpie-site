@@ -345,7 +345,7 @@ export default async function Home() {
             >
               <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">Supply liquidity</div>
               <div className="mt-3 font-display text-2xl font-medium tracking-tight">
-                Deposit SOL · earn 80% of all fees
+                Deposit SOL · earn the 10% LP loyalty cut
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
                 Be the lender. Your SOL funds loans across hundreds of memecoins, and you keep

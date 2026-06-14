@@ -68,12 +68,12 @@ export default async function Image() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: 32, fontSize: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>10%</div>
+              <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>70%</div>
               of every fee
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>LP</div>
-              keeps 80%
+              gets 10% loyalty
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ fontWeight: 700, color: "#0a0a0a", fontSize: 24 }}>Auto</div>
