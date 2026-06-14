@@ -190,6 +190,36 @@ export function PipActionCard({
         return;
       }
 
+      if (action.type === "trailing_stop") {
+        // Trailing stop arm — same envelope shape as take_profit but
+        // emits Trailing instead of Target. armTakeProfit takes the
+        // trailingDistanceBps + drops the target field internally.
+        if (!signMessage) {
+          throw new Error("Your wallet doesn't support signMessage. Try Phantom or Solflare.");
+        }
+        const { armTakeProfit } = await import("@/lib/solana/site-take-profit");
+        const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || DEFAULT_BOT_API;
+        const result = await armTakeProfit({
+          botApiUrl: botApi,
+          signerPubkey: publicKey.toBase58(),
+          signMessage,
+          request: {
+            from: publicKey.toBase58(),
+            loanIdChain: action.loan_id,
+            trailingDistanceBps: action.distance_bps,
+            slippageBps: action.slippage_bps,
+            sellDestination: action.sell_destination,
+            expire: action.order_expire || undefined,
+          },
+        });
+        setDoneSig(`order-${result.order_id}`);
+        const pct = (action.distance_bps / 100).toFixed(1);
+        onResult(
+          `Trailing stop armed for ${result.collateral_symbol ?? "your collateral"} at ${pct}% trail (slip ${(result.slippage_bps / 100).toFixed(1)}%) · order #${result.order_id}`,
+        );
+        return;
+      }
+
       if (action.type === "partial_repay") {
         const { PublicKey } = await import("@solana/web3.js");
         const { buildPartialRepayTransaction } = await import("@/lib/solana/partial-repay");
@@ -430,6 +460,44 @@ export function PipActionCard({
           error={error}
           buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Arm take-profit"}
           successVerb="Take-profit armed"
+          onClick={handleSign}
+        />
+      </HeroCard>
+    );
+  }
+
+  // ── TRAILING-STOP card ─────────────────────────────────────────
+  if (action.type === "trailing_stop") {
+    const pct = (action.distance_bps / 100).toFixed(1);
+    const floorStr =
+      action.initial_floor_usd != null
+        ? `$${action.initial_floor_usd < 0.01 ? action.initial_floor_usd.toFixed(8) : action.initial_floor_usd.toFixed(6)}`
+        : "seeded at sign";
+    const currentStr =
+      action.current_usd != null
+        ? `$${action.current_usd < 0.01 ? action.current_usd.toFixed(8) : action.current_usd.toFixed(6)}`
+        : null;
+    const symbol = action.collateral_symbol ?? "collateral";
+    return (
+      <HeroCard
+        title={`Trailing stop on ${symbol}`}
+        kind="auto-sell"
+        heroLabel={`Trail ${pct}%`}
+        heroValue={floorStr}
+        heroSub={currentStr ? `Currently ${currentStr} — floor floats up with each new high` : "Floor floats up with each new high"}
+        reward={{ label: "Proceeds", value: action.sell_destination.toUpperCase() }}
+        meta={[
+          { label: "Slippage cap", value: `${(action.slippage_bps / 100).toFixed(1)}%` },
+          { label: "Order expiry", value: action.order_expire ?? "—" },
+        ]}
+      >
+        <Footer
+          busy={busy}
+          expired={expired}
+          doneSig={doneSig}
+          error={error}
+          buttonLabel={busy ? "Signing…" : expired ? "Proposal expired" : "Arm trailing stop"}
+          successVerb="Trailing stop armed"
           onClick={handleSign}
         />
       </HeroCard>
