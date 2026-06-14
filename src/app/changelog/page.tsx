@@ -21,6 +21,18 @@ const ENTRIES: Entry[] = [
   {
     date: "June 14, 2026",
     tag: "Feature",
+    title: "Defaulted-loan profit goes to the rewards pool",
+    bullets: [
+      "When a non-$MAGPIE collateralized loan defaults, the protocol seizes + sells the collateral, recovers its lent principal, and routes the NET PROFIT (sale proceeds minus principal) directly into the next reward distribution. Same 70/10/10/10 split as the fee-side accrual: 70% $MAGPIE holders, 10% LP loyalty, 10% referrer, 10% protocol reserve. When the defaulting borrower had no referrer, the 10% referrer slice rolls back into the holder slice — so holders effectively get 80%",
+      "When $MAGPIE is the collateral, the seized $MAGPIE is burned on-chain (operator-conducted) instead of sold — same model as before, now formally codified",
+      "Real-time totals on /stats (Telegram) under DEFAULTED-LOAN PROFIT, and on magpie.capital/stats in the defaultedLoanProfit field — visible to anyone, no auth required",
+      "Per-user dashboard estimates automatically reflect the new accrual: when a default profits the pool, every holder's 'Next Payout' number updates inside one ledger read",
+      "One ledger across the protocol — TG, site, dashboard, and the distributor itself all read the same magpie_holder_pool.accrued_lamports field, so the numbers are always in sync",
+    ],
+  },
+  {
+    date: "June 14, 2026",
+    tag: "Feature",
     title: "Trailing stops, brackets, and full Pip coverage for downside protection",
     bullets: [
       "Trailing stops — set a distance (e.g. 10%) and the floor floats UP with each new high, never down. Fires when price retraces that distance from the most recent peak. Available via /trailingstop in Telegram, the dashboard TakeProfitCard checkbox, and Pip (\"set a trailing 10% on my loan\")",
