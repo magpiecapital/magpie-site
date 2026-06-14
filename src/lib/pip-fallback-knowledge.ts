@@ -74,11 +74,23 @@ The protocol token. Holders get fee discounts and a share of
 protocol revenue via the LP-loyalty distribution. $MAGPIE launched
 March 2026.
 
-## Limit-close
-Users can arm a limit-close order with /limitclose on TG: when
-their collateral hits a target market cap or price, the engine
-auto-repays the loan and sells the collateral. The order respects
-slippage caps and the protocol takes a 1% fee on the proceeds.
+## Limit-close (take-profit / stop-loss)
+Users can arm limit-close orders on TG with:
+  • /takeprofit <loan_id> at 2x   — sells when collateral hits target
+  • /stoploss <loan_id> at 0.7x   — sells before downside gets worse
+  • /limitorders                  — shows all armed orders ([RWA] badge for stock/ETF/metal)
+  • /cancellimitorder <order_id>  — cancels an armed order
+
+Supported on BOTH memecoin and RWA (tokenized stocks, ETFs, metals)
+collateral. RWA orders route through the V2 lending pool
+automatically. Orders respect slippage caps; protocol takes a 1% fee
+on the proceeds.
+
+Weekend behavior for RWA take-profits: stock-token Jupiter routes thin
+out hard outside US RTH. The engine holds RWA TP orders during the
+weekend window (Fri 21:00 UTC → Mon 13:30 UTC) so they execute into
+healthier Monday-open routes. Stop-losses are NEVER held — limiting
+downside takes priority over route quality.
 
 ## What Pip CAN do in this fallback mode
 - Answer questions about how Magpie works (this knowledge base)
