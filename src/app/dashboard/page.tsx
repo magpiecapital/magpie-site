@@ -1117,7 +1117,29 @@ function DashboardPageInner() {
     | { kind: "bracket" }
     | { kind: "tp_ladder"; preset: "conservative" | "balanced" | "aggressive" }
     | { kind: "sl_ladder"; preset: "conservative" | "balanced" | "aggressive" };
-  const [preBorrowExits, setPreBorrowExits] = useState<PreBorrowExits | null>(null);
+  const PRE_BORROW_EXITS_KEY = "magpie-pre-borrow-exits";
+  const [preBorrowExits, setPreBorrowExits] = useState<PreBorrowExits | null>(() => {
+    // Hydrate from localStorage so the picker remembers the user's last
+    // choice across page reloads. SSR-safe via typeof window check.
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem(PRE_BORROW_EXITS_KEY);
+      return raw ? (JSON.parse(raw) as PreBorrowExits) : null;
+    } catch {
+      return null;
+    }
+  });
+  // Persist on every change. Null clears the key.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (preBorrowExits === null) {
+        window.localStorage.removeItem(PRE_BORROW_EXITS_KEY);
+      } else {
+        window.localStorage.setItem(PRE_BORROW_EXITS_KEY, JSON.stringify(preBorrowExits));
+      }
+    } catch { /* private mode / quota — silent */ }
+  }, [preBorrowExits]);
   // Legacy single-TP multiplier retained until all references are migrated;
   // the new exit picker writes preBorrowExits instead.
   const [autoTakeProfitMultiplier, setAutoTakeProfitMultiplier] = useState<number | null>(null);
