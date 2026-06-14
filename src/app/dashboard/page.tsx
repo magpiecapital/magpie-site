@@ -2920,13 +2920,35 @@ function DashboardPageInner() {
                               >
                                 <TokenIcon mint={h.mint} symbol={h.symbol} size={32} />
                                 <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 flex-wrap">
                                     <span className="font-semibold text-sm">{h.symbol}</span>
+                                    {/* Category badge — makes the asset type
+                                        visible at a glance so users can't
+                                        confuse a memecoin with the same
+                                        ticker as a tokenized stock (and
+                                        vice versa). Operator-mandated
+                                        2026-06-14 collision defense. */}
+                                    {h.category === "stock" && (
+                                      <span className="rounded-full bg-[var(--d-accent-dim)] px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-wider text-[var(--d-accent-deep)]" title="Tokenized stock — v3 RWA tiers">Stock</span>
+                                    )}
+                                    {h.category === "etf" && (
+                                      <span className="rounded-full bg-[var(--d-accent-dim)] px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-wider text-[var(--d-accent-deep)]" title="Tokenized ETF — v3 RWA tiers">ETF</span>
+                                    )}
+                                    {h.category === "metal" && (
+                                      <span className="rounded-full bg-[var(--d-accent-dim)] px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-wider text-[var(--d-accent-deep)]" title="Tokenized metal — v3 RWA tiers">Metal</span>
+                                    )}
+                                    {h.category === "memecoin" && (
+                                      <span className="rounded-full bg-[var(--d-warn-dim)] px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-wider text-[var(--d-warn-deep)]" title="Memecoin — v1 tiers (2/3/7-day)">Memecoin</span>
+                                    )}
                                     <span className="text-[10px] text-[var(--d-ink-faint)] hidden sm:inline">{h.name}</span>
                                   </div>
-                                  <div className="text-[11px] text-[var(--d-ink-soft)]">
-                                    {formatTokenAmount(h.amount, h.decimals)} tokens
-                                    {h.approved.priceUsd ? ` · $${h.approved.priceUsd < 0.01 ? h.approved.priceUsd.toPrecision(4) : h.approved.priceUsd.toFixed(4)}` : ""}
+                                  <div className="text-[11px] text-[var(--d-ink-soft)] flex flex-wrap items-center gap-x-2">
+                                    <span>{formatTokenAmount(h.amount, h.decimals)} tokens
+                                    {h.approved.priceUsd ? ` · $${h.approved.priceUsd < 0.01 ? h.approved.priceUsd.toPrecision(4) : h.approved.priceUsd.toFixed(4)}` : ""}</span>
+                                    {/* Mint suffix — disambiguates two tokens
+                                        with the same ticker. Truncated for
+                                        readability; full mint is on hover. */}
+                                    <span className="text-[10px] text-[var(--d-ink-faint)] font-mono" title={h.mint}>{h.mint.slice(0, 4)}…{h.mint.slice(-4)}</span>
                                   </div>
                                   {/* Risk-preview strip — surfaces token
                                       fundamentals before the user commits
