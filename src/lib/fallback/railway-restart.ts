@@ -79,6 +79,38 @@ export async function markBotHealthy(pool: Pool): Promise<void> {
 }
 
 /**
+ * Mark the bot's DB as degraded NOW. Called by the watchdog when the
+ * /api/v1/health response indicates `checks.db === "degraded"` or
+ * `checks.db === "fail"`. Used by tryAutoRestart's NEW guard to skip
+ * the redeploy — restarting a bot whose DB is unreachable just
+ * crash-loops on the first query, which makes the failure worse (it
+ * chews more DB compute hours during the dead window).
+ *
+ * 2026-06-14 outage:
+ *   Neon compute-quota was exhausted. Every bot query threw XX000.
+ *   Bot crash-looped. If the auto-restart had been firing in that
+ *   window it would have made the situation worse. This gate ensures
+ *   that next time, the operator's existing DB-quota-guard page
+ *   handles it without the watchdog piling on.
+ */
+const DB_DEGRADED_LOOKBACK_MS =
+  Number(process.env.AUTO_RESTART_DB_DEGRADED_LOOKBACK_MS) || 15 * 60_000; // 15 min
+
+export async function markBotDbDegraded(pool: Pool): Promise<void> {
+  try {
+    await pool.query(
+      `INSERT INTO bot_health_marker (id, last_db_degraded_at, updated_at)
+            VALUES (1, NOW(), NOW())
+        ON CONFLICT (id) DO UPDATE
+              SET last_db_degraded_at = NOW(),
+                  updated_at = NOW()`,
+    );
+  } catch {
+    /* non-fatal */
+  }
+}
+
+/**
  * Decide whether to fire an auto-restart and (if so) fire it.
  *
  * Returns a RestartDecision describing what happened. The watchdog
@@ -130,11 +162,15 @@ export async function tryAutoRestart(
     }
   }
 
-  // ── Healthy-recently gate ──
+  // ── Healthy-recently gate AND DB-degraded-recently gate ──
+  // Read both markers in one query — they live on the same row.
   const { rows: hmRows } = await pool.query<{
     last_known_healthy_at: string | null;
-  }>(`SELECT last_known_healthy_at FROM bot_health_marker WHERE id = 1`);
+    last_db_degraded_at: string | null;
+  }>(`SELECT last_known_healthy_at, last_db_degraded_at
+        FROM bot_health_marker WHERE id = 1`);
   const healthyAt = hmRows[0]?.last_known_healthy_at ?? null;
+  const dbDegradedAt = hmRows[0]?.last_db_degraded_at ?? null;
   if (!healthyAt) {
     return { triggered: false, reason: "no_recent_healthy", detail: "bot has never been observed healthy" };
   }
@@ -145,6 +181,20 @@ export async function tryAutoRestart(
       reason: "no_recent_healthy",
       detail: `last healthy ${Math.round(healthyAgeMs / 60_000)}m ago; lookback ${HEALTHY_LOOKBACK_MS / 60_000}m`,
     };
+  }
+  // NEW gate (2026-06-14): if the bot reported DB-degraded recently,
+  // restarting won't help. The bot's db-quota-guard is paging the
+  // operator; let it handle recovery. Bouncing the process just
+  // crash-loops on the first query and chews more DB compute.
+  if (dbDegradedAt) {
+    const dbDegradedAgeMs = Date.now() - new Date(dbDegradedAt).getTime();
+    if (dbDegradedAgeMs < DB_DEGRADED_LOOKBACK_MS) {
+      return {
+        triggered: false,
+        reason: "db_degraded_recent",
+        detail: `bot reported DB degraded ${Math.round(dbDegradedAgeMs / 60_000)}m ago; restart would just crash-loop on dead DB. Operator is paged via the bot's own DB-quota-guard. Lookback ${DB_DEGRADED_LOOKBACK_MS / 60_000}m.`,
+      };
+    }
   }
 
   // ── Fire ──

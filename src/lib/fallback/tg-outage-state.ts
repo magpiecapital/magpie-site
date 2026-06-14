@@ -105,13 +105,23 @@ export async function ensureSchema(): Promise<void> {
     -- recently?" — protects against restart-looping a cold-deploy
     -- that's never been green. Single id so an UPSERT works.
     CREATE TABLE IF NOT EXISTS bot_health_marker (
-      id                   INT  PRIMARY KEY DEFAULT 1,
-      last_known_healthy_at TIMESTAMPTZ,
-      updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      id                       INT  PRIMARY KEY DEFAULT 1,
+      last_known_healthy_at    TIMESTAMPTZ,
+      -- Last time the bot reported db: "degraded" or db: "fail" in its
+      -- /api/v1/health response. Used to gate the auto-restart so we
+      -- don't crash-loop a bot whose dependency (DB) is dead. Added
+      -- 2026-06-14 after the Neon-quota outage where the auto-restart
+      -- would have made the failure worse if the bot had crashed
+      -- cleanly enough to trigger it.
+      last_db_degraded_at      TIMESTAMPTZ,
+      updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       CHECK (id = 1)
     );
     INSERT INTO bot_health_marker (id) VALUES (1)
       ON CONFLICT (id) DO NOTHING;
+    -- Idempotent column add for upgrades from the pre-2026-06-14 shape.
+    ALTER TABLE bot_health_marker
+      ADD COLUMN IF NOT EXISTS last_db_degraded_at TIMESTAMPTZ;
   `);
   _schemaEnsured = true;
 }
