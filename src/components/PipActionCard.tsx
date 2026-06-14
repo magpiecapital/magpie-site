@@ -223,6 +223,13 @@ export function PipActionCard({
           collateralValueLamports: action.collateral_value_lamports,
           loanOption: action.tier_option,
           connection,
+          // CRITICAL — passes the authoritative category Pip already
+          // resolved server-side. Without this, buildBorrowTransaction
+          // falls back to its own client-side fetch of /api/v1/tokens
+          // and tries to match by mint; works in most cases but adds a
+          // failure mode (stale cache, mint absent from the list) that
+          // we sidestep entirely by carrying the category through.
+          category: action.collateral_category ?? null,
         });
         const userSigned = await signTransaction(transaction);
         const partialBase64 = userSigned

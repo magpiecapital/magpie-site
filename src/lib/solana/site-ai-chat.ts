@@ -44,6 +44,11 @@ export interface ProposedBorrowAction {
   collateral_mint: string;
   collateral_symbol: string;
   collateral_decimals: number;
+  // Authoritative category from supported_mints — drives V1 vs V2
+  // program routing in PipActionCard's borrow flow. Optional/nullable
+  // for back-compat with older bot responses; falls back to the
+  // server-side override fetch inside buildBorrowTransaction.
+  collateral_category?: string | null;
   collateral_amount_raw: string;
   collateral_ui_amount: string;
   collateral_value_lamports: string;
