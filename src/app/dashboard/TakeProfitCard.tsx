@@ -238,6 +238,12 @@ function LimitSlot(props: SlotProps) {
   const [selectedMultiplier, setSelectedMultiplier] = useState<number>(defaultMultiplier);
   const [customUsd, setCustomUsd] = useState<string>("");
   const [slippagePct, setSlippagePct] = useState<number>(isSl ? 3 : 2);
+  // Trailing-stop state. Only meaningful on SL slots; TP form ignores.
+  // When trailingEnabled is true, the user picks a percent distance and
+  // the target/customUsd inputs are ignored — peak seeds at current
+  // price at arm time and floats with each new high.
+  const [trailingEnabled, setTrailingEnabled] = useState<boolean>(false);
+  const [trailingPct, setTrailingPct] = useState<number>(10); // 10% default
 
   const arm = useCallback(async () => {
     if (!publicKey || !signMessage) {
@@ -248,24 +254,45 @@ function LimitSlot(props: SlotProps) {
     setBusy(true);
     try {
       const slippageBps = Math.round(slippagePct * 100);
-      const usd = customUsd ? Number(customUsd) : null;
-      const target =
-        usd && usd > 0
-          ? { kind: "price_usd" as const, usd }
-          : { kind: "multiplier" as const, multiplier: selectedMultiplier };
-      await armTakeProfit({
-        botApiUrl: props.botApiUrl,
-        signerPubkey: publicKey.toBase58(),
-        signMessage,
-        request: {
-          from: publicKey.toBase58(),
-          loanIdChain: props.loanIdChain,
-          direction: props.direction,
-          target,
-          slippageBps,
-          sellDestination: "sol",
-        },
-      });
+      // Trailing arms send trailingDistanceBps instead of a target.
+      // The bot's site-limit-close-arm endpoint uses that as a
+      // synthetic multiplier to seed the initial trigger; engine
+      // takes over from the watcher's first tick.
+      if (isSl && trailingEnabled) {
+        const bps = Math.round(trailingPct * 100);
+        await armTakeProfit({
+          botApiUrl: props.botApiUrl,
+          signerPubkey: publicKey.toBase58(),
+          signMessage,
+          request: {
+            from: publicKey.toBase58(),
+            loanIdChain: props.loanIdChain,
+            direction: "below",
+            trailingDistanceBps: bps,
+            slippageBps,
+            sellDestination: "sol",
+          },
+        });
+      } else {
+        const usd = customUsd ? Number(customUsd) : null;
+        const target =
+          usd && usd > 0
+            ? { kind: "price_usd" as const, usd }
+            : { kind: "multiplier" as const, multiplier: selectedMultiplier };
+        await armTakeProfit({
+          botApiUrl: props.botApiUrl,
+          signerPubkey: publicKey.toBase58(),
+          signMessage,
+          request: {
+            from: publicKey.toBase58(),
+            loanIdChain: props.loanIdChain,
+            direction: props.direction,
+            target,
+            slippageBps,
+            sellDestination: "sol",
+          },
+        });
+      }
       setExpanded(false);
       props.onMutated();
     } catch (e) {
@@ -275,7 +302,7 @@ function LimitSlot(props: SlotProps) {
     }
   }, [
     publicKey, signMessage, isSl, selectedMultiplier, customUsd, slippagePct,
-    props,
+    trailingEnabled, trailingPct, props,
   ]);
 
   const cancel = useCallback(async () => {
@@ -381,8 +408,20 @@ function LimitSlot(props: SlotProps) {
       >
         <div className="flex items-center justify-between gap-2">
           <span>
-            <span className="font-medium">{slotLabel} armed</span>
+            <span className="font-medium">
+              {armed.trailing_distance_bps != null
+                ? `Trailing ${(armed.trailing_distance_bps / 100).toFixed(1)}%`
+                : `${slotLabel} armed`}
+            </span>
             <span className="opacity-70"> · {trig} · slip {(armed.slippage_bps / 100).toFixed(1)}%</span>
+            {armed.trailing_distance_bps != null && armed.peak_price_micros && (
+              <span className="opacity-70"> · peak {(() => {
+                const peak = Number(armed.peak_price_micros) / 1e6;
+                if (peak >= 1) return `$${peak.toFixed(4)}`;
+                if (peak >= 0.01) return `$${peak.toFixed(6)}`;
+                return `$${peak.toFixed(8)}`;
+              })()}</span>
+            )}
             {distanceLabel && <span className="opacity-70"> · {distanceLabel}</span>}
             {armed.source !== "site" && (
               <span className="opacity-50"> · via {armed.source === "tg" ? "Telegram" : "agent"}</span>
@@ -522,7 +561,7 @@ function LimitSlot(props: SlotProps) {
       }}
     >
       <div className="text-[11px] font-medium mb-1.5 flex items-center justify-between">
-        <span>{slotLabel} — {isSl ? "auto-close + sell if price drops to:" : "auto-close + sell when:"}</span>
+        <span>{slotLabel} — {trailingEnabled && isSl ? "auto-close + sell if price retraces from peak by:" : (isSl ? "auto-close + sell if price drops to:" : "auto-close + sell when:")}</span>
         <button
           onClick={() => { setExpanded(false); setError(null); }}
           className="text-[10px] opacity-60 hover:opacity-100"
@@ -530,6 +569,28 @@ function LimitSlot(props: SlotProps) {
           dismiss
         </button>
       </div>
+      {/* Trailing-stop toggle — SL slots only. When on, the form
+          switches to a distance picker (% from peak) and hides the
+          fixed-floor presets + custom USD input. */}
+      {isSl && (
+        <div className="mb-2 flex items-center gap-2 text-[10px]">
+          <label className="inline-flex items-center gap-1.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={trailingEnabled}
+              onChange={(e) => setTrailingEnabled(e.target.checked)}
+              disabled={busy}
+              className="accent-current"
+              style={{ accentColor: armColor }}
+            />
+            <span className="font-medium">Trailing stop</span>
+          </label>
+          <span className="opacity-60">— floats with peak as price climbs</span>
+        </div>
+      )}
+      {/* Fixed-floor presets + custom USD: hidden when trailing is on
+          since they're conceptually incompatible. */}
+      {!(isSl && trailingEnabled) && (
       <div className="flex flex-wrap gap-1.5 mb-2">
         {slotPresets.map((m) => (
           <button
@@ -552,6 +613,8 @@ function LimitSlot(props: SlotProps) {
           </button>
         ))}
       </div>
+      )}
+      {!(isSl && trailingEnabled) && (
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] opacity-60">or custom $</span>
         <input
@@ -566,6 +629,28 @@ function LimitSlot(props: SlotProps) {
         />
         <span className="text-[10px] opacity-60">/ token</span>
       </div>
+      )}
+      {/* Trailing distance picker: percentage from peak. Replaces the
+          fixed-floor presets when trailing is enabled. */}
+      {isSl && trailingEnabled && (
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[10px] opacity-60 w-20">Trail by</span>
+          <input
+            type="range"
+            min="0.5"
+            max="50"
+            step="0.5"
+            value={trailingPct}
+            onChange={(e) => setTrailingPct(Number(e.target.value))}
+            disabled={busy}
+            className="flex-1"
+            style={{ accentColor: armColor }}
+          />
+          <span className="text-[11px] tabular-nums w-12 text-right" style={{ color: armColor }}>
+            {trailingPct.toFixed(1)}%
+          </span>
+        </div>
+      )}
       <div className="flex items-center gap-2 mb-2">
         <span className="text-[10px] opacity-60">Slippage</span>
         <input
@@ -590,6 +675,26 @@ function LimitSlot(props: SlotProps) {
           on the wrong side of current (the arm endpoint will reject
           and the error block below renders the message). */}
       {currentUsd != null && currentUsd > 0 && (() => {
+        // Trailing case: starting "trigger" is current × (1 - trailing/100).
+        // Show it as the floor that would apply RIGHT NOW; the floor
+        // rises as the watcher tracks new peaks post-arm.
+        if (isSl && trailingEnabled) {
+          const initialFloor = currentUsd * (1 - trailingPct / 100);
+          return (
+            <div className="text-[10px] mb-1.5 rounded px-1.5 py-1 leading-tight"
+              style={{
+                background: "rgba(255,255,255,0.04)",
+                color: "var(--d-ink-faint)",
+              }}
+            >
+              <div>Current ~ {formatUsdPerToken(currentUsd)}/token</div>
+              <div>
+                Initial floor at {formatUsdPerToken(initialFloor)} (-{trailingPct.toFixed(1)}% from current).
+                Floor rises with each new high; fires when price retraces {trailingPct.toFixed(1)}% from peak.
+              </div>
+            </div>
+          );
+        }
         const usd = customUsd ? Number(customUsd) : null;
         const targetUsd =
           usd && usd > 0 ? usd : currentUsd * selectedMultiplier;
