@@ -944,9 +944,12 @@ export default function EarnPage() {
                   <div className="text-right">Your share</div>
                 </div>
                 {[
-                  { tier: "Express · 30% LTV · 2d", fee: "3.00%", lp: "2.40%" },
-                  { tier: "Quick · 25% LTV · 3d",   fee: "2.00%", lp: "1.60%" },
-                  { tier: "Standard · 20% LTV · 7d", fee: "1.50%", lp: "1.20%" },
+                  { tier: "Memecoin Express · 30% LTV · 2d", fee: "3.00%", lp: "2.40%" },
+                  { tier: "Memecoin Quick · 25% LTV · 3d",   fee: "2.00%", lp: "1.60%" },
+                  { tier: "Memecoin Standard · 20% LTV · 7d", fee: "1.50%", lp: "1.20%" },
+                  { tier: "RWA Express · 50% LTV · 7d (v3)",  fee: "2.50%", lp: "2.00%" },
+                  { tier: "RWA Quick · 60% LTV · 15d (v3)",   fee: "3.50%", lp: "2.80%" },
+                  { tier: "RWA Standard · 70% LTV · 30d (v3)", fee: "5.00%", lp: "4.00%" },
                 ].map((row) => (
                   <div key={row.tier} className="grid grid-cols-3 border-b border-[var(--hairline)] px-3 py-2 text-xs last:border-b-0">
                     <div className="text-[var(--ink-soft)]">{row.tier}</div>

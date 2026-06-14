@@ -21,6 +21,19 @@ const ENTRIES: Entry[] = [
   {
     date: "June 14, 2026",
     tag: "Feature",
+    title: "v3 RWA pool live — 7 / 15 / 30 day tiers at 50 / 60 / 70% LTV",
+    bullets: [
+      "v3 lending program is now routing new RWA borrows. Tokenized stocks, ETFs, and metals get a dedicated tier ladder: 50% LTV @ 7 days, 60% LTV @ 15 days, 70% LTV @ 30 days — the higher-LTV / longer-term economics that RWA collateral can actually support given its lower volatility",
+      "RWA origination fees: 2.5% (Express), 3.5% (Quick), 5% (Standard). Memecoin tiers unchanged on v1 — 30/25/20% LTV at 2/3/7-day terms, 3.0/2.0/1.5% fees",
+      "v3 fixes the LP withdraw u64 overflow bug from v1/v2 with u128 intermediate math — LPs can withdraw their entire position in a single transaction regardless of size",
+      "v3 has hardened TWAP price validation (30-minute window, 8-sample minimum, +15% pump detection) to defend against oracle manipulation",
+      "Existing v1 and v2 loans continue to repay, extend, and liquidate against their original programs — no migration risk for in-flight loans. Routing only governs NEW borrows",
+      "Pool liquidity rebalanced for v3 launch: 30 SOL moved v2 → v1 to top up memecoin headroom, 25 SOL seeded into v3 from v1's idle. v3 ready to serve borrows immediately",
+    ],
+  },
+  {
+    date: "June 14, 2026",
+    tag: "Feature",
     title: "$MAGPIE burn ledger — public total live across every surface",
     bullets: [
       "Every $MAGPIE burn now lands in a single magpie_burns ledger — default-driven burns, operator-manual burns, and (future) buybacks all sum into one public running total",
