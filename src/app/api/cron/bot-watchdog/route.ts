@@ -40,7 +40,7 @@
 import { NextResponse } from "next/server";
 import { runTgOutageProtection } from "@/lib/fallback/tg-outage-protection";
 import { getPool, ensureSchema } from "@/lib/fallback/tg-outage-state";
-import { markBotHealthy, tryAutoRestart } from "@/lib/fallback/railway-restart";
+import { markBotHealthy, markBotDbDegraded, tryAutoRestart } from "@/lib/fallback/railway-restart";
 
 const DEFAULT_HEALTH_URL =
   "https://magpie-bot-production.up.railway.app/api/v1/health";
@@ -60,7 +60,7 @@ function isAuthorizedCron(req: Request): boolean {
   return auth === `Bearer ${secret}`;
 }
 
-async function pingBot(): Promise<{ ok: boolean; status: number; detail: string }> {
+async function pingBot(): Promise<{ ok: boolean; status: number; detail: string; dbDegraded: boolean }> {
   const url = process.env.MAGPIE_BOT_HEALTH_URL || DEFAULT_HEALTH_URL;
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), HEALTH_TIMEOUT_MS);
@@ -72,10 +72,26 @@ async function pingBot(): Promise<{ ok: boolean; status: number; detail: string 
     // unhealthy. For the watchdog, the only thing that matters is
     // "is the bot reachable at all" — that's what determines if site
     // + Pip work. So 503 is acceptable.
+    //
+    // 2026-06-14: ALSO parse the body to detect db: "degraded" / "fail".
+    // The bot reports those when its own DB-quota-guard caught a
+    // DB-dead error. We feed that signal into the auto-restart gate
+    // so the watchdog stops restarting a bot whose dependency is dead.
+    let dbDegraded = false;
+    try {
+      const body = await res.json();
+      const dbCheck = String(body?.checks?.db || "").toLowerCase();
+      if (dbCheck === "degraded" || dbCheck === "fail") {
+        dbDegraded = true;
+      }
+    } catch {
+      /* body parse failed — not authoritative. Defaults to dbDegraded=false. */
+    }
     return {
       ok: res.status === 200 || res.status === 503,
       status: res.status,
       detail: res.status === 503 ? "degraded (some sub-system unhealthy but reachable)" : "ok",
+      dbDegraded,
     };
   } catch (err) {
     clearTimeout(timer);
@@ -86,6 +102,7 @@ async function pingBot(): Promise<{ ok: boolean; status: number; detail: string 
       detail: e.name === "AbortError"
         ? `timeout after ${HEALTH_TIMEOUT_MS}ms`
         : (e.message || "fetch failed").slice(0, 200),
+      dbDegraded: false,
     };
   }
 }
@@ -159,14 +176,22 @@ export async function GET(req: Request) {
     // Bot reachable — record the success in bot_health_marker so the
     // backup-generator's "healthy-recently" gate has a fresh
     // observation. Best-effort; failures don't degrade the watchdog.
+    //
+    // 2026-06-14: ALSO mark last_db_degraded_at when the bot is
+    // reachable but reporting db: degraded/fail. The new auto-restart
+    // gate consults this to skip restarts during DB-dead windows.
     try {
       await ensureSchema();
       await markBotHealthy(getPool());
+      if (ping.dbDegraded) {
+        await markBotDbDegraded(getPool());
+      }
     } catch { /* non-fatal */ }
     return NextResponse.json({
       ok: true,
       bot_status: ping.status,
       detail: ping.detail,
+      db_degraded: ping.dbDegraded,
       tg_outage_protection: tgOutageResult,
       checked_at: new Date().toISOString(),
     });
