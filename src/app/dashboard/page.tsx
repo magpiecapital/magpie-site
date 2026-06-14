@@ -3147,7 +3147,7 @@ function DashboardPageInner() {
                                             <div className="flex items-center gap-2">
                                               <span className="text-xs font-bold uppercase tracking-wider" style={{ color: tier.color }}>{tier.name}</span>
                                               {isBestValue && (
-                                                <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-[var(--d-accent)] text-[var(--d-accent-ink)]">Best value</span>
+                                                <span className="inline-flex items-center text-[10px] font-semibold tracking-wide leading-none whitespace-nowrap px-2 py-1 rounded-full bg-[var(--d-accent)] text-[var(--d-accent-ink)]">Best value</span>
                                               )}
                                             </div>
                                             <span className="text-[10px] font-semibold" style={{ color: tier.color }}>{(tier.fee * 100).toFixed(1)}%</span>
