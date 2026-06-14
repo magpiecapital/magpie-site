@@ -33,8 +33,8 @@ const PROPOSALS: Record<string, Proposal> = {
     id: "MGP-001",
     title: "Restructure the loan-fee split — 70/10/10/10",
     tldr:
-      "Send 70% of every loan fee to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, and 10% to the protocol reserve. Replaces the current 10% holder share.",
-    status: "active",
+      "PASSED + IN EFFECT. The 70/10/10/10 split is now live for every loan fee. Final tally at 2026-06-13 22:00 UTC: 98% YES, 8.72% participation, both quorum (5%) and threshold (66.6%) cleared.",
+    status: "executed",
     opens_at_iso: "2026-06-10T20:40:00Z",
     closes_at_iso: "2026-06-13T20:40:00Z",
     voting_window_human: "Opens Jun 10, 2026 4:40 PM EDT · closes Jun 13, 2026 4:40 PM EDT (72h)",
