@@ -27,7 +27,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
-  fetchTakeProfitState, armTakeProfit, cancelTakeProfit,
+  fetchTakeProfitState, armTakeProfit, cancelTakeProfit, modifyTakeProfit,
   type TakeProfitOrder, type TakeProfitLoan, type TakeProfitState,
 } from "@/lib/solana/site-take-profit";
 
@@ -184,6 +184,10 @@ function LimitSlot(props: SlotProps) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentUsd, setCurrentUsd] = useState<number | null>(null);
+  // Modify form state for armed orders. Hidden until the user taps Edit.
+  const [editing, setEditing] = useState(false);
+  const [editPriceUsd, setEditPriceUsd] = useState<string>("");
+  const [editSlippagePct, setEditSlippagePct] = useState<number | null>(null);
 
   // Lazy-load the live price the first time the slot opens its form OR
   // renders an armed badge. Keeps the dashboard's initial render cheap
@@ -294,6 +298,46 @@ function LimitSlot(props: SlotProps) {
     }
   }, [publicKey, signMessage, armed, isSl, props]);
 
+  // Modify the armed order in place — no cancel/re-arm gap. Sends only
+  // the fields the user changed; the bot rejects no_changes_supplied
+  // if everything stayed the same.
+  const modify = useCallback(async () => {
+    if (!publicKey || !signMessage || !armed) return;
+    const newPrice = editPriceUsd ? Number(editPriceUsd) : null;
+    const newSlippageBps =
+      editSlippagePct != null ? Math.round(editSlippagePct * 100) : null;
+    if (newPrice == null && newSlippageBps == null) {
+      setError("Change at least one of price or slippage before saving.");
+      return;
+    }
+    if (newPrice != null && !(Number.isFinite(newPrice) && newPrice > 0)) {
+      setError("Price must be a positive number.");
+      return;
+    }
+    setError(null);
+    setBusy(true);
+    try {
+      await modifyTakeProfit({
+        botApiUrl: props.botApiUrl,
+        signerPubkey: publicKey.toBase58(),
+        signMessage,
+        request: {
+          orderId: armed.id,
+          priceUsd: newPrice ?? undefined,
+          slippageBps: newSlippageBps ?? undefined,
+        },
+      });
+      setEditing(false);
+      setEditPriceUsd("");
+      setEditSlippagePct(null);
+      props.onMutated();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }, [publicKey, signMessage, armed, editPriceUsd, editSlippagePct, props]);
+
   // Ineligible reason that's specific to this slot (not generic loan
   // size / collateral disabled). The "other-slot-armed" case is
   // implicit — don't crowd the UI.
@@ -328,28 +372,120 @@ function LimitSlot(props: SlotProps) {
       }
     }
     return (
-      <div className="rounded-md border px-2.5 py-1.5 text-[11px] flex items-center justify-between gap-2"
+      <div className="rounded-md border px-2.5 py-1.5 text-[11px]"
         style={{
           borderColor: armedBorderColor,
           background: armedBg,
           color: "var(--d-ink)",
         }}
       >
-        <span>
-          <span className="font-medium">{slotLabel} armed</span>
-          <span className="opacity-70"> · {trig} · slip {(armed.slippage_bps / 100).toFixed(1)}%</span>
-          {distanceLabel && <span className="opacity-70"> · {distanceLabel}</span>}
-          {armed.source !== "site" && (
-            <span className="opacity-50"> · via {armed.source === "tg" ? "Telegram" : "agent"}</span>
-          )}
-        </span>
-        <button
-          onClick={cancel}
-          disabled={busy}
-          className="text-[10px] underline opacity-70 hover:opacity-100 disabled:opacity-40"
-        >
-          {busy ? "Cancelling…" : "Cancel"}
-        </button>
+        <div className="flex items-center justify-between gap-2">
+          <span>
+            <span className="font-medium">{slotLabel} armed</span>
+            <span className="opacity-70"> · {trig} · slip {(armed.slippage_bps / 100).toFixed(1)}%</span>
+            {distanceLabel && <span className="opacity-70"> · {distanceLabel}</span>}
+            {armed.source !== "site" && (
+              <span className="opacity-50"> · via {armed.source === "tg" ? "Telegram" : "agent"}</span>
+            )}
+          </span>
+          <div className="flex items-center gap-2 shrink-0">
+            {!editing && (
+              <button
+                onClick={() => {
+                  setEditing(true);
+                  setError(null);
+                  // Seed the form with current values so the user can
+                  // see what they're editing and tweak from there.
+                  if (armed.trigger_kind === "price_usd") {
+                    const usd = Number(armed.trigger_value_micro) / 1e6;
+                    setEditPriceUsd(Number.isFinite(usd) ? String(usd) : "");
+                  }
+                  setEditSlippagePct(armed.slippage_bps / 100);
+                }}
+                disabled={busy}
+                className="text-[10px] underline opacity-70 hover:opacity-100 disabled:opacity-40"
+              >
+                Edit
+              </button>
+            )}
+            <button
+              onClick={cancel}
+              disabled={busy}
+              className="text-[10px] underline opacity-70 hover:opacity-100 disabled:opacity-40"
+            >
+              {busy ? "Cancelling…" : "Cancel"}
+            </button>
+          </div>
+        </div>
+        {editing && (
+          <div className="mt-2 border-t pt-2"
+            style={{ borderColor: "rgba(255,255,255,0.08)" }}
+          >
+            {armed.trigger_kind === "price_usd" && (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] opacity-60 w-14">Price $</span>
+                <input
+                  type="number"
+                  step="any"
+                  value={editPriceUsd}
+                  onChange={(e) => setEditPriceUsd(e.target.value)}
+                  disabled={busy}
+                  className="flex-1 max-w-[140px] bg-transparent border-b border-[var(--d-border)] text-[12px] py-0.5 focus:outline-none focus:border-current"
+                />
+                <span className="text-[10px] opacity-60">/ token</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] opacity-60 w-14">Slip</span>
+              <input
+                type="range"
+                min="0.5"
+                max="10"
+                step="0.5"
+                value={editSlippagePct ?? armed.slippage_bps / 100}
+                onChange={(e) => setEditSlippagePct(Number(e.target.value))}
+                disabled={busy}
+                className="flex-1"
+              />
+              <span className="text-[11px] tabular-nums w-10 text-right">
+                {(editSlippagePct ?? armed.slippage_bps / 100).toFixed(1)}%
+              </span>
+            </div>
+            {error && (
+              <div className="text-[10px] mb-1.5 rounded px-1.5 py-1"
+                style={{ background: "rgba(220,38,38,0.08)", color: "var(--bad, #ef4444)" }}
+              >
+                {error}
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={modify}
+                disabled={busy}
+                className="px-2 py-0.5 rounded text-[10px] font-semibold border"
+                style={{
+                  background: armColor,
+                  color: "var(--d-bg-panel, white)",
+                  borderColor: armColor,
+                }}
+              >
+                {busy ? "Signing…" : "Save changes"}
+              </button>
+              <button
+                onClick={() => {
+                  setEditing(false);
+                  setEditPriceUsd("");
+                  setEditSlippagePct(null);
+                  setError(null);
+                }}
+                disabled={busy}
+                className="text-[10px] underline opacity-70 hover:opacity-100 disabled:opacity-40"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
