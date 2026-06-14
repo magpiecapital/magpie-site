@@ -130,7 +130,7 @@ const PILLARS = [
   },
   {
     title: "Transparent pricing",
-    body: "Tiered fees: 3% Express, 2% Quick, 1.5% Standard. No hidden rate curves, no dynamic APR, no liquidation penalties beyond what you pledged.",
+    body: "Tiered fees. Memecoin: 3% Express, 2% Quick, 1.5% Standard (v1 pool). RWA: 2.5% Express (7d), 3.5% Quick (15d), 5% Standard (30d) on the v3 pool for tokenized stocks/ETFs/metals. No hidden rate curves, no dynamic APR, no liquidation penalties beyond what you pledged.",
   },
   {
     title: "Permissionless",
@@ -173,7 +173,7 @@ const FAQ = [
   },
   {
     q: "What's the smart contract?",
-    a: "magpie-lending — an Anchor program on Solana (7tapn...). Permissionless lending pools with share-based accounting, configurable keeper rewards, and tiered fee structure. 68 tests passing.",
+    a: "magpie-lending — an Anchor program on Solana, deployed in three versions running in parallel: v1 for memecoin loans (4FEFPe...), v2 for legacy RWA loans (6wSpKA...), and v3 for new RWA loans (B8AwYz...) with hardened TWAP defenses and u128 LP withdraw math. Permissionless lending pools with share-based accounting, configurable keeper rewards, and tiered fee structure.",
   },
 ];
 
@@ -184,7 +184,7 @@ const MARQUEE = (tokenCount: number) => [
   `${tokenCount} approved tokens`,
   "Keeper network",
   "Tokenized stocks",
-  "1.5–3% tiered fee",
+  "1.5–5% tiered fee",
   "Repay anytime",
   "Live health alerts",
   "Solana mainnet",
