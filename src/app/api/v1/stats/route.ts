@@ -17,7 +17,20 @@ const HEADERS = {
 
 export async function GET() {
   try {
-    const [statsResult, tiersResult, usersResult] = await Promise.all([
+    const [
+      statsResult,
+      tiersResult,
+      usersResult,
+      // 2026-06-13: Limit-close engine reliability surface. /stats is
+      // the most-shared external URL, so the limit-close engine's
+      // uptime + fire activity belongs here — readers evaluating
+      // Magpie's autonomous take-profit / stop-loss can see the engine
+      // is real and reliable without having to ask. Reads from the
+      // same engine_metrics_hourly + engine_heartbeats tables that
+      // /lc-perf shows operator-internally.
+      engineHeartbeatResult,
+      engineMetricsResult,
+    ] = await Promise.all([
       query(
         `SELECT
            COUNT(*)::text AS total_loans,
@@ -36,6 +49,25 @@ export async function GET() {
       ),
       query(
         `SELECT COUNT(*)::text AS total_users FROM users`,
+      ),
+      query(
+        `SELECT last_tick_at, last_tick_status, armed_count, service
+           FROM engine_heartbeats
+          WHERE service = 'limit_close_watcher'
+          LIMIT 1`,
+      ),
+      query(
+        `SELECT
+           COALESCE(SUM(fires_attempted), 0)::int  AS fires_attempted_24h,
+           COALESCE(SUM(fires_succeeded), 0)::int  AS fires_succeeded_24h,
+           COALESCE(SUM(fires_failed),    0)::int  AS fires_failed_24h,
+           COALESCE(SUM(fires_reverted),  0)::int  AS fires_reverted_24h,
+           COALESCE(SUM(ticks),           0)::int  AS ticks_24h,
+           COALESCE(SUM(jupiter_probes_ok),     0)::int AS jup_ok_24h,
+           COALESCE(SUM(jupiter_probes_failed), 0)::int AS jup_failed_24h
+         FROM engine_metrics_hourly
+         WHERE service = 'limit_close_watcher'
+           AND hour > NOW() - INTERVAL '24 hours'`,
       ),
     ]);
 
@@ -63,6 +95,39 @@ export async function GET() {
         }
       : { express: 0, quick: 0, standard: 0 };
 
+    // ── Engine reliability roll-up ─────────────────────────────
+    // Heartbeat: how long ago did the engine tick? Engine writes to
+    // engine_heartbeats every poll cycle; > 5 min stale means the
+    // watchdog is likely already firing. Surface "alive / degraded /
+    // offline" so the public can see at-a-glance.
+    const hb = engineHeartbeatResult.rows[0];
+    const heartbeatAgeSec = hb?.last_tick_at
+      ? Math.max(0, Math.floor((Date.now() - new Date(hb.last_tick_at).getTime()) / 1000))
+      : null;
+    const engineStatus = !hb
+      ? "unknown"
+      : heartbeatAgeSec! < 90
+        ? "alive"
+        : heartbeatAgeSec! < 300
+          ? "degraded"
+          : "offline";
+
+    const m = engineMetricsResult.rows[0];
+    const firesAttempted24h = Number(m.fires_attempted_24h);
+    const firesSucceeded24h = Number(m.fires_succeeded_24h);
+    const firesFailed24h    = Number(m.fires_failed_24h);
+    const firesReverted24h  = Number(m.fires_reverted_24h);
+    // Success rate excludes reverted because revert == "trigger no
+    // longer hit, no-op exit" — not a failure to fire. The denominator
+    // is attempts that actually had to commit (succeeded + failed).
+    const committedFires = firesSucceeded24h + firesFailed24h;
+    const fireSuccessRate24h = committedFires > 0 ? firesSucceeded24h / committedFires : null;
+
+    const jupOk24h     = Number(m.jup_ok_24h);
+    const jupFailed24h = Number(m.jup_failed_24h);
+    const jupProbeTotal = jupOk24h + jupFailed24h;
+    const jupiterHealth24h = jupProbeTotal > 0 ? jupOk24h / jupProbeTotal : null;
+
     return NextResponse.json(
       {
         ok: true,
@@ -77,6 +142,17 @@ export async function GET() {
           averageLtv: s.avg_ltv ? Number(s.avg_ltv) / 100 : 0,
           averageLoanDurationDays: s.avg_duration_days ? Number(s.avg_duration_days) : 0,
           tierDistribution,
+          limitCloseEngine: {
+            status: engineStatus,
+            heartbeatAgeSec,
+            armedOrdersNow: hb?.armed_count != null ? Number(hb.armed_count) : null,
+            firesAttempted24h,
+            firesSucceeded24h,
+            firesFailed24h,
+            firesReverted24h,
+            fireSuccessRate24h,
+            jupiterHealth24h,
+          },
           timestamp: new Date().toISOString(),
         },
       },

@@ -64,6 +64,15 @@ function fmtSol(n: number) {
   return fmtNum(n, { maximumFractionDigits: 1 }) + " SOL";
 }
 
+function engineStatusLabel(status: EngineData["status"] | undefined): string {
+  switch (status) {
+    case "alive":    return "Alive";
+    case "degraded": return "Degraded";
+    case "offline":  return "Offline";
+    default:         return "—";
+  }
+}
+
 function relTime(iso: string | null) {
   if (!iso) return "—";
   const ms = Date.now() - new Date(iso).getTime();
@@ -74,8 +83,21 @@ function relTime(iso: string | null) {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
+interface EngineData {
+  status: "alive" | "degraded" | "offline" | "unknown";
+  heartbeatAgeSec: number | null;
+  armedOrdersNow: number | null;
+  firesAttempted24h: number;
+  firesSucceeded24h: number;
+  firesFailed24h: number;
+  firesReverted24h: number;
+  fireSuccessRate24h: number | null;
+  jupiterHealth24h: number | null;
+}
+
 export default function StatsClient() {
   const [data, setData] = useState<TransparencyData | null>(null);
+  const [engine, setEngine] = useState<EngineData | null>(null);
   const [error, setError] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
 
@@ -83,15 +105,30 @@ export default function StatsClient() {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetch("/api/v1/transparency", { cache: "no-store" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = (await res.json()) as TransparencyData;
-        if (!cancelled) {
-          setData(json);
-          setRefreshedAt(new Date());
+        // Fire both in parallel — transparency drives the heavyweight
+        // sections, /stats now also carries the limit-close engine
+        // rollup. Either failing shouldn't block the other from
+        // rendering, so we Promise.allSettled and degrade per slot.
+        const [tRes, sRes] = await Promise.allSettled([
+          fetch("/api/v1/transparency", { cache: "no-store" }),
+          fetch("/api/v1/stats", { cache: "no-store" }),
+        ]);
+        if (tRes.status === "fulfilled" && tRes.value.ok) {
+          const json = (await tRes.value.json()) as TransparencyData;
+          if (!cancelled) {
+            setData(json);
+            setRefreshedAt(new Date());
+          }
+        } else if (tRes.status === "fulfilled") {
+          throw new Error(`HTTP ${tRes.value.status}`);
+        }
+        if (sRes.status === "fulfilled" && sRes.value.ok) {
+          const json = (await sRes.value.json()) as { ok: boolean; data?: { limitCloseEngine?: EngineData } };
+          const e = json?.data?.limitCloseEngine;
+          if (e && !cancelled) setEngine(e);
         }
       } catch (err) {
-        console.warn("transparency fetch failed:", err);
+        console.warn("stats fetch failed:", err);
         if (!cancelled) setError(true);
       }
     }
@@ -248,6 +285,72 @@ export default function StatsClient() {
             <Stat label="Total" value={data ? fmtNum(data.users.total) : "—"} sub="All-time" />
           </div>
         </div>
+      </section>
+
+      {/* ── Autonomous limit-close engine reliability ──
+          Surfaces the engine that powers TP / SL on every loan. Off-
+          chain service that watches armed orders, fires repay+swap
+          when triggers hit. Public visibility builds trust that the
+          "set it and forget it" UX is backed by real infrastructure,
+          not vibes. */}
+      <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+        <SectionHead
+          title="Autonomous engine"
+          tag="Take-profit / stop-loss"
+        />
+        <p className="mb-5 text-[13px] leading-relaxed text-[var(--ink-faint)] sm:text-sm">
+          The off-chain service that watches every armed take-profit and
+          stop-loss order. Fires repay + sell the moment a trigger hits.
+          Numbers below are live — refreshes with the rest of /stats.
+        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">
+          <Stat
+            label="Engine status"
+            value={engineStatusLabel(engine?.status)}
+            sub={
+              engine?.heartbeatAgeSec != null
+                ? `Last tick ${engine.heartbeatAgeSec}s ago`
+                : "—"
+            }
+          />
+          <Stat
+            label="Armed right now"
+            value={engine?.armedOrdersNow != null ? fmtNum(engine.armedOrdersNow) : "—"}
+            sub="TPs + SLs watching"
+          />
+          <Stat
+            label="Fires last 24h"
+            value={engine ? fmtNum(engine.firesSucceeded24h) : "—"}
+            sub={
+              engine && engine.firesFailed24h > 0
+                ? `${engine.firesFailed24h} failed`
+                : "Successful only"
+            }
+          />
+          <Stat
+            label="Success rate 24h"
+            value={
+              engine?.fireSuccessRate24h != null
+                ? `${(engine.fireSuccessRate24h * 100).toFixed(1)}%`
+                : "—"
+            }
+            sub="Succeeded / committed"
+          />
+        </div>
+        <p className="mt-3 text-[11px] leading-relaxed text-[var(--ink-faint)] sm:text-[12px]">
+          {engine?.jupiterHealth24h != null && (
+            <>
+              Jupiter route health: <strong>{(engine.jupiterHealth24h * 100).toFixed(1)}%</strong> over the last 24h ·{" "}
+            </>
+          )}
+          Engine status is alive when the last tick was within 90s,
+          degraded between 90s and 5 min, offline beyond. Watchdogs
+          auto-restart on stall — see{" "}
+          <a href="/security" className="underline hover:text-[var(--ink-soft)]">
+            security & reliability
+          </a>{" "}
+          for the full architecture.
+        </p>
       </section>
 
       {/* ── Verify on-chain — every number above can be confirmed independently ── */}
