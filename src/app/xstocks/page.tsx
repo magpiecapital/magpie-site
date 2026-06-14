@@ -9,11 +9,11 @@ const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 export const metadata: Metadata = {
   title: "Borrow against tokenized stocks | Magpie",
   description:
-    "Lend SOL against your tokenized US stocks on Solana. Two LTV tiers calibrated to actual realized volatility. 13 xStocks approved. Weekend-cutoff origination, 5-layer scam protection.",
+    "Lend SOL against your tokenized US stocks on Solana. 13 xStocks approved. Weekend-cutoff origination, 5-layer scam protection. Higher-LTV RWA tiers (50/60/70%) ship with v3.",
   openGraph: {
     title: "Borrow against tokenized stocks | Magpie",
     description:
-      "Blue-chip xStocks at 50% LTV, crypto-adjacent at 30%, weekend-cutoff origination so oracle gaps don't liquidate you. Built for tokenized stocks, not retrofitted.",
+      "Tokenized stocks as collateral on Solana. Weekend-cutoff origination so oracle gaps don't liquidate you. Built for tokenized stocks, not retrofitted. Higher-LTV RWA tiers shipping with v3.",
   },
 };
 
