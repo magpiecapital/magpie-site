@@ -38,6 +38,66 @@ const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const PREFS_KEY = "magpie-dashboard-prefs";
 const THEME_KEY = "magpie-dashboard-theme";
 
+// Pre-borrow ladder presets, mirroring the TG wizard. Slices in basis
+// points, summing to 10000 per preset. Multipliers anchor off spot at
+// arm time (resolveMultiplierToPrice is applied per-leg server-side).
+const SITE_LADDER_PRESETS = {
+  tp: {
+    conservative: {
+      label: "1.5x / 2x / 3x (70/20/10)",
+      legs: [
+        { multiplier: 1.5, sliceBps: 7000 },
+        { multiplier: 2.0, sliceBps: 2000 },
+        { multiplier: 3.0, sliceBps: 1000 },
+      ],
+    },
+    balanced: {
+      label: "1.5x / 2.5x / 4x (50/30/20)",
+      legs: [
+        { multiplier: 1.5, sliceBps: 5000 },
+        { multiplier: 2.5, sliceBps: 3000 },
+        { multiplier: 4.0, sliceBps: 2000 },
+      ],
+    },
+    aggressive: {
+      label: "2x / 3x / 5x / 10x / 20x",
+      legs: [
+        { multiplier: 2.0, sliceBps: 3000 },
+        { multiplier: 3.0, sliceBps: 3000 },
+        { multiplier: 5.0, sliceBps: 2000 },
+        { multiplier: 10.0, sliceBps: 1000 },
+        { multiplier: 20.0, sliceBps: 1000 },
+      ],
+    },
+  },
+  sl: {
+    conservative: {
+      label: "0.85x / 0.7x / 0.5x (30/40/30)",
+      legs: [
+        { multiplier: 0.85, sliceBps: 3000 },
+        { multiplier: 0.70, sliceBps: 4000 },
+        { multiplier: 0.50, sliceBps: 3000 },
+      ],
+    },
+    balanced: {
+      label: "0.8x / 0.65x / 0.5x (50/30/20)",
+      legs: [
+        { multiplier: 0.80, sliceBps: 5000 },
+        { multiplier: 0.65, sliceBps: 3000 },
+        { multiplier: 0.50, sliceBps: 2000 },
+      ],
+    },
+    aggressive: {
+      label: "0.9x / 0.75x / 0.6x (70/20/10)",
+      legs: [
+        { multiplier: 0.90, sliceBps: 7000 },
+        { multiplier: 0.75, sliceBps: 2000 },
+        { multiplier: 0.60, sliceBps: 1000 },
+      ],
+    },
+  },
+} as const;
+
 /* ───────────────────────── THEME TOKENS ───────────────────────── */
 
 const THEMES = {
@@ -1047,14 +1107,27 @@ function DashboardPageInner() {
   } | null>(null);
   const [postBorrowTpBusy, setPostBorrowTpBusy] = useState(false);
   const [postBorrowTpError, setPostBorrowTpError] = useState<string | null>(null);
-  // Pre-borrow take-profit toggle. null = off; a number = arm at this
-  // multiplier automatically the moment the borrow tx confirms. Local
-  // state per page mount; the user re-picks for each borrow.
+  // Pre-borrow exit strategy. null = off; otherwise the picker has chosen
+  // a one-tap default (TP@2x, SL@0.7x, Bracket) or a ladder preset. Auto-
+  // arms the moment the borrow tx confirms. State resets each page load
+  // so the user picks intentionally per borrow.
+  type PreBorrowExits =
+    | { kind: "tp_default" }
+    | { kind: "sl_default" }
+    | { kind: "bracket" }
+    | { kind: "tp_ladder"; preset: "conservative" | "balanced" | "aggressive" }
+    | { kind: "sl_ladder"; preset: "conservative" | "balanced" | "aggressive" };
+  const [preBorrowExits, setPreBorrowExits] = useState<PreBorrowExits | null>(null);
+  // Legacy single-TP multiplier retained until all references are migrated;
+  // the new exit picker writes preBorrowExits instead.
   const [autoTakeProfitMultiplier, setAutoTakeProfitMultiplier] = useState<number | null>(null);
   // After a successful auto-arm we DON'T show the inline post-borrow prompt
   // (it would be redundant). This flag distinguishes "the auto path armed
   // it" from "user dismissed and might want to manually pick later".
   const [autoArmedAfterBorrow, setAutoArmedAfterBorrow] = useState<{ multiplier: number } | null>(null);
+  // Per-leg arm progress for ladder/bracket. Surfaced in the post-borrow
+  // banner so the user sees each leg landing in real time.
+  const [autoArmLegProgress, setAutoArmLegProgress] = useState<Array<{ label: string; ok: boolean | null; error?: string }>>([]);
   const [borrowError, setBorrowError] = useState<string | null>(null);
   const { sendTransaction, signTransaction, signMessage } = useWallet();
 
@@ -1404,12 +1477,88 @@ function DashboardPageInner() {
 
       setBorrowTx(signature);
 
-      // Pre-borrow toggle path: user pre-selected a multiplier before
-      // clicking borrow. Auto-arm right now without a second click. If
-      // the arm fails we still surface the manual 1-tap prompt below so
-      // the user can retry.
+      // Pre-borrow exit auto-arm path. The user pre-selected an exit
+      // strategy in the picker before clicking the tier — arm the legs
+      // now without a second navigation step. Each leg requires its
+      // own signed envelope, so multi-leg ladders prompt the wallet
+      // adapter once per leg. We surface per-leg progress so users can
+      // see each leg landing in real time.
       let autoArmedOk = false;
-      if (autoTakeProfitMultiplier != null && publicKey && signMessage) {
+      const armSingle = async (
+        label: string,
+        direction: "above" | "below",
+        multiplier: number,
+        sliceBps?: number,
+      ): Promise<{ ok: boolean; error?: string }> => {
+        try {
+          const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+          await armTakeProfit({
+            botApiUrl: botApi2,
+            signerPubkey: publicKey!.toBase58(),
+            signMessage: signMessage!,
+            request: {
+              from: publicKey!.toBase58(),
+              loanIdChain: chainLoanId.toString(),
+              direction,
+              target: { kind: "multiplier", multiplier },
+              slippageBps: direction === "below" ? 300 : 200,
+              sellDestination: "sol",
+              slicePctBps: sliceBps && sliceBps < 10000 ? sliceBps : undefined,
+            },
+          });
+          setAutoArmLegProgress((prev) => [...prev, { label, ok: true }]);
+          return { ok: true };
+        } catch (err) {
+          const msg = (err as Error).message || "arm failed";
+          console.warn(`[borrow] auto-arm leg "${label}" failed:`, msg);
+          setAutoArmLegProgress((prev) => [...prev, { label, ok: false, error: msg }]);
+          return { ok: false, error: msg };
+        }
+      };
+
+      if (preBorrowExits && publicKey && signMessage) {
+        setAutoArmLegProgress([]);
+        const ex = preBorrowExits;
+        if (ex.kind === "tp_default") {
+          const r = await armSingle("TP @ 2x", "above", 2);
+          autoArmedOk = r.ok;
+        } else if (ex.kind === "sl_default") {
+          const r = await armSingle("SL @ 0.7x", "below", 0.7);
+          autoArmedOk = r.ok;
+        } else if (ex.kind === "bracket") {
+          const tp = await armSingle("TP @ 2x", "above", 2);
+          // Only attempt SL if TP succeeded — otherwise user gets a
+          // confusing half-bracket. The post-borrow SL button stays
+          // available below for manual retry.
+          if (tp.ok) {
+            const sl = await armSingle("SL @ 0.7x", "below", 0.7);
+            autoArmedOk = tp.ok && sl.ok;
+          }
+        } else if (ex.kind === "tp_ladder" || ex.kind === "sl_ladder") {
+          const direction = ex.kind === "tp_ladder" ? "above" : "below";
+          const sidePrefix = direction === "above" ? "TP" : "SL";
+          const preset = ex.kind === "tp_ladder"
+            ? SITE_LADDER_PRESETS.tp[ex.preset]
+            : SITE_LADDER_PRESETS.sl[ex.preset];
+          let allOk = true;
+          for (const leg of preset.legs) {
+            const r = await armSingle(
+              `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
+              direction,
+              leg.multiplier,
+              leg.sliceBps,
+            );
+            if (!r.ok) { allOk = false; break; }
+          }
+          autoArmedOk = allOk;
+        }
+        if (autoArmedOk) {
+          setAutoArmedAfterBorrow({ multiplier: 0 });
+          setPreBorrowExits(null);
+        }
+      } else if (autoTakeProfitMultiplier != null && publicKey && signMessage) {
+        // Legacy single-TP path retained for callers that still write
+        // to autoTakeProfitMultiplier directly.
         try {
           const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
           await armTakeProfit({
@@ -1426,7 +1575,6 @@ function DashboardPageInner() {
           });
           autoArmedOk = true;
           setAutoArmedAfterBorrow({ multiplier: autoTakeProfitMultiplier });
-          // Clear the toggle so the next borrow is a clean choice.
           setAutoTakeProfitMultiplier(null);
         } catch (err) {
           console.warn("[borrow] auto take-profit arm failed (fall back to manual prompt):", err);
@@ -1473,7 +1621,7 @@ function DashboardPageInner() {
     } finally {
       setBorrowing(false);
     }
-  }, [publicKey, connected, connection, sendTransaction, signMessage, autoTakeProfitMultiplier, forceRefresh]);
+  }, [publicKey, connected, connection, sendTransaction, signMessage, autoTakeProfitMultiplier, preBorrowExits, forceRefresh]);
 
   // Inline post-borrow take-profit arming. Called from the 1-tap prompt
   // rendered right under the "Loan executed" banner. Uses the chain
@@ -3141,32 +3289,75 @@ function DashboardPageInner() {
                                     </div>
                                   )}
 
-                                  {/* Pre-borrow take-profit toggle.
-                                      The user picks a multiplier here BEFORE clicking a tier;
-                                      handleBorrow auto-arms the take-profit the moment the
-                                      borrow tx confirms. Zero extra clicks, one signed message
-                                      total (the borrow + the arm both come from the same wallet
-                                      session). */}
-                                  <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--d-border)] bg-[var(--d-surface)]/40 px-3 py-2">
-                                    <span className="text-[11px] font-semibold text-[var(--d-ink)]">Auto take-profit:</span>
-                                    {[null, 1.5, 2, 3, 5].map((m) => {
-                                      const selected = autoTakeProfitMultiplier === m;
-                                      const label = m === null ? "Off" : `${m}x`;
-                                      return (
-                                        <button
-                                          key={String(m)}
-                                          type="button"
-                                          onClick={() => setAutoTakeProfitMultiplier(m)}
-                                          className={`px-2 py-1 rounded-md text-[10px] font-semibold transition border ${selected ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]" : "border-[var(--d-border)] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]"}`}
-                                        >
-                                          {label}
-                                        </button>
-                                      );
-                                    })}
-                                    {autoTakeProfitMultiplier != null && (
-                                      <span className="text-[10px] text-[var(--d-ink-faint)] ml-auto">
-                                        Will arm at {autoTakeProfitMultiplier}x right after the borrow lands.
-                                      </span>
+                                  {/* Pre-borrow exit strategy picker.
+                                      Mirrors the TG /borrow wizard: user picks an exit plan
+                                      BEFORE selecting a tier; handleBorrow auto-arms the
+                                      configured exits the moment the borrow tx confirms.
+                                      Each leg requires its own signed envelope (Phantom
+                                      will prompt once per leg for ladders). */}
+                                  <div className="mb-3 rounded-lg border border-[var(--d-border)] bg-[var(--d-surface)]/40 px-3 py-2">
+                                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                                      <span className="text-[11px] font-semibold text-[var(--d-ink)]">Exit strategy:</span>
+                                      {([
+                                        { key: "off", label: "Off", value: null as PreBorrowExits | null },
+                                        { key: "tp", label: "TP @ 2x", value: { kind: "tp_default" } as PreBorrowExits },
+                                        { key: "sl", label: "SL @ 0.7x", value: { kind: "sl_default" } as PreBorrowExits },
+                                        { key: "br", label: "Bracket", value: { kind: "bracket" } as PreBorrowExits },
+                                      ]).map((opt) => {
+                                        const selected =
+                                          (opt.value === null && preBorrowExits === null) ||
+                                          (opt.value !== null && preBorrowExits?.kind === opt.value.kind);
+                                        return (
+                                          <button
+                                            key={opt.key}
+                                            type="button"
+                                            onClick={() => setPreBorrowExits(opt.value)}
+                                            className={`px-2 py-1 rounded-md text-[10px] font-semibold transition border ${selected ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]" : "border-[var(--d-border)] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]"}`}
+                                          >
+                                            {opt.label}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="text-[10px] text-[var(--d-ink-faint)]">Ladder:</span>
+                                      {(["conservative", "balanced", "aggressive"] as const).map((p) => {
+                                        const tpSelected = preBorrowExits?.kind === "tp_ladder" && preBorrowExits.preset === p;
+                                        const slSelected = preBorrowExits?.kind === "sl_ladder" && preBorrowExits.preset === p;
+                                        return (
+                                          <span key={p} className="flex items-center gap-1">
+                                            <button
+                                              type="button"
+                                              onClick={() => setPreBorrowExits({ kind: "tp_ladder", preset: p })}
+                                              className={`px-2 py-1 rounded-md text-[10px] font-semibold transition border ${tpSelected ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]" : "border-[var(--d-border)] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]"}`}
+                                              title={SITE_LADDER_PRESETS.tp[p].label}
+                                            >
+                                              TP {p[0].toUpperCase() + p.slice(1)}
+                                            </button>
+                                            <button
+                                              type="button"
+                                              onClick={() => setPreBorrowExits({ kind: "sl_ladder", preset: p })}
+                                              className={`px-2 py-1 rounded-md text-[10px] font-semibold transition border ${slSelected ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]" : "border-[var(--d-border)] text-[var(--d-ink-faint)] hover:text-[var(--d-ink)]"}`}
+                                              title={SITE_LADDER_PRESETS.sl[p].label}
+                                            >
+                                              SL {p[0].toUpperCase() + p.slice(1)}
+                                            </button>
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                    {preBorrowExits && (
+                                      <div className="text-[10px] text-[var(--d-ink-faint)] mt-2">
+                                        {preBorrowExits.kind === "tp_default" && "Will arm a single TP at 2x current price right after the borrow lands."}
+                                        {preBorrowExits.kind === "sl_default" && "Will arm a single stop at 0.7x current price right after the borrow lands."}
+                                        {preBorrowExits.kind === "bracket" && "Will arm TP at 2x AND SL at 0.7x — first to trigger wins."}
+                                        {preBorrowExits.kind === "tp_ladder" && (
+                                          <>Will arm a {SITE_LADDER_PRESETS.tp[preBorrowExits.preset].legs.length}-leg TP ladder: {SITE_LADDER_PRESETS.tp[preBorrowExits.preset].label}. One wallet prompt per leg.</>
+                                        )}
+                                        {preBorrowExits.kind === "sl_ladder" && (
+                                          <>Will arm a {SITE_LADDER_PRESETS.sl[preBorrowExits.preset].legs.length}-leg SL ladder: {SITE_LADDER_PRESETS.sl[preBorrowExits.preset].label}. One wallet prompt per leg.</>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
 
@@ -3247,18 +3438,30 @@ function DashboardPageInner() {
 
                                   {/* Borrow status messages */}
                                   {borrowTx && (
-                                    <div className="mt-4 flex items-start gap-2 rounded-lg bg-green-500/10 border border-green-500/20 px-3 py-2.5">
-                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" className="shrink-0 mt-0.5"><path d="M20 6L9 17l-5-5" /></svg>
-                                      <div className="text-[11px] text-green-400 leading-relaxed">
-                                        <span className="font-semibold">Loan executed!</span> SOL has been sent to your wallet.{" "}
-                                        <a href={`https://solscan.io/tx/${borrowTx}`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-medium">View transaction</a>
-                                        {autoArmedAfterBorrow && (
-                                          <>
-                                            {" · "}
-                                            <span className="font-semibold">Take-profit armed at {autoArmedAfterBorrow.multiplier}x.</span>
-                                          </>
-                                        )}
+                                    <div className="mt-4 rounded-lg bg-green-500/10 border border-green-500/20 px-3 py-2.5">
+                                      <div className="flex items-start gap-2">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" className="shrink-0 mt-0.5"><path d="M20 6L9 17l-5-5" /></svg>
+                                        <div className="text-[11px] text-green-400 leading-relaxed">
+                                          <span className="font-semibold">Loan executed!</span> SOL has been sent to your wallet.{" "}
+                                          <a href={`https://solscan.io/tx/${borrowTx}`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-medium">View transaction</a>
+                                          {autoArmedAfterBorrow && autoArmLegProgress.length === 0 && (
+                                            <>
+                                              {" · "}
+                                              <span className="font-semibold">Take-profit armed at {autoArmedAfterBorrow.multiplier}x.</span>
+                                            </>
+                                          )}
+                                        </div>
                                       </div>
+                                      {autoArmLegProgress.length > 0 && (
+                                        <div className="mt-2 pl-5 space-y-0.5">
+                                          {autoArmLegProgress.map((leg, i) => (
+                                            <div key={i} className={`text-[10px] ${leg.ok ? "text-green-400" : "text-red-400"}`}>
+                                              {leg.ok ? "✓" : "✗"} {leg.label}
+                                              {!leg.ok && leg.error && <span className="opacity-70"> — {leg.error}</span>}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
                                     </div>
                                   )}
                                   {borrowError && (
