@@ -50,8 +50,14 @@ export interface TakeProfitLoan {
   owed_sol: number;
   start_timestamp: string;
   due_timestamp: string;
+  /** Eligible to arm a take-profit (upside, "above" trigger). */
   is_eligible_for_takeprofit: boolean;
+  /** Reasons TP can't be armed (e.g. ["take_profit_already_armed"]). */
   ineligibility_reasons: string[];
+  /** Eligible to arm a stop-loss (downside, "below" trigger). 2026-06-13. */
+  is_eligible_for_stoploss?: boolean;
+  /** Reasons SL can't be armed (e.g. ["stop_loss_already_armed"]). 2026-06-13. */
+  stoploss_ineligibility_reasons?: string[];
 }
 
 export interface TakeProfitOrder {
@@ -59,6 +65,11 @@ export interface TakeProfitOrder {
   loan_id: number;
   trigger_kind: "mc_usd" | "price_usd" | "price_sol";
   trigger_value_micro: string;
+  /**
+   * "above" = take-profit (default; back-compat with pre-2026-06-13
+   * responses that didn't include the field). "below" = stop-loss.
+   */
+  trigger_direction?: "above" | "below";
   slippage_bps: number;
   sell_destination: "sol" | "usdc";
   status: "armed" | "firing" | "twap_in_progress" | "awaiting_user";
@@ -99,8 +110,10 @@ export async function fetchTakeProfitState(args: {
 export interface ArmTakeProfitRequest {
   from: string;            // signer wallet pubkey
   loanIdChain: string;     // chain loan_id
+  /** "above" = take-profit (default), "below" = stop-loss */
+  direction?: "above" | "below";
   target:                  // EXACTLY ONE of:
-    | { kind: "multiplier"; multiplier: number }     // 2 = "2x"
+    | { kind: "multiplier"; multiplier: number }     // 2 = "2x" TP, 0.7 = "0.7x" SL
     | { kind: "price_usd";  usd: number }            // explicit USD/token
     | { kind: "mc_usd";     mcDollars: number };     // explicit MC
   slippageBps?: number;    // default 200
@@ -127,6 +140,7 @@ export interface ArmedTakeProfitResult {
 function buildArmMessage(args: {
   from: string;
   loanIdChain: string;
+  direction: "above" | "below";
   target: ArmTakeProfitRequest["target"];
   slippageBps: number;
   dest: "sol" | "usdc";
@@ -139,6 +153,12 @@ function buildArmMessage(args: {
     `From: ${args.from}`,
     `LoanId: ${args.loanIdChain}`,
   ];
+  // Only emit Direction when SL is requested. Omitting it for TP keeps
+  // the wire format identical to pre-2026-06-13 messages and ensures
+  // older bot deploys (mid-deploy window) still parse cleanly.
+  if (args.direction === "below") {
+    lines.push(`Direction: below`);
+  }
   if (args.target.kind === "multiplier") {
     lines.push(`Target: ${args.target.multiplier}x`);
   } else if (args.target.kind === "price_usd") {
@@ -166,11 +186,13 @@ export async function armTakeProfit(args: {
 
   const slippageBps = args.request.slippageBps ?? 200;
   const dest = args.request.sellDestination ?? "sol";
+  const direction = args.request.direction ?? "above";
   const nonce = randomNonceHex();
   const issuedAt = new Date().toISOString();
   const messageText = buildArmMessage({
     from: args.request.from,
     loanIdChain: args.request.loanIdChain,
+    direction,
     target: args.request.target,
     slippageBps,
     dest,
