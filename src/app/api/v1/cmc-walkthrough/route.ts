@@ -136,10 +136,11 @@ A: Resample /icon-512.png to exactly 200x200 PNG with transparent
    background and re-upload. Don't argue size — just match exactly.
 
 Q: "What's your governance model?"
-A: "No governance token mechanism currently. May be added once the
-   protocol has demonstrated sustained operation. The token's
-   utility today is holder rewards (10% of every fee → SOL
-   distributions to $MAGPIE holders on 5-10 day cadence)."
+A: "Off-chain signal voting (Magpie Governance v0). $MAGPIE holders
+   vote on protocol parameters; operator executes ratified proposals.
+   The token's primary utility is holder rewards (70% of every loan
+   fee → SOL distributions to $MAGPIE holders on 5-10 day cadence,
+   per MGP-001 ratified 2026-06-13)."
 
 Q: "Who's the team?"
 A: "Anonymous founder/operator. Public-facing via @MagpieLoans on X.
