@@ -21,7 +21,7 @@ export const revalidate = 60;
 export const metadata: Metadata = {
   title: "$MAGPIE Tokenomics | Magpie Capital",
   description:
-    "$MAGPIE supply, allocation, and value-accrual mechanics. Fair-launched on pump.fun — no team allocation, no presale, no vesting. 10% of every protocol fee accrues to holders.",
+    "$MAGPIE supply, allocation, and value-accrual mechanics. Fair-launched on pump.fun — no team allocation, no presale, no vesting. 70% of every protocol fee accrues to holders (per MGP-001).",
 };
 
 async function safeBreakdown() {
@@ -136,12 +136,13 @@ export default async function TokenomicsPage() {
           </div>
           <div className="space-y-4 text-sm">
             <div>
-              <div className="font-semibold text-[var(--ink)]">10% of every loan fee → $MAGPIE holders</div>
+              <div className="font-semibold text-[var(--ink)]">70% of every loan fee → $MAGPIE holders</div>
               <p className="mt-1 text-[var(--ink-soft)] leading-relaxed">
                 Every borrow, extend, and repay on the protocol pays a
-                small fee. 10% of those fees accrue to a pool that gets
-                distributed pro-rata as SOL to every eligible $MAGPIE
-                wallet. Snapshots fire on a randomized 5–10 day cadence
+                small fee. Per MGP-001 (ratified 2026-06-13), 70% of
+                those fees accrue to a pool that gets distributed
+                pro-rata as SOL to every eligible $MAGPIE wallet.
+                Snapshots fire on a randomized 5–10 day cadence
                 — intentionally unpredictable to discourage timing
                 attempts.
               </p>

@@ -888,7 +888,7 @@ Body (canonical JSON, no extra whitespace):
                 ["A1", "Add or remove a collateral token", "Must clear screener risk thresholds; one token per proposal"],
                 ["A2", "Adjust tier LTV cap", "Within ±5 percentage points of current; per tier"],
                 ["A3", "Adjust tier fee rate", "Within ±0.5 percentage points of current"],
-                ["A4", "Adjust holder distribution share of loan fees", "Within 5%–15% (currently 10%); future loans only"],
+                ["A4", "Adjust holder distribution share of loan fees", "Within 5%–15% per tier-A vote (currently 70% via the one-time MGP-001 exception ratified 2026-06-13); future loans only"],
                 ["A5", "Adjust holder distribution cadence", "Within 3–14 days (currently randomized 5–10)"],
                 ["A6", "Non-binding signal poll on feature priorities", "Advisory only"],
               ]}

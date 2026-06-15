@@ -72,8 +72,20 @@ export interface TakeProfitOrder {
   trigger_direction?: "above" | "below";
   slippage_bps: number;
   sell_destination: "sol" | "usdc";
-  status: "armed" | "firing" | "twap_in_progress" | "awaiting_user";
+  status: "armed" | "firing" | "twap_in_progress" | "awaiting_user" | "fired" | "cancelled";
   armed_at: string;
+  /** Slice in basis points (10000 = 100% sell). Defaults to 10000 when
+   *  the order isn't part of a ladder. */
+  slice_pct?: number;
+  /** Same group_id across all legs of a single ladder arming. NULL for
+   *  non-ladder orders. */
+  ladder_group_id?: string | null;
+  /** Fire receipts — populated only when status = 'fired'. */
+  fired_at?: string | null;
+  proceeds_lamports?: string | null;
+  net_to_user_lamports?: string | null;
+  tx_signature_swap?: string | null;
+  tx_signature_repay?: string | null;
   expires_at: string | null;
   source: "tg" | "site" | "agent_x402";
   source_agent_pubkey: string | null;

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Hold $MAGPIE — earn 10% of every loan fee on Magpie.";
+export const alt = "Hold $MAGPIE — earn 70% of every loan fee on Magpie.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -53,7 +53,7 @@ export default async function Image() {
             </div>
           </div>
           <div style={{ fontSize: 28, color: "#5c5a52", letterSpacing: "-0.01em" }}>
-            10% of every loan fee auto-distributed to $MAGPIE holders. Pro-rata, paid in SOL, no staking.
+            70% of every loan fee auto-distributed to $MAGPIE holders. Pro-rata, paid in SOL, no staking.
           </div>
         </div>
 

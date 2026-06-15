@@ -239,7 +239,7 @@ export default async function Home() {
             </Link>
             <Link href="/holders" className="btn-ghost inline-flex items-center gap-1.5 text-sm sm:text-base">
               <DiamondIcon className="h-3.5 w-3.5" />
-              <span>Hold $MAGPIE · earn 10%</span>
+              <span>Hold $MAGPIE · earn 70%</span>
             </Link>
             <Link href="/credit" className="btn-ghost text-sm sm:text-base">
               ★ Build on-chain credit

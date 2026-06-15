@@ -583,7 +583,7 @@ export default function EarnPage() {
                 className="inline-flex items-center gap-2 rounded-full border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-2 text-sm font-medium text-[var(--ink-soft)] transition hover:border-[var(--accent)]/30 hover:text-[var(--accent-deep)]"
               >
                 <DiamondIcon className="h-3.5 w-3.5" />
-                <span>Prefer to earn without depositing? Hold $MAGPIE → 10% of every fee →</span>
+                <span>Prefer to earn without depositing? Hold $MAGPIE → 70% of every fee →</span>
               </Link>
             </div>
           </div>

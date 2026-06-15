@@ -43,7 +43,7 @@ export async function GET() {
           { id: "A1", topic: "Add or remove a collateral token", bounds: "Must clear screener risk thresholds; one token per proposal" },
           { id: "A2", topic: "Adjust tier LTV cap", bounds: "Within ±5 percentage points; per tier" },
           { id: "A3", topic: "Adjust tier fee rate", bounds: "Within ±0.5 percentage points; per tier" },
-          { id: "A4", topic: "Adjust holder distribution share", bounds: "Within 5%–15% (currently 10%); future loans only" },
+          { id: "A4", topic: "Adjust holder distribution share", bounds: "Within 5%–15% per tier-A vote (currently 70% via the one-time MGP-001 exception ratified 2026-06-13); future loans only" },
           { id: "A5", topic: "Adjust holder distribution cadence", bounds: "Within 3–14 days (currently randomized 5–10)" },
           { id: "A6", topic: "Non-binding signal poll on feature priorities", bounds: "Advisory only" },
         ],
