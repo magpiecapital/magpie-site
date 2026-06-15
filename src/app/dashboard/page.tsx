@@ -1122,7 +1122,13 @@ function DashboardPageInner() {
     // BigInt for localStorage round-trip safety — handleBorrow re-parses
     // strikeText at arm time to recover the typed value.
     | { kind: "custom_tp"; strikeText: string }
-    | { kind: "custom_sl"; strikeText: string };
+    | { kind: "custom_sl"; strikeText: string }
+    // Custom ladder: N user-defined rows of {strike, slice}. Direction
+    // is inferred per-leg via parseStrike's impliedDirection — all legs
+    // must agree (a single ladder is either all profit-side or all
+    // stop-side; we reject mixed direction at validation time). Slices
+    // are basis points (e.g. 7000 = 70%); sum must be <= 10000.
+    | { kind: "custom_ladder"; legs: Array<{ strikeText: string; sliceBps: number }> };
   const PRE_BORROW_EXITS_KEY = "magpie-pre-borrow-exits";
   const [customStrikeText, setCustomStrikeText] = useState<string>(() => {
     // If the persisted exit was a custom strike, prime the input so the
@@ -1139,6 +1145,28 @@ function DashboardPageInner() {
     return "";
   });
   const [customStrikeError, setCustomStrikeError] = useState<string | null>(null);
+  // Editable draft for the custom-ladder builder. Independent of
+  // preBorrowExits so the user can tweak rows freely; only when they
+  // hit "Use this ladder" does it get committed into preBorrowExits.
+  // Sum-of-slices is shown live; we cap at MAX_CUSTOM_LADDER_LEGS rows.
+  type CustomLadderRow = { strikeText: string; slicePct: string };
+  const MAX_CUSTOM_LADDER_LEGS = 6;
+  const [customLadderRows, setCustomLadderRows] = useState<CustomLadderRow[]>(() => {
+    if (typeof window === "undefined") return [{ strikeText: "", slicePct: "" }];
+    try {
+      const raw = window.localStorage.getItem(PRE_BORROW_EXITS_KEY);
+      if (!raw) return [{ strikeText: "", slicePct: "" }];
+      const parsed = JSON.parse(raw) as PreBorrowExits;
+      if (parsed?.kind === "custom_ladder") {
+        return parsed.legs.map((l) => ({
+          strikeText: l.strikeText,
+          slicePct: String(l.sliceBps / 100),
+        }));
+      }
+    } catch {}
+    return [{ strikeText: "", slicePct: "" }];
+  });
+  const [customLadderError, setCustomLadderError] = useState<string | null>(null);
   const [preBorrowExits, setPreBorrowExits] = useState<PreBorrowExits | null>(() => {
     // Hydrate from localStorage so the picker remembers the user's last
     // choice across page reloads. SSR-safe via typeof window check.
@@ -1672,6 +1700,106 @@ function DashboardPageInner() {
               direction,
               legs: remaining,
             });
+          }
+        } else if (ex.kind === "custom_ladder") {
+          // User-built ladder. Parse each leg's strikeText to derive
+          // direction + target shape. All legs must agree on direction
+          // (we already validated this at picker-commit time, but
+          // re-validate here defensively).
+          const parsedLegs = ex.legs.map((leg) => {
+            const parsed = parseStrike(leg.strikeText, {});
+            return { leg, parsed };
+          });
+          const directions = parsedLegs.map(
+            ({ parsed }) => (parsed.ok ? parsed.impliedDirection : null),
+          );
+          const directionsFiltered = directions.filter((d): d is "above" | "below" => d != null);
+          const direction: "above" | "below" =
+            directionsFiltered.length > 0 ? directionsFiltered[0] : "above";
+          if (directionsFiltered.some((d) => d !== direction)) {
+            setAutoArmLegProgress([{ label: "Custom ladder", ok: false, error: "legs disagree on direction (mix of profit + stop targets)" }]);
+          } else {
+            const sidePrefix = direction === "above" ? "Profit" : "Stop";
+            let allOk = true;
+            let firstFailIndex = -1;
+            for (let i = 0; i < parsedLegs.length; i++) {
+              const { leg, parsed } = parsedLegs[i];
+              if (!parsed.ok) {
+                setAutoArmLegProgress((prev) => [
+                  ...prev,
+                  { label: `${sidePrefix} leg ${i + 1}`, ok: false, error: parsed.error || "parse failed" },
+                ]);
+                allOk = false;
+                firstFailIndex = i;
+                break;
+              }
+              // Convert parser kind → armTakeProfit target shape.
+              let target: import("@/lib/solana/site-take-profit").ArmTakeProfitRequest["target"];
+              if (parsed.kind === "multiplier") {
+                target = { kind: "multiplier", multiplier: parsed.multiplier as number };
+              } else if (parsed.kind === "price_usd") {
+                target = { kind: "price_usd", usd: Number(parsed.valueMicro) / 1e6 };
+              } else if (parsed.kind === "mc_usd") {
+                target = { kind: "mc_usd", mcDollars: Number(parsed.valueMicro) / 1e6 };
+              } else {
+                setAutoArmLegProgress((prev) => [
+                  ...prev,
+                  { label: `${sidePrefix} leg ${i + 1}`, ok: false, error: "SOL-denominated strikes not supported pre-borrow yet" },
+                ]);
+                allOk = false;
+                firstFailIndex = i;
+                break;
+              }
+              const sliceLabel = `${sidePrefix} leg ${i + 1} @ ${parsed.normalizedDisplay} (${(leg.sliceBps / 100).toFixed(0)}%)`;
+              try {
+                const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+                await armTakeProfit({
+                  botApiUrl: botApi2,
+                  signerPubkey: publicKey!.toBase58(),
+                  signMessage: signMessage!,
+                  request: {
+                    from: publicKey!.toBase58(),
+                    loanIdChain: chainLoanId.toString(),
+                    direction,
+                    target,
+                    slippageBps: direction === "below" ? 300 : 200,
+                    sellDestination: "sol",
+                    slicePctBps: leg.sliceBps < 10000 ? leg.sliceBps : undefined,
+                  },
+                });
+                setAutoArmLegProgress((prev) => [...prev, { label: sliceLabel, ok: true }]);
+              } catch (err) {
+                const msg = (err as Error).message || "arm failed";
+                setAutoArmLegProgress((prev) => [...prev, { label: sliceLabel, ok: false, error: msg }]);
+                allOk = false;
+                firstFailIndex = i;
+                break;
+              }
+            }
+            autoArmedOk = allOk;
+            if (!allOk && firstFailIndex >= 0) {
+              // Capture the un-attempted tail for the Retry-remaining button.
+              // Only multiplier-kind legs survive — re-arming via target.multiplier
+              // is what the retry path supports today (price_usd / mc_usd targets
+              // would need a richer retry shape, deferred).
+              const remainingLegs: Array<{ multiplier: number; sliceBps: number; label: string }> = [];
+              parsedLegs.slice(firstFailIndex).forEach(({ leg, parsed }, idx) => {
+                if (parsed.ok && parsed.kind === "multiplier" && parsed.multiplier != null) {
+                  remainingLegs.push({
+                    multiplier: parsed.multiplier,
+                    sliceBps: leg.sliceBps,
+                    label: `${sidePrefix} leg ${firstFailIndex + idx + 1} @ ${parsed.normalizedDisplay} (${(leg.sliceBps / 100).toFixed(0)}%)`,
+                  });
+                }
+              });
+              if (remainingLegs.length > 0) {
+                setRetryRemainingLegs({
+                  loanIdChain: chainLoanId.toString(),
+                  direction,
+                  legs: remainingLegs,
+                });
+              }
+            }
           }
         }
         if (autoArmedOk) {
@@ -3561,6 +3689,137 @@ function DashboardPageInner() {
                                     {customStrikeError && (
                                       <div className="text-[10px] text-red-500 mt-1">{customStrikeError}</div>
                                     )}
+
+                                    {/* Custom ladder builder. Operator-requested
+                                        2026-06-14: the preset ladders weren't
+                                        flexible enough — users want to type
+                                        their own targets like "17M MC" + a
+                                        sell %. Each row pairs an MC/price/×
+                                        input with a slice %. Sum of slices
+                                        must be <= 100. */}
+                                    <div className="mt-2 rounded-lg border border-dashed border-[var(--d-border)] bg-[var(--d-bg-card)] p-2">
+                                      <div className="flex flex-wrap items-center justify-between gap-1.5 mb-1.5">
+                                        <span className="text-[10px] font-semibold text-[var(--d-ink)]">Build your own ladder</span>
+                                        <span className="text-[10px] text-[var(--d-ink-faint)]">
+                                          Sum:{" "}
+                                          <span className={
+                                            customLadderRows.reduce((s, r) => s + (Number(r.slicePct) || 0), 0) > 100
+                                              ? "text-red-500 font-semibold"
+                                              : ""
+                                          }>
+                                            {customLadderRows.reduce((s, r) => s + (Number(r.slicePct) || 0), 0).toFixed(0)}%
+                                          </span>
+                                        </span>
+                                      </div>
+                                      <div className="space-y-1.5">
+                                        {customLadderRows.map((row, i) => (
+                                          <div key={i} className="flex flex-wrap items-center gap-1.5">
+                                            <span className="text-[10px] text-[var(--d-ink-faint)] w-7 shrink-0">#{i + 1}</span>
+                                            <input
+                                              type="text"
+                                              value={row.strikeText}
+                                              onChange={(e) => {
+                                                setCustomLadderError(null);
+                                                setCustomLadderRows((prev) => prev.map((r, j) => j === i ? { ...r, strikeText: e.target.value } : r));
+                                              }}
+                                              placeholder="MC (e.g. 17M)"
+                                              className="flex-1 min-w-[90px] px-2 py-1 rounded-md text-[10px] border border-[var(--d-border)] bg-[var(--d-bg-panel,var(--d-bg))] text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)]"
+                                            />
+                                            <div className="flex items-center gap-0.5">
+                                              <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                value={row.slicePct}
+                                                onChange={(e) => {
+                                                  setCustomLadderError(null);
+                                                  setCustomLadderRows((prev) => prev.map((r, j) => j === i ? { ...r, slicePct: e.target.value.replace(/[^\d.]/g, "") } : r));
+                                                }}
+                                                placeholder="Sell %"
+                                                className="w-14 px-2 py-1 rounded-md text-[10px] border border-[var(--d-border)] bg-[var(--d-bg-panel,var(--d-bg))] text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)] text-right"
+                                              />
+                                              <span className="text-[10px] text-[var(--d-ink-faint)]">%</span>
+                                            </div>
+                                            {customLadderRows.length > 1 && (
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setCustomLadderError(null);
+                                                  setCustomLadderRows((prev) => prev.filter((_, j) => j !== i));
+                                                }}
+                                                title="Remove this step"
+                                                className="text-[10px] text-[var(--d-ink-faint)] hover:text-red-500 px-1"
+                                              >
+                                                ✕
+                                              </button>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <div className="flex items-center gap-2 mt-2">
+                                        <button
+                                          type="button"
+                                          disabled={customLadderRows.length >= MAX_CUSTOM_LADDER_LEGS}
+                                          onClick={() => {
+                                            setCustomLadderError(null);
+                                            setCustomLadderRows((prev) => prev.length < MAX_CUSTOM_LADDER_LEGS ? [...prev, { strikeText: "", slicePct: "" }] : prev);
+                                          }}
+                                          className="text-[10px] font-semibold text-[var(--d-ink)] hover:text-[var(--d-accent)] disabled:opacity-40"
+                                        >
+                                          + Add another step
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            // Validate every row: parse the strike, ensure slice
+                                            // is a positive integer, and check all legs agree on
+                                            // direction (all profit-side or all stop-side).
+                                            const legs: Array<{ strikeText: string; sliceBps: number }> = [];
+                                            const directions: Array<"above" | "below"> = [];
+                                            for (let i = 0; i < customLadderRows.length; i++) {
+                                              const r = customLadderRows[i];
+                                              if (!r.strikeText.trim()) {
+                                                setCustomLadderError(`Step ${i + 1}: type a price target.`);
+                                                return;
+                                              }
+                                              const parsed = parseStrike(r.strikeText.trim(), {});
+                                              if (!parsed.ok) {
+                                                setCustomLadderError(`Step ${i + 1}: ${parsed.error || "couldn't read that target"}.`);
+                                                return;
+                                              }
+                                              const slice = Number(r.slicePct);
+                                              if (!Number.isFinite(slice) || slice <= 0 || slice > 100) {
+                                                setCustomLadderError(`Step ${i + 1}: sell % must be between 0 and 100.`);
+                                                return;
+                                              }
+                                              if (parsed.impliedDirection) directions.push(parsed.impliedDirection);
+                                              legs.push({ strikeText: r.strikeText.trim(), sliceBps: Math.round(slice * 100) });
+                                            }
+                                            if (legs.length === 0) {
+                                              setCustomLadderError("Add at least one step.");
+                                              return;
+                                            }
+                                            const totalSlice = legs.reduce((s, l) => s + l.sliceBps, 0);
+                                            if (totalSlice > 10000) {
+                                              setCustomLadderError(`Total sell % is ${(totalSlice / 100).toFixed(0)}% — must be 100% or less.`);
+                                              return;
+                                            }
+                                            if (directions.length > 0 && directions.some((d) => d !== directions[0])) {
+                                              setCustomLadderError("All steps must go the same direction (all upside profit targets, or all downside stops).");
+                                              return;
+                                            }
+                                            setCustomLadderError(null);
+                                            setPreBorrowExits({ kind: "custom_ladder", legs });
+                                          }}
+                                          className="text-[10px] font-semibold px-2 py-1 rounded-md border border-[var(--d-accent)] text-[var(--d-accent-deep)] hover:bg-[var(--d-accent)] hover:text-[var(--d-accent-ink)]"
+                                        >
+                                          Use this ladder
+                                        </button>
+                                      </div>
+                                      {customLadderError && (
+                                        <div className="text-[10px] text-red-500 mt-1.5">{customLadderError}</div>
+                                      )}
+                                    </div>
+
                                     {preBorrowExits && (
                                       <div className="text-[10px] text-[var(--d-ink-faint)] mt-2">
                                         {preBorrowExits.kind === "tp_default" && "We'll auto-sell the moment price doubles (2× current) — locking in profit and repaying the loan in one shot."}
@@ -3577,6 +3836,19 @@ function DashboardPageInner() {
                                         )}
                                         {preBorrowExits.kind === "custom_sl" && (
                                           <>We'll auto-sell when price drops to <span className="font-mono">{preBorrowExits.strikeText}</span> (downside stop).</>
+                                        )}
+                                        {preBorrowExits.kind === "custom_ladder" && (
+                                          <>
+                                            We'll sell in {preBorrowExits.legs.length} steps:{" "}
+                                            {preBorrowExits.legs.map((l, i) => (
+                                              <span key={i}>
+                                                <span className="font-mono">{l.strikeText}</span>
+                                                {" "}
+                                                ({(l.sliceBps / 100).toFixed(0)}%)
+                                                {i < preBorrowExits.legs.length - 1 ? ", " : ""}
+                                              </span>
+                                            ))}. Your wallet will prompt once per step.
+                                          </>
                                         )}
                                       </div>
                                     )}
