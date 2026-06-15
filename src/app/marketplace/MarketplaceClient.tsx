@@ -874,7 +874,7 @@ export function MarketplaceClient({
             </Link>
           </div>
           <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
-            Pick the price you want to sell at <em>when you open the loan</em>, not after. We watch the chart 24/7, and the moment your target hits we repay the loan and send net SOL to your wallet — no chart-staring, no 3am alerts, no manual repay.
+            Pick the price you want to sell at <em>when you open the loan</em>, not after. Exit-armed loans live in our V4 vault. We watch the chart 24/7, and the moment your target hits we convert the collateral slice to SOL inside your loan — the loan stays open and the SOL sits in your vault. Repay when you&rsquo;re ready and walk away with the mix. No chart-staring, no 3am alerts.
           </p>
           <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4">
@@ -894,7 +894,7 @@ export function MarketplaceClient({
             </div>
           </div>
           <p className="mt-4 text-[11px] text-[var(--ink-faint)] leading-relaxed">
-            Best-effort fill at your target. We auto-retry with widening slippage up to a cap <em>you set</em>. 1% protocol fee on proceeds. Works on every supported memecoin and tokenized stock — same flow on Telegram, dashboard, and Pip.
+            Best-effort fill at your target. We auto-retry with widening slippage up to a cap <em>you set</em>. 1% protocol fee on proceeds. Exit-armed loans route to the V4 pool (30/25/20% LTV at 2/3/7-day terms); the converted SOL accumulates in your loan vault until you repay or liquidation. Works on every supported memecoin and tokenized stock — same flow on Telegram, dashboard, and Pip.
           </p>
         </section>
 
@@ -911,7 +911,7 @@ export function MarketplaceClient({
             <strong>If price moves against you mid-term</strong>, you have three protections:
             {" "}<Link href="/dashboard" className="font-medium text-[var(--accent-deep)] hover:underline">top up</Link> with more collateral,
             {" "}<Link href="/dashboard" className="font-medium text-[var(--accent-deep)] hover:underline">extend</Link> for another tier-length term,
-            or arm a <Link href="/dashboard" className="font-medium text-[var(--accent-deep)] hover:underline">stop-loss</Link> that auto-closes the position at a price you pick.
+            or arm a <Link href="/dashboard" className="font-medium text-[var(--accent-deep)] hover:underline">stop-loss</Link> that converts the collateral to SOL inside the loan vault at a price you pick (loans with an exit armed at borrow time live in the V4 pool).
             Lower LTV tiers also have more room before the value of collateral equals the loan, so they give you more time to react.
           </p>
         </section>

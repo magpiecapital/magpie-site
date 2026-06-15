@@ -45,6 +45,22 @@ ETF, and metal tokens routed through a separate RWA pool). Available
 collateral is enforced by the protocol — Magpie cannot accept
 arbitrary tokens.
 
+## Pool routing (V1 / V3 / V4)
+Plain borrows route by collateral category: V1 holds plain memecoin
+loans, V3 holds plain RWA loans. V4 is the exit-exclusive pool — any
+borrow that arms a take-profit, stop-loss, trailing stop, bracket, or
+ladder at borrow time lands on V4 regardless of category. V4 uses the
+same memecoin ladder as V1/V3 (30/25/20% LTV at 2/3/7-day terms,
+Express/Quick/Standard).
+
+V4's distinguishing mechanism: when an exit fires, the engine calls
+convert_collateral_slice, which swaps the collateral slice to SOL and
+keeps that SOL inside the per-loan vault. The loan stays ACTIVE. SOL
+only leaves the vault at repay or liquidation — there is no transfer
+to the borrower's wallet at fire time. The borrower chooses when to
+close the loan and walk away with the accumulated SOL + any remaining
+collateral.
+
 ## Fees
 The protocol charges the tier-specific fee at borrow time. There is
 NO ongoing interest — Magpie is fee-based, not interest-based. If
@@ -82,9 +98,12 @@ Users can arm limit-close orders on TG with:
   • /cancellimitorder <order_id>  — cancels an armed order
 
 Supported on BOTH memecoin and RWA (tokenized stocks, ETFs, metals)
-collateral. RWA orders route through the V2 lending pool
-automatically. Orders respect slippage caps; protocol takes a 1% fee
-on the proceeds.
+collateral. Borrows that arm an exit at borrow time route to the V4
+exit-exclusive pool; the engine fires via convert_collateral_slice,
+which converts collateral to SOL inside the loan vault while keeping
+the loan active. Orders respect slippage caps; protocol takes a 1%
+fee on the proceeds. SOL exits the vault at repay or liquidation, not
+at exit-fire time.
 
 Weekend behavior for RWA take-profits: stock-token Jupiter routes thin
 out hard outside US RTH. The engine holds RWA TP orders during the
