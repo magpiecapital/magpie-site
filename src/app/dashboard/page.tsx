@@ -1217,10 +1217,21 @@ function DashboardPageInner() {
   // When a multi-leg ladder partially arms (leg N fails, legs N+1...M
   // didn't get attempted), capture the un-armed remainder so the user
   // can one-tap retry just those instead of re-doing the picker.
+  // Retry state carries the FULL parsed target so custom ladders with
+  // mc_usd / price_usd strikes survive a partial-failure (e.g. user
+  // dismissed the wallet popup for leg 2). The earlier multiplier-only
+  // shape silently dropped non-multiplier legs from the recovery path,
+  // leaving the operator with a half-armed ladder and no UI to retry.
+  // Operator's $TROLL 2026-06-15 case: 80% at $82M MC armed, 20% at
+  // $84M MC never reached the server and was un-recoverable until now.
+  type RetryLegTarget =
+    | { kind: "multiplier"; multiplier: number }
+    | { kind: "mc_usd"; mcDollars: number }
+    | { kind: "price_usd"; usd: number };
   const [retryRemainingLegs, setRetryRemainingLegs] = useState<{
     loanIdChain: string;
     direction: "above" | "below";
-    legs: Array<{ multiplier: number; sliceBps: number; label: string }>;
+    legs: Array<{ target: RetryLegTarget; sliceBps: number; label: string }>;
   } | null>(null);
   const [retryingRemainingBusy, setRetryingRemainingBusy] = useState(false);
   const [borrowError, setBorrowError] = useState<string | null>(null);
@@ -1748,7 +1759,7 @@ function DashboardPageInner() {
           // without re-arming the legs that already landed.
           if (!allOk && firstFailIndex >= 0) {
             const remaining = preset.legs.slice(firstFailIndex).map((leg) => ({
-              multiplier: leg.multiplier,
+              target: { kind: "multiplier" as const, multiplier: leg.multiplier },
               sliceBps: leg.sliceBps,
               label: `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
             }));
@@ -1839,11 +1850,20 @@ function DashboardPageInner() {
               // Only multiplier-kind legs survive — re-arming via target.multiplier
               // is what the retry path supports today (price_usd / mc_usd targets
               // would need a richer retry shape, deferred).
-              const remainingLegs: Array<{ multiplier: number; sliceBps: number; label: string }> = [];
+              const remainingLegs: Array<{ target: RetryLegTarget; sliceBps: number; label: string }> = [];
               parsedLegs.slice(firstFailIndex).forEach(({ leg, parsed }, idx) => {
-                if (parsed.ok && parsed.kind === "multiplier" && parsed.multiplier != null) {
+                if (!parsed.ok) return;
+                let target: RetryLegTarget | null = null;
+                if (parsed.kind === "multiplier" && parsed.multiplier != null) {
+                  target = { kind: "multiplier", multiplier: parsed.multiplier };
+                } else if (parsed.kind === "mc_usd" && parsed.valueMicro != null) {
+                  target = { kind: "mc_usd", mcDollars: Number(parsed.valueMicro) / 1e6 };
+                } else if (parsed.kind === "price_usd" && parsed.valueMicro != null) {
+                  target = { kind: "price_usd", usd: Number(parsed.valueMicro) / 1e6 };
+                }
+                if (target) {
                   remainingLegs.push({
-                    multiplier: parsed.multiplier,
+                    target,
                     sliceBps: leg.sliceBps,
                     label: `${sidePrefix} leg ${firstFailIndex + idx + 1} @ ${parsed.normalizedDisplay} (${(leg.sliceBps / 100).toFixed(0)}%)`,
                   });
@@ -1950,7 +1970,11 @@ function DashboardPageInner() {
             from: publicKey.toBase58(),
             loanIdChain: retryRemainingLegs.loanIdChain,
             direction: retryRemainingLegs.direction,
-            target: { kind: "multiplier", multiplier: leg.multiplier },
+            // Use the full parsed target preserved at capture time —
+            // multiplier / mc_usd / price_usd all valid. Earlier
+            // multiplier-only retry path silently dropped non-multiplier
+            // legs (operator's $TROLL 2026-06-15 case with MC strikes).
+            target: leg.target,
             slippageBps: retryRemainingLegs.direction === "below" ? 300 : 200,
             sellDestination: "sol",
             slicePctBps: leg.sliceBps < 10000 ? leg.sliceBps : undefined,
