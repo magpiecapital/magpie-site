@@ -269,16 +269,14 @@ function LadderLeg({
   idx,
   leg,
   currentPriceUsd,
-  direction,
 }: {
   idx: number;
   leg: TakeProfitOrder;
   currentPriceUsd: number | null;
-  direction: "above" | "below";
 }) {
   const slicePct = sliceToPct(leg.slice_pct);
   const strikeLabel = formatTriggerInline(leg.trigger_kind, leg.trigger_value_micro);
-  const distance = distanceToFire(leg, currentPriceUsd, direction);
+  const distance = distanceToFire(leg, currentPriceUsd);
 
   const visual = visualForStatus(leg.status);
   const isCancelled = leg.status === "cancelled";
@@ -377,7 +375,6 @@ function LadderLeg({
 function distanceToFire(
   leg: TakeProfitOrder,
   currentPriceUsd: number | null,
-  direction: "above" | "below",
 ): { label: string } | null {
   if (currentPriceUsd == null || currentPriceUsd <= 0) return null;
   if (leg.trigger_kind !== "price_usd") return null;
