@@ -182,6 +182,7 @@ export default async function WhitepaperPage() {
                 {[
                   { label: "Memecoin risk tiers", detail: "Express (30% LTV, 2d), Quick (25% LTV, 3d), Standard (20% LTV, 7d)" },
                   { label: "RWA risk tiers (v3, live)", detail: "Express (50% LTV, 7d), Quick (60% LTV, 15d), Standard (70% LTV, 30d) — tokenized stocks / ETFs / metals" },
+                  { label: "V4 in-vault auto-sells (LIVE 2026-06-15)", detail: "Parallel program at HA1hgvsk… handles any borrow with an auto-sell attached. On fire, SOL stays inside the loan vault — loan stays Active until borrower repays. Flat 1% per ladder leg, no per-leg origination fee." },
                   { label: "Tiered origination fees (1.5–5%)", detail: "Memecoin: 3% / 2% / 1.5%. RWA: 2.5% / 3.5% / 5%. No hidden rates, no dynamic APR" },
                   { label: "Non-custodial wallet model", detail: "Exportable keys — import into Phantom, Solflare, any Solana wallet" },
                   { label: "On-chain program (Anchor)", detail: "Deterministic loan execution, collateral custody, and liquidation" },
