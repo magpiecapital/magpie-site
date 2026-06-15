@@ -166,9 +166,24 @@ export default async function DocsPage() {
           {/* ─── Architecture ─── */}
           <Section id="architecture" title="Architecture" chip="On-chain">
             <P>
-              Magpie&apos;s core lending logic lives in an Anchor program deployed on Solana
-              mainnet. The program is the single source of truth for loan state, collateral
-              custody, and liquidation execution.
+              Magpie&apos;s core lending logic lives in Anchor programs deployed on Solana
+              mainnet. Each program is the single source of truth for the loans it holds —
+              state, collateral custody, and liquidation execution.
+            </P>
+
+            <H3>Active programs</H3>
+            <P>
+              Plain borrows route by collateral category: V1 services memecoin loans, V3
+              services RWA loans (tokenized stocks, ETFs, metals). V4 is the exit-exclusive
+              pool — any borrow that arms a take-profit, stop-loss, trailing stop, bracket
+              or ladder at borrow time routes to V4 instead. V4 uses the same memecoin
+              ladder (30/25/20% LTV at 2/3/7-day terms) and adds the
+              <code className="mx-1 rounded bg-[var(--surface)] px-1 font-mono text-[12px]">convert_collateral_slice</code>
+              instruction: when an exit fires, collateral converts to SOL inside the
+              per-loan vault and the loan stays active. SOL only leaves the vault at
+              repay or liquidation — no transfers to the borrower&apos;s wallet at fire
+              time. Existing V1/V2 loans wind down on their original programs; routing
+              decisions only affect new borrows.
             </P>
 
             <H3>Program Derived Addresses</H3>
@@ -226,7 +241,7 @@ export default async function DocsPage() {
                 {
                   n: "3",
                   title: "Tier selection & quote",
-                  body: "User selects a tier. Memecoin tiers: Express (30% LTV, 2 days), Quick (25% LTV, 3 days), Standard (20% LTV, 7 days). RWA tiers (v3): Express (50% LTV, 7 days, 2.5% fee), Quick (60% LTV, 15 days, 3.5% fee), Standard (70% LTV, 30 days, 5% fee). Oracle pricing via Jupiter API values the collateral in SOL and generates a quote.",
+                  body: "User selects a tier. Memecoin tiers: Express (30% LTV, 2 days), Quick (25% LTV, 3 days), Standard (20% LTV, 7 days). RWA tiers (v3): Express (50% LTV, 7 days, 2.5% fee), Quick (60% LTV, 15 days, 3.5% fee), Standard (70% LTV, 30 days, 5% fee). If the user arms an exit (take-profit, stop-loss, trailing, bracket, ladder) at borrow time, the loan routes to V4 instead — same memecoin ladder (30/25/20% LTV at 2/3/7 days), but the loan vault accumulates SOL when an exit fires rather than transferring out. Oracle pricing via Jupiter API values the collateral in SOL and generates a quote.",
                 },
                 {
                   n: "4",
