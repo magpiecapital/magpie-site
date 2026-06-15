@@ -2,28 +2,30 @@ import { Mark } from "@/components/Logo";
 
 export const metadata = {
   title: "Magpie · V4",
-  description: "The auto-sell fires. The loan stays open.",
+  description: "Borrow against your bag. Lock the win. Close on your tempo.",
 };
 
 /**
- * V4 deck — VC-pitch posture. Inter throughout (the Fraunces display
- * serif read as literary/playful, not professional). Generous
- * whitespace, restrained amber accent reserved for the price tick on
- * the worked example. Designed to lead a video demo.
+ * V4 deck — single-viewport pitch (h-screen, no scroll). The page IS
+ * a dialogue: the user's mental model on the left, Magpie's one-word
+ * answer on the right. Everything else is whitespace.
+ *
+ * Designed to be screen-recorded on a desktop viewport; constrained
+ * to fit a 1440×900 minimum without scrolling.
  *
  * Direct URL only — not linked from public nav.
  */
 export default function V4DeckPage() {
   return (
     <main
-      className="flex min-h-screen w-full flex-col font-sans antialiased"
+      className="flex h-screen w-screen flex-col overflow-hidden font-sans antialiased"
       style={{ background: "var(--bg)", color: "var(--ink)" }}
     >
-      <div className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-12 pt-10 pb-12 md:px-20 md:pt-14 md:pb-16">
+      <div className="mx-auto flex h-full w-full max-w-[1280px] flex-col px-10 py-8 md:px-20 md:py-10">
         {/* ── Letterhead ── */}
-        <header className="flex items-center justify-between">
+        <header className="flex flex-shrink-0 items-center justify-between">
           <div className="flex items-center gap-3">
-            <Mark size={32} variant="static" />
+            <Mark size={28} variant="static" />
             <div
               className="text-[11px] font-medium uppercase tracking-[0.32em]"
               style={{ color: "var(--ink)" }}
@@ -35,140 +37,88 @@ export default function V4DeckPage() {
             className="text-[10px] font-medium uppercase tracking-[0.36em]"
             style={{ color: "var(--ink-faint)" }}
           >
-            V4 / Lending program
+            V4 / Lending Program
           </div>
         </header>
 
-        {/* ── Hero — the thesis in two lines ── */}
-        <section className="pt-20 pb-14 md:pt-24 md:pb-16">
-          <div
-            className="text-[14px] font-medium uppercase tracking-[0.24em] mb-7"
-            style={{ color: "var(--accent-deep)" }}
-          >
-            The new lending primitive
-          </div>
-          <h1
-            className="text-[56px] font-medium leading-[1.02] tracking-[-0.035em] md:text-[80px]"
-            style={{ color: "var(--ink)" }}
-          >
-            Lock the win.
-            <br />
-            Keep the loan open.
-          </h1>
-          <p
-            className="mt-8 max-w-[680px] text-[19px] leading-[1.5] font-normal"
-            style={{ color: "var(--ink-soft)" }}
-          >
-            V4 separates the auto-sell from the loan close. Your price target
-            fires the moment it hits. The proceeds sit inside your loan vault.
-            You close on your timeline — not the market&apos;s.
-          </p>
-        </section>
-
-        {/* ── Worked example — the Fartcoin story ── */}
-        <section
-          className="rounded-2xl border px-10 py-12 md:px-14 md:py-14"
-          style={{
-            borderColor: "var(--hairline)",
-            background: "var(--bg-elevated)",
-          }}
-        >
-          <div className="flex items-baseline justify-between mb-10">
-            <div
-              className="text-[10px] font-semibold uppercase tracking-[0.32em]"
-              style={{ color: "var(--ink-faint)" }}
-            >
-              Worked example
-            </div>
-            <div
-              className="text-[11px] font-medium tracking-[0.04em]"
-              style={{ color: "var(--ink-faint)" }}
-            >
-              $FARTCOIN&nbsp;·&nbsp;illustrative
-            </div>
-          </div>
-
-          {/* Price arc — visual punch */}
-          <div className="grid grid-cols-[1fr,auto,1fr] items-center gap-6 md:gap-10 mb-12">
+        {/* ── The dialogue — fills the rest of the viewport ── */}
+        <section className="flex flex-1 items-center">
+          <div className="grid w-full items-center gap-12 md:grid-cols-[1.45fr_1fr] md:gap-20">
+            {/* Left — the user's mental model, in their voice */}
             <div>
               <div
-                className="text-[10px] font-medium uppercase tracking-[0.28em] mb-2"
+                className="mb-6 text-[10px] font-semibold uppercase tracking-[0.32em]"
                 style={{ color: "var(--ink-faint)" }}
               >
-                Entry
+                A holder asks
               </div>
-              <div
-                className="text-[40px] font-medium tabular-nums tracking-[-0.025em] md:text-[52px]"
+              <p
+                className="text-[18px] font-normal leading-[1.55] tracking-[-0.005em] md:text-[21px] md:leading-[1.5]"
                 style={{ color: "var(--ink)" }}
               >
-                $0.50
-              </div>
+                &ldquo;I hold 10K{" "}
+                <span className="font-medium">$FARTCOIN</span> at{" "}
+                <span className="tabular-nums">$119M</span> market cap. I want
+                some SOL out as a loan.
+              </p>
+              <p
+                className="mt-5 text-[18px] font-normal leading-[1.55] tracking-[-0.005em] md:text-[21px] md:leading-[1.5]"
+                style={{ color: "var(--ink)" }}
+              >
+                But if it pumps to{" "}
+                <span className="tabular-nums">$145M</span> while my loan is
+                out, I want to lock that profit in — before it falls back to{" "}
+                <span className="tabular-nums">$130M</span>, or all the way
+                back to my entry at{" "}
+                <span className="tabular-nums">$119M</span>.
+              </p>
+              <p
+                className="mt-5 text-[18px] font-normal leading-[1.55] tracking-[-0.005em] md:text-[21px] md:leading-[1.5]"
+                style={{ color: "var(--ink)" }}
+              >
+                Can Magpie do both for me — without me babysitting a chart and
+                rushing to repay the loan just to sell?&rdquo;
+              </p>
             </div>
-            <div
-              className="text-[28px] font-light tracking-[-0.02em]"
-              style={{ color: "var(--ink-faint)" }}
-            >
-              →
-            </div>
-            <div className="text-right">
+
+            {/* Right — the answer */}
+            <div className="flex flex-col">
               <div
-                className="text-[10px] font-medium uppercase tracking-[0.28em] mb-2"
+                className="mb-6 text-[10px] font-semibold uppercase tracking-[0.32em]"
                 style={{ color: "var(--accent-deep)" }}
               >
-                Strike hits
+                Magpie V4
               </div>
               <div
-                className="text-[40px] font-medium tabular-nums tracking-[-0.025em] md:text-[52px]"
+                className="text-[128px] font-medium leading-[0.88] tracking-[-0.055em] md:text-[176px]"
                 style={{ color: "var(--accent-deep)" }}
               >
-                $1.50
+                Yes.
               </div>
+              <p
+                className="mt-8 text-[15px] font-normal leading-[1.6] md:text-[16px]"
+                style={{ color: "var(--ink-soft)" }}
+              >
+                Borrow against your bag. Arm an auto-sell at your strike.
+                <br />
+                When it fires, the SOL lands inside your loan vault.
+                <br />
+                Close the loan on your timeline — not the market&apos;s.
+              </p>
             </div>
           </div>
-
-          {/* Three-act story */}
-          <div className="grid gap-10 md:grid-cols-3 md:gap-14">
-            <Act
-              n="01"
-              title="Borrow"
-              line="Lock $FARTCOIN as collateral. Take SOL out at 30% LTV. Your bag stays yours."
-            />
-            <Act
-              n="02"
-              title="Auto-sell fires"
-              line="$FARTCOIN hits $1.50. Your slice converts to SOL on-chain. SOL lands inside your loan vault."
-              accent
-            />
-            <Act
-              n="03"
-              title="Close on your tempo"
-              line="Two weeks later, the dip comes. You close the loan, take your SOL profit, and buy back in."
-            />
-          </div>
-        </section>
-
-        {/* ── Why this matters — single sentence ── */}
-        <section className="pt-14 pb-2">
-          <p
-            className="max-w-[740px] text-[17px] leading-[1.55] font-normal"
-            style={{ color: "var(--ink-soft)" }}
-          >
-            Every other lending protocol forces a choice: hold the bag and
-            pray, or sell and kill the upside. V4 is the first program where
-            the auto-sell and the loan close are two separate decisions.
-          </p>
         </section>
 
         {/* ── Footer ── */}
         <footer
-          className="mt-auto flex items-center justify-between border-t pt-6"
+          className="flex flex-shrink-0 items-center justify-between border-t pt-5"
           style={{ borderColor: "var(--hairline)" }}
         >
           <div
             className="text-[10px] font-medium uppercase tracking-[0.32em]"
             style={{ color: "var(--ink-faint)" }}
           >
-            Live · Solana mainnet
+            Live · Solana Mainnet
           </div>
           <div
             className="text-[10px] font-medium uppercase tracking-[0.32em]"
@@ -179,41 +129,5 @@ export default function V4DeckPage() {
         </footer>
       </div>
     </main>
-  );
-}
-
-/* ── Act card — used by the worked-example three-column ── */
-function Act({
-  n,
-  title,
-  line,
-  accent = false,
-}: {
-  n: string;
-  title: string;
-  line: string;
-  accent?: boolean;
-}) {
-  return (
-    <div className="flex flex-col">
-      <div
-        className="text-[10px] font-semibold tabular-nums tracking-[0.18em] mb-4"
-        style={{ color: accent ? "var(--accent-deep)" : "var(--ink-faint)" }}
-      >
-        {n}
-      </div>
-      <div
-        className="text-[20px] font-medium tracking-[-0.015em] mb-3"
-        style={{ color: "var(--ink)" }}
-      >
-        {title}
-      </div>
-      <div
-        className="text-[14px] leading-[1.55] font-normal"
-        style={{ color: "var(--ink-soft)" }}
-      >
-        {line}
-      </div>
-    </div>
   );
 }
