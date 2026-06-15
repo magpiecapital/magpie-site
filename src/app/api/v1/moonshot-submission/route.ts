@@ -80,7 +80,7 @@ a meme.
 ───────────────────────────────────────────────────────────────────
 ONE-LINER (for catalog / search-result snippet)
 ───────────────────────────────────────────────────────────────────
-The protocol token for Magpie Capital — Solana permissionless lending. 10% of every loan fee → SOL to $MAGPIE holders.
+The protocol token for Magpie Capital — Solana permissionless lending. 70% of every loan fee → SOL to $MAGPIE holders (per MGP-001).
 
 ───────────────────────────────────────────────────────────────────
 CONTRACT

@@ -163,10 +163,11 @@ on-chain liquidation enforcement, an on-chain credit oracle that
 rewards repayment history with better terms, and a paid agent API
 via x402 that lets AI agents query protocol data without keys.
 
-10% of every loan fee accrues to $MAGPIE holders as SOL distributions
-on a randomized 5–10 day cadence. No claim required; SOL lands in
-holder wallets automatically. Collateralized $MAGPIE still earns —
-holders aren't punished for using the protocol productively.
+70% of every loan fee accrues to $MAGPIE holders as SOL distributions
+on a randomized 5–10 day cadence (per MGP-001, ratified 2026-06-13).
+No claim required; SOL lands in holder wallets automatically.
+Collateralized $MAGPIE still earns — holders aren't punished for
+using the protocol productively.
 
 Fair-launched on pump.fun in March 2026: 100% of supply hit the
 bonding curve at launch, no team allocation, no presale, no vesting.
@@ -227,7 +228,8 @@ Fields, top to bottom — COPY-PASTE the bold blocks exactly:
   ▼ paste this block ▼
   ──────────────────────────────────────────────────────────────────
 Permissionless SOL lending against memecoin and tokenized-stock
-collateral on Solana. 10% of every loan fee → SOL to $MAGPIE holders.
+collateral on Solana. 70% of every loan fee → SOL to $MAGPIE holders
+(per MGP-001, ratified 2026-06-13).
   ──────────────────────────────────────────────────────────────────
 
   Long description (for the project page):
@@ -345,11 +347,13 @@ A: ${base}/icon-200.png is already exactly 200×200 PNG with RGBA.
    resample on their side.
 
 Q: What's your governance model?
-A: No on-chain governance currently. The token's utility today is
-   holder rewards (10% of every protocol fee → SOL distributions to
-   $MAGPIE holders on 5–10 day randomized cadence) and use as
-   permissionless collateral within the protocol. Governance may be
-   added once the protocol has demonstrated sustained operation.
+A: Off-chain signal voting (Magpie Governance v0). $MAGPIE holders
+   vote on protocol parameters with a snapshot-weighted ballot;
+   operator executes ratified proposals. The token's primary utility
+   is holder rewards (70% of every protocol fee → SOL distributions
+   to $MAGPIE holders on 5–10 day randomized cadence, per MGP-001
+   ratified 2026-06-13) and use as permissionless collateral within
+   the protocol.
 
 Q: Who's the team?
 A: Anonymous founder + operator. Public-facing via @MagpieLoans on X.

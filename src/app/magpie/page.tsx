@@ -58,8 +58,8 @@ export default async function MagpiePage() {
           <p className="mt-4 text-base text-[var(--ink-soft)] max-w-prose">
             Permissionless lending protocol on Solana. Borrow SOL against memecoin
             and tokenized-stock collateral, supply liquidity to earn yield, and
-            build an on-chain credit score. $MAGPIE holders receive 10% of every
-            loan fee as SOL distributions.
+            build an on-chain credit score. $MAGPIE holders receive 70% of every
+            loan fee as SOL distributions (per MGP-001, ratified 2026-06-13).
           </p>
         </div>
 

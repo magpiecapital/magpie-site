@@ -677,7 +677,7 @@ const ONCHAIN_ACCOUNTS: { label: string; address: string; note: string }[] = [
   {
     label: "$MAGPIE mint",
     address: "9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump",
-    note: "Token-2022 mint. Holders earn 10% of every loan fee — distributions go straight from the lender authority to holder wallets.",
+    note: "Token-2022 mint. Holders earn 70% of every loan fee (per MGP-001) — distributions go straight from the lender authority to holder wallets.",
   },
 ];
 
