@@ -207,6 +207,13 @@ body::after {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+
+/* Used by LadderRollup status dots when a leg is firing — gentle
+ * pulse so the user can see something is happening live. */
+@keyframes ladder-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(1.35); }
+}
 .fade-in { animation: fadeIn 1.2s ease-out both; }
 
 @keyframes pulse-dot {
