@@ -925,7 +925,22 @@ function DashboardPageInner() {
      * the site repay flow to target the correct on-chain program. */
     program_id: string | null;
     status: string;
-    collateral: { mint: string; symbol: string | null; name: string | null; decimals: number | null; image: string | null; category: string; amount: string | null };
+    collateral: {
+      mint: string;
+      symbol: string | null;
+      name: string | null;
+      decimals: number | null;
+      image: string | null;
+      category: string;
+      amount: string | null;
+      // V4 mixed-collateral fields. For V1/V2/V3 and pre-fire V4,
+      // current_amount === amount, sol_proceeds_lamports === "0",
+      // auto_sells_fired === 0 — render the mixed display only when
+      // auto_sells_fired > 0.
+      current_amount?: string | null;
+      sol_proceeds_lamports?: string | null;
+      auto_sells_fired?: number;
+    };
     loan: { amount_lamports: string | null; original_amount_lamports: string | null; ltv_percentage: number; duration_days: number };
     timestamps: { started_at: string; due_at: string; updated_at: string };
     // Live collateral-health snapshot — null for non-active loans or
@@ -3171,9 +3186,31 @@ function DashboardPageInner() {
                                     )}
                                   </div>
                                   <div className="text-[11px] text-[var(--d-ink-soft)]">
-                                    {l.collateral.amount && l.collateral.decimals !== null
-                                      ? formatTokenAmount(l.collateral.amount, l.collateral.decimals)
-                                      : "—"} collateral
+                                    {(() => {
+                                      // V4 mixed-collateral rendering: when an auto-sell has
+                                      // converted a slice of SPL to SOL, the user's collateral
+                                      // is now (remaining SPL) + (SOL in vault). Both come
+                                      // back to them at repay. The unmixed case (V1/V2/V3 or
+                                      // V4 pre-fire) falls through to the original display.
+                                      const mixed = (l.collateral.auto_sells_fired ?? 0) > 0;
+                                      const decimals = l.collateral.decimals;
+                                      if (decimals === null) return "—";
+                                      if (mixed) {
+                                        const splAmt = l.collateral.current_amount ?? l.collateral.amount;
+                                        const vaultLamports = BigInt(l.collateral.sol_proceeds_lamports ?? "0");
+                                        const vaultSol = Number(vaultLamports) / LAMPORTS_PER_SOL;
+                                        return (
+                                          <>
+                                            {splAmt
+                                              ? formatTokenAmount(splAmt, decimals)
+                                              : "—"} {l.collateral.symbol || ""} + {vaultSol.toFixed(3)} SOL <span className="text-[var(--d-ink-faint)]">vault</span>
+                                          </>
+                                        );
+                                      }
+                                      return l.collateral.amount
+                                        ? <>{formatTokenAmount(l.collateral.amount, decimals)} collateral</>
+                                        : "—";
+                                    })()}
                                     {l.health?.liquidation_price_sol != null && (
                                       <>
                                         {" · "}
