@@ -32,6 +32,7 @@ import {
 } from "@/lib/solana/site-take-profit";
 import { parseStrike } from "@/lib/strike-price-parser";
 import { LadderPanel } from "./LadderPanel";
+import { LadderRollup } from "./LadderRollup";
 
 /**
  * One-shot preview helper for the free-text strike input. Wraps the
@@ -123,6 +124,17 @@ export function TakeProfitCard(props: Props) {
 
   return (
     <div className="mt-2 flex flex-col gap-1.5">
+      {/* Ladder rollup — renders only when this loan has a ladder
+       *  (orders sharing a ladder_group_id). Lets the user see every
+       *  leg with its strike, slice %, and fire status without having
+       *  to expand any slot. Per-direction (TP and SL ladders render
+       *  as separate cards). Non-ladder loans see nothing here and
+       *  fall through to the existing armed badge in LimitSlot. */}
+      <LadderRollup
+        orders={props.state.orders}
+        loanDbId={props.loanDbId}
+        collateralSymbol={props.collateralSymbol}
+      />
       <LimitSlot
         direction="above"
         loan={loan}
