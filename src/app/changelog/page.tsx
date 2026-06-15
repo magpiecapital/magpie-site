@@ -20,16 +20,17 @@ interface Entry {
 const ENTRIES: Entry[] = [
   {
     date: "June 15, 2026",
-    tag: "Feature",
-    title: "V4 lending program in development — auto-sell stays inside the loan vault",
+    tag: "Launch",
+    title: "V4 in-vault auto-sells — LIVE on mainnet",
     bullets: [
-      "V4 introduces a fundamentally new model: when an auto-sell fires, the collateral converts to SOL but the SOL STAYS INSIDE THE LOAN VAULT. The loan stays open. Principal + fee unchanged. The user decides when to close the loan and claim the mix (remaining tokens + accumulated SOL)",
-      "Why this matters: users get to lock in price without triggering a forced close. Tax-timing control. Repay-when-ready control. Brokerage-style stop semantics applied to on-chain lending",
-      "New on-chain instruction \\`convert_collateral_slice\\`: engine-authority signer only, Pattern B Jupiter CPI (aggregator-agnostic), strict slippage cap enforcement, 1% protocol fee skim",
-      "Same dual-tier ladder as V3 (memecoin 30/25/20% LTV + RWA 50/60/70% LTV) — V4 changes the auto-sell semantics, not the borrow economics",
-      "Status: program code is written and compiles clean. Off-chain side (bot, engine, site, Pip) all recognize V4 as a configured program ahead of mainnet deploy. Routing flag is off by default; V4 sits idle until operator flips it",
-      "Existing V1/V2/V3 loans are unaffected — V4 is a parallel deploy. Only NEW borrows route to V4 once the flag is on; existing loans wind down on their original program",
-      "5 SOL will move from the V2 pool to seed V4's lending vault at flip time (operator-authorized 2026-06-15)",
+      "V4 introduces a fundamentally new model: when an auto-sell fires, the collateral converts to SOL but the SOL STAYS INSIDE THE LOAN VAULT. The loan stays Active. The user decides when to close and claim the mix (remaining tokens + accumulated SOL)",
+      "Why this matters: lock in price without triggering a forced close. Tax-timing control. Repay-when-ready control. Brokerage-style stop semantics applied to on-chain lending",
+      "Every NEW borrow that ALSO attaches an auto-sell (TP / SL / bracket / ladder) at borrow time now lands on V4 automatically — the bot routes based on whether an exit is attached, not category. Plain borrows continue to use V1 (memecoin) and V3 (RWA)",
+      "V4 ladders are MUCH cheaper than legacy V1/V3 ladders: flat 1% per leg, no per-leg origination fee. A 4-leg V4 ladder costs ~4% in protocol fees vs ~20% on the legacy re-borrow model",
+      "When a leg fires, you get a DM showing the slice that sold, the SOL deposited into your loan vault, and the cumulative vault total. The loan stays Active until you /repay",
+      "Heads up on repay funding: V4 repay needs the FULL owed amount in liquid SOL in your wallet. The vault SOL flows back to your wallet in the same tx but doesn't pre-pay the loan. Plan to keep ~LTV worth of SOL around through the life of any V4 loan",
+      "Existing V1/V2/V3 loans are unaffected — V4 is a parallel program at HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo. Existing loans continue to repay, extend, and liquidate against their original programs",
+      "Safety nets shipped alongside the launch: V4-aware engine canary, V4 price-feed pre-warm for every enabled mint, V4 fire-failure rate watcher, first-V4-fire two-prong watcher (success + failure), V4-specific cross-source recheck at fire quote, in-vault slice cumulative cap enforced on-chain",
     ],
   },
   {
