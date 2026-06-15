@@ -1591,30 +1591,47 @@ function DashboardPageInner() {
         multiplier: number,
         sliceBps?: number,
       ): Promise<{ ok: boolean; error?: string }> => {
-        try {
-          const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-          await armTakeProfit({
-            botApiUrl: botApi2,
-            signerPubkey: publicKey!.toBase58(),
-            signMessage: signMessage!,
-            request: {
-              from: publicKey!.toBase58(),
-              loanIdChain: chainLoanId.toString(),
-              direction,
-              target: { kind: "multiplier", multiplier },
-              slippageBps: direction === "below" ? 300 : 200,
-              sellDestination: "sol",
-              slicePctBps: sliceBps && sliceBps < 10000 ? sliceBps : undefined,
-            },
-          });
-          setAutoArmLegProgress((prev) => [...prev, { label, ok: true }]);
-          return { ok: true };
-        } catch (err) {
-          const msg = (err as Error).message || "arm failed";
-          console.warn(`[borrow] auto-arm leg "${label}" failed:`, msg);
-          setAutoArmLegProgress((prev) => [...prev, { label, ok: false, error: msg }]);
-          return { ok: false, error: msg };
+        const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+        // 2026-06-15: race-tolerant retry. cosign-borrow records the loan
+        // inline before returning, but if the wallet wasn't linked yet
+        // (or hits an RPC blip), the row arrives via sync-loan which is
+        // fire-and-forget below. Auto-arm fires immediately and trips
+        // `loan_not_found_for_user`. Retry the arm a few times with
+        // small backoff before giving up — the loan reliably lands in
+        // the DB within 1-3 seconds.
+        const MAX_ATTEMPTS = 4;
+        const RETRY_ERRORS = /loan_not_found_for_user|loan.*not.*found|404/i;
+        let lastErr = "";
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          try {
+            await armTakeProfit({
+              botApiUrl: botApi2,
+              signerPubkey: publicKey!.toBase58(),
+              signMessage: signMessage!,
+              request: {
+                from: publicKey!.toBase58(),
+                loanIdChain: chainLoanId.toString(),
+                direction,
+                target: { kind: "multiplier", multiplier },
+                slippageBps: direction === "below" ? 300 : 200,
+                sellDestination: "sol",
+                slicePctBps: sliceBps && sliceBps < 10000 ? sliceBps : undefined,
+              },
+            });
+            setAutoArmLegProgress((prev) => [...prev, { label, ok: true }]);
+            return { ok: true };
+          } catch (err) {
+            lastErr = (err as Error).message || "arm failed";
+            if (attempt < MAX_ATTEMPTS && RETRY_ERRORS.test(lastErr)) {
+              await new Promise((r) => setTimeout(r, 1200 * attempt));
+              continue;
+            }
+            break;
+          }
         }
+        console.warn(`[borrow] auto-arm leg "${label}" failed after retries:`, lastErr);
+        setAutoArmLegProgress((prev) => [...prev, { label, ok: false, error: lastErr }]);
+        return { ok: false, error: lastErr };
       };
 
       if (preBorrowExits && publicKey && signMessage) {
