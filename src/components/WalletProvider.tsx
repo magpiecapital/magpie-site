@@ -7,7 +7,6 @@ import {
 } from "@solana/wallet-adapter-react";
 import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import {
-  PhantomWalletAdapter,
   SolflareWalletAdapter,
   CoinbaseWalletAdapter,
 } from "@solana/wallet-adapter-wallets";
@@ -58,7 +57,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
         cluster: "mainnet-beta",
         onWalletNotFound: createDefaultWalletNotFoundHandler(),
       }),
-      new PhantomWalletAdapter(),
+      // PhantomWalletAdapter intentionally OMITTED — Phantom registers
+      // itself as a Solana Standard Wallet automatically, and having BOTH
+      // the legacy adapter AND the standard auto-registration causes the
+      // wallet-adapter-react instance to attach to one source while the
+      // user's active session is on the other. Result: signTransaction
+      // throws "The requested method and/or account has not been
+      // authorized by the user". Phantom's own warning in console says
+      // "The Wallet Adapter for Phantom can be removed from your app."
+      // Operator hit this 2026-06-15 PM on a V1 borrow.
       new SolflareWalletAdapter(),
       new BackpackWalletAdapter(),
       new CoinbaseWalletAdapter(),
