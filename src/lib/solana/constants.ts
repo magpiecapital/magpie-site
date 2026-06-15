@@ -48,6 +48,10 @@ export const RWA_CATEGORIES = new Set<string>(["stock", "etf", "metal"]);
 // builder can read them. Default false. Bot side env vars ROUTE_*_TO_V*
 // MUST agree, or borrows fail with StalePriceAttestation on the wrong
 // program (lesson from 2026-06-14).
+//
+// NOTE (2026-06-15): NEXT_PUBLIC_ROUTE_*_TO_V4 are intentionally NOT
+// read here anymore — V4 routing is exit-arming-driven now, not
+// flag-driven. Operator can delete those envs after this PR lands.
 const ROUTE_RWA_TO_V3 =
   process.env.NEXT_PUBLIC_ROUTE_RWA_TO_V3 === "true";
 
