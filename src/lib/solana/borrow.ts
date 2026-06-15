@@ -23,6 +23,7 @@ import {
   PROGRAM_ID_V4,
   RWA_CATEGORIES,
   chooseProgramIdForCategory,
+  chooseProgramId,
 } from "./constants";
 import {
   poolPda,
@@ -73,6 +74,19 @@ export interface BorrowParams {
    * Phantom's preflight simulation with InvalidAccountData.
    */
   category?: string | null;
+  /**
+   * V4-exclusive routing (2026-06-15): when the borrow flow ALSO
+   * arms an exit (TP / SL / trailing / bracket / ladder) atomically,
+   * pass true so the borrow lands on V4. V4 is the only pool whose
+   * engine fire path keeps the loan ACTIVE and accumulates SOL in
+   * the per-loan vault. Plain borrows (no exit) take the legacy
+   * V1/V2/V3 category routing.
+   *
+   * If true but NEXT_PUBLIC_PROGRAM_ID_V4 isn't set, chooseProgramId
+   * throws — caller must surface to the user that exits aren't
+   * available rather than silently degrading to V1/V3.
+   */
+  hasExitArming?: boolean;
 }
 
 export interface BorrowResult {
@@ -93,6 +107,7 @@ export async function buildBorrowTransaction({
   loanOption,
   connection,
   category,
+  hasExitArming = false,
 }: BorrowParams): Promise<BorrowResult> {
   const collateralMintPk = new PublicKey(collateralMint);
   const loanTokenMintPk = NATIVE_MINT; // wSOL
@@ -150,13 +165,14 @@ export async function buildBorrowTransaction({
     );
   }
 
-  // Route to V1, V2, or V3 based on the collateral's (server-resolved)
-  // category. Memecoin → V1. RWA (stock/etf/metal) → V2 or V3 depending
-  // on NEXT_PUBLIC_ROUTE_RWA_TO_V3. All PDAs derive against the chosen
+  // V4-exclusive routing (2026-06-15): exit-armed borrows land on V4
+  // regardless of category. Plain borrows still route by category:
+  // memecoin → V1, RWA (stock/etf/metal) → V2 or V3 depending on
+  // NEXT_PUBLIC_ROUTE_RWA_TO_V3. All PDAs derive against the chosen
   // program (each program has its own pool, loan-token-vault, loan,
   // collateral-vault, price-feed). V3 uses a distinct "price_v3" seed
   // for price-feed — priceFeedPda handles that branch internally.
-  const targetProgramId = chooseProgramIdForCategory(resolvedCategory);
+  const targetProgramId = chooseProgramId(resolvedCategory, { hasExitArming });
   const isV2 = targetProgramId.equals(PROGRAM_ID_V2);
   const isV3 = targetProgramId.equals(PROGRAM_ID_V3);
   const isV4 = !!PROGRAM_ID_V4 && targetProgramId.equals(PROGRAM_ID_V4);
