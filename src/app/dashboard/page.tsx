@@ -2249,7 +2249,10 @@ function DashboardPageInner() {
         );
         const activeOrder = takeProfitState.state?.orders?.find(
           (o) =>
-            o.loan_id === loanDbId &&
+            // o.loan_id is a string from the API (pg bigint), loanDbId
+            // is a number — coerce both so the V4 topup gate actually
+            // matches active orders instead of silently passing through.
+            Number(o.loan_id) === Number(loanDbId) &&
             ["armed", "firing", "twap_in_progress", "awaiting_user"].includes(o.status),
         );
         if (activeOrder) {

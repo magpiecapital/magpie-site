@@ -21,12 +21,25 @@
  */
 "use client";
 
-import type { TakeProfitOrder } from "@/lib/solana/site-take-profit";
+import { useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import {
+  cancelTakeProfit,
+  type TakeProfitOrder,
+} from "@/lib/solana/site-take-profit";
 
 interface Props {
   orders: TakeProfitOrder[];
   loanDbId: number;
   collateralSymbol: string | null;
+  /** Current USD price of the collateral — used for distance-to-fire
+   *  pills. Optional; the pill simply hides if absent. */
+  currentPriceUsd?: number | null;
+  /** Bot API URL — needed for cancel-all. Optional so the rollup can
+   *  render in read-only contexts (legacy callers). */
+  botApiUrl?: string;
+  /** Refresh callback invoked after a cancel-all completes. */
+  onMutated?: () => void;
 }
 
 interface LegGroup {
@@ -35,7 +48,14 @@ interface LegGroup {
   legs: TakeProfitOrder[];
 }
 
-export function LadderRollup({ orders, loanDbId, collateralSymbol }: Props) {
+export function LadderRollup({
+  orders,
+  loanDbId,
+  collateralSymbol,
+  currentPriceUsd = null,
+  botApiUrl,
+  onMutated,
+}: Props) {
   // Find ladder orders for this loan, group by ladder_group_id +
   // direction (a loan could theoretically have both a TP ladder and an
   // SL ladder; render each separately).
@@ -49,6 +69,9 @@ export function LadderRollup({ orders, loanDbId, collateralSymbol }: Props) {
           key={`${g.direction}-${g.groupId}`}
           group={g}
           collateralSymbol={collateralSymbol}
+          currentPriceUsd={currentPriceUsd}
+          botApiUrl={botApiUrl}
+          onMutated={onMutated}
         />
       ))}
     </div>
@@ -58,7 +81,12 @@ export function LadderRollup({ orders, loanDbId, collateralSymbol }: Props) {
 function groupLadders(orders: TakeProfitOrder[], loanDbId: number): LegGroup[] {
   const byKey = new Map<string, LegGroup>();
   for (const o of orders) {
-    if (o.loan_id !== loanDbId) continue;
+    // o.loan_id arrives as a STRING from the API (pg bigint serializes
+    // to JS string for precision); loanDbId is a number. Without
+    // Number() coercion on both sides, !== always returns true and the
+    // rollup silently filters out every order — which is the silent-
+    // failure case operator hit on 2026-06-15.
+    if (Number(o.loan_id) !== Number(loanDbId)) continue;
     // Treat anything missing a group_id as a single-strike order (not
     // a ladder); skip — those still render in LimitSlot's armed badge.
     if (!o.ladder_group_id) continue;
@@ -86,10 +114,20 @@ function groupLadders(orders: TakeProfitOrder[], loanDbId: number): LegGroup[] {
 function LadderCard({
   group,
   collateralSymbol,
+  currentPriceUsd,
+  botApiUrl,
+  onMutated,
 }: {
   group: LegGroup;
   collateralSymbol: string | null;
+  currentPriceUsd: number | null;
+  botApiUrl?: string;
+  onMutated?: () => void;
 }) {
+  const { publicKey, signMessage } = useWallet();
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+
   const isSl = group.direction === "below";
   const accentColor = isSl
     ? "rgba(220, 38, 38, 0.95)"
@@ -100,6 +138,7 @@ function LadderCard({
 
   const firedCount = group.legs.filter((l) => l.status === "fired").length;
   const totalCount = group.legs.length;
+  const armedLegs = group.legs.filter((l) => l.status === "armed");
   const allFired = firedCount === totalCount;
   const partiallyFired = firedCount > 0 && firedCount < totalCount;
 
@@ -117,6 +156,44 @@ function LadderCard({
   }
 
   const symbol = collateralSymbol || "collateral";
+
+  // Cancel-all: loops cancelTakeProfit over every armed leg. Each
+  // cancel signs its own envelope (bot accepts only one cancel per
+  // sig), so the wallet will pop N times. We surface progress as
+  // "Cancelling 2 of 4…" so the user knows it's working.
+  const [cancelProgress, setCancelProgress] = useState<{ done: number; total: number } | null>(null);
+  const cancelAll = async () => {
+    if (!publicKey || !signMessage || !botApiUrl || armedLegs.length === 0) return;
+    if (
+      !confirm(
+        `Cancel all ${armedLegs.length} armed leg${armedLegs.length === 1 ? "" : "s"} on this ${headerLabel.toLowerCase()}?`,
+      )
+    )
+      return;
+    setCancelling(true);
+    setCancelError(null);
+    setCancelProgress({ done: 0, total: armedLegs.length });
+    try {
+      for (let i = 0; i < armedLegs.length; i++) {
+        await cancelTakeProfit({
+          botApiUrl,
+          signerPubkey: publicKey.toBase58(),
+          signMessage,
+          orderId: armedLegs[i].id,
+        });
+        setCancelProgress({ done: i + 1, total: armedLegs.length });
+      }
+      onMutated?.();
+    } catch (e) {
+      setCancelError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setCancelling(false);
+      setCancelProgress(null);
+    }
+  };
+
+  const canCancelAll =
+    botApiUrl != null && armedLegs.length > 0 && publicKey != null;
 
   return (
     <div
@@ -151,19 +228,61 @@ function LadderCard({
 
       <div className="flex flex-col gap-1.5">
         {group.legs.map((leg, idx) => (
-          <LadderLeg key={leg.id} idx={idx + 1} leg={leg} />
+          <LadderLeg
+            key={leg.id}
+            idx={idx + 1}
+            leg={leg}
+            currentPriceUsd={currentPriceUsd}
+          />
         ))}
       </div>
+
+      {/* Footer actions — cancel-all when there are armed legs left */}
+      {canCancelAll && (
+        <div className="mt-2 flex items-center justify-end gap-2 border-t pt-2"
+          style={{ borderColor: "var(--d-border)" }}
+        >
+          {cancelError && (
+            <span className="text-[10px]" style={{ color: "rgba(220,38,38,0.95)" }}>
+              {cancelError}
+            </span>
+          )}
+          <button
+            onClick={cancelAll}
+            disabled={cancelling}
+            className="text-[10px] underline opacity-70 hover:opacity-100 disabled:opacity-40"
+            title="Cancel every armed leg in this ladder. Already-fired legs are not affected."
+          >
+            {cancelling
+              ? cancelProgress
+                ? `Cancelling ${cancelProgress.done} of ${cancelProgress.total}…`
+                : "Cancelling…"
+              : `Cancel ladder (${armedLegs.length} armed)`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
 
-function LadderLeg({ idx, leg }: { idx: number; leg: TakeProfitOrder }) {
+function LadderLeg({
+  idx,
+  leg,
+  currentPriceUsd,
+  direction,
+}: {
+  idx: number;
+  leg: TakeProfitOrder;
+  currentPriceUsd: number | null;
+  direction: "above" | "below";
+}) {
   const slicePct = sliceToPct(leg.slice_pct);
   const strikeLabel = formatTriggerInline(leg.trigger_kind, leg.trigger_value_micro);
+  const distance = distanceToFire(leg, currentPriceUsd, direction);
 
   const visual = visualForStatus(leg.status);
   const isCancelled = leg.status === "cancelled";
+  const isArmed = leg.status === "armed";
 
   return (
     <div className="flex items-center justify-between gap-2 text-[11px]">
@@ -201,6 +320,21 @@ function LadderLeg({ idx, leg }: { idx: number; leg: TakeProfitOrder }) {
         >
           {strikeLabel}
         </span>
+        {/* Distance-to-fire pill — only shown on armed legs with a
+         *  comparable price (price_usd). Skipped on mc_usd because
+         *  current price is per-token, not market cap. */}
+        {isArmed && distance && (
+          <span
+            className="rounded-sm px-1 text-[9px] font-medium tabular-nums"
+            style={{
+              background: "var(--d-bg-subtle, rgba(0,0,0,0.04))",
+              color: "var(--d-ink-soft)",
+            }}
+            title={`Current price is ${distance.label} the trigger`}
+          >
+            {distance.label}
+          </span>
+        )}
       </div>
 
       <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -232,11 +366,34 @@ function LadderLeg({ idx, leg }: { idx: number; leg: TakeProfitOrder }) {
           </a>
         )}
       </div>
-
-      {/* Pulse keyframes are global; defined once at the bottom of
-       *  this file via a styled-jsx tag so SSR + hydration agree. */}
     </div>
   );
+}
+
+/* Compute distance-to-fire as a percentage. Returns null if the
+ * trigger isn't a per-token USD price (mc-based triggers need the
+ * token's circulating supply to compare against a market-cap target,
+ * which we don't carry through here). */
+function distanceToFire(
+  leg: TakeProfitOrder,
+  currentPriceUsd: number | null,
+  direction: "above" | "below",
+): { label: string } | null {
+  if (currentPriceUsd == null || currentPriceUsd <= 0) return null;
+  if (leg.trigger_kind !== "price_usd") return null;
+  const trigger = Number(leg.trigger_value_micro) / 1e6;
+  if (!Number.isFinite(trigger) || trigger <= 0) return null;
+  const pct = ((trigger - currentPriceUsd) / currentPriceUsd) * 100;
+  // For TP (above), positive % = still need to climb. For SL (below),
+  // negative % = still need to drop. Sign + arrow direction here gets
+  // confusing fast, so just show "+9.1%" / "-4.3%" + the side-specific
+  // arrow elsewhere.
+  const sign = pct >= 0 ? "+" : "";
+  let display: string;
+  if (Math.abs(pct) >= 100) display = `${sign}${pct.toFixed(0)}%`;
+  else if (Math.abs(pct) >= 10) display = `${sign}${pct.toFixed(1)}%`;
+  else display = `${sign}${pct.toFixed(2)}%`;
+  return { label: `${display} away` };
 }
 
 function visualForStatus(status: TakeProfitOrder["status"]): {

@@ -33,6 +33,7 @@ import {
 import { parseStrike } from "@/lib/strike-price-parser";
 import { LadderPanel } from "./LadderPanel";
 import { LadderRollup } from "./LadderRollup";
+import { ExitStatusBanner } from "./ExitStatusBanner";
 
 /**
  * One-shot preview helper for the free-text strike input. Wraps the
@@ -95,9 +96,30 @@ export function TakeProfitCard(props: Props) {
   const linked = props.state?.linked ?? false;
   const custodial = props.state?.custodial ?? false;
   const loan = useMemo<TakeProfitLoan | null>(
-    () => props.state?.loans.find((l) => l.id === props.loanDbId) ?? null,
+    // CRITICAL: l.id arrives from the bot API as a STRING (pg bigint
+    // serializes to JS string for precision safety) but loanDbId is
+    // a number from page.tsx's Number() coercion. Strict equality on
+    // mixed types always returns false, so without Number() on both
+    // sides every loan looks "not found" — which cascades to
+    // is_eligible_for_takeprofit=false (the ?? false fallback) and
+    // the user sees "not eligible" on every loan. Operator reported
+    // exactly this on 2026-06-15. Coerce both sides explicitly.
+    () => props.state?.loans.find((l) => Number(l.id) === Number(props.loanDbId)) ?? null,
     [props.state, props.loanDbId],
   );
+
+  // Lift the live collateral USD price to the card scope so both
+  // LadderRollup (distance-to-fire pills) and the individual
+  // LimitSlots can share a single fetch + a single cache hit.
+  const [cardPriceUsd, setCardPriceUsd] = useState<number | null>(null);
+  useEffect(() => {
+    if (!props.collateralMint) return;
+    let cancelled = false;
+    fetchCurrentPriceUsd(props.collateralMint).then((p) => {
+      if (!cancelled) setCardPriceUsd(p);
+    });
+    return () => { cancelled = true; };
+  }, [props.collateralMint]);
 
   // Loading sliver if state hasn't loaded yet
   if (!props.state) {
@@ -124,16 +146,29 @@ export function TakeProfitCard(props: Props) {
 
   return (
     <div className="mt-2 flex flex-col gap-1.5">
+      {/* Exit status — top-of-card pill that always tells the user
+       *  exactly where their auto-sell stands: not set, armed, firing,
+       *  partial, or complete. Closes the silent-failure case where a
+       *  ladder didn't arm and the user had no way to know. */}
+      <ExitStatusBanner
+        orders={props.state.orders}
+        loan={loan}
+        loanDbId={props.loanDbId}
+        collateralSymbol={props.collateralSymbol}
+        onRefresh={props.onMutated}
+      />
       {/* Ladder rollup — renders only when this loan has a ladder
        *  (orders sharing a ladder_group_id). Lets the user see every
-       *  leg with its strike, slice %, and fire status without having
-       *  to expand any slot. Per-direction (TP and SL ladders render
-       *  as separate cards). Non-ladder loans see nothing here and
-       *  fall through to the existing armed badge in LimitSlot. */}
+       *  leg with its strike, slice %, distance-to-fire, and fire
+       *  status without having to expand any slot. Cancel-ladder
+       *  button in the footer cancels every armed leg sequentially. */}
       <LadderRollup
         orders={props.state.orders}
         loanDbId={props.loanDbId}
         collateralSymbol={props.collateralSymbol}
+        currentPriceUsd={cardPriceUsd}
+        botApiUrl={props.botApiUrl}
+        onMutated={props.onMutated}
       />
       <LimitSlot
         direction="above"
@@ -277,7 +312,9 @@ function LimitSlot(props: SlotProps) {
     () =>
       props.orders.find(
         (o) =>
-          o.loan_id === props.loanDbId &&
+          // Same string-vs-number coercion fix as the loan lookup above.
+          // o.loan_id is "762" from the API; loanDbId is the number 762.
+          Number(o.loan_id) === Number(props.loanDbId) &&
           o.status === "armed" &&
           (o.trigger_direction ?? "above") === props.direction,
       ) ?? null,
