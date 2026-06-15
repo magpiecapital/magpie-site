@@ -19,6 +19,7 @@ const SECTIONS = [
   { id: "overview", label: "Overview" },
   { id: "architecture", label: "Architecture" },
   { id: "loan-lifecycle", label: "Loan Lifecycle" },
+  { id: "v4-in-vault", label: "V4 In-Vault Auto-Sells" },
   { id: "pricing-oracles", label: "Pricing & Oracles" },
   { id: "fee-structure", label: "Fee Structure" },
   { id: "credit-system", label: "Credit System" },
@@ -250,6 +251,74 @@ export default async function DocsPage() {
                 },
               ]}
             />
+          </Section>
+
+          {/* ─── V4 In-Vault Auto-Sells ─── */}
+          <Section id="v4-in-vault" title="V4 In-Vault Auto-Sells" chip="New">
+            <P>
+              V4 is a parallel lending program that changes how auto-sells
+              (take-profit, stop-loss, bracket, ladder) settle. When a borrow
+              has any auto-sell attached at borrow time, the loan
+              automatically routes to V4 instead of V1 or V3.
+            </P>
+            <P>
+              <strong>What stays the same:</strong> tier ladders (memecoin
+              30/25/20% LTV, RWA 50/60/70% LTV), origination fees, due dates,
+              health monitoring, liquidation rules. V4 is a different sell
+              path, not a different loan economics model.
+            </P>
+            <P>
+              <strong>What&apos;s different:</strong> when a leg fires, the
+              engine calls a new on-chain instruction
+              <code> convert_collateral_slice</code> which sells the slice
+              percentage via a caller-assembled Jupiter CPI and parks the SOL
+              proceeds <em>inside the loan&apos;s per-loan vault</em>. The
+              SOL does NOT go to the borrower&apos;s wallet. The loan stays
+              <strong> Active</strong>. The borrower decides when to close.
+              When they /repay, they receive both any remaining collateral
+              AND the accumulated vault SOL in the same atomic transaction.
+            </P>
+            <P>
+              <strong>Why this matters:</strong> V4 gives users
+              brokerage-style stop semantics on-chain. Tax-timing control
+              (choose when to realize). Hold-vs-close control (decide after
+              the auto-sell whether to repay or wait). No forced loan close
+              at fire time.
+            </P>
+            <P>
+              <strong>Ladder economics:</strong> V4 ladders are
+              significantly cheaper than legacy V1/V3 ladders. V4 charges a
+              flat 1% protocol fee per leg with NO per-leg origination fee.
+              A 4-leg V4 ladder costs roughly 4% in protocol fees over its
+              lifetime. The legacy V1/V3 ladder model re-borrows the
+              remainder after each leg fires and pays the tier&apos;s
+              origination fee on each re-borrow — a 4-leg ladder on RWA
+              Standard charges ~20% cumulative.
+            </P>
+            <P>
+              <strong>Repay funding note:</strong> V4 requires the full owed
+              amount in liquid SOL in the borrower&apos;s wallet at close
+              time. The vault SOL flows back in the same transaction but
+              does NOT pre-pay the loan. Plan to keep approximately the LTV
+              amount of SOL liquid through the life of any V4 loan with
+              armed exits.
+            </P>
+            <P>
+              <strong>Slice math:</strong> Each leg sells
+              <code> slice_bps × original_collateral / 10000</code> on-chain.
+              Slice percentages refer to the ORIGINAL collateral, not the
+              remaining amount. A ladder of 90% + 10% will sell exactly the
+              original collateral (no over-sell). A ladder summing to less
+              than 100% leaves the unsold portion as remaining collateral.
+            </P>
+            <P>
+              <strong>Existing V1/V2/V3 loans are unaffected.</strong> V4
+              is a parallel deploy at
+              <code> HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo</code>.
+              Legacy loans continue to repay, extend, partial-repay, top up,
+              and liquidate against their original programs unchanged. Only
+              NEW borrows with exits attached route to V4.
+            </P>
           </Section>
 
           {/* ─── Pricing & Oracles ─── */}
