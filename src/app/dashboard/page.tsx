@@ -3943,6 +3943,18 @@ function DashboardPageInner() {
                                         )}
                                       </div>
                                     )}
+
+                                    {/* V4 repay-funding heads-up. Surfaces whenever
+                                        preBorrowExits is set — any exit attached
+                                        routes this borrow to V4, where the vault
+                                        SOL from fires can't pre-net the repay.
+                                        User needs liquid SOL at close time. */}
+                                    {preBorrowExits && (
+                                      <div className="text-[10px] mt-2 px-2 py-1.5 rounded-md border border-[var(--d-accent)]/30 bg-[var(--d-accent)]/5 text-[var(--d-ink)]">
+                                        <span className="font-semibold">Repay note:</span>{" "}
+                                        With auto-sells attached, this loan goes to our V4 pool. When you decide to close, you&apos;ll need the <span className="font-semibold">owed amount in liquid SOL</span> in your wallet — the SOL the auto-sells accumulate flows back to you at repay (in the same tx) but it can&apos;t pre-pay the loan itself. Plan to keep a little SOL around or you may need to source it elsewhere to claim the proceeds.
+                                      </div>
+                                    )}
                                   </div>
 
                                   {/* Tier cards */}
