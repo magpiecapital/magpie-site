@@ -82,7 +82,17 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       endpoint={RPC_ENDPOINT}
       config={CONNECTION_CONFIG}
     >
-      <SolanaWalletProvider wallets={wallets} onError={onError} autoConnect>
+      {/* autoConnect intentionally OFF — operator hit
+       *  "WalletSignTransactionError: method not authorized" repeatedly
+       *  even after removing the legacy PhantomWalletAdapter. Root cause:
+       *  Phantom Standard Wallet's silent re-attach on page load races
+       *  with wallet-adapter-react's cached "walletName" localStorage
+       *  key, leaving the dApp with a publicKey it THINKS is authorized
+       *  but Phantom no longer recognizes. Forcing an explicit Connect
+       *  on each session eliminates the stale-session class of bug
+       *  cleanly. The trade-off is one extra click per visit, which
+       *  is cheap compared to the trust hit of a failed borrow. */}
+      <SolanaWalletProvider wallets={wallets} onError={onError} autoConnect={false}>
         <WalletModalProvider>{children}</WalletModalProvider>
       </SolanaWalletProvider>
     </ConnectionProvider>
