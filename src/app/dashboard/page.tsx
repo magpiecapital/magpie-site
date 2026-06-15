@@ -2231,9 +2231,35 @@ function DashboardPageInner() {
     setTopupPendingFor(loan.loan_pda);
     try {
       const { PublicKey } = await import("@solana/web3.js");
-      const { PROGRAM_ID } = await import("@/lib/solana/constants");
+      const { PROGRAM_ID, PROGRAM_ID_V4 } = await import("@/lib/solana/constants");
       const { buildTopupTransaction } = await import("@/lib/solana/topup");
       const programId = loan.program_id ? new PublicKey(loan.program_id) : PROGRAM_ID;
+
+      // V4 Wave 5 H2 mirror (2026-06-15): refuse topup on a V4 loan that
+      // has an active limit_close_order. V4's slice math is `slice_bps
+      // × original_collateral / 10000` on-chain; adding collateral
+      // mid-ladder grows the base and makes subsequent fires oversell.
+      // The bot enforces this server-side too — this UI gate just gives
+      // a friendly error instead of a tx-failed surprise.
+      if (PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4)) {
+        const loanDbId = Number(
+          (loan as unknown as { id?: number; loan_db_id?: number }).id ??
+          (loan as unknown as { id?: number; loan_db_id?: number }).loan_db_id ??
+          0,
+        );
+        const activeOrder = takeProfitState.state?.orders?.find(
+          (o) =>
+            o.loan_id === loanDbId &&
+            ["armed", "firing", "twap_in_progress", "awaiting_user"].includes(o.status),
+        );
+        if (activeOrder) {
+          setRepayError(
+            "Topups are paused on V4 loans with an active auto-sell — cancel the auto-sell first, then top up, then re-arm.",
+          );
+          setTopupPendingFor(null);
+          return;
+        }
+      }
       const { transaction } = await buildTopupTransaction({
         borrower: publicKey,
         loanPda: loan.loan_pda,
