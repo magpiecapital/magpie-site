@@ -1516,6 +1516,12 @@ function DashboardPageInner() {
         // the time we reach handleBorrow, holding.category is reliably
         // populated.
         category: holding.category ?? holding.approved.category,
+        // V4-exclusive routing (2026-06-15): if the user picked any
+        // exit in preBorrowExits, this borrow lands on V4. V4 is the
+        // only pool whose engine fire path keeps the loan ACTIVE and
+        // accumulates SOL in the per-loan vault. Plain borrows (no
+        // preBorrowExits) take the legacy V1/V2/V3 category routing.
+        hasExitArming: !!preBorrowExits,
       });
 
       // PRE-SIMULATE before asking the wallet to sign. Phantom's docs
