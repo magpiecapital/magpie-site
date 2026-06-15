@@ -96,7 +96,15 @@ export function TakeProfitCard(props: Props) {
   const linked = props.state?.linked ?? false;
   const custodial = props.state?.custodial ?? false;
   const loan = useMemo<TakeProfitLoan | null>(
-    () => props.state?.loans.find((l) => l.id === props.loanDbId) ?? null,
+    // CRITICAL: l.id arrives from the bot API as a STRING (pg bigint
+    // serializes to JS string for precision safety) but loanDbId is
+    // a number from page.tsx's Number() coercion. Strict equality on
+    // mixed types always returns false, so without Number() on both
+    // sides every loan looks "not found" — which cascades to
+    // is_eligible_for_takeprofit=false (the ?? false fallback) and
+    // the user sees "not eligible" on every loan. Operator reported
+    // exactly this on 2026-06-15. Coerce both sides explicitly.
+    () => props.state?.loans.find((l) => Number(l.id) === Number(props.loanDbId)) ?? null,
     [props.state, props.loanDbId],
   );
 
@@ -304,7 +312,9 @@ function LimitSlot(props: SlotProps) {
     () =>
       props.orders.find(
         (o) =>
-          o.loan_id === props.loanDbId &&
+          // Same string-vs-number coercion fix as the loan lookup above.
+          // o.loan_id is "762" from the API; loanDbId is the number 762.
+          Number(o.loan_id) === Number(props.loanDbId) &&
           o.status === "armed" &&
           (o.trigger_direction ?? "above") === props.direction,
       ) ?? null,

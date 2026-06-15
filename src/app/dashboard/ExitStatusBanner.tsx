@@ -120,7 +120,15 @@ function computeExitState(
   orders: TakeProfitOrder[],
   loanDbId: number,
 ): ExitState | null {
-  const loanOrders = orders.filter((o) => o.loan_id === loanDbId);
+  // Number() coercion on both sides: o.loan_id is a string from the
+  // API (pg bigint), loanDbId is a number. Without coercion, !==
+  // always wins and the banner sees zero matching orders → would
+  // wrongly say "Exit not set" even when a ladder is armed. Mirror
+  // the same fix made in TakeProfitCard + LadderRollup for the
+  // operator-reported 2026-06-15 "not eligible" regression.
+  const loanOrders = orders.filter(
+    (o) => Number(o.loan_id) === Number(loanDbId),
+  );
   if (loanOrders.length === 0) {
     // No state row at all — clean slate, exit not set.
     return { kind: "no_exit_set" };

@@ -81,7 +81,12 @@ export function LadderRollup({
 function groupLadders(orders: TakeProfitOrder[], loanDbId: number): LegGroup[] {
   const byKey = new Map<string, LegGroup>();
   for (const o of orders) {
-    if (o.loan_id !== loanDbId) continue;
+    // o.loan_id arrives as a STRING from the API (pg bigint serializes
+    // to JS string for precision); loanDbId is a number. Without
+    // Number() coercion on both sides, !== always returns true and the
+    // rollup silently filters out every order — which is the silent-
+    // failure case operator hit on 2026-06-15.
+    if (Number(o.loan_id) !== Number(loanDbId)) continue;
     // Treat anything missing a group_id as a single-strike order (not
     // a ladder); skip — those still render in LimitSlot's armed badge.
     if (!o.ladder_group_id) continue;
