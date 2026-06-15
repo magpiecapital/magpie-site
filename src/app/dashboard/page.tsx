@@ -4069,24 +4069,18 @@ function DashboardPageInner() {
                                         <div className="text-[11px] text-green-400 leading-relaxed">
                                           <span className="font-semibold">Loan executed!</span> SOL has been sent to your wallet.{" "}
                                           <a href={`https://solscan.io/tx/${borrowTx}`} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-medium">View transaction</a>
-                                          {autoArmedAfterBorrow && autoArmLegProgress.length === 0 && (
-                                            <>
-                                              {" · "}
-                                              <span className="font-semibold">Take-profit armed at {autoArmedAfterBorrow.multiplier}x.</span>
-                                            </>
-                                          )}
                                         </div>
                                       </div>
-                                      {autoArmLegProgress.length > 0 && (
-                                        <div className="mt-2 pl-5 space-y-0.5">
-                                          {autoArmLegProgress.map((leg, i) => (
-                                            <div key={i} className={`text-[10px] ${leg.ok ? "text-green-400" : "text-red-400"}`}>
-                                              {leg.ok ? "✓" : "✗"} {leg.label}
-                                              {!leg.ok && leg.error && <span className="opacity-70"> — {leg.error}</span>}
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
+                                      {/* Per-leg arm outcomes intentionally NOT shown here —
+                                       *  operator's 2026-06-15 directive: "I thought we GOT
+                                       *  RID of that Profit Leg disclaimer at the bottom.
+                                       *  It's a bad look." The TG DM pipeline (success +
+                                       *  limit_close_arm_failed renderers powered by
+                                       *  migration 068) delivers per-leg outcomes within
+                                       *  seconds, with full error context. The borrow
+                                       *  confirmation stays clean. Retry button below
+                                       *  remains as a single-tap recovery affordance for
+                                       *  any leg that didn't land. */}
                                       {retryRemainingLegs && retryRemainingLegs.legs.length > 0 && (
                                         <div className="mt-2 pl-5 flex items-center gap-2">
                                           <button
