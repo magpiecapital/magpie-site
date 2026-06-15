@@ -3780,6 +3780,11 @@ function DashboardPageInner() {
                                               value={row.strikeText}
                                               onChange={(e) => {
                                                 setCustomLadderError(null);
+                                                // Editing a row after applying invalidates the commit —
+                                                // clear the applied state so the user has to re-click
+                                                // "Use this ladder" to confirm new values. Prevents a
+                                                // stale ladder from quietly being used at borrow time.
+                                                if (preBorrowExits?.kind === "custom_ladder") setPreBorrowExits(null);
                                                 setCustomLadderRows((prev) => prev.map((r, j) => j === i ? { ...r, strikeText: e.target.value } : r));
                                               }}
                                               placeholder="MC (e.g. 17M)"
@@ -3792,6 +3797,7 @@ function DashboardPageInner() {
                                                 value={row.slicePct}
                                                 onChange={(e) => {
                                                   setCustomLadderError(null);
+                                                  if (preBorrowExits?.kind === "custom_ladder") setPreBorrowExits(null);
                                                   setCustomLadderRows((prev) => prev.map((r, j) => j === i ? { ...r, slicePct: e.target.value.replace(/[^\d.]/g, "") } : r));
                                                 }}
                                                 placeholder="Sell %"
@@ -3870,17 +3876,19 @@ function DashboardPageInner() {
                                             setCustomLadderError(null);
                                             setPreBorrowExits({ kind: "custom_ladder", legs });
                                           }}
-                                          className={`text-[10px] font-semibold px-2 py-1 rounded-md border transition ${
+                                          className={`text-[11px] font-bold px-3 py-1.5 rounded-md border-2 transition-all duration-150 active:scale-95 ${
                                             preBorrowExits?.kind === "custom_ladder"
-                                              ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]"
+                                              ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)] shadow-[0_0_0_3px_rgba(34,197,94,0.25)]"
                                               : "border-[var(--d-accent)] text-[var(--d-accent-deep)] hover:bg-[var(--d-accent)] hover:text-[var(--d-accent-ink)]"
                                           }`}
                                         >
-                                          {preBorrowExits?.kind === "custom_ladder" ? "Ladder applied ✓" : "Use this ladder"}
+                                          {preBorrowExits?.kind === "custom_ladder" ? "✓ Ladder applied" : "Use this ladder"}
                                         </button>
                                       </div>
                                       {customLadderError && (
-                                        <div className="text-[10px] text-red-500 mt-1.5">{customLadderError}</div>
+                                        <div className="text-[12px] font-semibold text-red-500 mt-2 px-2 py-1.5 rounded-md border border-red-500/40 bg-red-500/10">
+                                          ⚠ {customLadderError}
+                                        </div>
                                       )}
                                     </div>
 
