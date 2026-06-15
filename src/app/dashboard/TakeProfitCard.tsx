@@ -992,6 +992,12 @@ function formatTrigger(kind: string, valueMicro: string): string {
 
 function reasonToLabel(reason: string | undefined): string {
   switch (reason) {
+    case "exits_require_v4_loan":
+      // V4-exclusive policy (operator-mandated rule, permanent). Show
+      // the explainer instead of letting the user click through to a
+      // doomed sign + DM rejection cycle. The button is intentionally
+      // not the "Set auto-sell" CTA elsewhere — this branch hides it.
+      return "exits live on V4. To use one, repay this loan and re-open the borrow with an exit selected — the new loan will land on V4 automatically.";
     case "loan_below_minimum_size":
       return "this loan is below the 1 SOL limit-order minimum.";
     case "collateral_not_enabled":

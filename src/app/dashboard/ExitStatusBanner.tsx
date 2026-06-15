@@ -53,6 +53,17 @@ export function ExitStatusBanner({
   // Loans that aren't eligible for auto-sell skip the banner — the
   // existing ineligibility text in LimitSlot handles those cases.
   if (!loan) return null;
+
+  // V4-EXCLUSIVE POLICY (operator-mandated permanent rule): any loan
+  // surfacing exits_require_v4_loan in its ineligibility reasons must
+  // NOT show the "Exit not set — set one below" CTA. The whole banner
+  // hides; LimitSlot's reasonToLabel will render the V4-only explainer
+  // in place of the arm form. Apply to BOTH directions: if either
+  // slot is V4-locked, the loan is V4-locked.
+  const tpV4Locked = (loan.ineligibility_reasons ?? []).includes("exits_require_v4_loan");
+  const slV4Locked = (loan.stoploss_ineligibility_reasons ?? []).includes("exits_require_v4_loan");
+  if (tpV4Locked || slV4Locked) return null;
+
   const eligibleForAny =
     loan.is_eligible_for_takeprofit || (loan.is_eligible_for_stoploss ?? false);
   if (state == null && !eligibleForAny) return null;
