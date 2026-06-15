@@ -114,6 +114,12 @@ interface LoanRow {
   program_id: string | null;
   collateral_mint: string;
   collateral_amount: string | number;
+  // V4 mixed-collateral columns (migration 066). Default-backfilled for
+  // V1/V2/V3 to current_collateral_amount = collateral_amount,
+  // sol_proceeds_amount = 0, auto_sells_fired = 0.
+  current_collateral_amount: string | number | null;
+  sol_proceeds_amount: string | number | null;
+  auto_sells_fired: number | null;
   loan_amount_lamports: string | number;
   original_loan_amount_lamports: string | number;
   ltv_percentage: number;
@@ -146,17 +152,35 @@ function shape(l: LoanRow, priceSol: number | null) {
     l.original_loan_amount_lamports
   ) {
     try {
-      const amountTokens = Number(l.collateral_amount) / Math.pow(10, l.decimals);
-      const valueSol = amountTokens * priceSol;
-      const valueLamports = Math.floor(valueSol * 1e9);
+      // V4 mixed-collateral handling: use REMAINING SPL for the price-
+      // priced value, then add already-realized SOL proceeds 1:1. For
+      // V1/V2/V3 (and V4 pre-fire) both reduce to the original
+      // expression: current === amount, sol_proceeds === 0.
+      const isMixed = Number(l.auto_sells_fired ?? 0) > 0;
+      const splAmountRaw = isMixed
+        ? (l.current_collateral_amount ?? l.collateral_amount)
+        : l.collateral_amount;
+      const vaultLamports = Number(l.sol_proceeds_amount ?? 0);
+      const splTokens = Number(splAmountRaw) / Math.pow(10, l.decimals);
+      const splValueSol = splTokens * priceSol;
+      const splValueLamports = Math.floor(splValueSol * 1e9);
+      const valueLamports = splValueLamports + vaultLamports;
       const owedLamports = Number(l.original_loan_amount_lamports);
       if (owedLamports > 0 && isFinite(valueLamports)) {
         collateralValueLamports = valueLamports.toString();
         healthRatio = valueLamports / owedLamports;
-        // Price at which collateral_value × amount === LIQUIDATION_THRESHOLD × owed
-        // i.e., price_per_token = owed_sol × THRESHOLD / amount_tokens
-        const owedSol = owedLamports / 1e9;
-        liquidationPriceSol = (owedSol * LIQUIDATION_THRESHOLD) / amountTokens;
+        // Liquidation price = price at which TOTAL collateral value hits
+        // LIQUIDATION_THRESHOLD × owed. The vault SOL is fixed; only the
+        // SPL side moves with the price. So:
+        //   splValueAtLiq + vaultLamports = THRESHOLD × owedLamports
+        //   splValueAtLiq = THRESHOLD × owedLamports - vaultLamports
+        //   price_per_token = (splValueAtLiq / 1e9) / splTokens
+        // If vault already covers the threshold (rare but possible after
+        // many auto-sells), liquidation_price collapses to 0.
+        const targetSplValueLamports = LIQUIDATION_THRESHOLD * owedLamports - vaultLamports;
+        liquidationPriceSol = targetSplValueLamports > 0 && splTokens > 0
+          ? (targetSplValueLamports / 1e9) / splTokens
+          : 0;
       }
     } catch {
       // Fall through with nulls — UI shows "—" instead of crashing.
@@ -175,6 +199,12 @@ function shape(l: LoanRow, priceSol: number | null) {
       image: l.image_url || null,
       category: l.category || "memecoin",
       amount: l.collateral_amount?.toString?.() ?? null,
+      // V4 mixed-collateral fields. For V1/V2/V3 / pre-fire V4 these
+      // mirror the original amounts so the dashboard's mixed-display
+      // branch (gated on auto_sells_fired > 0) never trips.
+      current_amount: (l.current_collateral_amount ?? l.collateral_amount)?.toString?.() ?? null,
+      sol_proceeds_lamports: (l.sol_proceeds_amount ?? 0)?.toString?.() ?? "0",
+      auto_sells_fired: Number(l.auto_sells_fired ?? 0),
     },
     loan: {
       amount_lamports: l.loan_amount_lamports?.toString?.() ?? null,
@@ -215,6 +245,7 @@ export async function GET(req: Request) {
   try {
     const { rows } = await query(
       `SELECT l.loan_id, l.loan_pda, l.program_id, l.collateral_mint, l.collateral_amount,
+              l.current_collateral_amount, l.sol_proceeds_amount, l.auto_sells_fired,
               l.loan_amount_lamports, l.original_loan_amount_lamports,
               l.ltv_percentage, l.duration_days,
               l.start_timestamp, l.due_timestamp,
