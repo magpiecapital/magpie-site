@@ -4465,7 +4465,7 @@ function DashboardPageInner() {
                     </>
                   ) : (
                     <p className="text-sm text-[var(--d-ink-soft)]">
-                      Hold $MAGPIE → earn <span className="font-semibold text-[var(--d-accent-deep)]">10%</span> of every loan fee, paid automatically each week.
+                      Hold $MAGPIE → earn <span className="font-semibold text-[var(--d-accent-deep)]">70%</span> of every loan fee, paid automatically each week.
                     </p>
                   )}
                   <Link href="/holders" className="mt-4 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">

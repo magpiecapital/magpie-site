@@ -508,23 +508,24 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 ))}
               </div>
 
-              <div className="mt-4 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-5">
+              <div className="mt-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-5">
                 <div className="flex items-baseline gap-2">
                   <span className="rounded-md bg-cyan-500/30 px-2 py-0.5 font-mono text-xs text-cyan-100">MGP-001</span>
-                  <span className="rounded-md bg-emerald-500/25 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-100">voting open</span>
+                  <span className="rounded-md bg-emerald-500/25 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-100">ratified 2026-06-13</span>
                 </div>
-                <h5 className="mt-3 text-base font-medium">Holders-first split — 70/10/10/10</h5>
+                <h5 className="mt-3 text-base font-medium">Holders-first split — 70/10/10/10 (live)</h5>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
-                  $MAGPIE holders are voting now on a proposal to send <strong>70% of every loan fee
-                  to holders, 10% to SOL LPs, 10% to referrers, and 10% to the protocol reserve</strong>.
-                  Forward-only — distributions already accrued under the current split are not retroactively re-cut.
-                  Voting open until 2026-06-13 22:00 UTC. Each $MAGPIE holder gets a vote weighted by their snapshot balance.
+                  $MAGPIE holders ratified MGP-001 on 2026-06-13: every loan fee now splits <strong>70% to holders,
+                  10% to SOL LPs (loyalty pool), 10% to referrers, and 10% to the protocol reserve</strong>.
+                  Forward-only — distributions accrued before ratification used the prior split. The lending pool
+                  no longer retains any portion of fees; share value tracks principal, LP yield comes from the
+                  10% loyalty slice.
                 </p>
                 <a
                   href="/governance/proposal/MGP-001"
-                  className="mt-3 inline-block text-sm text-cyan-300 hover:text-cyan-200"
+                  className="mt-3 inline-block text-sm text-emerald-300 hover:text-emerald-200"
                 >
-                  Read MGP-001 + cast your vote →
+                  Read MGP-001 →
                 </a>
               </div>
 
@@ -533,7 +534,7 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 "Hold $MAGPIE in any Solana wallet — Phantom, Solflare, Backpack, hardware (Ledger / Trezor), or the Magpie bot wallet. The snapshot reads every token account holding $MAGPIE on-chain. Wallet-agnostic.",
                 "Snapshots fire on a randomized 5–10 day cadence. Randomization is anti-dump — no one can predict the exact moment to pump-and-snapshot.",
                 "Distributions happen on-chain via direct SOL transfer from the lender authority wallet to every eligible holder. No claim, no signing, no lockup — the SOL just lands.",
-                "Held by wallet, rewarded by wallet. Your share = (your $MAGPIE balance) / (total $MAGPIE in eligible holder wallets) × (10% of fees accrued since the last distribution).",
+                "Held by wallet, rewarded by wallet. Your share = (your $MAGPIE balance) / (total $MAGPIE in eligible holder wallets) × (70% of fees accrued since the last distribution, per MGP-001).",
                 "Pool/contract/CEX-deposit addresses are filtered out so distributions don't leak to non-holders. Holder count + payout sums are public via /api/v1/holders.",
               ]} />
 

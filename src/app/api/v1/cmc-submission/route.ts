@@ -66,10 +66,11 @@ on-chain liquidation enforcement, an on-chain credit oracle that
 rewards repayment history with better terms, and a paid agent API
 via x402 that lets AI agents query protocol data without API keys.
 
-10% of every loan fee accrues to $MAGPIE holders as SOL distributions
-on a randomized 5–10 day cadence. No claim required; SOL lands in
-holder wallets automatically. Collateralized $MAGPIE still earns —
-holders aren't punished for using the protocol productively.
+70% of every loan fee accrues to $MAGPIE holders as SOL distributions
+on a randomized 5–10 day cadence (per MGP-001, ratified 2026-06-13).
+No claim required; SOL lands in holder wallets automatically.
+Collateralized $MAGPIE still earns — holders aren't punished for
+using the protocol productively.
 
 Fair-launched on pump.fun: 100% of supply hit the bonding curve at
 launch, no team allocation, no presale, no vesting cliffs.
