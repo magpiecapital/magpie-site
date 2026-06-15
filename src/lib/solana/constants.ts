@@ -75,13 +75,24 @@ export function chooseProgramId(
   opts: { hasExitArming?: boolean } = {},
 ): PublicKey {
   const { hasExitArming = false } = opts;
-  if (hasExitArming) {
-    if (!PROGRAM_ID_V4) {
-      throw new Error(
-        "EXIT_ARMING_REQUIRES_V4: exit-armed borrow requested but NEXT_PUBLIC_PROGRAM_ID_V4 is not set on the site.",
-      );
-    }
+  // V4-FIRST DEFAULT (operator-mandated 2026-06-15 PM): once V4 is set,
+  // every new borrow lands on V4 — RWA AND memecoin, exit-armed AND
+  // plain. The user's clear intent is "V4 is the default everywhere."
+  // Even a plain borrow on V4 is functionally a superset of V3 (same
+  // tier ladder + the option to add exits later by repaying and
+  // re-borrowing with one set). Legacy V1/V2/V3 are only used as
+  // fallbacks when V4 isn't deployed.
+  //
+  // Existing V1/V2/V3 loans are NOT affected — they read their own
+  // program_id and continue to repay/extend/liquidate against the
+  // program that issued them.
+  if (PROGRAM_ID_V4) {
     return PROGRAM_ID_V4;
+  }
+  if (hasExitArming) {
+    throw new Error(
+      "EXIT_ARMING_REQUIRES_V4: exit-armed borrow requested but NEXT_PUBLIC_PROGRAM_ID_V4 is not set on the site.",
+    );
   }
   if (category && RWA_CATEGORIES.has(category)) {
     return ROUTE_RWA_TO_V3 ? PROGRAM_ID_V3 : PROGRAM_ID_V2;
