@@ -1145,65 +1145,31 @@ function DashboardPageInner() {
     // are basis points (e.g. 7000 = 70%); sum must be <= 10000.
     | { kind: "custom_ladder"; legs: Array<{ strikeText: string; sliceBps: number }> };
   const PRE_BORROW_EXITS_KEY = "magpie-pre-borrow-exits";
-  const [customStrikeText, setCustomStrikeText] = useState<string>(() => {
-    // If the persisted exit was a custom strike, prime the input so the
-    // textfield matches what the picker preview says was selected.
-    if (typeof window === "undefined") return "";
-    try {
-      const raw = window.localStorage.getItem(PRE_BORROW_EXITS_KEY);
-      if (!raw) return "";
-      const parsed = JSON.parse(raw) as PreBorrowExits;
-      if (parsed?.kind === "custom_tp" || parsed?.kind === "custom_sl") {
-        return parsed.strikeText;
-      }
-    } catch {}
-    return "";
-  });
+  // FRESH-STATE PER SESSION (operator-mandated 2026-06-15 PM): every
+  // dashboard mount is treated as a clean slate. Prior-session pre-borrow
+  // exit choices, custom ladder drafts, "Ladder Applied" chips — all
+  // start empty. We also opportunistically clear the legacy localStorage
+  // key so users who already have stale data get a fresh state on the
+  // next mount. See feedback_dashboard_fresh_state_per_session.md.
+  const [customStrikeText, setCustomStrikeText] = useState<string>("");
   const [customStrikeError, setCustomStrikeError] = useState<string | null>(null);
-  // Editable draft for the custom-ladder builder. Independent of
-  // preBorrowExits so the user can tweak rows freely; only when they
-  // hit "Use this ladder" does it get committed into preBorrowExits.
-  // Sum-of-slices is shown live; we cap at MAX_CUSTOM_LADDER_LEGS rows.
+  // Editable draft for the custom-ladder builder. Always starts empty;
+  // see fresh-state rule above.
   type CustomLadderRow = { strikeText: string; slicePct: string };
   const MAX_CUSTOM_LADDER_LEGS = 6;
-  const [customLadderRows, setCustomLadderRows] = useState<CustomLadderRow[]>(() => {
-    if (typeof window === "undefined") return [{ strikeText: "", slicePct: "" }];
-    try {
-      const raw = window.localStorage.getItem(PRE_BORROW_EXITS_KEY);
-      if (!raw) return [{ strikeText: "", slicePct: "" }];
-      const parsed = JSON.parse(raw) as PreBorrowExits;
-      if (parsed?.kind === "custom_ladder") {
-        return parsed.legs.map((l) => ({
-          strikeText: l.strikeText,
-          slicePct: String(l.sliceBps / 100),
-        }));
-      }
-    } catch {}
-    return [{ strikeText: "", slicePct: "" }];
-  });
+  const [customLadderRows, setCustomLadderRows] = useState<CustomLadderRow[]>([
+    { strikeText: "", slicePct: "" },
+  ]);
   const [customLadderError, setCustomLadderError] = useState<string | null>(null);
-  const [preBorrowExits, setPreBorrowExits] = useState<PreBorrowExits | null>(() => {
-    // Hydrate from localStorage so the picker remembers the user's last
-    // choice across page reloads. SSR-safe via typeof window check.
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = window.localStorage.getItem(PRE_BORROW_EXITS_KEY);
-      return raw ? (JSON.parse(raw) as PreBorrowExits) : null;
-    } catch {
-      return null;
-    }
-  });
-  // Persist on every change. Null clears the key.
+  const [preBorrowExits, setPreBorrowExits] = useState<PreBorrowExits | null>(null);
+  // One-time cleanup of the legacy persisted key so stale state from
+  // pre-fresh-state-rule sessions doesn't reappear on the next mount.
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
-      if (preBorrowExits === null) {
-        window.localStorage.removeItem(PRE_BORROW_EXITS_KEY);
-      } else {
-        window.localStorage.setItem(PRE_BORROW_EXITS_KEY, JSON.stringify(preBorrowExits));
-      }
+      window.localStorage.removeItem(PRE_BORROW_EXITS_KEY);
     } catch { /* private mode / quota — silent */ }
-  }, [preBorrowExits]);
+  }, []);
   // Legacy single-TP multiplier retained until all references are migrated;
   // the new exit picker writes preBorrowExits instead.
   const [autoTakeProfitMultiplier, setAutoTakeProfitMultiplier] = useState<number | null>(null);
@@ -1912,7 +1878,19 @@ function DashboardPageInner() {
       // already arm. chainLoanId is the u64 loan_id derived client-side
       // during buildBorrowTransaction — same id the bot wrote into
       // loans.loan_id, so we can arm against it.
-      if (!autoArmedOk) {
+      //
+      // V4-EXCLUSIVE GATE (operator-mandated 2026-06-15 PM, reaffirmed
+      // after $WIF V1 borrow surfaced the prompt): exit-arming is V4-only,
+      // so this prompt MUST only appear when the borrow actually landed
+      // on V4. The borrow routes to V4 iff the user pre-armed exits
+      // (preBorrowExits) or set a legacy autoTakeProfitMultiplier —
+      // those are the two paths that pass hasExitArming=true to
+      // buildBorrowTransaction. Plain borrows land on V1/V2/V3 and
+      // must not show the prompt; the arm would be rejected with
+      // exits_require_v4_loan and confuse the user.
+      // See feedback_exits_v4_only_no_exceptions.md.
+      const borrowLandedOnV4 = !!preBorrowExits || autoTakeProfitMultiplier != null;
+      if (!autoArmedOk && borrowLandedOnV4) {
         setPostBorrowTakeProfit({
           chainLoanId: chainLoanId.toString(),
           collateralSymbol: holding.symbol || "token",
