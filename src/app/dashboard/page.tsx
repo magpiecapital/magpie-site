@@ -3870,9 +3870,13 @@ function DashboardPageInner() {
                                             setCustomLadderError(null);
                                             setPreBorrowExits({ kind: "custom_ladder", legs });
                                           }}
-                                          className="text-[10px] font-semibold px-2 py-1 rounded-md border border-[var(--d-accent)] text-[var(--d-accent-deep)] hover:bg-[var(--d-accent)] hover:text-[var(--d-accent-ink)]"
+                                          className={`text-[10px] font-semibold px-2 py-1 rounded-md border transition ${
+                                            preBorrowExits?.kind === "custom_ladder"
+                                              ? "border-[var(--d-accent)] bg-[var(--d-accent)] text-[var(--d-accent-ink)]"
+                                              : "border-[var(--d-accent)] text-[var(--d-accent-deep)] hover:bg-[var(--d-accent)] hover:text-[var(--d-accent-ink)]"
+                                          }`}
                                         >
-                                          Use this ladder
+                                          {preBorrowExits?.kind === "custom_ladder" ? "Ladder applied ✓" : "Use this ladder"}
                                         </button>
                                       </div>
                                       {customLadderError && (
