@@ -33,6 +33,7 @@ import {
 import { parseStrike } from "@/lib/strike-price-parser";
 import { LadderPanel } from "./LadderPanel";
 import { LadderRollup } from "./LadderRollup";
+import { ExitStatusBanner } from "./ExitStatusBanner";
 
 /**
  * One-shot preview helper for the free-text strike input. Wraps the
@@ -99,6 +100,19 @@ export function TakeProfitCard(props: Props) {
     [props.state, props.loanDbId],
   );
 
+  // Lift the live collateral USD price to the card scope so both
+  // LadderRollup (distance-to-fire pills) and the individual
+  // LimitSlots can share a single fetch + a single cache hit.
+  const [cardPriceUsd, setCardPriceUsd] = useState<number | null>(null);
+  useEffect(() => {
+    if (!props.collateralMint) return;
+    let cancelled = false;
+    fetchCurrentPriceUsd(props.collateralMint).then((p) => {
+      if (!cancelled) setCardPriceUsd(p);
+    });
+    return () => { cancelled = true; };
+  }, [props.collateralMint]);
+
   // Loading sliver if state hasn't loaded yet
   if (!props.state) {
     return (
@@ -124,16 +138,29 @@ export function TakeProfitCard(props: Props) {
 
   return (
     <div className="mt-2 flex flex-col gap-1.5">
+      {/* Exit status — top-of-card pill that always tells the user
+       *  exactly where their auto-sell stands: not set, armed, firing,
+       *  partial, or complete. Closes the silent-failure case where a
+       *  ladder didn't arm and the user had no way to know. */}
+      <ExitStatusBanner
+        orders={props.state.orders}
+        loan={loan}
+        loanDbId={props.loanDbId}
+        collateralSymbol={props.collateralSymbol}
+        onRefresh={props.onMutated}
+      />
       {/* Ladder rollup — renders only when this loan has a ladder
        *  (orders sharing a ladder_group_id). Lets the user see every
-       *  leg with its strike, slice %, and fire status without having
-       *  to expand any slot. Per-direction (TP and SL ladders render
-       *  as separate cards). Non-ladder loans see nothing here and
-       *  fall through to the existing armed badge in LimitSlot. */}
+       *  leg with its strike, slice %, distance-to-fire, and fire
+       *  status without having to expand any slot. Cancel-ladder
+       *  button in the footer cancels every armed leg sequentially. */}
       <LadderRollup
         orders={props.state.orders}
         loanDbId={props.loanDbId}
         collateralSymbol={props.collateralSymbol}
+        currentPriceUsd={cardPriceUsd}
+        botApiUrl={props.botApiUrl}
+        onMutated={props.onMutated}
       />
       <LimitSlot
         direction="above"
