@@ -50,24 +50,49 @@ export const RWA_CATEGORIES = new Set<string>(["stock", "etf", "metal"]);
 // program (lesson from 2026-06-14).
 const ROUTE_RWA_TO_V3 =
   process.env.NEXT_PUBLIC_ROUTE_RWA_TO_V3 === "true";
-const ROUTE_MEMECOINS_TO_V4 =
-  process.env.NEXT_PUBLIC_ROUTE_MEMECOINS_TO_V4 === "true";
-const ROUTE_RWA_TO_V4 =
-  process.env.NEXT_PUBLIC_ROUTE_RWA_TO_V4 === "true";
 
 /**
- * Pick the program ID for a borrow given the collateral's category.
- * Mirrors bagbank-bot/src/solana/program.js:chooseProgramIdForCategory().
- * V4 supersedes V3 supersedes V2 when the corresponding routing flag is on.
+ * V4-exclusive routing (2026-06-15) — mirrors bot's chooseProgramId.
+ *
+ *   chooseProgramId(category)                          — plain borrow
+ *   chooseProgramId(category, { hasExitArming: true }) — exit-armed borrow
+ *
+ * V4 is the only pool that services exits (engine fire path keeps the
+ * loan ACTIVE and accumulates SOL in the per-loan vault). Plain borrows
+ * still route by category to V1/V2/V3.
+ *
+ * Throws when hasExitArming=true but PROGRAM_ID_V4 isn't deployed — the
+ * caller MUST refuse the borrow and tell the user exits aren't
+ * available right now. Silently falling back to V1/V3 would promise
+ * the user an in-vault exit and not deliver it.
  */
-export function chooseProgramIdForCategory(category: string | null | undefined): PublicKey {
+export function chooseProgramId(
+  category: string | null | undefined,
+  opts: { hasExitArming?: boolean } = {},
+): PublicKey {
+  const { hasExitArming = false } = opts;
+  if (hasExitArming) {
+    if (!PROGRAM_ID_V4) {
+      throw new Error(
+        "EXIT_ARMING_REQUIRES_V4: exit-armed borrow requested but NEXT_PUBLIC_PROGRAM_ID_V4 is not set on the site.",
+      );
+    }
+    return PROGRAM_ID_V4;
+  }
   if (category && RWA_CATEGORIES.has(category)) {
-    if (PROGRAM_ID_V4 && ROUTE_RWA_TO_V4) return PROGRAM_ID_V4;
     return ROUTE_RWA_TO_V3 ? PROGRAM_ID_V3 : PROGRAM_ID_V2;
   }
-  // Non-RWA path
-  if (PROGRAM_ID_V4 && ROUTE_MEMECOINS_TO_V4) return PROGRAM_ID_V4;
   return PROGRAM_ID;
+}
+
+/**
+ * Backwards-compatible shim — pre-2026-06-15 callers that don't know
+ * about exit arming still call this. They get the plain-borrow routing.
+ * New callers should use chooseProgramId(category, { hasExitArming })
+ * directly so the exit-aware routing engages.
+ */
+export function chooseProgramIdForCategory(category: string | null | undefined): PublicKey {
+  return chooseProgramId(category, { hasExitArming: false });
 }
 
 export const LOAN_TIERS = [
