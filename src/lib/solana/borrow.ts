@@ -20,6 +20,7 @@ import {
   PROGRAM_ID,
   PROGRAM_ID_V2,
   PROGRAM_ID_V3,
+  PROGRAM_ID_V4,
   RWA_CATEGORIES,
   chooseProgramIdForCategory,
 } from "./constants";
@@ -33,6 +34,11 @@ import {
 import idl from "./magpie.json";
 import idlV2 from "./magpie-v2.json";
 import idlV3 from "./magpie-v3.json";
+// V4 IDL — copied from V3 as a placeholder until the V4 anchor build
+// generates the real one. Same dual-tier loan instruction shape, with
+// the new convert_collateral_slice instruction the site doesn't call
+// directly (engine-only).
+import idlV4 from "./magpie-v4.json";
 
 /** Detect whether a mint uses Token-2022 or classic Token program. */
 async function getMintTokenProgram(
@@ -153,6 +159,10 @@ export async function buildBorrowTransaction({
   const targetProgramId = chooseProgramIdForCategory(resolvedCategory);
   const isV2 = targetProgramId.equals(PROGRAM_ID_V2);
   const isV3 = targetProgramId.equals(PROGRAM_ID_V3);
+  const isV4 = !!PROGRAM_ID_V4 && targetProgramId.equals(PROGRAM_ID_V4);
+  // Programs that require the 5-arg request_and_fund_loan shape (extra
+  // `category` u8). V3 introduced it; V4 inherits it.
+  const needsCategoryArg = isV3 || isV4;
   const isRwa = !!resolvedCategory && RWA_CATEGORIES.has(resolvedCategory);
 
   const [pool] = poolPda(LENDER_PUBKEY, targetProgramId);
@@ -205,7 +215,10 @@ export async function buildBorrowTransaction({
     { commitment: "confirmed" },
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const program = new Program((isV3 ? idlV3 : isV2 ? idlV2 : idl) as any, provider);
+  const program = new Program(
+    (isV4 ? idlV4 : isV3 ? idlV3 : isV2 ? idlV2 : idl) as any,
+    provider,
+  );
 
   // Pre-instructions
   //
@@ -275,10 +288,11 @@ export async function buildBorrowTransaction({
   // V3 introduced a category arg (u8) to pick the right tier ladder:
   //   0 = memecoin (30/25/20% LTV @ 2/3/7d)
   //   1 = RWA      (50/60/70% LTV @ 7/15/30d)
-  // V1/V2 do not take this arg. Build args conditionally so each
-  // program's instruction signature matches its IDL.
+  // V1/V2 do not take this arg. V4 inherits V3's shape.
+  // Build args conditionally so each program's instruction signature
+  // matches its IDL.
   const v3Category = isRwa ? 1 : 0;
-  const ixArgs = isV3
+  const ixArgs = needsCategoryArg
     ? [
         new BN(collateralAmountRaw),
         loanOption,
