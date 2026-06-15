@@ -1670,26 +1670,45 @@ function DashboardPageInner() {
               target = null as never;
             }
             if (target) {
-              try {
-                const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-                await armTakeProfit({
-                  botApiUrl: botApi2,
-                  signerPubkey: publicKey!.toBase58(),
-                  signMessage: signMessage!,
-                  request: {
-                    from: publicKey!.toBase58(),
-                    loanIdChain: chainLoanId.toString(),
-                    direction,
-                    target,
-                    slippageBps: direction === "below" ? 300 : 200,
-                    sellDestination: "sol",
-                  },
-                });
+              // Same race-tolerant retry as armSingle. Custom strikes
+              // hit the same loan_not_found_for_user race when the
+              // borrow's recordLoan hasn't propagated yet.
+              const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+              const RETRY_ERRORS = /loan_not_found_for_user|loan.*not.*found|404/i;
+              const MAX_ATTEMPTS = 4;
+              let lastErr = "";
+              let armedOk = false;
+              for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+                try {
+                  await armTakeProfit({
+                    botApiUrl: botApi2,
+                    signerPubkey: publicKey!.toBase58(),
+                    signMessage: signMessage!,
+                    request: {
+                      from: publicKey!.toBase58(),
+                      loanIdChain: chainLoanId.toString(),
+                      direction,
+                      target,
+                      slippageBps: direction === "below" ? 300 : 200,
+                      sellDestination: "sol",
+                    },
+                  });
+                  armedOk = true;
+                  break;
+                } catch (err) {
+                  lastErr = (err as Error).message || "arm failed";
+                  if (attempt < MAX_ATTEMPTS && RETRY_ERRORS.test(lastErr)) {
+                    await new Promise((r) => setTimeout(r, 1200 * attempt));
+                    continue;
+                  }
+                  break;
+                }
+              }
+              if (armedOk) {
                 setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"} @ ${parsed.normalizedDisplay}`, ok: true }]);
                 autoArmedOk = true;
-              } catch (err) {
-                const msg = (err as Error).message || "arm failed";
-                setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"} @ ${parsed.normalizedDisplay}`, ok: false, error: msg }]);
+              } else {
+                setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"} @ ${parsed.normalizedDisplay}`, ok: false, error: lastErr }]);
               }
             }
           }
