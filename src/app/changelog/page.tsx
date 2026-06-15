@@ -19,6 +19,20 @@ interface Entry {
 
 const ENTRIES: Entry[] = [
   {
+    date: "June 15, 2026",
+    tag: "Feature",
+    title: "V4 lending program in development — auto-sell stays inside the loan vault",
+    bullets: [
+      "V4 introduces a fundamentally new model: when an auto-sell fires, the collateral converts to SOL but the SOL STAYS INSIDE THE LOAN VAULT. The loan stays open. Principal + fee unchanged. The user decides when to close the loan and claim the mix (remaining tokens + accumulated SOL)",
+      "Why this matters: users get to lock in price without triggering a forced close. Tax-timing control. Repay-when-ready control. Brokerage-style stop semantics applied to on-chain lending",
+      "New on-chain instruction \\`convert_collateral_slice\\`: engine-authority signer only, Pattern B Jupiter CPI (aggregator-agnostic), strict slippage cap enforcement, 1% protocol fee skim",
+      "Same dual-tier ladder as V3 (memecoin 30/25/20% LTV + RWA 50/60/70% LTV) — V4 changes the auto-sell semantics, not the borrow economics",
+      "Status: program code is written and compiles clean. Off-chain side (bot, engine, site, Pip) all recognize V4 as a configured program ahead of mainnet deploy. Routing flag is off by default; V4 sits idle until operator flips it",
+      "Existing V1/V2/V3 loans are unaffected — V4 is a parallel deploy. Only NEW borrows route to V4 once the flag is on; existing loans wind down on their original program",
+      "5 SOL will move from the V2 pool to seed V4's lending vault at flip time (operator-authorized 2026-06-15)",
+    ],
+  },
+  {
     date: "June 14, 2026",
     tag: "Feature",
     title: "Auto-sell, built into the borrow — set your exit before the loan opens",
