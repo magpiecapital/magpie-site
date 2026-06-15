@@ -975,7 +975,7 @@ export default function EarnPage() {
               <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">How it works</h3>
               <ol className="space-y-3 text-sm text-[var(--ink-soft)]">
                 <HowStep n={1} text="Deposit SOL into the lending pool — you receive shares proportional to your stake" />
-                <HowStep n={2} text="Borrowers take loans against approved collateral (memecoins on v1: 1.5–3% fee; RWA on v3: 2.5–5% fee)" />
+                <HowStep n={2} text="Borrowers take loans against approved collateral (plain memecoin borrows on v1: 1.5–3% fee; plain RWA borrows on v3: 2.5–5% fee; any borrow that arms an exit at borrow time routes to v4 instead, same memecoin ladder)" />
                 <HowStep n={3} text="Per MGP-001, every loan fee splits 70/10/10/10: 70% to $MAGPIE holders, 10% to LP loyalty (you), 10% to referrer, 10% to protocol reserve" />
                 <HowStep n={4} text="Withdraw your principal any time; LP loyalty SOL pays out automatically on the snapshot cadence" />
               </ol>

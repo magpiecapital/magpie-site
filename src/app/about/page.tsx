@@ -43,7 +43,7 @@ function makeFeatures(approvedCount: number) {
   },
   {
     title: "Auto-Sell, Built In",
-    body: "Set your exit price when you take the loan — not after. Pick a take-profit, a stop-loss, both, or a multi-stage ladder. Our engine watches the chart 24/7 and executes the moment your target hits, repaying the loan and sending net SOL to your wallet automatically.",
+    body: "Set your exit price when you take the loan — not after. Pick a take-profit, a stop-loss, both, or a multi-stage ladder. Our engine watches the chart 24/7 and converts the moment your target hits. Exit-armed loans live in our V4 vault — when an exit fires, collateral converts to SOL inside the loan, the loan stays open, and you decide when to repay and walk away with the mix.",
   },
   ];
 }
