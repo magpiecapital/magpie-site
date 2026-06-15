@@ -26,6 +26,10 @@ function makeFeatures(approvedCount: number) {
     body: "Borrow from the web dashboard with your Phantom wallet, or from a Telegram chat with no extension required. Same on-chain program — pick the surface that fits the moment.",
   },
   {
+    title: "V4 In-Vault Auto-Sells",
+    body: "Attach a take-profit, stop-loss, or ladder at borrow time and the loan routes to V4. When a leg fires, the SOL accumulates inside your loan vault instead of going to your wallet. You decide when to close. Brokerage-style stop semantics, on-chain.",
+  },
+  {
     title: `${approvedCount}+ Memecoin Collateral`,
     body: "From WIF to Fartcoin to Moo Deng. If it has liquidity, we'll lend against it.",
   },
