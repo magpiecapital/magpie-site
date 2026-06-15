@@ -96,17 +96,26 @@ export function TakeProfitCard(props: Props) {
   const linked = props.state?.linked ?? false;
   const custodial = props.state?.custodial ?? false;
   const loan = useMemo<TakeProfitLoan | null>(
-    // CRITICAL: l.id arrives from the bot API as a STRING (pg bigint
-    // serializes to JS string for precision safety) but loanDbId is
-    // a number from page.tsx's Number() coercion. Strict equality on
-    // mixed types always returns false, so without Number() on both
-    // sides every loan looks "not found" — which cascades to
-    // is_eligible_for_takeprofit=false (the ?? false fallback) and
-    // the user sees "not eligible" on every loan. Operator reported
-    // exactly this on 2026-06-15. Coerce both sides explicitly.
-    () => props.state?.loans.find((l) => Number(l.id) === Number(props.loanDbId)) ?? null,
-    [props.state, props.loanDbId],
+    // Match by the on-chain loan_id (which the dashboard ALWAYS has)
+    // rather than the DB id (which /api/v1/loans does NOT return —
+    // so props.loanDbId defaults to 0 and any id-based match fails).
+    // The chain id is a string on both sides ("116755458128207700"),
+    // so direct === works without coercion.
+    //
+    // History: Operator's $TROLL V4 loan on 2026-06-15 surfaced
+    // "Auto-sell on rise: not eligible" even though the API reported
+    // eligible_tp=True. Tracing showed /api/v1/loans returns no DB id
+    // field, so loanDbId came in as 0 and Number(l.id) === 0 always
+    // failed → loan resolved to null → eligible defaulted to false.
+    () => props.state?.loans.find((l) => l.loan_id === props.loanIdChain) ?? null,
+    [props.state, props.loanIdChain],
   );
+
+  // The "real" DB id for this loan, derived from the limit-close
+  // state. This is what downstream order-lookups need, NOT the
+  // possibly-zero props.loanDbId. Pass this down to LimitSlot,
+  // LadderRollup, and ExitStatusBanner instead.
+  const resolvedLoanDbId = loan?.id != null ? Number(loan.id) : Number(props.loanDbId) || 0;
 
   // Lift the live collateral USD price to the card scope so both
   // LadderRollup (distance-to-fire pills) and the individual
@@ -153,7 +162,7 @@ export function TakeProfitCard(props: Props) {
       <ExitStatusBanner
         orders={props.state.orders}
         loan={loan}
-        loanDbId={props.loanDbId}
+        loanDbId={resolvedLoanDbId}
         collateralSymbol={props.collateralSymbol}
         onRefresh={props.onMutated}
       />
@@ -164,7 +173,7 @@ export function TakeProfitCard(props: Props) {
        *  button in the footer cancels every armed leg sequentially. */}
       <LadderRollup
         orders={props.state.orders}
-        loanDbId={props.loanDbId}
+        loanDbId={resolvedLoanDbId}
         collateralSymbol={props.collateralSymbol}
         currentPriceUsd={cardPriceUsd}
         botApiUrl={props.botApiUrl}
@@ -175,7 +184,7 @@ export function TakeProfitCard(props: Props) {
         loan={loan}
         orders={props.state.orders}
         loanIdChain={props.loanIdChain}
-        loanDbId={props.loanDbId}
+        loanDbId={resolvedLoanDbId}
         collateralSymbol={props.collateralSymbol}
         collateralMint={props.collateralMint ?? null}
         botApiUrl={props.botApiUrl}
@@ -186,7 +195,7 @@ export function TakeProfitCard(props: Props) {
         loan={loan}
         orders={props.state.orders}
         loanIdChain={props.loanIdChain}
-        loanDbId={props.loanDbId}
+        loanDbId={resolvedLoanDbId}
         collateralSymbol={props.collateralSymbol}
         collateralMint={props.collateralMint ?? null}
         botApiUrl={props.botApiUrl}
