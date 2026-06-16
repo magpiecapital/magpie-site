@@ -37,6 +37,62 @@ import { LadderRollup } from "./LadderRollup";
 import { ExitStatusBanner } from "./ExitStatusBanner";
 
 /**
+ * Collapse stale failure/cancellation rows when a later order with the
+ * SAME composite intent key (loan + direction + kind + trigger value +
+ * slice) is fired or armed. Operator-mandated 2026-06-16 PM
+ * ([[feedback_clean_dashboard_v4_ux]]) after the SPCX V4 loan #804
+ * dashboard showed "Failed · borrower_wallet_changed" on order #18
+ * despite order #19 having filled the same $205/40% intent.
+ *
+ * Rules:
+ *   - Failed/cancelled orders are SUPPRESSED if another order with the
+ *     same composite key has status in {fired, firing, armed,
+ *     twap_in_progress, awaiting_user}.
+ *   - Original-fired ORDERS are always shown (they're the receipt).
+ *   - Currently-armed orders are always shown (live ladder state).
+ *
+ * Pure function — no side effects, doesn't mutate the input array.
+ */
+function filterSupersededOrders(orders: TakeProfitOrder[]): TakeProfitOrder[] {
+  if (!Array.isArray(orders) || orders.length === 0) return orders;
+  const ACTIVE_STATES = new Set([
+    "armed",
+    "firing",
+    "twap_in_progress",
+    "awaiting_user",
+    "fired",
+  ]);
+  // Build a set of active composite keys.
+  const activeKeys = new Set<string>();
+  for (const o of orders) {
+    if (!ACTIVE_STATES.has(o.status)) continue;
+    const key = [
+      String(o.loan_id),
+      o.trigger_direction ?? "above",
+      o.trigger_kind,
+      String(o.trigger_value_micro),
+      String(o.slice_pct ?? 10000),
+    ].join("|");
+    activeKeys.add(key);
+  }
+  // Filter out failed/cancelled orders whose composite key has an
+  // active sibling.
+  return orders.filter((o) => {
+    if (o.status !== "failed" && o.status !== "cancelled" && o.status !== "max_retries_exceeded") {
+      return true;
+    }
+    const key = [
+      String(o.loan_id),
+      o.trigger_direction ?? "above",
+      o.trigger_kind,
+      String(o.trigger_value_micro),
+      String(o.slice_pct ?? 10000),
+    ].join("|");
+    return !activeKeys.has(key);
+  });
+}
+
+/**
  * One-shot preview helper for the free-text strike input. Wraps the
  * shared parser with a tighter shape the JSX renderer can render
  * directly. Reused below by both LimitSlot variants.
@@ -168,7 +224,7 @@ export function TakeProfitCard(props: Props) {
        *  partial, or complete. Closes the silent-failure case where a
        *  ladder didn't arm and the user had no way to know. */}
       <ExitStatusBanner
-        orders={props.state.orders}
+        orders={filterSupersededOrders(props.state.orders)}
         loan={loan}
         loanDbId={resolvedLoanDbId}
         collateralSymbol={props.collateralSymbol}
@@ -182,7 +238,7 @@ export function TakeProfitCard(props: Props) {
        *  status without having to expand any slot. Cancel-ladder
        *  button in the footer cancels every armed leg sequentially. */}
       <LadderRollup
-        orders={props.state.orders}
+        orders={filterSupersededOrders(props.state.orders)}
         loanDbId={resolvedLoanDbId}
         loanIdChain={props.loanIdChain}
         collateralSymbol={props.collateralSymbol}
@@ -195,7 +251,7 @@ export function TakeProfitCard(props: Props) {
         <LimitSlot
           direction="above"
           loan={loan}
-          orders={props.state.orders}
+          orders={filterSupersededOrders(props.state.orders)}
           loanIdChain={props.loanIdChain}
           loanDbId={resolvedLoanDbId}
           collateralSymbol={props.collateralSymbol}
@@ -208,7 +264,7 @@ export function TakeProfitCard(props: Props) {
         <LimitSlot
           direction="below"
           loan={loan}
-          orders={props.state.orders}
+          orders={filterSupersededOrders(props.state.orders)}
           loanIdChain={props.loanIdChain}
           loanDbId={resolvedLoanDbId}
           collateralSymbol={props.collateralSymbol}
