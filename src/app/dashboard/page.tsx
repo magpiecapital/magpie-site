@@ -2071,52 +2071,71 @@ function DashboardPageInner() {
   }, [publicKey, connected, connection, sendTransaction, signMessage, autoTakeProfitMultiplier, preBorrowExits, forceRefresh]);
 
   // Re-arms the legs captured when a multi-leg ladder partially failed
-  // mid-arm. Walks the remaining list and updates progress/state as
-  // each leg lands; on full success, clears the retry banner.
+  // mid-arm. 2026-06-16 PM ([[feedback_all_exit_types_must_match_ladder_quality]],
+  // [[feedback_one_signature_for_n_legs_always]]): use the batch endpoint
+  // so the user signs ONCE for all remaining legs. Previously this loop
+  // called armTakeProfit per leg → N Phantom prompts → exact babysitting
+  // pattern the V4 product premise rules out.
   const handleRetryRemainingLegs = useCallback(async () => {
     if (!retryRemainingLegs || !publicKey || !signMessage) return;
     setRetryingRemainingBusy(true);
     let allOk = true;
-    let firstFailIndex = -1;
-    for (let i = 0; i < retryRemainingLegs.legs.length; i++) {
-      const leg = retryRemainingLegs.legs[i];
-      try {
-        const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-        await armTakeProfit({
-          botApiUrl: botApi,
-          signerPubkey: publicKey.toBase58(),
-          signMessage,
-          request: {
-            from: publicKey.toBase58(),
-            loanIdChain: retryRemainingLegs.loanIdChain,
+    try {
+      const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+      const { armTakeProfitBatch } = await import("@/lib/solana/site-take-profit");
+      // Translate the captured legs into the ArmBatchLegSpec wire shape.
+      const legs = retryRemainingLegs.legs.map((leg) => {
+        const t = leg.target;
+        if (t.kind === "multiplier") {
+          return {
             direction: retryRemainingLegs.direction,
-            // Use the full parsed target preserved at capture time —
-            // multiplier / mc_usd / price_usd all valid. Earlier
-            // multiplier-only retry path silently dropped non-multiplier
-            // legs (operator's $TROLL 2026-06-15 case with MC strikes).
-            target: leg.target,
+            kind: "multiplier" as const,
+            value: t.multiplier,
+            sliceBps: leg.sliceBps,
             slippageBps: retryRemainingLegs.direction === "below" ? 300 : 200,
-            sellDestination: "sol",
-            slicePctBps: leg.sliceBps < 10000 ? leg.sliceBps : undefined,
-          },
-        });
-        setAutoArmLegProgress((prev) => [...prev, { label: leg.label, ok: true }]);
-      } catch (err) {
-        const msg = (err as Error).message || "arm failed";
-        setAutoArmLegProgress((prev) => [...prev, { label: leg.label, ok: false, error: msg }]);
-        allOk = false;
-        firstFailIndex = i;
-        break;
-      }
+          };
+        }
+        if (t.kind === "price_usd") {
+          return {
+            direction: retryRemainingLegs.direction,
+            kind: "price_usd" as const,
+            value: t.usd,
+            sliceBps: leg.sliceBps,
+            slippageBps: retryRemainingLegs.direction === "below" ? 300 : 200,
+          };
+        }
+        // mc_usd
+        return {
+          direction: retryRemainingLegs.direction,
+          kind: "mc_usd" as const,
+          value: t.mcDollars,
+          sliceBps: leg.sliceBps,
+          slippageBps: retryRemainingLegs.direction === "below" ? 300 : 200,
+        };
+      });
+      await armTakeProfitBatch({
+        botApiUrl: botApi,
+        signerPubkey: publicKey.toBase58(),
+        signMessage,
+        loanIdChain: retryRemainingLegs.loanIdChain,
+        legs,
+      });
+      // Atomic success — all legs landed. Mark progress accordingly.
+      setAutoArmLegProgress((prev) => [
+        ...prev,
+        ...retryRemainingLegs.legs.map((leg) => ({ label: leg.label, ok: true as const })),
+      ]);
+    } catch (err) {
+      const msg = (err as Error).message || "batch arm failed";
+      // All-or-none batch — if it failed, mark all legs as failed.
+      setAutoArmLegProgress((prev) => [
+        ...prev,
+        ...retryRemainingLegs.legs.map((leg) => ({ label: leg.label, ok: false as const, error: msg })),
+      ]);
+      allOk = false;
     }
     if (allOk) {
       setRetryRemainingLegs(null);
-    } else if (firstFailIndex >= 0) {
-      // Tighten the remaining list to what's still un-armed so the next
-      // retry attempt only walks the un-touched tail.
-      setRetryRemainingLegs((prev) => prev
-        ? { ...prev, legs: prev.legs.slice(firstFailIndex) }
-        : null);
     }
     setRetryingRemainingBusy(false);
     forceRefresh();
