@@ -70,7 +70,14 @@ function parseStrikePreview(raw: string, isSl: boolean):
   };
 }
 
-const POLL_MS = 60_000;
+// Adaptive poll cadence (operator-mandated 2026-06-16 PM,
+// feedback_ladder_end_to_end_confidence_protocol.md). When any order
+// is in an active state (armed / firing / twap_in_progress /
+// awaiting_user), drop to fast poll so a fire is visible within
+// seconds. When everything is idle (no armed/firing orders), back
+// off to the standard interval to save bandwidth + DB load.
+const POLL_MS_IDLE = 60_000;
+const POLL_MS_ACTIVE = 5_000;
 const TP_PRESETS = [1.5, 2, 3, 5] as const;
 // SL presets: "sell when price drops to X% of current". 0.5 = -50%.
 // Operator-friendly anchors that match the TG /stoploss command's
@@ -1148,20 +1155,39 @@ export function useTakeProfitState(botApiUrl: string, wallet: string | null) {
     }
   }, [botApiUrl, wallet]);
 
+  // Derive active-vs-idle from current state. Any armed/firing class
+  // status anywhere in the user's portfolio drops the cadence to 5s
+  // so a fire surfaces fast. Idle reverts to 60s.
+  const hasActiveOrders = useMemo(() => {
+    if (!state?.orders) return false;
+    return state.orders.some(
+      (o) =>
+        o.status === "armed" ||
+        o.status === "firing" ||
+        o.status === "twap_in_progress" ||
+        o.status === "awaiting_user",
+    );
+  }, [state?.orders]);
+
   useEffect(() => {
     if (!wallet) return;
     let cancelled = false;
     let id: ReturnType<typeof setInterval> | null = null;
     fetchOnce();
+    const cadence = hasActiveOrders ? POLL_MS_ACTIVE : POLL_MS_IDLE;
     id = setInterval(() => {
       if (typeof document !== "undefined" && document.hidden) return;
       if (!cancelled) fetchOnce();
-    }, POLL_MS);
+    }, cadence);
     return () => {
       cancelled = true;
       if (id) clearInterval(id);
     };
-  }, [wallet, fetchOnce]);
+    // hasActiveOrders is intentional in the dep list — when the user's
+    // first order arms, the effect re-runs and the new 5s cadence kicks
+    // in immediately. When all orders are repaid/fired/cancelled, we
+    // automatically back off to 60s.
+  }, [wallet, fetchOnce, hasActiveOrders]);
 
   return { state, refresh: fetchOnce };
 }
