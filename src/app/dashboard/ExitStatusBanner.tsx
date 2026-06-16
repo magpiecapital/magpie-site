@@ -16,17 +16,33 @@
  */
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { armTakeProfit } from "@/lib/solana/site-take-profit";
 import type {
   TakeProfitLoan,
   TakeProfitOrder,
 } from "@/lib/solana/site-take-profit";
+
+// V4 program id. The dashboard reads loan.program_id from the bot's
+// site-limit-close response; V4 loans are the ones where the user
+// MUST have requested an exit (V4 is exit-only). When such a loan
+// has zero orders, that's a SILENT auto-arm failure, not an empty
+// state — operator rule feedback_v4_loans_never_show_exit_not_set.md.
+const PROGRAM_ID_V4 =
+  process.env.NEXT_PUBLIC_PROGRAM_ID_V4 ||
+  "HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo";
 
 interface Props {
   orders: TakeProfitOrder[];
   loan: TakeProfitLoan | null;
   loanDbId: number;
   collateralSymbol: string | null;
+  /** Bot API url — needed for the V4 silent-arm-failure recovery
+   *  retry buttons that POST armTakeProfit directly. */
+  botApiUrl?: string;
+  /** Chain loan_id as a string — what the arm endpoint matches on. */
+  loanIdChain?: string;
   /** Optional: pass the parent's onMutated so the "Refresh" link works. */
   onRefresh?: () => void;
 }
@@ -43,12 +59,26 @@ export function ExitStatusBanner({
   loan,
   loanDbId,
   collateralSymbol,
+  botApiUrl,
+  loanIdChain,
   onRefresh,
 }: Props) {
   const state = useMemo<ExitState | null>(
     () => computeExitState(orders, loanDbId),
     [orders, loanDbId],
   );
+
+  // V4 silent-arm-failure detection (operator-mandated 2026-06-16 PM,
+  // feedback_v4_loans_never_show_exit_not_set.md). A V4 loan ONLY
+  // exists because the user requested exits — V4 is exit-only routing.
+  // So if a V4 loan has no orders, the auto-arm flow silently failed
+  // (Phantom session blip, useEffect timing race, etc.). Render a
+  // loud recovery banner with one-click retry CTAs instead of the
+  // generic "Exit not set" empty-CTA copy that pretends no intent
+  // existed.
+  const isV4Loan = loan?.program_id === PROGRAM_ID_V4;
+  const isSilentArmFailure =
+    isV4Loan && state?.kind === "no_exit_set" && !!botApiUrl && !!loanIdChain;
 
   // Loans that aren't eligible for auto-sell skip the banner — the
   // existing ineligibility text in LimitSlot handles those cases.
@@ -67,6 +97,17 @@ export function ExitStatusBanner({
   const eligibleForAny =
     loan.is_eligible_for_takeprofit || (loan.is_eligible_for_stoploss ?? false);
   if (state == null && !eligibleForAny) return null;
+
+  if (isSilentArmFailure && botApiUrl && loanIdChain) {
+    return (
+      <V4SilentArmRecoveryBanner
+        symbol={collateralSymbol}
+        botApiUrl={botApiUrl}
+        loanIdChain={loanIdChain}
+        onMutated={onRefresh}
+      />
+    );
+  }
 
   return (
     <BannerShell state={state} symbol={collateralSymbol} loan={loan} onRefresh={onRefresh} />
@@ -366,4 +407,147 @@ function formatTriggerInline(kind: string, valueMicro: string): string {
     return `$${usd.toFixed(8)}`;
   }
   return `${(n / 1e9).toFixed(6)} SOL`;
+}
+
+/* ─── V4 silent-arm-failure recovery banner ─────────────────────────
+ * Operator-mandated 2026-06-16 PM
+ * (feedback_v4_loans_never_show_exit_not_set.md). A V4 loan with no
+ * orders means the auto-arm flow silently failed somewhere between
+ * the post-borrow useEffect and the bot's arm endpoint. NEVER show
+ * the generic "Exit not set" copy here — render this loud recovery
+ * banner with one-click retry buttons that POST armTakeProfit
+ * directly, bypassing the broken auto-arm chain.
+ *
+ * Each button calls armTakeProfit with a fixed target (2x, 0.7x,
+ * 3x) using the wallet's signMessage. Tracks busy state per button
+ * so the user can see what's happening. On success → onMutated()
+ * → state refetches → ExitStatusBanner re-renders as `armed`.
+ */
+function V4SilentArmRecoveryBanner({
+  symbol,
+  botApiUrl,
+  loanIdChain,
+  onMutated,
+}: {
+  symbol: string | null;
+  botApiUrl: string;
+  loanIdChain: string;
+  onMutated?: () => void;
+}) {
+  const { publicKey, signMessage } = useWallet();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const retry = async (
+    label: string,
+    target: { kind: "multiplier"; multiplier: number },
+    direction: "above" | "below",
+  ) => {
+    if (!publicKey || !signMessage) {
+      setError("Connect your wallet to retry.");
+      return;
+    }
+    setBusy(label);
+    setError(null);
+    try {
+      await armTakeProfit({
+        botApiUrl,
+        signerPubkey: publicKey.toBase58(),
+        signMessage,
+        request: {
+          from: publicKey.toBase58(),
+          loanIdChain,
+          direction,
+          target,
+          slippageBps: direction === "below" ? 300 : 200,
+          sellDestination: "sol",
+        },
+      });
+      onMutated?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const sym = symbol || "this loan";
+
+  return (
+    <div
+      className="rounded-md border-2 px-3 py-2.5 flex flex-col gap-2"
+      style={{
+        borderColor: "rgba(245, 158, 11, 0.55)",
+        background: "rgba(245, 158, 11, 0.10)",
+        color: "var(--d-ink)",
+      }}
+      role="alert"
+    >
+      <div className="text-[12px] font-semibold">
+        Your auto-sell didn&apos;t finish arming on this {sym} loan
+      </div>
+      <div className="text-[11px] opacity-80">
+        We routed this loan to V4 because you set up an auto-sell — the arming step
+        didn&apos;t complete (likely a wallet session blip). Click any option to retry:
+      </div>
+      <div className="flex flex-wrap gap-1.5">
+        <button
+          type="button"
+          onClick={() =>
+            retry("2x", { kind: "multiplier", multiplier: 2 }, "above")
+          }
+          disabled={!!busy || !publicKey}
+          className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
+          style={{
+            background: "rgba(34, 197, 94, 0.15)",
+            borderColor: "rgba(34, 197, 94, 0.55)",
+            color: "var(--d-ink)",
+          }}
+        >
+          {busy === "2x" ? "Signing…" : "Sell at 2x"}
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            retry("3x", { kind: "multiplier", multiplier: 3 }, "above")
+          }
+          disabled={!!busy || !publicKey}
+          className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
+          style={{
+            background: "rgba(34, 197, 94, 0.15)",
+            borderColor: "rgba(34, 197, 94, 0.55)",
+            color: "var(--d-ink)",
+          }}
+        >
+          {busy === "3x" ? "Signing…" : "Sell at 3x"}
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            retry("0.7x", { kind: "multiplier", multiplier: 0.7 }, "below")
+          }
+          disabled={!!busy || !publicKey}
+          className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
+          style={{
+            background: "rgba(220, 38, 38, 0.12)",
+            borderColor: "rgba(220, 38, 38, 0.50)",
+            color: "var(--d-ink)",
+          }}
+        >
+          {busy === "0.7x" ? "Signing…" : "Sell at 0.7x"}
+        </button>
+      </div>
+      {error && (
+        <div
+          className="text-[10px] rounded px-1.5 py-1"
+          style={{ background: "rgba(220,38,38,0.10)", color: "rgb(185, 28, 28)" }}
+        >
+          {error}
+        </div>
+      )}
+      <div className="text-[10px] opacity-60">
+        Or use the slot form below to set a custom strike or ladder.
+      </div>
+    </div>
+  );
 }
