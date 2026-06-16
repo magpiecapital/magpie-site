@@ -627,9 +627,11 @@ export async function armTakeProfitBatch(args: {
 
   // Beacon every leg as an intent BEFORE asking Phantom to sign. Best-
   // effort — if any intent post fails the signed batch still proceeds.
-  // The server's reconciliation will mark each one armed if the batch
-  // succeeds.
-  await Promise.all(
+  // We capture the returned intent_id per leg and thread it into the
+  // batch request body so the server can mark each intent armed when the
+  // matching insert lands (otherwise intents stay 'pending' forever even
+  // when the legs arm cleanly — observability lie).
+  const intentResults = await Promise.all(
     args.legs.map((l) =>
       postArmIntent({
         botApiUrl: args.botApiUrl,
@@ -649,9 +651,14 @@ export async function armTakeProfitBatch(args: {
           sellDestination: "sol",
           slicePctBps: l.sliceBps < 10000 ? l.sliceBps : undefined,
         },
-      }).catch(() => ({ ok: false as const })),
+      }).catch(() => ({ ok: false as const, intent_id: undefined })),
     ),
   );
+  args.legs.forEach((l, i) => {
+    if (l.intent_id == null && intentResults[i]?.ok && intentResults[i].intent_id != null) {
+      l.intent_id = intentResults[i].intent_id;
+    }
+  });
 
   const nonce = randomNonceHex();
   const issuedAt = new Date().toISOString();
