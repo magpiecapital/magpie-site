@@ -141,6 +141,23 @@ function LadderCard({
   const armedLegs = group.legs.filter((l) => l.status === "armed");
   const allFired = firedCount === totalCount;
   const partiallyFired = firedCount > 0 && firedCount < totalCount;
+  // Incomplete-ladder detection (operator-mandated 2026-06-16 PM,
+  // feedback_ladder_must_fully_arm_or_loudly_recover.md). A ladder where
+  // SUM(slice_pct) across active legs < 10000 bps means the user's
+  // intent fell short of full coverage. Either Phantom dropped a leg,
+  // they dismissed mid-ladder, or they intentionally left budget. Either
+  // way, the dashboard should LOUDLY surface the gap with a one-tap
+  // recovery path — never silently let the user think they're fully
+  // armed when they aren't.
+  const activeLegsSliceBps = group.legs
+    .filter((l) => l.status === "armed" || l.status === "fired" || l.status === "firing")
+    .reduce((acc, l) => acc + (l.slice_pct ?? 10000), 0);
+  const remainingSliceBps = Math.max(0, 10000 - activeLegsSliceBps);
+  const remainingSlicePct = remainingSliceBps / 100;
+  // Only surface the banner when there's a meaningful gap (>= 1% room)
+  // AND at least one leg is still armed (no point on a fully-fired
+  // ladder). The banner offers the user a one-tap path to add more legs.
+  const isIncomplete = remainingSliceBps >= 100 && armedLegs.length > 0;
 
   // Header sentence — varies based on overall ladder state. Operator
   // emphasized the user should immediately see ladder progression
@@ -236,6 +253,57 @@ function LadderCard({
           />
         ))}
       </div>
+
+      {/* Incomplete-ladder banner. Loud yellow surface when the ladder's
+       *  combined active slice% is below 100%. Operator-mandated 2026-
+       *  06-16 PM (feedback_ladder_must_fully_arm_or_loudly_recover.md)
+       *  after the SPCX loan 798 dropped a leg silently mid-ladder.
+       *  Renders a one-tap "Add remaining %" CTA that scrolls + signals
+       *  the LimitSlot below (which already exposes the LadderPanel). */}
+      {isIncomplete && (
+        <div
+          className="mt-2 rounded-md border-2 px-3 py-2 text-[11px] flex items-center justify-between gap-3"
+          style={{
+            borderColor: "rgba(245, 158, 11, 0.55)",
+            background: "rgba(245, 158, 11, 0.10)",
+            color: "var(--d-ink)",
+          }}
+          role="alert"
+        >
+          <div>
+            <span className="font-semibold">Ladder partially armed.</span>{" "}
+            <span className="opacity-80">
+              Current legs cover {(activeLegsSliceBps / 100).toFixed(0)}% of your collateral.{" "}
+              {remainingSlicePct.toFixed(0)}% slice budget is still unallocated — your{" "}
+              {isSl ? "stop-loss" : "take-profit"} won't fully close the position when all
+              triggers hit.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              // Scroll into the matching LimitSlot so the user can toggle
+              // ladder mode and add legs. The LadderPanel's existingArmed
+              // accounting (PR #142) defaults the new leg to the
+              // remaining budget so this works in one tap.
+              const slotEl = document.querySelector(
+                isSl
+                  ? '[data-slot-direction="below"]'
+                  : '[data-slot-direction="above"]',
+              );
+              if (slotEl) slotEl.scrollIntoView({ behavior: "smooth", block: "center" });
+            }}
+            className="text-[10px] font-semibold px-2 py-1 rounded border whitespace-nowrap"
+            style={{
+              background: "rgba(245, 158, 11, 0.20)",
+              borderColor: "rgba(245, 158, 11, 0.55)",
+              color: "var(--d-ink)",
+            }}
+          >
+            Add remaining {remainingSlicePct.toFixed(0)}%
+          </button>
+        </div>
+      )}
 
       {/* Footer actions — cancel-all when there are armed legs left */}
       {canCancelAll && (

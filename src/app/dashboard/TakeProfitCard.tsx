@@ -180,28 +180,32 @@ export function TakeProfitCard(props: Props) {
         botApiUrl={props.botApiUrl}
         onMutated={props.onMutated}
       />
-      <LimitSlot
-        direction="above"
-        loan={loan}
-        orders={props.state.orders}
-        loanIdChain={props.loanIdChain}
-        loanDbId={resolvedLoanDbId}
-        collateralSymbol={props.collateralSymbol}
-        collateralMint={props.collateralMint ?? null}
-        botApiUrl={props.botApiUrl}
-        onMutated={props.onMutated}
-      />
-      <LimitSlot
-        direction="below"
-        loan={loan}
-        orders={props.state.orders}
-        loanIdChain={props.loanIdChain}
-        loanDbId={resolvedLoanDbId}
-        collateralSymbol={props.collateralSymbol}
-        collateralMint={props.collateralMint ?? null}
-        botApiUrl={props.botApiUrl}
-        onMutated={props.onMutated}
-      />
+      <div data-slot-direction="above">
+        <LimitSlot
+          direction="above"
+          loan={loan}
+          orders={props.state.orders}
+          loanIdChain={props.loanIdChain}
+          loanDbId={resolvedLoanDbId}
+          collateralSymbol={props.collateralSymbol}
+          collateralMint={props.collateralMint ?? null}
+          botApiUrl={props.botApiUrl}
+          onMutated={props.onMutated}
+        />
+      </div>
+      <div data-slot-direction="below">
+        <LimitSlot
+          direction="below"
+          loan={loan}
+          orders={props.state.orders}
+          loanIdChain={props.loanIdChain}
+          loanDbId={resolvedLoanDbId}
+          collateralSymbol={props.collateralSymbol}
+          collateralMint={props.collateralMint ?? null}
+          botApiUrl={props.botApiUrl}
+          onMutated={props.onMutated}
+        />
+      </div>
     </div>
   );
 }
