@@ -1499,11 +1499,11 @@ function DashboardPageInner() {
       // safe lower bound). We use tierOption's LTV as the multiplier.
       const tierLtv = LOAN_TIERS[tierOption]?.ltv ?? 0.20;
       const estimatedLoanLamports = BigInt(collateralValueLamports) * BigInt(Math.round(tierLtv * 10000)) / 10000n;
-      const MIN_LOAN_FOR_EXITS_LAMPORTS = 1_000_000_000n; // mirrors bot's MIN_LOAN_LAMPORTS
+      const MIN_LOAN_FOR_EXITS_LAMPORTS = 200_000_000n; // mirrors bot's MIN_LOAN_LAMPORTS (0.2 SOL)
       if (preBorrowExits && estimatedLoanLamports < MIN_LOAN_FOR_EXITS_LAMPORTS) {
         const estSol = Number(estimatedLoanLamports) / 1e9;
         setBorrowError(
-          `Auto-sells require a borrow of at least 1 SOL. This borrow would be about ${estSol.toFixed(3)} SOL. ` +
+          `Auto-sells require a borrow of at least 0.2 SOL. This borrow would be about ${estSol.toFixed(3)} SOL. ` +
             `Either increase your collateral % or remove the exit picker to borrow without auto-sells.`,
         );
         setBorrowing(false);
