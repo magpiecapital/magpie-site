@@ -129,6 +129,87 @@ interface EligibleHolding extends TokenHolding {
   valueUsd: number;
 }
 
+/* ───────────────────────── ACTIVE LOAN TYPES ─────────────────────────── */
+
+// 2026-06-16 — Active Loans dashboard render with V4 exit positions
+// (operator non-negotiable rule). API: GET /api/v1/loans?include=orders.
+
+interface LoanOrderTrigger {
+  kind: "mc_usd" | "price_usd" | "price_sol" | null;
+  value_micro: string | null;
+}
+
+interface LoanOrderExecution {
+  tx_signature: string | null;
+  proceeds_lamports: string | null;
+  protocol_fee_lamports: string | null;
+  net_to_user_lamports: string | null;
+}
+
+interface LoanOrder {
+  id: number;
+  loan_id: string | null;
+  kind: "tp" | "sl" | "trailing_tp" | "trailing_sl" | "ladder_tp" | "ladder_sl";
+  direction: "above" | "below";
+  status: "armed" | "firing" | "twap_in_progress" | "awaiting_user" | "fired" | "failed" | "cancelled";
+  trigger: LoanOrderTrigger;
+  slice_pct_bps: number;
+  slippage_bps: number;
+  max_slippage_bps_cap: number | null;
+  ladder_group_id: number | null;
+  trailing: { distance_bps: number; peak_price_micros: string | null } | null;
+  timestamps: {
+    armed_at: string | null;
+    firing_started_at: string | null;
+    fired_at: string | null;
+    expires_at: string | null;
+  };
+  execution: LoanOrderExecution | null;
+  failure: { count: number; reason: string | null } | null;
+  intervention: { state: string; suggested_slippage_bps: number | null } | null;
+  source: string | null;
+}
+
+interface ActiveLoan {
+  loan_id: string | null;
+  loan_pda: string | null;
+  status: string;
+  health_ratio: number | null;
+  collateral: {
+    mint: string;
+    symbol: string | null;
+    name: string | null;
+    decimals: number;
+    image: string | null;
+    category: string;
+    amount: string | null;
+    current_amount: string | null;
+    sol_proceeds_lamports: string;
+    auto_sells_fired: number;
+  };
+  loan: {
+    amount_lamports: string | null;
+    actual_received_lamports: string | null;
+    original_amount_lamports: string | null;
+    ltv_percentage: number;
+    duration_days: number;
+  };
+  timestamps: {
+    started_at: string | null;
+    due_at: string | null;
+    updated_at: string | null;
+  };
+  tx_signature: string | null;
+  // Present when API called with ?include=orders. V4 loans have the
+  // attached exits here; V1/V2/V3 loans have an empty array (per the
+  // V4-is-exit-only rule).
+  orders?: LoanOrder[];
+  // Synthesized on the client: which program the loan landed on.
+  // We use the env-injected V4 program id (NEXT_PUBLIC_PROGRAM_ID_V4)
+  // to decide whether to render the exit-positions panel.
+  program_id?: string;
+}
+
 /* ───────────────────────── SIDEBAR NAV ITEMS ───────────────────────── */
 
 type NavItem = { key: SectionKey; label: string; icon: React.ReactNode } | { key: "overview"; label: string; icon: React.ReactNode };
@@ -567,6 +648,320 @@ function EmptyState({ message, cta }: { message: string; cta?: { label: string; 
   );
 }
 
+/* ───────────────────────── ACTIVE LOAN COMPONENTS ───────────────────────── */
+// 2026-06-16 — operator non-negotiable: every V4 loan must cleanly
+// list all attached exit positions (TP/SL/Trailing/Ladder/Bracket).
+// V1/V2/V3 loans render without ANY exit options per the V4-is-exit-
+// only rule.
+
+// V4 program id surfaces from the bot's loan API. We compare per-loan.
+const V4_PROGRAM_ID = process.env.NEXT_PUBLIC_PROGRAM_ID_V4 || "HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo";
+
+function fmtSolLamports(lamports: string | number | null | undefined, digits = 4): string {
+  const n = Number(lamports ?? 0);
+  if (!Number.isFinite(n) || n === 0) return "0";
+  return (n / 1e9).toFixed(digits);
+}
+
+function fmtCollateralAmount(rawAmount: string | null, decimals: number): string {
+  if (!rawAmount) return "0";
+  const n = Number(rawAmount) / Math.pow(10, decimals);
+  if (!Number.isFinite(n)) return "0";
+  if (n >= 1000) return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+  if (n >= 1) return n.toFixed(3);
+  if (n >= 0.001) return n.toFixed(4);
+  return n.toExponential(2);
+}
+
+// Trigger value is stored as a fixed-point micro (6-decimal) BigInt
+// string. Render per kind: price_usd → "$0.005", mc_usd → "$50M",
+// price_sol → "0.00012 SOL".
+function fmtTriggerValue(kind: string | null, valueMicro: string | null): string {
+  if (!valueMicro || !kind) return "—";
+  const v = Number(valueMicro) / 1_000_000;
+  if (!Number.isFinite(v)) return "—";
+  if (kind === "mc_usd") {
+    if (v >= 1_000_000_000) return `$${(v / 1_000_000_000).toFixed(2)}B mc`;
+    if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(2)}M mc`;
+    if (v >= 1_000) return `$${(v / 1_000).toFixed(2)}K mc`;
+    return `$${v.toFixed(2)} mc`;
+  }
+  if (kind === "price_usd") {
+    if (v >= 1) return `$${v.toFixed(4)}`;
+    if (v >= 0.0001) return `$${v.toFixed(6)}`;
+    return `$${v.toExponential(2)}`;
+  }
+  if (kind === "price_sol") {
+    return `${v.toFixed(8)} SOL`;
+  }
+  return `${v}`;
+}
+
+const STATUS_BADGE_STYLES: Record<string, { bg: string; ink: string; label: string }> = {
+  armed: { bg: "var(--d-accent-dim)", ink: "var(--d-accent-deep)", label: "Armed" },
+  firing: { bg: "#fef3c7", ink: "#92400e", label: "Firing now" },
+  twap_in_progress: { bg: "#fef3c7", ink: "#92400e", label: "Filling…" },
+  awaiting_user: { bg: "#fde68a", ink: "#854d0e", label: "Awaiting you" },
+  fired: { bg: "#d1fae5", ink: "#065f46", label: "Filled" },
+  failed: { bg: "#fee2e2", ink: "#991b1b", label: "Failed" },
+  cancelled: { bg: "var(--d-surface)", ink: "var(--d-ink-soft)", label: "Cancelled" },
+};
+
+function StatusBadge({ status }: { status: string }) {
+  const s = STATUS_BADGE_STYLES[status] || STATUS_BADGE_STYLES.armed;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider"
+      style={{ background: s.bg, color: s.ink }}
+    >
+      {s.label}
+    </span>
+  );
+}
+
+function exitKindLabel(kind: LoanOrder["kind"]): string {
+  switch (kind) {
+    case "tp": return "Take profit";
+    case "sl": return "Stop loss";
+    case "trailing_tp": return "Trailing TP";
+    case "trailing_sl": return "Trailing SL";
+    case "ladder_tp": return "Ladder leg";
+    case "ladder_sl": return "Ladder leg";
+    default: return "Exit";
+  }
+}
+
+function ExitRow({ order }: { order: LoanOrder }) {
+  const slicePct = (order.slice_pct_bps / 100).toFixed(0);
+  const slip = (order.slippage_bps / 100).toFixed(2);
+  const isTrailing = order.trailing != null;
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--d-border)] bg-[var(--d-surface)] px-3 py-2.5">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="flex flex-col min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[var(--d-ink)] truncate">{exitKindLabel(order.kind)}</span>
+            <StatusBadge status={order.status} />
+          </div>
+          <div className="mt-0.5 text-[11px] text-[var(--d-ink-soft)] truncate">
+            <span className="font-medium text-[var(--d-ink)]">{fmtTriggerValue(order.trigger.kind, order.trigger.value_micro)}</span>
+            {isTrailing && (
+              <span className="ml-2">· trail {(order.trailing!.distance_bps / 100).toFixed(0)}%</span>
+            )}
+            <span className="ml-2">· {slicePct}% slice</span>
+            <span className="ml-2">· slip {slip}%</span>
+          </div>
+          {order.failure && order.failure.count > 0 && (
+            <div className="mt-1 text-[10px] text-[#991b1b]">
+              Retry {order.failure.count}{order.failure.reason ? ` — ${order.failure.reason}` : ""}
+            </div>
+          )}
+          {order.execution && order.execution.tx_signature && (
+            <div className="mt-1 text-[10px] text-[var(--d-ink-soft)]">
+              Received {fmtSolLamports(order.execution.net_to_user_lamports)} SOL ·{" "}
+              <a
+                href={`https://solscan.io/tx/${order.execution.tx_signature}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[var(--d-accent-deep)] hover:underline"
+              >
+                receipt &rarr;
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LadderGroup({ legs }: { legs: LoanOrder[] }) {
+  const fired = legs.filter((l) => l.status === "fired").length;
+  const total = legs.length;
+  const direction = legs[0]?.direction === "below" ? "Stop-loss" : "Take-profit";
+  return (
+    <div className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-surface)]/60 p-3">
+      <div className="mb-2 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-[var(--d-ink)]">{direction} ladder</span>
+          <span className="text-[10px] text-[var(--d-ink-soft)]">{fired}/{total} fired</span>
+        </div>
+        <div className="h-1.5 w-20 overflow-hidden rounded-full bg-[var(--d-border)]">
+          <div
+            className="h-full rounded-full bg-[var(--d-accent)]"
+            style={{ width: `${total > 0 ? (fired / total) * 100 : 0}%` }}
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {legs.map((l) => <ExitRow key={l.id} order={l} />)}
+      </div>
+    </div>
+  );
+}
+
+interface GroupedExits {
+  brackets: { tp: LoanOrder; sl: LoanOrder }[];
+  ladders: LoanOrder[][];
+  singles: LoanOrder[];
+}
+
+function groupExits(orders: LoanOrder[]): GroupedExits {
+  const result: GroupedExits = { brackets: [], ladders: [], singles: [] };
+  // Bucket by ladder_group_id first
+  const ladderBuckets = new Map<number, LoanOrder[]>();
+  const remaining: LoanOrder[] = [];
+  for (const o of orders) {
+    if (o.ladder_group_id != null) {
+      const arr = ladderBuckets.get(o.ladder_group_id) || [];
+      arr.push(o);
+      ladderBuckets.set(o.ladder_group_id, arr);
+    } else {
+      remaining.push(o);
+    }
+  }
+  result.ladders = [...ladderBuckets.values()].map((arr) =>
+    arr.slice().sort((a, b) => Number(a.trigger.value_micro || 0) - Number(b.trigger.value_micro || 0))
+  );
+  // Detect brackets: one TP and one SL co-existing armed/firing on same loan
+  const activeTps = remaining.filter((o) =>
+    (o.kind === "tp" || o.kind === "trailing_tp") &&
+    ["armed", "firing", "twap_in_progress", "awaiting_user"].includes(o.status),
+  );
+  const activeSls = remaining.filter((o) =>
+    (o.kind === "sl" || o.kind === "trailing_sl") &&
+    ["armed", "firing", "twap_in_progress", "awaiting_user"].includes(o.status),
+  );
+  if (activeTps.length === 1 && activeSls.length === 1) {
+    result.brackets.push({ tp: activeTps[0], sl: activeSls[0] });
+    const usedIds = new Set([activeTps[0].id, activeSls[0].id]);
+    result.singles = remaining.filter((o) => !usedIds.has(o.id));
+  } else {
+    result.singles = remaining;
+  }
+  return result;
+}
+
+function BracketCard({ pair }: { pair: { tp: LoanOrder; sl: LoanOrder } }) {
+  return (
+    <div className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-surface)]/60 p-3">
+      <div className="mb-2 flex items-center gap-2">
+        <span className="text-xs font-semibold text-[var(--d-ink)]">Bracket</span>
+        <span className="text-[10px] text-[var(--d-ink-soft)]">first side to trigger fills</span>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <ExitRow order={pair.tp} />
+        <ExitRow order={pair.sl} />
+      </div>
+    </div>
+  );
+}
+
+function ExitPositionsPanel({ orders }: { orders: LoanOrder[] }) {
+  if (!orders || orders.length === 0) {
+    return (
+      <div className="rounded-xl border border-dashed border-[var(--d-border-strong)] bg-[var(--d-surface)]/40 px-3 py-3 text-[11px] text-[var(--d-ink-soft)]">
+        No auto-sell armed — set TP or SL via /borrow next time, or use the Telegram bot to attach to this loan.
+      </div>
+    );
+  }
+  const grouped = groupExits(orders);
+  return (
+    <div className="flex flex-col gap-2.5">
+      {grouped.brackets.map((b) => <BracketCard key={`b-${b.tp.id}`} pair={b} />)}
+      {grouped.ladders.map((legs) => <LadderGroup key={`l-${legs[0]?.ladder_group_id}`} legs={legs} />)}
+      {grouped.singles.map((o) => <ExitRow key={o.id} order={o} />)}
+    </div>
+  );
+}
+
+function ActiveLoanCard({ loan }: { loan: ActiveLoan }) {
+  const isV4 = loan.program_id === V4_PROGRAM_ID;
+  const sym = loan.collateral.symbol || loan.collateral.mint.slice(0, 4);
+  const due = loan.timestamps.due_at ? new Date(loan.timestamps.due_at) : null;
+  const now = new Date();
+  const daysRemaining = due ? Math.max(0, Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : null;
+  const health = loan.health_ratio;
+  const healthColorVal = health == null ? "var(--d-ink-soft)" : healthColor(health);
+  const healthLabelVal = health == null ? "—" : healthLabel(health);
+  const owedSol = fmtSolLamports(loan.loan.amount_lamports);
+  const receivedSol = fmtSolLamports(loan.loan.actual_received_lamports || loan.loan.amount_lamports);
+  return (
+    <div className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-4 transition hover:border-[var(--d-accent)]/40">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <TokenIcon mint={loan.collateral.mint} symbol={sym} size={36} />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-[var(--d-ink)] truncate">{sym}</span>
+              {isV4 && (
+                <span
+                  className="rounded-md px-1.5 py-0.5 text-[9px] font-semibold tracking-wider"
+                  style={{ background: "var(--d-accent-dim)", color: "var(--d-accent-deep)" }}
+                >
+                  V4
+                </span>
+              )}
+            </div>
+            <div className="mt-0.5 text-[11px] text-[var(--d-ink-soft)]">
+              Loan #{loan.loan_id || "?"} · {loan.loan.ltv_percentage}% LTV · {loan.loan.duration_days}d
+            </div>
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-sm font-semibold text-[var(--d-ink)]">{owedSol} SOL</div>
+          <div className="text-[10px] text-[var(--d-ink-soft)]">repay by due</div>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-3 border-y border-[var(--d-border)]/60 py-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-[var(--d-ink-faint)]">Collateral</div>
+          <div className="mt-0.5 text-xs font-medium text-[var(--d-ink)]">
+            {fmtCollateralAmount(loan.collateral.current_amount, loan.collateral.decimals)} {sym}
+          </div>
+          {Number(loan.collateral.auto_sells_fired) > 0 && (
+            <div className="text-[10px] text-[var(--d-ink-soft)]">
+              + {fmtSolLamports(loan.collateral.sol_proceeds_lamports)} SOL in vault
+            </div>
+          )}
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-[var(--d-ink-faint)]">Received</div>
+          <div className="mt-0.5 text-xs font-medium text-[var(--d-ink)]">{receivedSol} SOL</div>
+        </div>
+        <div>
+          <div className="text-[10px] uppercase tracking-wider text-[var(--d-ink-faint)]">Health</div>
+          <div className="mt-0.5 flex items-center gap-1.5">
+            <span className="text-xs font-medium" style={{ color: healthColorVal }}>{health != null ? health.toFixed(2) : "—"}</span>
+            <span className="text-[10px]" style={{ color: healthColorVal }}>{healthLabelVal}</span>
+          </div>
+          {daysRemaining != null && (
+            <div className="text-[10px] text-[var(--d-ink-soft)]">
+              {daysRemaining === 0 ? "due today" : `${daysRemaining}d left`}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* V4-only: exit positions panel. V1/V2/V3 loans show no exit
+          options at all per the V4-is-exit-only rule. */}
+      {isV4 && (
+        <div className="mt-3">
+          <div className="mb-1.5 text-[10px] uppercase tracking-wider text-[var(--d-ink-faint)]">Auto-sells</div>
+          <ExitPositionsPanel orders={loan.orders || []} />
+        </div>
+      )}
+
+      {!isV4 && (
+        <div className="mt-3 rounded-xl bg-[var(--d-surface)]/50 px-3 py-2 text-[11px] text-[var(--d-ink-soft)]">
+          Legacy pool — manage via Telegram (/repay, /extend, /topup).
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ───────────────────────── MAIN PAGE ───────────────────────── */
 
 export default function DashboardPage() {
@@ -590,6 +985,8 @@ export default function DashboardPage() {
   const [holdingsLoading, setHoldingsLoading] = useState(false);
   const [approvedTokens, setApprovedTokens] = useState<ApprovedToken[]>([]);
   const [approvedLoading, setApprovedLoading] = useState(false);
+  const [activeLoans, setActiveLoans] = useState<ActiveLoan[]>([]);
+  const [activeLoansLoading, setActiveLoansLoading] = useState(false);
 
   // ── Borrow state ──
   const [borrowing, setBorrowing] = useState(false);
@@ -694,6 +1091,31 @@ export default function DashboardPage() {
         if (!cancelled) setApprovedLoading(false);
       });
     return () => { cancelled = true; };
+  }, [connected, publicKey]);
+
+  // 2026-06-16 — fetch active loans + attached exits (operator
+  // non-negotiable rule). Auto-refresh every 20s so a fired exit or
+  // newly-armed order shows up without a page reload.
+  useEffect(() => {
+    if (!connected || !publicKey) { setActiveLoans([]); return; }
+    let cancelled = false;
+    const walletStr = publicKey.toBase58();
+    const load = async () => {
+      try {
+        const r = await fetch(`/api/v1/loans?wallet=${walletStr}&include=orders`);
+        const d = await r.json();
+        if (cancelled) return;
+        if (Array.isArray(d?.active)) setActiveLoans(d.active as ActiveLoan[]);
+      } catch {
+        // swallow — keep last-good list; loading flag clears below
+      } finally {
+        if (!cancelled) setActiveLoansLoading(false);
+      }
+    };
+    setActiveLoansLoading(true);
+    load();
+    const intervalId = setInterval(load, 20_000);
+    return () => { cancelled = true; clearInterval(intervalId); };
   }, [connected, publicKey]);
 
   // Derive eligible collateral from holdings × approved tokens
@@ -1162,14 +1584,26 @@ export default function DashboardPage() {
               {/* ─── LEFT COLUMN (8/12) ─── */}
               <div className="xl:col-span-8 flex flex-col gap-6">
 
-                {/* ACTIVE LOANS */}
+                {/* ACTIVE LOANS — 2026-06-16 build per operator non-negotiable rule */}
                 {prefs.activeLoans && (
                   <div id="section-activeLoans">
-                    <SectionHeader title="Active Loans" count={0} />
-                    <EmptyState
-                      message="No active loans — start borrowing on Telegram"
-                      cta={{ label: "Open Telegram Bot", href: TELEGRAM_URL }}
-                    />
+                    <SectionHeader title="Active Loans" count={activeLoans.length} />
+                    {activeLoansLoading && activeLoans.length === 0 ? (
+                      <div className="rounded-2xl border border-[var(--d-border)] bg-[var(--d-bg-card)] p-10 text-center">
+                        <div className="text-sm text-[var(--d-ink-soft)]">Loading your loans…</div>
+                      </div>
+                    ) : activeLoans.length === 0 ? (
+                      <EmptyState
+                        message="No active loans — start a new borrow below or on Telegram"
+                        cta={{ label: "Open Telegram Bot", href: TELEGRAM_URL }}
+                      />
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {activeLoans.map((loan) => (
+                          <ActiveLoanCard key={loan.loan_pda || loan.loan_id || ""} loan={loan} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
