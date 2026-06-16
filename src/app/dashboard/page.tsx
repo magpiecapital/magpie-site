@@ -1490,25 +1490,58 @@ function DashboardPageInner() {
       // for the simulation gate. Tied refresh to a soft 12s timeout so a
       // flaky attestor doesn't hang the borrow flow indefinitely; on failure
       // we still attempt the borrow (cosign-borrow's JIT might recover).
+      // 2026-06-16 — oracle-timer hardening per operator rule. Retry
+      // once on transient failure (rate-limited, network blip) before
+      // continuing. The cosign-borrow server-side JIT remains a final
+      // safety net. The user crafting a multi-leg ladder + bracket
+      // MUST NEVER hit StalePriceAttestation at submit time.
       const botApiForRefresh = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-      try {
+      const refreshOnce = async (timeoutMs: number) => {
         const refreshCtl = new AbortController();
-        const refreshTimer = setTimeout(() => refreshCtl.abort(), 12_000);
-        const refreshRes = await fetch(`${botApiForRefresh}/api/v1/price/refresh`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mint: holding.mint }),
-          signal: refreshCtl.signal,
-        });
-        clearTimeout(refreshTimer);
-        if (!refreshRes.ok) {
-          // Non-fatal — log and continue. cosign-borrow's server-side JIT
-          // attestation may still rescue the borrow. The wallet simulation
-          // may still fail; the user gets a retry path in that case.
-          console.warn("[borrow] price refresh non-200, proceeding:", refreshRes.status);
+        const refreshTimer = setTimeout(() => refreshCtl.abort(), timeoutMs);
+        try {
+          const refreshRes = await fetch(`${botApiForRefresh}/api/v1/price/refresh`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mint: holding.mint }),
+            signal: refreshCtl.signal,
+          });
+          return { ok: refreshRes.ok, status: refreshRes.status };
+        } finally {
+          clearTimeout(refreshTimer);
+        }
+      };
+      let refreshLanded = false;
+      try {
+        const first = await refreshOnce(12_000);
+        refreshLanded = first.ok;
+        if (!first.ok) {
+          console.warn("[borrow] price refresh attempt 1 non-200:", first.status, "retrying once");
+          // Brief pause then retry once. Most failures are bot rate-
+          // limited / cooldown'd; the second attempt usually lands.
+          await new Promise((res) => setTimeout(res, 1200));
+          const second = await refreshOnce(12_000);
+          refreshLanded = second.ok;
+          if (!second.ok) {
+            console.warn("[borrow] price refresh attempt 2 also non-200:", second.status, "— falling back to cosign-borrow JIT");
+          }
         }
       } catch (refreshErr) {
-        console.warn("[borrow] price refresh failed (proceeding):", (refreshErr as Error).message);
+        console.warn("[borrow] price refresh threw, retrying once:", (refreshErr as Error).message);
+        try {
+          await new Promise((res) => setTimeout(res, 1200));
+          const retry = await refreshOnce(12_000);
+          refreshLanded = retry.ok;
+        } catch (retryErr) {
+          console.warn("[borrow] price refresh retry threw, proceeding:", (retryErr as Error).message);
+        }
+      }
+      if (!refreshLanded) {
+        // Non-fatal — surface a soft client-side hint in the console
+        // (operator banned "briefly unavailable" copy in user-facing
+        // text per feedback_oracle_must_never_block_borrow). The
+        // server-side JIT in cosign-borrow is the safety net here.
+        console.warn("[borrow] proceeding without explicit pre-attest; cosign-borrow JIT will rescue");
       }
 
       const { transaction, loanId: chainLoanId } = await buildBorrowTransaction({
