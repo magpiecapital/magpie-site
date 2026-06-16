@@ -25,7 +25,9 @@ import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
   armTakeProfit,
+  armTakeProfitBatch,
   cancelTakeProfit,
+  type ArmBatchLegSpec,
   type TakeProfitOrder,
   type TakeProfitPendingIntent,
 } from "@/lib/solana/site-take-profit";
@@ -151,7 +153,7 @@ function LadderCard({
   const { publicKey, signMessage } = useWallet();
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
-  const [retryingIntentId, setRetryingIntentId] = useState<number | null>(null);
+  const [retryingIntentId, setRetryingIntentId] = useState<number | "batch-retry-all" | null>(null);
   const [retryError, setRetryError] = useState<string | null>(null);
 
   // Filter pending intents to ones whose strike + slice are NOT
@@ -319,8 +321,66 @@ function LadderCard({
           </div>
           <div className="text-[10px] opacity-75 mb-2">
             Your intent reached our servers; the Phantom signature didn't.
-            Tap to retry — one signature per button.
+            {unfulfilledIntents.length > 1
+              ? " One signature re-arms all missing legs."
+              : " Tap to retry."}
           </div>
+          {/* 2026-06-16 PM fix: when ≥ 2 legs are missing, surface a
+            * batch retry button that signs ONCE and arms all of them
+            * atomically. Per-leg buttons remain as fallback (rare case
+            * where user wants to retry one specific leg). Closes the
+            * partial-arm class operator hit with the SPCX re-arm. */}
+          {unfulfilledIntents.length > 1 && (
+            <button
+              type="button"
+              disabled={retryingIntentId === "batch-retry-all"}
+              onClick={async () => {
+                if (!signMessage || !publicKey || !botApiUrl || !loanIdChain) return;
+                setRetryingIntentId("batch-retry-all");
+                setRetryError(null);
+                try {
+                  const legs: ArmBatchLegSpec[] = unfulfilledIntents.map((intent) => {
+                    const v = Number(intent.target_value_micro) / 1e6;
+                    return {
+                      direction: intent.direction,
+                      kind:
+                        intent.target_kind === "price_usd"
+                          ? "price_usd"
+                          : intent.target_kind === "mc_usd"
+                            ? "mc_usd"
+                            : "multiplier",
+                      value: v,
+                      sliceBps: intent.slice_pct_bps ?? 10000,
+                      slippageBps: intent.direction === "below" ? 300 : 200,
+                      intent_id: typeof intent.id === "number" ? intent.id : Number(intent.id),
+                    };
+                  });
+                  await armTakeProfitBatch({
+                    botApiUrl,
+                    signerPubkey: publicKey.toBase58(),
+                    signMessage,
+                    loanIdChain,
+                    legs,
+                  });
+                  onMutated?.();
+                } catch (e) {
+                  setRetryError(e instanceof Error ? e.message : String(e));
+                } finally {
+                  setRetryingIntentId(null);
+                }
+              }}
+              className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50 mb-1.5 w-full"
+              style={{
+                borderColor: "rgba(245, 158, 11, 0.85)",
+                background: "rgba(245, 158, 11, 0.20)",
+                color: "var(--d-ink)",
+              }}
+            >
+              {retryingIntentId === "batch-retry-all"
+                ? "Signing…"
+                : `Retry all ${unfulfilledIntents.length} legs (one signature)`}
+            </button>
+          )}
           <div className="flex flex-wrap gap-1.5">
             {unfulfilledIntents.map((intent) => {
               const targetUsd = Number(intent.target_value_micro) / 1e6;
