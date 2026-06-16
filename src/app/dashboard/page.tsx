@@ -9,6 +9,7 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
+import { LOAN_TIERS } from "@/lib/solana/constants";
 import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
 import { translateTxError } from "@/lib/solana/tx-error";
 import dynamic from "next/dynamic";
@@ -1481,6 +1482,33 @@ function DashboardPageInner() {
       const COLLATERAL_VALUE_SAFETY = 0.89;
       const collateralValueSol = collateralValueSolRaw * COLLATERAL_VALUE_SAFETY;
       const collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
+
+      // Sub-1-SOL + exits guard (operator-mandated 2026-06-16 PM after
+      // loan 799 on a different user revealed the trap: sub-1-SOL borrow
+      // with pre-armed exits routes to V4, lands, then the arm-core
+      // refuses with `loan_below_minimum_size` — paid V4 fees for an
+      // unusable loan). The site already gates arming on 1 SOL via the
+      // bot's MIN_LOAN_LAMPORTS; the missing piece is gating the BORROW
+      // itself when exits are queued. Refuse with a clear UX message
+      // before any tx is built or signed.
+      //
+      // Estimated loan = collateralValueLamports × LTV (varies by tier).
+      // The LOAN_TIERS array holds the LTV per option (0.30/0.25/0.20
+      // for memecoin Express/Quick/Standard; RWA categories override
+      // server-side, but their LTVs are HIGHER so this estimate is a
+      // safe lower bound). We use tierOption's LTV as the multiplier.
+      const tierLtv = LOAN_TIERS[tierOption]?.ltv ?? 0.20;
+      const estimatedLoanLamports = BigInt(collateralValueLamports) * BigInt(Math.round(tierLtv * 10000)) / 10000n;
+      const MIN_LOAN_FOR_EXITS_LAMPORTS = 1_000_000_000n; // mirrors bot's MIN_LOAN_LAMPORTS
+      if (preBorrowExits && estimatedLoanLamports < MIN_LOAN_FOR_EXITS_LAMPORTS) {
+        const estSol = Number(estimatedLoanLamports) / 1e9;
+        setBorrowError(
+          `Auto-sells require a borrow of at least 1 SOL. This borrow would be about ${estSol.toFixed(3)} SOL. ` +
+            `Either increase your collateral % or remove the exit picker to borrow without auto-sells.`,
+        );
+        setBorrowing(false);
+        return;
+      }
 
       // PRE-ATTEST the on-chain price feed before building / signing.
       // Without this, the wallet (Phantom) simulates the tx using its own
