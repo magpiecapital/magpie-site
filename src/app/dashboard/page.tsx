@@ -954,6 +954,30 @@ function DashboardPageInner() {
       current_price_sol: number;
     } | null;
     tx_signature: string | null;
+    // 2026-06-16 — attached exit positions when API was called with
+    // ?include=orders. V4 loans carry their TP/SL/Trailing/Ladder/
+    // Bracket orders here; V1/V2/V3 loans get [] by routing-layer
+    // construction (no new arms allowed on legacy pools). Rendered
+    // by TakeProfitCard + LadderRollup which already gate on per-slot
+    // ineligibility_reasons including "exits_require_v4_loan".
+    orders?: Array<{
+      id: number;
+      loan_id: string | null;
+      kind: "tp" | "sl" | "trailing_tp" | "trailing_sl" | "ladder_tp" | "ladder_sl";
+      direction: "above" | "below";
+      status: string;
+      trigger: { kind: string | null; value_micro: string | null };
+      slice_pct_bps: number;
+      slippage_bps: number;
+      max_slippage_bps_cap: number | null;
+      ladder_group_id: number | null;
+      trailing: { distance_bps: number; peak_price_micros: string | null } | null;
+      timestamps: { armed_at: string | null; firing_started_at: string | null; fired_at: string | null; expires_at: string | null };
+      execution: { tx_signature: string | null; proceeds_lamports: string | null; protocol_fee_lamports: string | null; net_to_user_lamports: string | null } | null;
+      failure: { count: number; reason: string | null } | null;
+      intervention: { state: string; suggested_slippage_bps: number | null } | null;
+      source: string | null;
+    }>;
   };
   const [activeLoans, setActiveLoans] = useState<Loan[]>([]);
   const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
@@ -2395,7 +2419,12 @@ function DashboardPageInner() {
     let cancelled = false;
     const fetchLoans = () => {
       setLoansLoading(true);
-      fetch(`/api/v1/loans?wallet=${publicKey.toBase58()}`)
+      // 2026-06-16 — include=orders attaches each loan's attached
+      // exit positions (TP / SL / Trailing / Ladder / Bracket) so the
+      // dashboard can render them cleanly under each V4 loan per
+      // operator's non-negotiable rule. V1/V2/V3 loans return [] for
+      // orders by routing-layer construction (no new arms allowed).
+      fetch(`/api/v1/loans?wallet=${publicKey.toBase58()}&include=orders`)
         .then(r => r.json())
         .then(d => {
           if (cancelled || !d.ok) return;
