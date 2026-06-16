@@ -451,6 +451,7 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                   { title: "Open source", body: "Both the bot and site repositories are publicly available on GitHub. Anyone can audit the protocol logic, verify on-chain programs, and inspect off-chain code." },
                   { title: "Input sanitization & rate limiting", body: "All API endpoints are rate-limited. All user inputs are sanitized to prevent injection, overflow, and replay attacks." },
                   { title: "Internal audit", body: "Internal security audit completed April 2026. Zero secrets in public codebase. SSL/TLS on all external communications." },
+                  { title: "Least-privilege engine seam (v4)", body: "The v4 ENGINE_AUTHORITY (7GKdZ8n6…4u2BKrs) is hardcoded into the program and can ONLY call convert_collateral_slice. It cannot mint, withdraw pool reserves, or touch the fee wallet outside the in-program 1% skim. Every other privileged action requires the lender authority signature." },
                 ].map((item) => (
                   <div
                     key={item.title}
@@ -485,6 +486,36 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                   <a className="underline hover:text-[var(--ink)]" href="https://pump.fun/coin/9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump" target="_blank" rel="noopener">Pump.fun ↗</a>
                   <a className="underline hover:text-[var(--ink)]" href="https://dexscreener.com/solana/9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump" target="_blank" rel="noopener">DexScreener ↗</a>
                 </div>
+              </div>
+
+              {/* 2026-06-16 — operator-mandated rule: every lending program
+                  must be documented on the whitepaper. Single block,
+                  parallel to the $MAGPIE contract address above. The
+                  /stats page mirrors this list under Verify on-chain. */}
+              <h4 className="mt-8 text-lg font-medium">On-chain lending programs</h4>
+              <div className="mt-3 rounded-2xl border border-[var(--hairline)] overflow-hidden">
+                <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-[var(--ink)]/[0.03] text-xs uppercase tracking-widest text-[var(--ink-soft)]">
+                  <div className="col-span-2">Program</div>
+                  <div className="col-span-6">Address</div>
+                  <div className="col-span-4">Role</div>
+                </div>
+                {[
+                  { v: "v1 (memecoin)", addr: "4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh", role: "Legacy memecoin lending. Existing loans continue here; new memecoin borrows route to v3 (or v4 when an exit is attached)." },
+                  { v: "v2 (RWA legacy)", addr: "6wSpKAGuiRf3nYHj9raVwmoTPbG5MswBzTy6aMXZHBe", role: "Legacy tokenized-stock / ETF / metal lending. Existing loans continue here; new RWA borrows route to v3 (or v4 when an exit is attached)." },
+                  { v: "v3 (dual-tier)", addr: "B8AwYzFmc3ZB5EWWVtJcJhJtEmKL78W5i3kZrL1uMCmP", role: "Live since 2026-06-13. Single program serves both memecoin (30/25/20% LTV) and RWA (50/60/70% LTV) borrows with on-chain TWAP oracle gating." },
+                  { v: "v4 (in-vault auto-sells)", addr: "HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo", role: "Live since 2026-06-15 (patched). Routes any borrow that arms an exit (TP / SL / Trailing / Ladder / Bracket). Auto-sell proceeds accumulate inside the per-loan vault — loan stays Active until borrower repays." },
+                ].map(({ v, addr, role }) => (
+                  <div key={addr} className="grid grid-cols-12 gap-4 px-5 py-4 border-t border-[var(--hairline)] text-sm items-start">
+                    <div className="col-span-2 font-medium">{v}</div>
+                    <div className="col-span-6 font-mono text-xs break-all text-[var(--ink-soft)]">
+                      <a className="underline hover:text-[var(--ink)]" href={`https://solscan.io/account/${addr}`} target="_blank" rel="noopener">{addr}</a>
+                    </div>
+                    <div className="col-span-4 text-[var(--ink-soft)]">{role}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 text-xs text-[var(--ink-faint)]">
+                Pool state PDAs, vault PDAs, and the engine-authority pubkey are listed under <a className="underline hover:text-[var(--ink)]" href="/stats">/stats → Verify on-chain</a>.
               </div>
 
               <h4 className="mt-8 text-lg font-medium">Where every loan fee goes (current split)</h4>
