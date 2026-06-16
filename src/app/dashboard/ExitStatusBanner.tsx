@@ -69,17 +69,19 @@ export function ExitStatusBanner({
   if (state == null && !eligibleForAny) return null;
 
   return (
-    <BannerShell state={state} symbol={collateralSymbol} onRefresh={onRefresh} />
+    <BannerShell state={state} symbol={collateralSymbol} loan={loan} onRefresh={onRefresh} />
   );
 }
 
 function BannerShell({
   state,
   symbol,
+  loan,
   onRefresh,
 }: {
   state: ExitState | null;
   symbol: string | null;
+  loan: TakeProfitLoan | null;
   onRefresh?: () => void;
 }) {
   const sym = symbol || "loan";
