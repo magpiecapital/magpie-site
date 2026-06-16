@@ -824,6 +824,20 @@ function LimitSlot(props: SlotProps) {
           slippagePct={slippagePct}
           onArmed={() => { setLadderEnabled(false); setExpanded(false); props.onMutated(); }}
           onCancel={() => setLadderEnabled(false)}
+          existingArmedSlicePct={
+            // Sum slice% across already-armed orders on this loan/direction
+            // so the LadderPanel's cap reflects the true 100% budget the
+            // server enforces. Without this the user could draft a 70%
+            // leg, sign Phantom, and then hit slice_overflow.
+            props.orders
+              .filter(
+                (o) =>
+                  Number(o.loan_id) === Number(props.loanDbId) &&
+                  (o.trigger_direction ?? "above") === props.direction &&
+                  o.status === "armed",
+              )
+              .reduce((acc, o) => acc + (o.slice_pct ?? 10000) / 100, 0)
+          }
         />
       )}
       {/* Fixed-floor presets + custom USD: hidden when trailing or

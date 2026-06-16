@@ -51,6 +51,15 @@ interface Props {
   onArmed: () => void;
   /** Called when user cancels back to single-leg mode */
   onCancel: () => void;
+  /**
+   * Cumulative slice% already armed on this loan in this direction
+   * (sum of slice_pct across status='armed' orders matching direction).
+   * Used to pre-bound the local ladder so the new legs + already-armed
+   * legs <= 100%. Prevents the server-side `slice_overflow` rejection
+   * that's caught at preflight but wastes a click.
+   * Operator-mandated client-side validation, 2026-06-16 PM.
+   */
+  existingArmedSlicePct?: number;
 }
 
 const PRESETS = [
@@ -77,11 +86,17 @@ export function LadderPanel(props: Props) {
   const [busy, setBusy] = useState(false);
   const [topError, setTopError] = useState<string | null>(null);
 
-  const totalSlice = useMemo(
+  const existingArmed = Math.max(0, Math.min(100, props.existingArmedSlicePct ?? 0));
+  const localTotal = useMemo(
     () => legs.reduce((acc, l) => acc + (Number.isFinite(l.slicePct) ? l.slicePct : 0), 0),
     [legs],
   );
-  const sumOk = totalSlice > 0 && totalSlice <= 100.0001;
+  const totalSlice = localTotal + existingArmed;
+  // Budget includes already-armed legs on this loan/direction. The DB
+  // trigger checks cumulative slice across armed orders, so the
+  // client-side cap must too — otherwise the user wastes a Phantom
+  // sign on a leg the server will reject with `slice_overflow`.
+  const sumOk = localTotal > 0 && totalSlice <= 100.0001;
 
   // Per-leg parse results — drives live preview + arm-button enablement.
   const parsedPerLeg = useMemo(
@@ -117,11 +132,15 @@ export function LadderPanel(props: Props) {
     setLegs((prev) => {
       if (prev.length >= 6) return prev;
       // Default the new leg to whatever budget remains, capped at 25%
-      // so user can always add another after if they want more.
-      const remaining = Math.max(1, Math.min(25, 100 - prev.reduce((a, l) => a + l.slicePct, 0)));
+      // so user can always add another after if they want more. Budget
+      // accounts for already-armed legs (existingArmed) so we don't
+      // overshoot the cumulative 100% cap.
+      const localUsed = prev.reduce((a, l) => a + l.slicePct, 0);
+      const budgetRemaining = Math.max(0, 100 - existingArmed - localUsed);
+      const remaining = Math.max(1, Math.min(25, budgetRemaining));
       return [...prev, newLeg(remaining)];
     });
-  }, []);
+  }, [existingArmed]);
 
   const applyPreset = useCallback((slices: number[]) => {
     setLegs((prev) => slices.map((s, i) => ({
@@ -406,7 +425,12 @@ export function LadderPanel(props: Props) {
             {totalSlice.toFixed(0)}%
           </span>
           <span className="opacity-60"> of 100% used </span>
-          {remaining > 0 && <span className="opacity-50">· {remaining.toFixed(0)}% remaining</span>}
+          {existingArmed > 0 && (
+            <span className="opacity-50">
+              (existing {existingArmed.toFixed(0)}% + new {localTotal.toFixed(0)}%)
+            </span>
+          )}
+          {remaining > 0 && <span className="opacity-50"> · {remaining.toFixed(0)}% remaining</span>}
         </div>
       </div>
 
