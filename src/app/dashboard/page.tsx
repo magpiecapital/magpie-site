@@ -1830,18 +1830,29 @@ function DashboardPageInner() {
             setAutoArmLegProgress([{ label: "Custom ladder", ok: false, error: "legs disagree on direction (mix of profit + stop targets)" }]);
           } else {
             const sidePrefix = direction === "above" ? "Profit" : "Stop";
+            // Operator-mandated 2026-06-16 PM
+            // (feedback_ladder_must_fully_arm_or_loudly_recover.md):
+            // never silently `break` mid-ladder. We track every leg's
+            // outcome and surface ALL failures. When a Phantom-session
+            // class error fires, stop popping more popups (UX) but DO
+            // record the remaining legs as "skipped: wallet session
+            // ended" so they show up in retry-remaining for one-tap
+            // recovery.
             let allOk = true;
-            let firstFailIndex = -1;
+            const failedLegIndices: number[] = [];
+            let phantomSessionAlive = true;
+            const phantomErrorPattern = /method.*not.*authorized|wallet.*session|account.*not.*authorized|user rejected/i;
             for (let i = 0; i < parsedLegs.length; i++) {
               const { leg, parsed } = parsedLegs[i];
+              const sliceLabelPrefix = `${sidePrefix} leg ${i + 1}`;
               if (!parsed.ok) {
                 setAutoArmLegProgress((prev) => [
                   ...prev,
-                  { label: `${sidePrefix} leg ${i + 1}`, ok: false, error: parsed.error || "parse failed" },
+                  { label: sliceLabelPrefix, ok: false, error: parsed.error || "parse failed" },
                 ]);
                 allOk = false;
-                firstFailIndex = i;
-                break;
+                failedLegIndices.push(i);
+                continue;
               }
               // Convert parser kind → armTakeProfit target shape.
               let target: import("@/lib/solana/site-take-profit").ArmTakeProfitRequest["target"];
@@ -1854,13 +1865,26 @@ function DashboardPageInner() {
               } else {
                 setAutoArmLegProgress((prev) => [
                   ...prev,
-                  { label: `${sidePrefix} leg ${i + 1}`, ok: false, error: "SOL-denominated strikes not supported pre-borrow yet" },
+                  { label: sliceLabelPrefix, ok: false, error: "SOL-denominated strikes not supported pre-borrow yet" },
                 ]);
                 allOk = false;
-                firstFailIndex = i;
-                break;
+                failedLegIndices.push(i);
+                continue;
               }
-              const sliceLabel = `${sidePrefix} leg ${i + 1} @ ${parsed.normalizedDisplay} (${(leg.sliceBps / 100).toFixed(0)}%)`;
+              const sliceLabel = `${sliceLabelPrefix} @ ${parsed.normalizedDisplay} (${(leg.sliceBps / 100).toFixed(0)}%)`;
+              if (!phantomSessionAlive) {
+                // Earlier leg revealed Phantom session is dead — record
+                // this leg as skipped instead of triggering another
+                // popup that will also fail. The user gets a clean
+                // retry-remaining CTA after the loop completes.
+                setAutoArmLegProgress((prev) => [
+                  ...prev,
+                  { label: sliceLabel, ok: false, error: "skipped: wallet session ended — reconnect and retry remaining" },
+                ]);
+                allOk = false;
+                failedLegIndices.push(i);
+                continue;
+              }
               try {
                 const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
                 await armTakeProfit({
@@ -1882,19 +1906,26 @@ function DashboardPageInner() {
                 const msg = (err as Error).message || "arm failed";
                 setAutoArmLegProgress((prev) => [...prev, { label: sliceLabel, ok: false, error: msg }]);
                 allOk = false;
-                firstFailIndex = i;
-                break;
+                failedLegIndices.push(i);
+                // If the failure looks like a Phantom session issue or
+                // user rejection, don't keep trying — would just spam
+                // popups. Remaining legs get marked "skipped" above.
+                if (phantomErrorPattern.test(msg)) {
+                  phantomSessionAlive = false;
+                }
               }
             }
             autoArmedOk = allOk;
-            if (!allOk && firstFailIndex >= 0) {
-              // Capture the un-attempted tail for the Retry-remaining button.
-              // Only multiplier-kind legs survive — re-arming via target.multiplier
-              // is what the retry path supports today (price_usd / mc_usd targets
-              // would need a richer retry shape, deferred).
+            if (!allOk && failedLegIndices.length > 0) {
+              // Capture every failed/skipped leg for the Retry-remaining
+              // button. Operator's directive: never silently drop a leg.
+              // The dashboard's LadderRollup also independently catches
+              // incomplete ladders via the slice% sum check; this is
+              // the immediate post-borrow recovery path.
               const remainingLegs: Array<{ target: RetryLegTarget; sliceBps: number; label: string }> = [];
-              parsedLegs.slice(firstFailIndex).forEach(({ leg, parsed }, idx) => {
-                if (!parsed.ok) return;
+              for (const i of failedLegIndices) {
+                const { leg, parsed } = parsedLegs[i];
+                if (!parsed.ok) continue;
                 let target: RetryLegTarget | null = null;
                 if (parsed.kind === "multiplier" && parsed.multiplier != null) {
                   target = { kind: "multiplier", multiplier: parsed.multiplier };
@@ -1907,10 +1938,10 @@ function DashboardPageInner() {
                   remainingLegs.push({
                     target,
                     sliceBps: leg.sliceBps,
-                    label: `${sidePrefix} leg ${firstFailIndex + idx + 1} @ ${parsed.normalizedDisplay} (${(leg.sliceBps / 100).toFixed(0)}%)`,
+                    label: `${sidePrefix} leg ${i + 1} @ ${parsed.normalizedDisplay} (${(leg.sliceBps / 100).toFixed(0)}%)`,
                   });
                 }
-              });
+              }
               if (remainingLegs.length > 0) {
                 setRetryRemainingLegs({
                   loanIdChain: chainLoanId.toString(),
