@@ -1436,7 +1436,26 @@ function DashboardPageInner() {
 
       // Collateral value in lamports = (uiAmount * priceUsd / solPriceUsd) * 1e9
       const priceUsd = holding.approved.priceUsd || 0;
-      const collateralValueSol = (collateralUiAmount * priceUsd) / solPriceUsd;
+      const collateralValueSolRaw = (collateralUiAmount * priceUsd) / solPriceUsd;
+      // 2026-06-16 — CollateralValueExceedsAttestation fix. The V1/V2/V3/V4
+      // programs check submitted collateral_value against the on-chain
+      // attested price with a 3% tolerance:
+      //   require!(collateral_value <= min(spot, TWAP) * amount * 1.03)
+      // The site reads DexScreener spot, which can drift above the on-chain
+      // TWAP (TWAP averages 8 samples over 5+ min, so it lags fresh spot
+      // moves). V4's pump cap allows spot up to 1.15 * TWAP — so worst case
+      // a legitimate borrow can have spot/TWAP = 1.15. To submit a value
+      // the program ALWAYS accepts while the borrow is legitimate, we
+      // multiply by 0.89 (1.03/1.15 ≈ 0.895 rounded down for safety).
+      // The borrower receives slightly less SOL (loan = LTV * submitted
+      // value), but the borrow never spuriously rejects.
+      //
+      // Operator-mandated rule: "Price-oracle hiccup must NEVER block a
+      // legitimate borrow." Caught 2026-06-16 PM. Precise solution
+      // (bot endpoint that returns on-chain TWAP, site uses TWAP * 1.02)
+      // tracked as a follow-up task.
+      const COLLATERAL_VALUE_SAFETY = 0.89;
+      const collateralValueSol = collateralValueSolRaw * COLLATERAL_VALUE_SAFETY;
       const collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
 
       // PRE-ATTEST the on-chain price feed before building / signing.
