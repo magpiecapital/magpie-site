@@ -518,8 +518,14 @@ export async function armTakeProfit(args: {
 
 export interface ArmBatchLegSpec {
   direction: "above" | "below";
-  kind: "price_usd" | "mc_usd" | "price_sol";
-  value: number;            // the literal price/mc number (will be * 1e6 for micros)
+  /**
+   * Trigger kind. Either a literal price_usd / mc_usd / price_sol (in
+   * which case `value` is the literal number to convert to micros), or
+   * `multiplier` (in which case `value` is the multiplier and the bot
+   * resolves it against the cross-source oracle at batch time).
+   */
+  kind: "price_usd" | "mc_usd" | "price_sol" | "multiplier";
+  value: number;            // literal price OR multiplier (e.g. 2 for 2x)
   sliceBps: number;         // 1..10000
   slippageBps?: number;     // default 200 for above, 300 for below
   expire?: string;          // ISO timestamp
@@ -548,7 +554,21 @@ function buildArmBatchMessage(args: {
   issuedAt: string;
 }): string {
   // Compact JSON shape on the wire — bot parses Legs as JSON.
+  // For multiplier kind, send the raw multiplier (e.g. 2.0 for 2x) and
+  // the bot resolves it through the cross-source oracle. For literal
+  // price/mc/sol kinds, send micros.
   const wireLegs = args.legs.map((l) => {
+    if (l.kind === "multiplier") {
+      return {
+        d: l.direction,
+        k: "multiplier",
+        v: String(l.value),
+        multiplier: l.value,
+        s: l.sliceBps,
+        slip: l.slippageBps ?? (l.direction === "below" ? 300 : 200),
+        ...(l.expire ? { exp: l.expire } : {}),
+      };
+    }
     const valueMicro = Math.round(l.value * 1e6);
     return {
       d: l.direction,

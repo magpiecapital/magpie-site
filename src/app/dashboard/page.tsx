@@ -1794,13 +1794,38 @@ function DashboardPageInner() {
             }
           }
         } else if (ex.kind === "bracket") {
-          const tp = await armSingle("TP @ 2x", "above", 2);
-          // Only attempt SL if TP succeeded — otherwise user gets a
-          // confusing half-bracket. The post-borrow SL button stays
-          // available below for manual retry.
-          if (tp.ok) {
-            const sl = await armSingle("SL @ 0.7x", "below", 0.7);
-            autoArmedOk = tp.ok && sl.ok;
+          // Operator-mandated 2026-06-16 PM
+          // (feedback_one_signature_for_n_legs_always.md): bracket
+          // is just a 2-leg batch (TP @ 2x + SL @ 0.7x). ONE Phantom
+          // signature arms both atomically — no more half-bracket
+          // state if Phantom drops the session between sequential
+          // signs.
+          const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+          try {
+            const { armTakeProfitBatch } = await import("@/lib/solana/site-take-profit");
+            const result = await armTakeProfitBatch({
+              botApiUrl: botApi2,
+              signerPubkey: publicKey!.toBase58(),
+              signMessage: signMessage!,
+              loanIdChain: chainLoanId.toString(),
+              legs: [
+                { direction: "above", kind: "multiplier", value: 2, sliceBps: 10000, slippageBps: 200 },
+                { direction: "below", kind: "multiplier", value: 0.7, sliceBps: 10000, slippageBps: 300 },
+              ],
+            });
+            setAutoArmLegProgress([
+              { label: "TP @ 2x", ok: true },
+              { label: "SL @ 0.7x", ok: true },
+            ]);
+            autoArmedOk = true;
+            void result;
+          } catch (err) {
+            const msg = (err as Error).message || "bracket arm failed";
+            setAutoArmLegProgress([
+              { label: "TP @ 2x", ok: false, error: msg },
+              { label: "SL @ 0.7x", ok: false, error: msg },
+            ]);
+            autoArmedOk = false;
           }
         } else if (ex.kind === "tp_ladder" || ex.kind === "sl_ladder") {
           const direction = ex.kind === "tp_ladder" ? "above" : "below";
@@ -1808,35 +1833,58 @@ function DashboardPageInner() {
           const preset = ex.kind === "tp_ladder"
             ? SITE_LADDER_PRESETS.tp[ex.preset]
             : SITE_LADDER_PRESETS.sl[ex.preset];
-          let allOk = true;
-          let firstFailIndex = -1;
-          for (let i = 0; i < preset.legs.length; i++) {
-            const leg = preset.legs[i];
-            const r = await armSingle(
-              `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
-              direction,
-              leg.multiplier,
-              leg.sliceBps,
+          // Operator-mandated 2026-06-16 PM
+          // (feedback_one_signature_for_n_legs_always.md): preset
+          // ladders arm via batch endpoint — ONE Phantom signature
+          // covers all N legs. Bot resolves multipliers through the
+          // cross-source oracle at batch time so each preset leg
+          // (e.g. 1.5x/2x/3x) becomes a concrete price_usd before
+          // insert.
+          const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+          try {
+            const { armTakeProfitBatch } = await import("@/lib/solana/site-take-profit");
+            const result = await armTakeProfitBatch({
+              botApiUrl: botApi2,
+              signerPubkey: publicKey!.toBase58(),
+              signMessage: signMessage!,
+              loanIdChain: chainLoanId.toString(),
+              legs: preset.legs.map((leg) => ({
+                direction,
+                kind: "multiplier" as const,
+                value: leg.multiplier,
+                sliceBps: leg.sliceBps,
+                slippageBps: direction === "below" ? 300 : 200,
+              })),
+            });
+            setAutoArmLegProgress(
+              preset.legs.map((leg) => ({
+                label: `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
+                ok: true,
+              })),
             );
-            if (!r.ok) {
-              allOk = false;
-              firstFailIndex = i;
-              break;
-            }
-          }
-          autoArmedOk = allOk;
-          // Surface remaining legs so the user can one-tap retry the rest
-          // without re-arming the legs that already landed.
-          if (!allOk && firstFailIndex >= 0) {
-            const remaining = preset.legs.slice(firstFailIndex).map((leg) => ({
-              target: { kind: "multiplier" as const, multiplier: leg.multiplier },
-              sliceBps: leg.sliceBps,
-              label: `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
-            }));
+            autoArmedOk = true;
+            void result;
+          } catch (err) {
+            const msg = (err as Error).message || "batch arm failed";
+            setAutoArmLegProgress(
+              preset.legs.map((leg) => ({
+                label: `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
+                ok: false,
+                error: msg,
+              })),
+            );
+            autoArmedOk = false;
+            // Surface a retry CTA — still useful in case user wants to
+            // re-attempt the same preset after fixing whatever blocked
+            // the batch (e.g. Phantom session, oracle blip).
             setRetryRemainingLegs({
               loanIdChain: chainLoanId.toString(),
               direction,
-              legs: remaining,
+              legs: preset.legs.map((leg) => ({
+                target: { kind: "multiplier" as const, multiplier: leg.multiplier },
+                sliceBps: leg.sliceBps,
+                label: `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
+              })),
             });
           }
         } else if (ex.kind === "custom_ladder") {
