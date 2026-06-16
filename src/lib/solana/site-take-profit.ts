@@ -46,6 +46,23 @@ export interface TakeProfitLoan {
   collateral_symbol: string | null;
   collateral_decimals: number | null;
   collateral_amount: string;
+  /**
+   * V4 remainder watcher (operator-mandated 2026-06-16 PM). Mirrors
+   * on-chain `loan.current_collateral_amount` — the SPL collateral
+   * still in the vault, decremented per convert_collateral_slice fire.
+   * Equals `collateral_amount` on V1/V2/V3 (no partial fills) and on
+   * V4 loans that haven't fired any leg yet. Drives the "Y TOKEN
+   * remaining" display on partial-fire loan cards.
+   */
+  current_collateral_amount?: string;
+  /**
+   * Lamports accumulated in the per-loan `sol_proceeds_vault` PDA from
+   * all `convert_collateral_slice` fires, net of the 1% protocol fee.
+   * The user receives this at repay time alongside any remaining SPL.
+   */
+  sol_proceeds_amount?: string;
+  /** Diagnostic counter: number of convert_collateral_slice fires. */
+  auto_sells_fired?: number;
   owed_lamports: string;
   owed_sol: number;
   start_timestamp: string;

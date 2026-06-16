@@ -84,7 +84,7 @@ function BannerShell({
 }) {
   const sym = symbol || "loan";
   const visual = visualForState(state);
-  const message = messageForState(state, sym);
+  const message = messageForState(state, sym, loan);
 
   return (
     <div
@@ -278,7 +278,11 @@ function visualForState(state: ExitState | null): {
   };
 }
 
-function messageForState(state: ExitState | null, symbol: string): string {
+function messageForState(
+  state: ExitState | null,
+  symbol: string,
+  loan: TakeProfitLoan | null,
+): string {
   if (!state || state.kind === "no_exit_set") {
     return `Exit not set on this ${symbol} loan — set a take-profit or stop-loss below`;
   }
@@ -296,11 +300,45 @@ function messageForState(state: ExitState | null, symbol: string): string {
   }
   if (state.kind === "partial") {
     const sol = lamportsToSolStr(state.vaultLamports);
-    return `${state.firedCount} of ${state.totalCount} legs filled · ${sol} SOL in vault`;
+    const remaining = formatRemainingToken(loan, symbol);
+    return `${state.firedCount} of ${state.totalCount} legs filled · ${sol} SOL in vault${
+      remaining ? ` + ${remaining}` : ""
+    }`;
   }
   // complete
   const sol = lamportsToSolStr(state.vaultLamports);
-  return `All ${state.firedCount} legs filled · ${sol} SOL in vault · ready to close`;
+  const remaining = formatRemainingToken(loan, symbol);
+  return `All ${state.firedCount} legs filled · ${sol} SOL in vault${
+    remaining ? ` + ${remaining}` : ""
+  } · ready to close`;
+}
+
+/* Format the remaining SPL collateral as "X.XX TOKEN" for the partial /
+ * complete banner. Returns null when no current_collateral_amount is
+ * available (pre-remainder-watcher loans) so the caller can omit the
+ * "+ remaining" suffix cleanly instead of showing a misleading zero. */
+function formatRemainingToken(
+  loan: TakeProfitLoan | null,
+  symbol: string,
+): string | null {
+  if (!loan) return null;
+  const raw = loan.current_collateral_amount;
+  if (raw == null) return null;
+  const decimals = loan.collateral_decimals ?? 9;
+  let amount: number;
+  try {
+    amount = Number(raw) / Math.pow(10, decimals);
+  } catch {
+    return null;
+  }
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  let formatted: string;
+  if (amount >= 1e6) formatted = `${(amount / 1e6).toFixed(2)}M`;
+  else if (amount >= 1e3) formatted = `${(amount / 1e3).toFixed(2)}K`;
+  else if (amount >= 1) formatted = amount.toFixed(2);
+  else if (amount >= 0.01) formatted = amount.toFixed(4);
+  else formatted = amount.toFixed(6);
+  return `${formatted} ${symbol || "TOKEN"} remaining`;
 }
 
 function lamportsToSolStr(lamports: bigint): string {
