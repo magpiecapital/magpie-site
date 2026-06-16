@@ -655,6 +655,16 @@ const ONCHAIN_ACCOUNTS: { label: string; address: string; note: string }[] = [
     note: "Separate program for tokenized stocks, ETFs, and metals. Same lender authority, isolated state.",
   },
   {
+    label: "Dual-tier lending program (v3)",
+    address: "B8AwYzFmc3ZB5EWWVtJcJhJtEmKL78W5i3kZrL1uMCmP",
+    note: "Live on mainnet since 2026-06-13. Single program supports both memecoin (30/25/20% LTV) AND RWA (50/60/70% LTV) tiers, with on-chain TWAP oracle gating. Existing v1/v2 loans continue on their original programs.",
+  },
+  {
+    label: "In-vault auto-sell program (v4)",
+    address: "HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo",
+    note: "Live on mainnet since 2026-06-15 (patched). Routes any borrow that arms an exit (TP / SL / Trailing / Ladder / Bracket). On fire, SOL accumulates inside the per-loan vault — the loan stays Active until the borrower repays. Same dual-tier ladder as v3.",
+  },
+  {
     label: "Memecoin pool state",
     address: "EynWtuRMUKU3zHzfLv7Y5Qu6MWpwqG17X91QAuHSww9u",
     note: "Live total_deposits, total_borrowed, total_shares for the memecoin pool.",
@@ -673,6 +683,31 @@ const ONCHAIN_ACCOUNTS: { label: string; address: string; note: string }[] = [
     label: "RWA pool wSOL vault",
     address: "58PER7L5WtZEDHRt473bSDCKk7KbZPNiw8mbLyn2UBa1",
     note: "wSOL vault for the v2 (RWA) lending pool.",
+  },
+  {
+    label: "v3 pool state",
+    address: "6D1QmfDxFw4BRNWaVadzmFt1mVqs8Zw9EwkvT6HnR1Na",
+    note: "Live state of the v3 dual-tier lending pool — memecoin + RWA share one pool with category-keyed LTV.",
+  },
+  {
+    label: "v3 pool wSOL vault",
+    address: "s2M7st6DEepiuKhX3ouJM7mUsr8aDMJNm8UQh82KrVb",
+    note: "wSOL vault for the v3 lending pool.",
+  },
+  {
+    label: "v4 pool state",
+    address: "7My1o9Jfm2D5wM2xfpfy67NPvTPVUTSzWyz7ZxjwPjT4",
+    note: "Live state of the v4 in-vault auto-sell lending pool.",
+  },
+  {
+    label: "v4 pool wSOL vault",
+    address: "7vfpVHc2ndPYw9dToiag2ARoUZ75BjLLuzsEfSjMtD1w",
+    note: "wSOL vault for the v4 lending pool. Per-loan sol_proceeds_vault PDAs (one per loan) are separate and hold each loan's auto-sell proceeds independently.",
+  },
+  {
+    label: "Engine authority (v4)",
+    address: "7GKdZ8n6nNc6oFpQMiPZxmiR1KRJgXuBSmuJF4u2BKrs",
+    note: "Hardcoded ENGINE_AUTHORITY in the v4 program. The ONLY pubkey allowed to call convert_collateral_slice. Least-privilege seam — cannot mint, withdraw pool reserves, or touch fee wallet outside the in-program 1% protocol skim.",
   },
   {
     label: "$MAGPIE mint",
