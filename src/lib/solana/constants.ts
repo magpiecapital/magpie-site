@@ -55,44 +55,29 @@ export const RWA_CATEGORIES = new Set<string>(["stock", "etf", "metal"]);
 const ROUTE_RWA_TO_V3 =
   process.env.NEXT_PUBLIC_ROUTE_RWA_TO_V3 === "true";
 
-/**
- * V4-exclusive routing (2026-06-15) — mirrors bot's chooseProgramId.
- *
- *   chooseProgramId(category)                          — plain borrow
- *   chooseProgramId(category, { hasExitArming: true }) — exit-armed borrow
- *
- * V4 is the only pool that services exits (engine fire path keeps the
- * loan ACTIVE and accumulates SOL in the per-loan vault). Plain borrows
- * still route by category to V1/V2/V3.
- *
- * Throws when hasExitArming=true but PROGRAM_ID_V4 isn't deployed — the
- * caller MUST refuse the borrow and tell the user exits aren't
- * available right now. Silently falling back to V1/V3 would promise
- * the user an in-vault exit and not deliver it.
- */
+// V4 IS EXIT-ONLY routing (operator-mandated 2026-06-16 PM, PERMANENT).
+// Supersedes the 2026-06-15 "V4 unconditional default" direction.
+//
+//   chooseProgramId(category)                          — plain borrow → V1/V2/V3 by category
+//   chooseProgramId(category, { hasExitArming: true }) — exit-armed borrow → V4
+//
+// V4 is the ONLY pool that services exits (engine fire path keeps the
+// loan ACTIVE and accumulates SOL in the per-loan vault). Plain borrows
+// stay on V1/V2/V3 and never touch V4. Existing V1/V2/V3/V4 loans are
+// unaffected — they read their own program_id and continue to
+// repay/extend/liquidate against the program that issued them.
 export function chooseProgramId(
   category: string | null | undefined,
   opts: { hasExitArming?: boolean } = {},
 ): PublicKey {
   const { hasExitArming = false } = opts;
-  // V4-FIRST DEFAULT (operator-mandated 2026-06-15 PM): once V4 is set,
-  // every new borrow lands on V4 — RWA AND memecoin, exit-armed AND
-  // plain. The user's clear intent is "V4 is the default everywhere."
-  // Even a plain borrow on V4 is functionally a superset of V3 (same
-  // tier ladder + the option to add exits later by repaying and
-  // re-borrowing with one set). Legacy V1/V2/V3 are only used as
-  // fallbacks when V4 isn't deployed.
-  //
-  // Existing V1/V2/V3 loans are NOT affected — they read their own
-  // program_id and continue to repay/extend/liquidate against the
-  // program that issued them.
-  if (PROGRAM_ID_V4) {
-    return PROGRAM_ID_V4;
-  }
   if (hasExitArming) {
-    throw new Error(
-      "EXIT_ARMING_REQUIRES_V4: exit-armed borrow requested but NEXT_PUBLIC_PROGRAM_ID_V4 is not set on the site.",
-    );
+    if (!PROGRAM_ID_V4) {
+      throw new Error(
+        "EXIT_ARMING_REQUIRES_V4: exit-armed borrow requested but NEXT_PUBLIC_PROGRAM_ID_V4 is not set on the site.",
+      );
+    }
+    return PROGRAM_ID_V4;
   }
   if (category && RWA_CATEGORIES.has(category)) {
     return ROUTE_RWA_TO_V3 ? PROGRAM_ID_V3 : PROGRAM_ID_V2;
