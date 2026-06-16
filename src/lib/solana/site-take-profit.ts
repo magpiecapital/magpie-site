@@ -140,11 +140,31 @@ export interface TakeProfitOrder {
   peak_price_micros?: string | null;
 }
 
+/**
+ * Pending arm intent — the beacon record we keep BEFORE Phantom is
+ * asked to sign. If an intent stays `pending` after the signed arm
+ * was expected to land, that's empirical proof of a silent-leg-drop
+ * (Phantom session blip, network failure mid-fetch, etc.). The
+ * dashboard reads these to render the intent-aware recovery banner.
+ */
+export interface TakeProfitPendingIntent {
+  id: number;
+  loan_id_chain: string;
+  direction: "above" | "below";
+  target_kind: "multiplier" | "price_usd" | "mc_usd" | "price_sol" | "trailing";
+  target_value_micro: string;
+  slice_pct_bps: number | null;
+  source: string;
+  created_at: string;
+}
+
 export interface TakeProfitState {
   linked: boolean;
   custodial: boolean;
   loans: TakeProfitLoan[];
   orders: TakeProfitOrder[];
+  /** Recent (24h) pending arm intents — used for V4 recovery banner. */
+  pending_intents?: TakeProfitPendingIntent[];
   generated_at?: string;
 }
 
