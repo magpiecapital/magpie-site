@@ -67,6 +67,15 @@ export interface TakeProfitLoan {
   owed_sol: number;
   start_timestamp: string;
   due_timestamp: string;
+  /**
+   * The on-chain lending program id this loan was opened on. Matters
+   * for V4 detection: V4 loans (program_id === PROGRAM_ID_V4) only
+   * exist because the user requested an exit. So a V4 loan with no
+   * orders is a silent auto-arm failure, not an empty state — see
+   * feedback_v4_loans_never_show_exit_not_set.md. Bot endpoint
+   * returns this from loans.program_id.
+   */
+  program_id?: string | null;
   /** Eligible to arm a take-profit (upside, "above" trigger). */
   is_eligible_for_takeprofit: boolean;
   /** Reasons TP can't be armed (e.g. ["take_profit_already_armed"]). */
@@ -351,6 +360,71 @@ export async function preflightArmTakeProfit(args: {
   return body;
 }
 
+/**
+ * Beacon endpoint — POSTs a lightweight intent record to the server
+ * BEFORE any Phantom signing. Operator-mandated 2026-06-16 PM
+ * (feedback_every_arm_envelope_must_reach_server.md). Server has a
+ * durable record of "the user requested this exit" even if the
+ * subsequent signed arm chain silently fails (Phantom session blip,
+ * useEffect timing race, network hiccup mid-fetch).
+ *
+ * Best-effort: if the intent beacon fails, we PROCEED to the signed
+ * arm anyway (don't want to gate the user's exit on intent telemetry).
+ * The dashboard reconciliation banner is the safety net.
+ */
+export async function postArmIntent(args: {
+  botApiUrl: string;
+  wallet: string;
+  loanIdChain: string;
+  request: ArmTakeProfitRequest;
+}): Promise<{ ok: boolean; intent_id?: number; error?: string }> {
+  if (!args.botApiUrl) return { ok: false, error: "no_bot_api_url" };
+  const target = args.request.target;
+  let target_kind: string | null = null;
+  let target_value_micro: string | null = null;
+  if (args.request.trailingDistanceBps != null) {
+    target_kind = "trailing";
+    target_value_micro = String(args.request.trailingDistanceBps);
+  } else if (target?.kind === "multiplier") {
+    target_kind = "multiplier";
+    target_value_micro = String(Math.round(target.multiplier * 1e6));
+  } else if (target?.kind === "price_usd") {
+    target_kind = "price_usd";
+    target_value_micro = String(Math.round(target.usd * 1e6));
+  } else if (target?.kind === "mc_usd") {
+    target_kind = "mc_usd";
+    target_value_micro = String(Math.round(target.mcDollars * 1e6));
+  } else {
+    return { ok: false, error: "no_target" };
+  }
+  try {
+    const res = await fetch(
+      `${args.botApiUrl.replace(/\/$/, "")}/api/v1/site/limit-close/intent`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wallet: args.wallet,
+          loan_id_chain: args.loanIdChain,
+          direction: args.request.direction ?? "above",
+          target_kind,
+          target_value_micro,
+          slice_pct_bps: args.request.slicePctBps,
+          source: "site",
+        }),
+      },
+    );
+    if (!res.ok) {
+      return { ok: false, error: `intent_http_${res.status}` };
+    }
+    const body = (await res.json()) as { intent_id?: number };
+    return { ok: true, intent_id: body.intent_id };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: msg.slice(0, 80) };
+  }
+}
+
 export async function armTakeProfit(args: {
   botApiUrl: string;
   signerPubkey: string;
@@ -358,6 +432,22 @@ export async function armTakeProfit(args: {
   request: ArmTakeProfitRequest;
 }): Promise<ArmedTakeProfitResult> {
   if (!args.botApiUrl) throw new Error("Bot API URL not configured");
+
+  // Beacon the intent BEFORE asking Phantom to sign. Best-effort:
+  // failure here is logged but does NOT abort the arm — the signed
+  // arm is the authoritative path; intent is the safety-net record.
+  // Operator-mandated 2026-06-16 PM.
+  postArmIntent({
+    botApiUrl: args.botApiUrl,
+    wallet: args.signerPubkey,
+    loanIdChain: args.request.loanIdChain,
+    request: args.request,
+  }).catch((e) => {
+    console.warn(
+      "[arm] intent beacon failed (continuing to signed arm):",
+      e instanceof Error ? e.message : String(e),
+    );
+  });
 
   const slippageBps = args.request.slippageBps ?? 200;
   const dest = args.request.sellDestination ?? "sol";
