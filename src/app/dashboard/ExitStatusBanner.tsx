@@ -127,8 +127,96 @@ function BannerShell({
 }) {
   const sym = symbol || "loan";
   const visual = visualForState(state);
-  const message = messageForState(state, sym, loan);
 
+  // Operator-mandated 2026-06-16 PM
+  // ([[feedback_clean_dashboard_v4_ux]]): when a loan has actually
+  // fired (partial or complete), the vault balance becomes the
+  // headline of the card — large, high-contrast, mobile + web parity.
+  // Other states (no_exit / armed / firing) keep the original compact
+  // pill rendering so the dashboard doesn't grow excessively when
+  // nothing has filled yet.
+  const showProminentVault = state?.kind === "partial" || state?.kind === "complete";
+
+  if (showProminentVault) {
+    const sol = lamportsToSolStr(state.vaultLamports);
+    const remaining = formatRemainingToken(loan, sym);
+    const fillSummary =
+      state.kind === "complete"
+        ? `All ${state.firedCount} legs filled`
+        : `${state.firedCount} of ${state.totalCount} legs filled`;
+    return (
+      <div
+        className="rounded-md border px-3 py-3 sm:px-4 sm:py-3.5"
+        style={{
+          borderColor: visual.border,
+          background: visual.bg,
+          color: visual.text,
+        }}
+        role="status"
+        aria-live="polite"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <span
+              className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0"
+              style={{
+                background: visual.dot,
+                animation: visual.pulse
+                  ? "ladder-pulse 1.6s ease-in-out infinite"
+                  : undefined,
+              }}
+            />
+            <span
+              className="text-[10px] uppercase tracking-wide font-semibold opacity-70"
+              style={{ color: visual.text }}
+            >
+              In vault
+            </span>
+          </div>
+          {onRefresh && (
+            <button
+              onClick={onRefresh}
+              className="text-[10px] underline opacity-60 hover:opacity-100 flex-shrink-0"
+              style={{ color: visual.text }}
+              title="Refresh state"
+            >
+              Refresh
+            </button>
+          )}
+        </div>
+        <div
+          className="mt-1.5 flex items-baseline gap-1.5 sm:gap-2 flex-wrap"
+          style={{ color: visual.text }}
+        >
+          <span
+            className="font-bold tracking-tight text-[22px] leading-none sm:text-[26px] tabular-nums transition-opacity"
+            style={{ color: visual.text }}
+          >
+            {sol}
+          </span>
+          <span className="text-[13px] sm:text-[14px] font-semibold opacity-75">SOL</span>
+          {remaining && (
+            <>
+              <span className="text-[12px] opacity-50 mx-0.5">+</span>
+              <span className="text-[13px] sm:text-[14px] font-semibold opacity-85 tabular-nums">
+                {remaining}
+              </span>
+            </>
+          )}
+        </div>
+        <div
+          className="mt-1 text-[11px] opacity-70"
+          style={{ color: visual.text }}
+        >
+          {fillSummary}
+          {state.kind === "complete" ? " · ready to close" : ""}
+        </div>
+      </div>
+    );
+  }
+
+  // Default compact pill for no_exit / armed / firing states.
+  const message = messageForState(state, sym, loan);
   return (
     <div
       className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
