@@ -184,9 +184,11 @@ export function TakeProfitCard(props: Props) {
       <LadderRollup
         orders={props.state.orders}
         loanDbId={resolvedLoanDbId}
+        loanIdChain={props.loanIdChain}
         collateralSymbol={props.collateralSymbol}
         currentPriceUsd={cardPriceUsd}
         botApiUrl={props.botApiUrl}
+        pendingIntents={props.state.pending_intents}
         onMutated={props.onMutated}
       />
       <div data-slot-direction="above">

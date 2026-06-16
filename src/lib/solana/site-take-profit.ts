@@ -140,11 +140,31 @@ export interface TakeProfitOrder {
   peak_price_micros?: string | null;
 }
 
+/**
+ * Pending arm intent — the beacon record we keep BEFORE Phantom is
+ * asked to sign. If an intent stays `pending` after the signed arm
+ * was expected to land, that's empirical proof of a silent-leg-drop
+ * (Phantom session blip, network failure mid-fetch, etc.). The
+ * dashboard reads these to render the intent-aware recovery banner.
+ */
+export interface TakeProfitPendingIntent {
+  id: number;
+  loan_id_chain: string;
+  direction: "above" | "below";
+  target_kind: "multiplier" | "price_usd" | "mc_usd" | "price_sol" | "trailing";
+  target_value_micro: string;
+  slice_pct_bps: number | null;
+  source: string;
+  created_at: string;
+}
+
 export interface TakeProfitState {
   linked: boolean;
   custodial: boolean;
   loans: TakeProfitLoan[];
   orders: TakeProfitOrder[];
+  /** Recent (24h) pending arm intents — used for V4 recovery banner. */
+  pending_intents?: TakeProfitPendingIntent[];
   generated_at?: string;
 }
 
@@ -499,6 +519,185 @@ export async function armTakeProfit(args: {
     throw new Error(translateArmError(body));
   }
   return body as ArmedTakeProfitResult;
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * Batch arming — operator-mandated NON-NEGOTIABLE 2026-06-16 PM
+ * (feedback_one_signature_for_n_legs_always.md). One Phantom signature
+ * arms ALL legs of a multi-leg ladder atomically. Replaces the
+ * N-popups-for-N-legs pattern that caused silent leg-drops on loans
+ * 798 + 802 when Phantom sessions died between sequential signs.
+ *
+ * Each leg specifies: direction, kind (price_usd/mc_usd/price_sol),
+ * value (the literal price/mc number — converted to micros here),
+ * slice_pct_bps, slippage_bps.
+ *
+ * Returns the resolved order ids in batch order so the caller can
+ * map them back onto their picker leg list.
+ * ──────────────────────────────────────────────────────────────── */
+
+export interface ArmBatchLegSpec {
+  direction: "above" | "below";
+  /**
+   * Trigger kind. Either a literal price_usd / mc_usd / price_sol (in
+   * which case `value` is the literal number to convert to micros), or
+   * `multiplier` (in which case `value` is the multiplier and the bot
+   * resolves it against the cross-source oracle at batch time).
+   */
+  kind: "price_usd" | "mc_usd" | "price_sol" | "multiplier";
+  value: number;            // literal price OR multiplier (e.g. 2 for 2x)
+  sliceBps: number;         // 1..10000
+  slippageBps?: number;     // default 200 for above, 300 for below
+  expire?: string;          // ISO timestamp
+  intent_id?: number;       // optional pending intent to reconcile
+}
+
+export interface ArmBatchResult {
+  ok: true;
+  order_ids: number[];
+  ladder_group_ids: { above: string | null; below: string | null };
+  legs: Array<{
+    orderId: number;
+    direction: "above" | "below";
+    triggerKind: string;
+    triggerValueMicro: string;
+    slicePctBps: number;
+    slippageBps: number;
+  }>;
+}
+
+function buildArmBatchMessage(args: {
+  from: string;
+  loanIdChain: string;
+  legs: ArmBatchLegSpec[];
+  nonce: string;
+  issuedAt: string;
+}): string {
+  // Compact JSON shape on the wire — bot parses Legs as JSON.
+  // For multiplier kind, send the raw multiplier (e.g. 2.0 for 2x) and
+  // the bot resolves it through the cross-source oracle. For literal
+  // price/mc/sol kinds, send micros.
+  const wireLegs = args.legs.map((l) => {
+    if (l.kind === "multiplier") {
+      return {
+        d: l.direction,
+        k: "multiplier",
+        v: String(l.value),
+        multiplier: l.value,
+        s: l.sliceBps,
+        slip: l.slippageBps ?? (l.direction === "below" ? 300 : 200),
+        ...(l.expire ? { exp: l.expire } : {}),
+      };
+    }
+    const valueMicro = Math.round(l.value * 1e6);
+    return {
+      d: l.direction,
+      k: l.kind,
+      v: String(valueMicro),
+      s: l.sliceBps,
+      slip: l.slippageBps ?? (l.direction === "below" ? 300 : 200),
+      ...(l.expire ? { exp: l.expire } : {}),
+    };
+  });
+  const lines = [
+    "magpie: limit-close-arm-batch/v1",
+    `From: ${args.from}`,
+    `LoanId: ${args.loanIdChain}`,
+    `Legs: ${JSON.stringify(wireLegs)}`,
+    `Nonce: ${args.nonce}`,
+    `IssuedAt: ${args.issuedAt}`,
+  ];
+  return lines.join("\n");
+}
+
+export async function armTakeProfitBatch(args: {
+  botApiUrl: string;
+  signerPubkey: string;
+  signMessage: SignMessageFn;
+  loanIdChain: string;
+  legs: ArmBatchLegSpec[];
+}): Promise<ArmBatchResult> {
+  if (!args.botApiUrl) throw new Error("Bot API URL not configured");
+  if (args.legs.length === 0) {
+    throw new Error("armTakeProfitBatch requires at least one leg");
+  }
+  if (args.legs.length > 8) {
+    throw new Error("armTakeProfitBatch max 8 legs per batch");
+  }
+
+  // Beacon every leg as an intent BEFORE asking Phantom to sign. Best-
+  // effort — if any intent post fails the signed batch still proceeds.
+  // The server's reconciliation will mark each one armed if the batch
+  // succeeds.
+  await Promise.all(
+    args.legs.map((l) =>
+      postArmIntent({
+        botApiUrl: args.botApiUrl,
+        wallet: args.signerPubkey,
+        loanIdChain: args.loanIdChain,
+        request: {
+          from: args.signerPubkey,
+          loanIdChain: args.loanIdChain,
+          direction: l.direction,
+          target:
+            l.kind === "price_usd"
+              ? { kind: "price_usd", usd: l.value }
+              : l.kind === "mc_usd"
+                ? { kind: "mc_usd", mcDollars: l.value }
+                : { kind: "multiplier", multiplier: l.value },
+          slippageBps: l.slippageBps,
+          sellDestination: "sol",
+          slicePctBps: l.sliceBps < 10000 ? l.sliceBps : undefined,
+        },
+      }).catch(() => ({ ok: false as const })),
+    ),
+  );
+
+  const nonce = randomNonceHex();
+  const issuedAt = new Date().toISOString();
+  const messageText = buildArmBatchMessage({
+    from: args.signerPubkey,
+    loanIdChain: args.loanIdChain,
+    legs: args.legs,
+    nonce,
+    issuedAt,
+  });
+
+  const messageBytes = new TextEncoder().encode(messageText);
+  let signature: Uint8Array;
+  try {
+    signature = await args.signMessage(messageBytes);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    throw new Error(`Wallet declined to sign: ${msg}`);
+  }
+  if (!signature || signature.length !== 64) {
+    throw new Error("Wallet returned an invalid signature");
+  }
+
+  // Surface any intent_ids the caller passed so the server can
+  // reconcile each one atomically with the matching insert.
+  const intent_ids = args.legs.map((l) => l.intent_id ?? null);
+  const allNullIntents = intent_ids.every((x) => x == null);
+
+  const res = await fetch(
+    `${args.botApiUrl.replace(/\/$/, "")}/api/v1/site/limit-close/arm-batch`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        signedMessageBase64: bytesToBase64(messageBytes),
+        signatureBase58: bs58.encode(signature),
+        signerPubkey: args.signerPubkey,
+        ...(allNullIntents ? {} : { intent_ids }),
+      }),
+    },
+  );
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || !body.ok) {
+    throw new Error(translateArmError(body) + (body.failed_leg_index != null ? ` (leg ${body.failed_leg_index + 1})` : ""));
+  }
+  return body as ArmBatchResult;
 }
 
 export function translateArmError(body: { error?: string; detail?: string; suggested_slippage_bps?: number }): string {
