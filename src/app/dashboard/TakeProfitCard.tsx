@@ -28,6 +28,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
   fetchTakeProfitState, armTakeProfit, cancelTakeProfit, modifyTakeProfit,
+  preflightArmTakeProfit,
   type TakeProfitOrder, type TakeProfitLoan, type TakeProfitState,
 } from "@/lib/solana/site-take-profit";
 import { parseStrike } from "@/lib/strike-price-parser";
@@ -360,32 +361,23 @@ function LimitSlot(props: SlotProps) {
     setBusy(true);
     try {
       const slippageBps = Math.round(slippagePct * 100);
-      // Trailing arms send trailingDistanceBps instead of a target.
-      // The bot's site-limit-close-arm endpoint uses that as a
-      // synthetic multiplier to seed the initial trigger; engine
-      // takes over from the watcher's first tick.
+
+      // Build the request shape once so both preflight and the real arm
+      // see identical inputs. Preflight runs first — operator-mandated
+      // 2026-06-15: surface ineligibility BEFORE asking Phantom to sign.
+      let request: import("@/lib/solana/site-take-profit").ArmTakeProfitRequest;
+
       if (isSl && trailingEnabled) {
         const bps = Math.round(trailingPct * 100);
-        await armTakeProfit({
-          botApiUrl: props.botApiUrl,
-          signerPubkey: publicKey.toBase58(),
-          signMessage,
-          request: {
-            from: publicKey.toBase58(),
-            loanIdChain: props.loanIdChain,
-            direction: "below",
-            trailingDistanceBps: bps,
-            slippageBps,
-            sellDestination: "sol",
-          },
-        });
+        request = {
+          from: publicKey.toBase58(),
+          loanIdChain: props.loanIdChain,
+          direction: "below",
+          trailingDistanceBps: bps,
+          slippageBps,
+          sellDestination: "sol",
+        };
       } else {
-        // The customUsd field is now a free-text strike (e.g. "17M mc",
-        // "$0.005", "2x", "down 30%"). If it's set, parse it through
-        // the shared parser; otherwise fall back to the selected multiplier preset.
-        // The arm path on the bot side also re-parses authoritatively;
-        // this client-side parse just keeps the wallet sign-prompt
-        // showing a human-readable target.
         let target:
           | { kind: "price_usd"; usd: number }
           | { kind: "mc_usd"; mcDollars: number }
@@ -407,20 +399,65 @@ function LimitSlot(props: SlotProps) {
         } else {
           target = { kind: "multiplier", multiplier: selectedMultiplier };
         }
-        await armTakeProfit({
-          botApiUrl: props.botApiUrl,
-          signerPubkey: publicKey.toBase58(),
-          signMessage,
-          request: {
-            from: publicKey.toBase58(),
-            loanIdChain: props.loanIdChain,
-            direction: props.direction,
-            target,
-            slippageBps,
-            sellDestination: "sol",
-          },
-        });
+        request = {
+          from: publicKey.toBase58(),
+          loanIdChain: props.loanIdChain,
+          direction: props.direction,
+          target,
+          slippageBps,
+          sellDestination: "sol",
+        };
       }
+
+      // ── Preflight: dry-run validate BEFORE asking Phantom to sign ──
+      // V4 Hardening T3 (operator-mandated): if the server would reject
+      // this arm for any reason (V4-eligibility, slice overflow, already
+      // armed, parse error), surface it now rather than waste a Phantom
+      // popup. Translates the server's error/detail into a clean message.
+      const pre = await preflightArmTakeProfit({
+        botApiUrl: props.botApiUrl,
+        wallet: publicKey.toBase58(),
+        request,
+      });
+      if (!pre.ok) {
+        // Map the server reason to a human message the loud error UI
+        // can then classify further (phantom_session / network / etc.).
+        const reason = pre.error || "preflight_failed";
+        const detail = pre.detail || "";
+        if (reason === "exits_require_v4_loan") {
+          throw new Error("This loan is on a legacy pool. Repay and re-open the borrow with the exit set; the new loan will land on V4 automatically.");
+        }
+        if (reason === "take_profit_already_armed" || reason === "stop_loss_already_armed") {
+          throw new Error("There's already an armed order on this direction. Cancel it before adding another.");
+        }
+        if (reason === "slice_overflow") {
+          throw new Error(detail || "Existing ladder legs already use this slice.");
+        }
+        if (reason === "wallet_not_linked") {
+          throw new Error("This wallet isn't linked to a Magpie account yet. Open the Telegram bot once to link, then come back.");
+        }
+        if (reason === "loan_not_found_for_signer") {
+          throw new Error("Couldn't find this loan under your wallet. Did the wallet change since the borrow?");
+        }
+        if (reason === "collateral_not_enabled") {
+          throw new Error("This collateral isn't currently enabled for new arms.");
+        }
+        if (reason === "multiplier_resolve_failed") {
+          throw new Error(`Couldn't resolve the target price from the oracle: ${detail}`);
+        }
+        if (reason === "preflight_network_error") {
+          throw new Error(`Network issue reaching the bot — retry in a moment (${detail.slice(0, 60)})`);
+        }
+        throw new Error(`${reason}${detail ? ": " + detail : ""}`);
+      }
+
+      // Preflight green — proceed to signMessage + real arm.
+      await armTakeProfit({
+        botApiUrl: props.botApiUrl,
+        signerPubkey: publicKey.toBase58(),
+        signMessage,
+        request,
+      });
       setExpanded(false);
       props.onMutated();
     } catch (e) {
