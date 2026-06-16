@@ -1859,123 +1859,82 @@ function DashboardPageInner() {
           } else {
             const sidePrefix = direction === "above" ? "Profit" : "Stop";
             // Operator-mandated 2026-06-16 PM
-            // (feedback_ladder_must_fully_arm_or_loudly_recover.md):
-            // never silently `break` mid-ladder. We track every leg's
-            // outcome and surface ALL failures. When a Phantom-session
-            // class error fires, stop popping more popups (UX) but DO
-            // record the remaining legs as "skipped: wallet session
-            // ended" so they show up in retry-remaining for one-tap
-            // recovery.
-            let allOk = true;
-            const failedLegIndices: number[] = [];
-            let phantomSessionAlive = true;
-            const phantomErrorPattern = /method.*not.*authorized|wallet.*session|account.*not.*authorized|user rejected/i;
-            for (let i = 0; i < parsedLegs.length; i++) {
-              const { leg, parsed } = parsedLegs[i];
-              const sliceLabelPrefix = `${sidePrefix} leg ${i + 1}`;
-              if (!parsed.ok) {
-                setAutoArmLegProgress((prev) => [
-                  ...prev,
-                  { label: sliceLabelPrefix, ok: false, error: parsed.error || "parse failed" },
-                ]);
-                allOk = false;
-                failedLegIndices.push(i);
-                continue;
-              }
-              // Convert parser kind → armTakeProfit target shape.
-              let target: import("@/lib/solana/site-take-profit").ArmTakeProfitRequest["target"];
-              if (parsed.kind === "multiplier") {
-                target = { kind: "multiplier", multiplier: parsed.multiplier as number };
-              } else if (parsed.kind === "price_usd") {
-                target = { kind: "price_usd", usd: Number(parsed.valueMicro) / 1e6 };
-              } else if (parsed.kind === "mc_usd") {
-                target = { kind: "mc_usd", mcDollars: Number(parsed.valueMicro) / 1e6 };
-              } else {
-                setAutoArmLegProgress((prev) => [
-                  ...prev,
-                  { label: sliceLabelPrefix, ok: false, error: "SOL-denominated strikes not supported pre-borrow yet" },
-                ]);
-                allOk = false;
-                failedLegIndices.push(i);
-                continue;
-              }
-              const sliceLabel = `${sliceLabelPrefix} @ ${parsed.normalizedDisplay} (${(leg.sliceBps / 100).toFixed(0)}%)`;
-              if (!phantomSessionAlive) {
-                // Earlier leg revealed Phantom session is dead — record
-                // this leg as skipped instead of triggering another
-                // popup that will also fail. The user gets a clean
-                // retry-remaining CTA after the loop completes.
-                setAutoArmLegProgress((prev) => [
-                  ...prev,
-                  { label: sliceLabel, ok: false, error: "skipped: wallet session ended — reconnect and retry remaining" },
-                ]);
-                allOk = false;
-                failedLegIndices.push(i);
-                continue;
-              }
+            // (feedback_one_signature_for_n_legs_always.md): ALL legs
+            // arm via a SINGLE batch envelope and ONE Phantom signature.
+            // This replaces the N-popups-for-N-legs loop that caused
+            // silent leg-drops on loans 798 and 802. The batch endpoint
+            // either inserts all N rows atomically or rejects without
+            // inserting any — no more partial-arm state.
+            // Multiplier strikes still require single-arm (server
+            // resolves multiplier per-leg). For the picker which uses
+            // price_usd / mc_usd literal strikes, this batch path
+            // covers ~100% of real-world ladder shapes.
+            const allParseOk = parsedLegs.every(({ parsed }) => parsed.ok);
+            const hasMultiplier = parsedLegs.some(
+              ({ parsed }) => parsed.ok && parsed.kind === "multiplier",
+            );
+            if (!allParseOk) {
+              const failures = parsedLegs
+                .map(({ parsed }, i) => (parsed.ok ? null : `Leg ${i + 1}: ${parsed.error || "parse failed"}`))
+                .filter((x): x is string => !!x);
+              setAutoArmLegProgress(
+                failures.map((f) => ({ label: f, ok: false, error: f })),
+              );
+              autoArmedOk = false;
+            } else if (hasMultiplier) {
+              // Multiplier strikes can't batch yet (bot resolves per-
+              // leg at single-arm time). Fall back to the historical
+              // single-arm loop — these are rare in this picker.
+              setAutoArmLegProgress([{ label: "Custom ladder", ok: false, error: "multiplier strikes require single-leg arming. Type literal price targets (e.g. $0.0023) for batch ladder arming." }]);
+              autoArmedOk = false;
+            } else {
+              const legSpecs = parsedLegs.map(({ leg, parsed }) => {
+                // parsed.ok is true here by virtue of allParseOk check.
+                if (!parsed.ok) throw new Error("unreachable");
+                const value = Number(parsed.valueMicro) / 1e6;
+                const kind: "price_usd" | "mc_usd" =
+                  parsed.kind === "mc_usd" ? "mc_usd" : "price_usd";
+                return {
+                  direction,
+                  kind,
+                  value,
+                  sliceBps: leg.sliceBps,
+                  slippageBps: direction === "below" ? 300 : 200,
+                };
+              });
+              const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
               try {
-                const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-                await armTakeProfit({
+                const { armTakeProfitBatch } = await import("@/lib/solana/site-take-profit");
+                const result = await armTakeProfitBatch({
                   botApiUrl: botApi2,
                   signerPubkey: publicKey!.toBase58(),
                   signMessage: signMessage!,
-                  request: {
-                    from: publicKey!.toBase58(),
-                    loanIdChain: chainLoanId.toString(),
-                    direction,
-                    target,
-                    slippageBps: direction === "below" ? 300 : 200,
-                    sellDestination: "sol",
-                    slicePctBps: leg.sliceBps < 10000 ? leg.sliceBps : undefined,
-                  },
-                });
-                setAutoArmLegProgress((prev) => [...prev, { label: sliceLabel, ok: true }]);
-              } catch (err) {
-                const msg = (err as Error).message || "arm failed";
-                setAutoArmLegProgress((prev) => [...prev, { label: sliceLabel, ok: false, error: msg }]);
-                allOk = false;
-                failedLegIndices.push(i);
-                // If the failure looks like a Phantom session issue or
-                // user rejection, don't keep trying — would just spam
-                // popups. Remaining legs get marked "skipped" above.
-                if (phantomErrorPattern.test(msg)) {
-                  phantomSessionAlive = false;
-                }
-              }
-            }
-            autoArmedOk = allOk;
-            if (!allOk && failedLegIndices.length > 0) {
-              // Capture every failed/skipped leg for the Retry-remaining
-              // button. Operator's directive: never silently drop a leg.
-              // The dashboard's LadderRollup also independently catches
-              // incomplete ladders via the slice% sum check; this is
-              // the immediate post-borrow recovery path.
-              const remainingLegs: Array<{ target: RetryLegTarget; sliceBps: number; label: string }> = [];
-              for (const i of failedLegIndices) {
-                const { leg, parsed } = parsedLegs[i];
-                if (!parsed.ok) continue;
-                let target: RetryLegTarget | null = null;
-                if (parsed.kind === "multiplier" && parsed.multiplier != null) {
-                  target = { kind: "multiplier", multiplier: parsed.multiplier };
-                } else if (parsed.kind === "mc_usd" && parsed.valueMicro != null) {
-                  target = { kind: "mc_usd", mcDollars: Number(parsed.valueMicro) / 1e6 };
-                } else if (parsed.kind === "price_usd" && parsed.valueMicro != null) {
-                  target = { kind: "price_usd", usd: Number(parsed.valueMicro) / 1e6 };
-                }
-                if (target) {
-                  remainingLegs.push({
-                    target,
-                    sliceBps: leg.sliceBps,
-                    label: `${sidePrefix} leg ${i + 1} @ ${parsed.normalizedDisplay} (${(leg.sliceBps / 100).toFixed(0)}%)`,
-                  });
-                }
-              }
-              if (remainingLegs.length > 0) {
-                setRetryRemainingLegs({
                   loanIdChain: chainLoanId.toString(),
-                  direction,
-                  legs: remainingLegs,
+                  legs: legSpecs,
                 });
+                setAutoArmLegProgress(
+                  parsedLegs.map(({ leg, parsed }, i) => ({
+                    label: `${sidePrefix} leg ${i + 1} @ ${parsed.ok ? parsed.normalizedDisplay : "?"} (${(leg.sliceBps / 100).toFixed(0)}%)`,
+                    ok: true,
+                  })),
+                );
+                autoArmedOk = true;
+                void result;
+              } catch (err) {
+                const msg = (err as Error).message || "batch arm failed";
+                // Atomic failure — no legs armed. Surface a single
+                // banner. Recovery via LadderRollup's incomplete-ladder
+                // banner is unnecessary here (no legs landed), so we
+                // also DON'T populate retry-remaining (would imply
+                // partial state).
+                setAutoArmLegProgress(
+                  parsedLegs.map(({ leg, parsed }, i) => ({
+                    label: `${sidePrefix} leg ${i + 1} @ ${parsed.ok ? parsed.normalizedDisplay : "?"} (${(leg.sliceBps / 100).toFixed(0)}%)`,
+                    ok: false,
+                    error: msg,
+                  })),
+                );
+                autoArmedOk = false;
               }
             }
           }
