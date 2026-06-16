@@ -944,13 +944,65 @@ function LimitSlot(props: SlotProps) {
           </div>
         );
       })()}
-      {error && (
-        <div className="text-[10px] mb-1.5 rounded px-1.5 py-1"
-          style={{ background: "rgba(220,38,38,0.08)", color: "var(--bad, #ef4444)" }}
-        >
-          {error}
-        </div>
-      )}
+      {error && (() => {
+        // Classify the arm error so we can show class-specific cleanup
+        // steps instead of a generic line. Operator-mandated 2026-06-15
+        // PM: arming errors must be unmissable and actionable, because
+        // a silent failure means a strike that should have sold doesn't.
+        const m = error.toLowerCase();
+        const cls =
+          /method.*not.*authorized|account.*not.*authorized|wallet.*session/i.test(m)
+            ? "phantom_session" as const
+            : /user rejected|rejected the request|user declined|cancel.*sign/i.test(m)
+              ? "user_rejected" as const
+              : /fetch failed|network|timeout|ECONNRESET|502|503|504/i.test(m)
+                ? "network" as const
+                : "other" as const;
+        const title =
+          cls === "phantom_session" ? "Phantom session needs a reset"
+          : cls === "user_rejected" ? "You rejected the Phantom popup"
+          : cls === "network" ? "Network blip"
+          : "Couldn't arm";
+        const action =
+          cls === "phantom_session"
+            ? "Open Phantom → Settings → Trusted Apps → find magpie.capital → Revoke, then reload this page and reconnect. Then click Arm again."
+            : cls === "user_rejected"
+              ? "Click Arm again — approve the Phantom signature this time."
+              : cls === "network"
+                ? "Click Arm again — already-saved fields are kept."
+                : "Try again; if it keeps failing, message support with this error.";
+        return (
+          <div
+            role="alert"
+            className="mt-2 mb-2 rounded-lg border-2 p-2.5 flex items-start gap-2"
+            style={{
+              background: "rgba(220,38,38,0.10)",
+              borderColor: "rgba(220,38,38,0.55)",
+              color: "var(--d-ink)",
+            }}
+          >
+            <svg
+              width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="rgb(220,38,38)" strokeWidth="2.25" strokeLinecap="round"
+              strokeLinejoin="round" className="shrink-0 mt-0.5"
+              aria-hidden="true"
+            >
+              <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+              <line x1="12" y1="9" x2="12" y2="13" />
+              <line x1="12" y1="17" x2="12.01" y2="17" />
+            </svg>
+            <div className="flex-1 min-w-0 text-[11px] leading-snug">
+              <div className="font-semibold mb-0.5" style={{ color: "rgb(220,38,38)" }}>
+                {title}
+              </div>
+              <div className="opacity-90">{action}</div>
+              <div className="mt-1 text-[10px] opacity-60 truncate">
+                Details: {error.slice(0, 120)}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       <button
         onClick={arm}
         disabled={busy}

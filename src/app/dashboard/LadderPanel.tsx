@@ -131,20 +131,60 @@ export function LadderPanel(props: Props) {
     })));
   }, []);
 
-  const armAll = useCallback(async () => {
+  // Resume state — when a leg fails, we remember the index so a "Retry
+  // from leg N" button can pick up without re-signing already-armed legs.
+  const [failedAtIndex, setFailedAtIndex] = useState<number | null>(null);
+
+  // Classify an error so the UI can show the right cleanup steps.
+  // Operator-mandated 2026-06-15: arm errors must be unmissable and
+  // actionable. Phantom session errors get explicit revoke instructions.
+  const classifyArmError = (msg: string): "phantom_session" | "user_rejected" | "network" | "other" => {
+    const m = msg.toLowerCase();
+    if (/method.*not.*authorized|account.*not.*authorized|wallet.*session/i.test(m)) {
+      return "phantom_session";
+    }
+    if (/user rejected|rejected the request|user declined|cancel.*sign/i.test(m)) {
+      return "user_rejected";
+    }
+    if (/fetch failed|network|timeout|ECONNRESET|502|503|504/i.test(m)) {
+      return "network";
+    }
+    return "other";
+  };
+
+  const armAll = useCallback(async (startIndex: number = 0) => {
     if (!publicKey || !signMessage) return;
     setBusy(true);
     setTopError(null);
-    setErrors({});
-    setStatuses(Object.fromEntries(legs.map((l) => [l.id, "queued"])));
+    setFailedAtIndex(null);
+    // On a fresh run (startIndex=0), reset all per-leg state. On a resume
+    // (startIndex>0), keep existing armed/failed badges intact and only
+    // clear the queued ones for the legs we're about to attempt.
+    if (startIndex === 0) {
+      setErrors({});
+      setStatuses(Object.fromEntries(legs.map((l) => [l.id, "queued"])));
+    } else {
+      setStatuses((prev) => {
+        const next = { ...prev };
+        for (let i = startIndex; i < legs.length; i++) next[legs[i].id] = "queued";
+        return next;
+      });
+      // Clear stale error rows for the legs we're retrying.
+      setErrors((prev) => {
+        const next = { ...prev };
+        for (let i = startIndex; i < legs.length; i++) delete next[legs[i].id];
+        return next;
+      });
+    }
 
-    for (let i = 0; i < legs.length; i++) {
+    for (let i = startIndex; i < legs.length; i++) {
       const leg = legs[i];
       const parsed = parsedPerLeg[i];
       if (!parsed.ok) {
         setErrors((e) => ({ ...e, [leg.id]: parsed.error }));
         setStatuses((s) => ({ ...s, [leg.id]: "failed" }));
         setTopError(`Leg ${i + 1}: ${parsed.error}. Stopped before signing.`);
+        setFailedAtIndex(i);
         setBusy(false);
         return;
       }
@@ -178,15 +218,43 @@ export function LadderPanel(props: Props) {
           },
         });
         setStatuses((s) => ({ ...s, [leg.id]: "armed" }));
-        // Tag the order ID into state so the user sees a tiny confirmation
-        // (already implicitly via "armed" state — the parent will refresh
-        // and show the actual row).
         void armed;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
+        const cls = classifyArmError(msg);
         setErrors((e) => ({ ...e, [leg.id]: msg }));
         setStatuses((s) => ({ ...s, [leg.id]: "failed" }));
-        setTopError(`Leg ${i + 1} failed: ${msg}. Remaining legs cancelled.`);
+        setFailedAtIndex(i);
+        // Human-readable top banner — class-specific so the user knows
+        // what to actually do, not just "it failed."
+        const armedSoFar = i - startIndex;
+        const armedPrefix = startIndex > 0
+          ? `Resumed; armed ${armedSoFar} more before failure. `
+          : armedSoFar > 0
+            ? `Armed legs 1–${i} before failure. `
+            : "";
+        if (cls === "phantom_session") {
+          setTopError(
+            `${armedPrefix}Leg ${i + 1} failed: Phantom session is stale. ` +
+            `Open Phantom → Settings → Trusted Apps → find magpie.capital → Revoke, ` +
+            `then reload this page and reconnect. After that, click "Retry from leg ${i + 1}" below.`,
+          );
+        } else if (cls === "user_rejected") {
+          setTopError(
+            `${armedPrefix}Leg ${i + 1} failed: you rejected the Phantom popup. ` +
+            `Click "Retry from leg ${i + 1}" to try again — approve the signature in Phantom this time.`,
+          );
+        } else if (cls === "network") {
+          setTopError(
+            `${armedPrefix}Leg ${i + 1} failed: network blip (${msg.slice(0, 60)}). ` +
+            `Click "Retry from leg ${i + 1}" — already-armed legs are kept.`,
+          );
+        } else {
+          setTopError(
+            `${armedPrefix}Leg ${i + 1} failed: ${msg.slice(0, 140)}. ` +
+            `Click "Retry from leg ${i + 1}" once you've addressed the cause.`,
+          );
+        }
         setBusy(false);
         return;
       }
@@ -322,14 +390,59 @@ export function LadderPanel(props: Props) {
       </div>
 
       {topError && (
-        <div className="mt-2 p-1.5 rounded text-[10px]" style={{ background: "rgba(220,38,38,0.08)", color: "var(--d-bad)" }}>
-          {topError}
+        <div
+          role="alert"
+          className="mt-3 rounded-lg border-2 p-3 flex items-start gap-2.5"
+          style={{
+            background: "rgba(220,38,38,0.10)",
+            borderColor: "rgba(220,38,38,0.55)",
+            color: "var(--d-ink)",
+          }}
+        >
+          {/* Warning icon — keeps the message unmissable even when the
+              card is partially off-screen. */}
+          <svg
+            width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="rgb(220,38,38)" strokeWidth="2.25" strokeLinecap="round"
+            strokeLinejoin="round" className="shrink-0 mt-0.5"
+            aria-hidden="true"
+          >
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          <div className="flex-1 min-w-0 text-[12px] leading-snug">
+            <div className="font-semibold mb-1" style={{ color: "rgb(220,38,38)" }}>
+              Arming stopped
+            </div>
+            <div className="text-[11.5px]" style={{ color: "var(--d-ink)" }}>
+              {topError}
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Retry-from-failed-leg CTA — keeps already-armed legs intact and
+          resumes from the failed index. Critical UX so a partial ladder
+          arm isn't a dead-end. Operator-mandated 2026-06-15. */}
+      {failedAtIndex !== null && !busy && (
+        <button
+          type="button"
+          onClick={() => armAll(failedAtIndex)}
+          disabled={!publicKey || !signMessage}
+          className="mt-2 w-full text-[12px] font-semibold py-2 rounded transition disabled:opacity-50"
+          style={{
+            background: "rgb(220,38,38)",
+            color: "white",
+          }}
+        >
+          Retry from leg {failedAtIndex + 1} ({legs.length - failedAtIndex} {legs.length - failedAtIndex === 1 ? "leg" : "legs"} remaining)
+        </button>
       )}
 
       <button
         type="button"
-        onClick={armAll}
+        onClick={() => armAll(0)}
         disabled={!canArm}
         className="mt-2 w-full text-[12px] font-semibold py-1.5 rounded transition disabled:opacity-50"
         style={{
