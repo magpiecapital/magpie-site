@@ -352,6 +352,15 @@ function LadderLeg({
         >
           {visual.label}
         </span>
+        {leg.status === "fired" && leg.proceeds_lamports && (
+          <span
+            className="text-[10px] tabular-nums font-medium"
+            style={{ color: "rgb(22, 163, 74)" }}
+            title="SOL accumulated into the per-loan sol_proceeds_vault from this leg"
+          >
+            +{(Number(leg.proceeds_lamports) / 1e9).toFixed(4)} SOL
+          </span>
+        )}
         {leg.status === "fired" && leg.tx_signature_swap && (
           <a
             href={`https://solscan.io/tx/${leg.tx_signature_swap}`}
@@ -362,6 +371,15 @@ function LadderLeg({
           >
             tx
           </a>
+        )}
+        {(leg.status === "failed" || leg.status === "max_retries_exceeded") && (
+          <span
+            className="text-[9px] font-medium uppercase tracking-[0.04em]"
+            style={{ color: "rgb(185, 28, 28)" }}
+            title={leg.failure_reason ?? "engine fire failed"}
+          >
+            · {failureReasonLabel(leg.failure_reason)}
+          </span>
         )}
       </div>
     </div>
@@ -423,6 +441,14 @@ function visualForStatus(status: TakeProfitOrder["status"]): {
         text: "var(--d-ink-faint)",
         pulse: false,
       };
+    case "failed":
+    case "max_retries_exceeded":
+      return {
+        label: status === "max_retries_exceeded" ? "Failed (retries)" : "Failed",
+        dot: "rgb(220, 38, 38)", // red-600
+        text: "rgb(185, 28, 28)", // red-700
+        pulse: false,
+      };
     case "armed":
     default:
       return {
@@ -432,6 +458,21 @@ function visualForStatus(status: TakeProfitOrder["status"]): {
         pulse: false,
       };
   }
+}
+
+/* Translate engine-side failure_reason codes into a short user-friendly
+ * label rendered next to the red status pill. Keep these tight — the
+ * full reason is in the tooltip. */
+export function failureReasonLabel(reason: string | null | undefined): string {
+  if (!reason) return "engine couldn't route";
+  const r = reason.toLowerCase();
+  if (r.includes("route") || r.includes("no_route") || r.includes("invalidtokenaccount")) return "no Jupiter route";
+  if (r.includes("slippage") || r.includes("cap_exceeded")) return "slippage cap exceeded";
+  if (r.includes("max_retries") || r.includes("exhausted")) return "retries exhausted";
+  if (r.includes("simulate") || r.includes("sim_fail")) return "sim failed";
+  if (r.includes("twap") || r.includes("stale")) return "price-feed gap";
+  if (r.includes("vault") || r.includes("ata")) return "vault setup issue";
+  return reason.slice(0, 40);
 }
 
 function sliceToPct(sliceBps?: number): number {

@@ -72,8 +72,21 @@ export interface TakeProfitOrder {
   trigger_direction?: "above" | "below";
   slippage_bps: number;
   sell_destination: "sol" | "usdc";
-  status: "armed" | "firing" | "twap_in_progress" | "awaiting_user" | "fired" | "cancelled";
+  status:
+    | "armed"
+    | "firing"
+    | "twap_in_progress"
+    | "awaiting_user"
+    | "fired"
+    | "cancelled"
+    | "failed"
+    | "max_retries_exceeded";
   armed_at: string;
+  /** When status = 'failed' or 'max_retries_exceeded', the engine's
+   *  classified reason (e.g. "route_failure", "slippage_exceeded"). */
+  failure_reason?: string | null;
+  failure_count?: number | null;
+  cancellation_reason?: string | null;
   /** Slice in basis points (10000 = 100% sell). Defaults to 10000 when
    *  the order isn't part of a ladder. */
   slice_pct?: number;
