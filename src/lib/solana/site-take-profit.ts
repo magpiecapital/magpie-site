@@ -230,6 +230,97 @@ function buildArmMessage(args: {
   return lines.join("\n");
 }
 
+/* ────────────────────────────────────────────────────────────────
+ * Arm preflight — dry-run validator
+ * ──────────────────────────────────────────────────────────────── */
+
+export interface ArmPreflightResult {
+  ok: boolean;
+  /** Populated when ok:true — the resolved trigger + distance preview. */
+  would_arm?: {
+    loan_db_id: number;
+    loan_id_chain: string;
+    program_id: string | null;
+    is_v4_loan: boolean;
+    collateral_mint: string;
+    collateral_symbol: string | null;
+    trigger_kind: "price_usd" | "mc_usd" | "price_sol";
+    trigger_value_micro: string;
+    trigger_direction: "above" | "below";
+    slippage_bps: number;
+    slice_pct_bps: number;
+    trailing_distance_bps: number | null;
+    target_usd: number | null;
+    current_usd: number | null;
+    distance_pct: number | null;
+  };
+  /** Populated when ok:false — same shape the real arm would return. */
+  error?: string;
+  detail?: string;
+}
+
+/**
+ * Dry-run check that the planned arm WOULD succeed. Calls the bot's
+ * /api/v1/site/limit-close/arm-preflight endpoint which mirrors armOrder's
+ * eligibility gates without requiring a signMessage envelope.
+ *
+ * Use this BEFORE armTakeProfit so the dashboard can surface failures
+ * (loan_not_found_for_signer, exits_require_v4_loan, slice_overflow,
+ * take_profit_already_armed, etc.) inline instead of asking Phantom to
+ * sign a doomed envelope.
+ *
+ * V4 Hardening T3 (operator-mandated 2026-06-15 PM): no silent arm
+ * failures, ever. Preflight is the first gate.
+ */
+export async function preflightArmTakeProfit(args: {
+  botApiUrl: string;
+  wallet: string;
+  request: ArmTakeProfitRequest;
+}): Promise<ArmPreflightResult> {
+  if (!args.botApiUrl) throw new Error("Bot API URL not configured");
+
+  // Translate the typed ArmTakeProfitRequest to the preflight wire shape.
+  // Same fields the real arm endpoint parses; preflight is symmetric.
+  const target = args.request.target;
+  const wireBody: Record<string, unknown> = {
+    wallet: args.wallet,
+    loan_id_chain: args.request.loanIdChain,
+    direction: args.request.direction ?? "above",
+    slippage_bps: args.request.slippageBps ?? 200,
+    slice_pct_bps: args.request.slicePctBps,
+    trailing_distance_bps: args.request.trailingDistanceBps,
+  };
+  if (target?.kind === "multiplier") {
+    wireBody.target = `${target.multiplier}x`;
+  } else if (target?.kind === "price_usd") {
+    wireBody.price = target.usd;
+  } else if (target?.kind === "mc_usd") {
+    wireBody.mc = target.mcDollars;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${args.botApiUrl.replace(/\/$/, "")}/api/v1/site/limit-close/arm-preflight`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(wireBody),
+    });
+  } catch (err) {
+    // Network-level failure — return a non-ok result so the caller knows
+    // to surface a network error rather than proceed to signMessage.
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: "preflight_network_error", detail: msg.slice(0, 120) };
+  }
+
+  let body: ArmPreflightResult;
+  try {
+    body = (await res.json()) as ArmPreflightResult;
+  } catch {
+    return { ok: false, error: "preflight_invalid_response", detail: `HTTP ${res.status}` };
+  }
+  return body;
+}
+
 export async function armTakeProfit(args: {
   botApiUrl: string;
   signerPubkey: string;

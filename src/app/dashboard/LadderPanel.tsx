@@ -24,7 +24,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { armTakeProfit } from "@/lib/solana/site-take-profit";
+import { armTakeProfit, preflightArmTakeProfit } from "@/lib/solana/site-take-profit";
 import { parseStrike } from "@/lib/strike-price-parser";
 
 interface LegDraft {
@@ -202,20 +202,52 @@ export function LadderPanel(props: Props) {
                 : null;
         if (!target) throw new Error("Unsupported strike kind");
 
+        // ── Preflight first — V4 Hardening T3 (operator-mandated
+        // 2026-06-15): surface server-side rejections (V4-eligibility,
+        // slice overflow, already armed) BEFORE asking Phantom to sign.
+        // The status badge briefly shows "checking…" so the user knows
+        // we're talking to the bot, then either advances to signing
+        // or surfaces the failure without a wasted popup.
+        const request = {
+          from: publicKey.toBase58(),
+          loanIdChain: props.loanIdChain,
+          direction: (props.isSl ? "below" : "above") as "above" | "below",
+          target,
+          slippageBps: Math.round(props.slippagePct * 100),
+          sellDestination: "sol" as const,
+          slicePctBps: Math.round(leg.slicePct * 100),
+        };
         setStatuses((s) => ({ ...s, [leg.id]: "submitting" }));
+        const pre = await preflightArmTakeProfit({
+          botApiUrl: props.botApiUrl,
+          wallet: publicKey.toBase58(),
+          request,
+        });
+        if (!pre.ok) {
+          const r = pre.error || "preflight_failed";
+          const d = pre.detail || "";
+          let userMsg: string;
+          if (r === "exits_require_v4_loan") {
+            userMsg = "This loan is on a legacy pool — exits require V4.";
+          } else if (r === "slice_overflow") {
+            userMsg = d || "Ladder slice would exceed 100% for this direction.";
+          } else if (r === "take_profit_already_armed" || r === "stop_loss_already_armed") {
+            userMsg = "A non-ladder arm already exists on this direction.";
+          } else if (r === "loan_not_found_for_signer") {
+            userMsg = "Loan not found for this wallet.";
+          } else if (r === "wallet_not_linked") {
+            userMsg = "Wallet not linked to a Magpie account.";
+          } else {
+            userMsg = `${r}${d ? ": " + d : ""}`;
+          }
+          throw new Error(userMsg);
+        }
+        // Preflight green — sign + submit the real arm.
         const armed = await armTakeProfit({
           botApiUrl: props.botApiUrl,
           signerPubkey: publicKey.toBase58(),
           signMessage,
-          request: {
-            from: publicKey.toBase58(),
-            loanIdChain: props.loanIdChain,
-            direction: props.isSl ? "below" : "above",
-            target,
-            slippageBps: Math.round(props.slippagePct * 100),
-            sellDestination: "sol",
-            slicePctBps: Math.round(leg.slicePct * 100),
-          },
+          request,
         });
         setStatuses((s) => ({ ...s, [leg.id]: "armed" }));
         void armed;
