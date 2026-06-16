@@ -24,21 +24,28 @@
 import { useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
+  armTakeProfit,
   cancelTakeProfit,
   type TakeProfitOrder,
+  type TakeProfitPendingIntent,
 } from "@/lib/solana/site-take-profit";
 
 interface Props {
   orders: TakeProfitOrder[];
   loanDbId: number;
+  loanIdChain?: string;
   collateralSymbol: string | null;
   /** Current USD price of the collateral — used for distance-to-fire
    *  pills. Optional; the pill simply hides if absent. */
   currentPriceUsd?: number | null;
-  /** Bot API URL — needed for cancel-all. Optional so the rollup can
-   *  render in read-only contexts (legacy callers). */
+  /** Bot API URL — needed for cancel-all + intent retry. */
   botApiUrl?: string;
-  /** Refresh callback invoked after a cancel-all completes. */
+  /** Pending intents for this wallet — drives intent-aware recovery
+   *  banner (operator-mandated, feedback_every_arm_envelope_must_
+   *  reach_server.md). Filter to this loan's chain id inside the
+   *  component. */
+  pendingIntents?: TakeProfitPendingIntent[];
+  /** Refresh callback invoked after a cancel-all or intent retry. */
   onMutated?: () => void;
 }
 
@@ -51,9 +58,11 @@ interface LegGroup {
 export function LadderRollup({
   orders,
   loanDbId,
+  loanIdChain,
   collateralSymbol,
   currentPriceUsd = null,
   botApiUrl,
+  pendingIntents,
   onMutated,
 }: Props) {
   // Find ladder orders for this loan, group by ladder_group_id +
@@ -61,6 +70,15 @@ export function LadderRollup({
   // SL ladder; render each separately).
   const groups = groupLadders(orders, loanDbId);
   if (groups.length === 0) return null;
+
+  // Intent-aware recovery (operator-mandated 2026-06-16 PM,
+  // feedback_every_arm_envelope_must_reach_server.md). For each ladder
+  // group, find pending intents on the same direction whose strike
+  // doesn't match an active order — those are silent-drop victims.
+  // Filter by this loan's chain id when available.
+  const intentsForLoan = (pendingIntents || []).filter(
+    (i) => !loanIdChain || i.loan_id_chain === loanIdChain,
+  );
 
   return (
     <div className="mt-2 flex flex-col gap-2">
@@ -71,6 +89,8 @@ export function LadderRollup({
           collateralSymbol={collateralSymbol}
           currentPriceUsd={currentPriceUsd}
           botApiUrl={botApiUrl}
+          loanIdChain={loanIdChain}
+          missingIntents={intentsForLoan.filter((i) => i.direction === g.direction)}
           onMutated={onMutated}
         />
       ))}
@@ -116,17 +136,36 @@ function LadderCard({
   collateralSymbol,
   currentPriceUsd,
   botApiUrl,
+  loanIdChain,
+  missingIntents,
   onMutated,
 }: {
   group: LegGroup;
   collateralSymbol: string | null;
   currentPriceUsd: number | null;
   botApiUrl?: string;
+  loanIdChain?: string;
+  missingIntents?: TakeProfitPendingIntent[];
   onMutated?: () => void;
 }) {
   const { publicKey, signMessage } = useWallet();
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState<string | null>(null);
+  const [retryingIntentId, setRetryingIntentId] = useState<number | null>(null);
+  const [retryError, setRetryError] = useState<string | null>(null);
+
+  // Filter pending intents to ones whose strike + slice are NOT
+  // already represented by an armed leg in this group. These are the
+  // confirmed silent-drop victims — the user wanted them but they
+  // never reached the arm endpoint.
+  const unfulfilledIntents = (missingIntents || []).filter((intent) => {
+    const intentTv = BigInt(intent.target_value_micro || "0");
+    return !group.legs.some(
+      (leg) =>
+        leg.status === "armed" &&
+        BigInt(leg.trigger_value_micro || "0") === intentTv,
+    );
+  });
 
   const isSl = group.direction === "below";
   const accentColor = isSl
@@ -254,13 +293,120 @@ function LadderCard({
         ))}
       </div>
 
+      {/* Intent-aware recovery banner. Operator-mandated 2026-06-16 PM
+       *  (feedback_every_arm_envelope_must_reach_server.md). If the
+       *  user submitted N legs but only some reached the arm endpoint,
+       *  the arm_intents ledger has the missing strikes. We render an
+       *  EXACT-RETRY button per intent: "Retry $230 at 50%" — one tap
+       *  POSTs armTakeProfit with the precise spec the user submitted.
+       *  This is strictly better than the generic "Add remaining N%"
+       *  banner below which only fires when slice sum is incomplete
+       *  but doesn't know what the user wanted. */}
+      {publicKey && botApiUrl && loanIdChain && unfulfilledIntents.length > 0 && (
+        <div
+          className="mt-2 rounded-md border-2 px-3 py-2.5"
+          style={{
+            borderColor: "rgba(245, 158, 11, 0.55)",
+            background: "rgba(245, 158, 11, 0.10)",
+            color: "var(--d-ink)",
+          }}
+          role="alert"
+        >
+          <div className="text-[11px] font-semibold mb-1">
+            {unfulfilledIntents.length === 1
+              ? "1 leg you requested didn't finish arming"
+              : `${unfulfilledIntents.length} legs you requested didn't finish arming`}
+          </div>
+          <div className="text-[10px] opacity-75 mb-2">
+            Your intent reached our servers; the Phantom signature didn't.
+            Tap to retry — one signature per button.
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {unfulfilledIntents.map((intent) => {
+              const targetUsd = Number(intent.target_value_micro) / 1e6;
+              const sliceBps = intent.slice_pct_bps ?? 10000;
+              const slicePct = sliceBps / 100;
+              const targetLabel =
+                intent.target_kind === "price_usd"
+                  ? targetUsd >= 1
+                    ? `$${targetUsd.toFixed(2)}`
+                    : targetUsd >= 0.01
+                      ? `$${targetUsd.toFixed(4)}`
+                      : `$${targetUsd.toFixed(8)}`
+                  : intent.target_kind === "mc_usd"
+                    ? targetUsd >= 1e9
+                      ? `$${(targetUsd / 1e9).toFixed(2)}B mc`
+                      : `$${(targetUsd / 1e6).toFixed(2)}M mc`
+                    : `${targetUsd}x`;
+              const isRetrying = retryingIntentId === intent.id;
+              return (
+                <button
+                  key={intent.id}
+                  type="button"
+                  disabled={isRetrying || retryingIntentId != null}
+                  onClick={async () => {
+                    if (!signMessage || !publicKey) return;
+                    setRetryingIntentId(intent.id);
+                    setRetryError(null);
+                    try {
+                      const target =
+                        intent.target_kind === "price_usd"
+                          ? { kind: "price_usd" as const, usd: targetUsd }
+                          : intent.target_kind === "mc_usd"
+                            ? { kind: "mc_usd" as const, mcDollars: targetUsd }
+                            : { kind: "multiplier" as const, multiplier: targetUsd };
+                      await armTakeProfit({
+                        botApiUrl,
+                        signerPubkey: publicKey.toBase58(),
+                        signMessage,
+                        request: {
+                          from: publicKey.toBase58(),
+                          loanIdChain,
+                          direction: intent.direction,
+                          target,
+                          slippageBps: intent.direction === "below" ? 300 : 200,
+                          sellDestination: "sol",
+                          slicePctBps: sliceBps < 10000 ? sliceBps : undefined,
+                        },
+                      });
+                      onMutated?.();
+                    } catch (e) {
+                      setRetryError(e instanceof Error ? e.message : String(e));
+                    } finally {
+                      setRetryingIntentId(null);
+                    }
+                  }}
+                  className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
+                  style={{
+                    background: "rgba(245, 158, 11, 0.20)",
+                    borderColor: "rgba(245, 158, 11, 0.55)",
+                    color: "var(--d-ink)",
+                  }}
+                >
+                  {isRetrying ? "Signing…" : `Retry ${targetLabel} (${slicePct.toFixed(0)}%)`}
+                </button>
+              );
+            })}
+          </div>
+          {retryError && (
+            <div className="text-[10px] mt-1.5 rounded px-1.5 py-1"
+              style={{ background: "rgba(220,38,38,0.10)", color: "rgb(185, 28, 28)" }}
+            >
+              {retryError}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Incomplete-ladder banner. Loud yellow surface when the ladder's
        *  combined active slice% is below 100%. Operator-mandated 2026-
        *  06-16 PM (feedback_ladder_must_fully_arm_or_loudly_recover.md)
        *  after the SPCX loan 798 dropped a leg silently mid-ladder.
        *  Renders a one-tap "Add remaining %" CTA that scrolls + signals
-       *  the LimitSlot below (which already exposes the LadderPanel). */}
-      {isIncomplete && (
+       *  the LimitSlot below (which already exposes the LadderPanel).
+       *  Hides when the intent-aware banner above already covers the
+       *  gap (avoids double-CTA confusion). */}
+      {isIncomplete && unfulfilledIntents.length === 0 && (
         <div
           className="mt-2 rounded-md border-2 px-3 py-2 text-[11px] flex items-center justify-between gap-3"
           style={{

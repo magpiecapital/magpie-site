@@ -171,148 +171,121 @@ export function LadderPanel(props: Props) {
     return "other";
   };
 
-  const armAll = useCallback(async (startIndex: number = 0) => {
+  const armAll = useCallback(async (_startIndex: number = 0) => {
+    // Operator-mandated 2026-06-16 PM (feedback_one_signature_for_n_
+    // legs_always.md): ALL N legs arm via a SINGLE batch envelope and
+    // ONE Phantom signature. No more sequential signMessage loop —
+    // that was the root cause of every silent-leg-drop UX disaster.
+    // _startIndex preserved for caller compat but ignored: batches
+    // are atomic, so "resume from leg N" doesn't make sense anymore.
     if (!publicKey || !signMessage) return;
     setBusy(true);
     setTopError(null);
     setFailedAtIndex(null);
-    // On a fresh run (startIndex=0), reset all per-leg state. On a resume
-    // (startIndex>0), keep existing armed/failed badges intact and only
-    // clear the queued ones for the legs we're about to attempt.
-    if (startIndex === 0) {
-      setErrors({});
-      setStatuses(Object.fromEntries(legs.map((l) => [l.id, "queued"])));
-    } else {
-      setStatuses((prev) => {
-        const next = { ...prev };
-        for (let i = startIndex; i < legs.length; i++) next[legs[i].id] = "queued";
-        return next;
-      });
-      // Clear stale error rows for the legs we're retrying.
-      setErrors((prev) => {
-        const next = { ...prev };
-        for (let i = startIndex; i < legs.length; i++) delete next[legs[i].id];
-        return next;
-      });
-    }
+    setErrors({});
+    setStatuses(Object.fromEntries(legs.map((l) => [l.id, "queued"])));
 
-    for (let i = startIndex; i < legs.length; i++) {
+    // Pre-validate all legs locally before asking Phantom for anything.
+    // Any parse failure halts the batch — no point signing if a leg's
+    // strike is unparseable.
+    const legSpecs: import("@/lib/solana/site-take-profit").ArmBatchLegSpec[] = [];
+    for (let i = 0; i < legs.length; i++) {
       const leg = legs[i];
       const parsed = parsedPerLeg[i];
       if (!parsed.ok) {
         setErrors((e) => ({ ...e, [leg.id]: parsed.error }));
         setStatuses((s) => ({ ...s, [leg.id]: "failed" }));
-        setTopError(`Leg ${i + 1}: ${parsed.error}. Stopped before signing.`);
+        setTopError(`Leg ${i + 1}: ${parsed.error}. Fix the strike and try again.`);
         setFailedAtIndex(i);
         setBusy(false);
         return;
       }
-
-      setStatuses((s) => ({ ...s, [leg.id]: "signing" }));
-      try {
-        // Build the target shape matching ArmTakeProfitRequest.
-        const target =
-          parsed.kind === "multiplier" && parsed.multiplier != null
-            ? { kind: "multiplier" as const, multiplier: parsed.multiplier }
-            : parsed.kind === "mc_usd" && parsed.usd != null
-              ? { kind: "mc_usd" as const, mcDollars: parsed.usd }
-              : parsed.kind === "price_usd" && parsed.usd != null
-                ? { kind: "price_usd" as const, usd: parsed.usd }
-                : null;
-        if (!target) throw new Error("Unsupported strike kind");
-
-        // ── Preflight first — V4 Hardening T3 (operator-mandated
-        // 2026-06-15): surface server-side rejections (V4-eligibility,
-        // slice overflow, already armed) BEFORE asking Phantom to sign.
-        // The status badge briefly shows "checking…" so the user knows
-        // we're talking to the bot, then either advances to signing
-        // or surfaces the failure without a wasted popup.
-        const request = {
-          from: publicKey.toBase58(),
-          loanIdChain: props.loanIdChain,
-          direction: (props.isSl ? "below" : "above") as "above" | "below",
-          target,
-          slippageBps: Math.round(props.slippagePct * 100),
-          sellDestination: "sol" as const,
-          slicePctBps: Math.round(leg.slicePct * 100),
-        };
-        setStatuses((s) => ({ ...s, [leg.id]: "submitting" }));
-        const pre = await preflightArmTakeProfit({
-          botApiUrl: props.botApiUrl,
-          wallet: publicKey.toBase58(),
-          request,
-        });
-        if (!pre.ok) {
-          const r = pre.error || "preflight_failed";
-          const d = pre.detail || "";
-          let userMsg: string;
-          if (r === "exits_require_v4_loan") {
-            userMsg = "This loan is on a legacy pool — exits require V4.";
-          } else if (r === "slice_overflow") {
-            userMsg = d || "Ladder slice would exceed 100% for this direction.";
-          } else if (r === "take_profit_already_armed" || r === "stop_loss_already_armed") {
-            userMsg = "A non-ladder arm already exists on this direction.";
-          } else if (r === "loan_not_found_for_signer") {
-            userMsg = "Loan not found for this wallet.";
-          } else if (r === "wallet_not_linked") {
-            userMsg = "Wallet not linked to a Magpie account.";
-          } else {
-            userMsg = `${r}${d ? ": " + d : ""}`;
-          }
-          throw new Error(userMsg);
-        }
-        // Preflight green — sign + submit the real arm.
-        const armed = await armTakeProfit({
-          botApiUrl: props.botApiUrl,
-          signerPubkey: publicKey.toBase58(),
-          signMessage,
-          request,
-        });
-        setStatuses((s) => ({ ...s, [leg.id]: "armed" }));
-        void armed;
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        const cls = classifyArmError(msg);
-        setErrors((e) => ({ ...e, [leg.id]: msg }));
+      let kind: "price_usd" | "mc_usd" | "price_sol";
+      let value: number;
+      if (parsed.kind === "multiplier" && parsed.multiplier != null) {
+        // The bot's arm-core handles multiplier→price resolution per
+        // leg server-side. For batch wire format we send it as
+        // price_usd because the bot resolves multipliers at single-
+        // arm time only. For now, refuse multiplier inputs in the
+        // batch path — they're rare in this UI which uses literal
+        // strikes. Falls back to single-arm if/when a future picker
+        // routes multipliers here.
+        setErrors((e) => ({ ...e, [leg.id]: "multiplier strikes not supported in batch UI yet" }));
+        setStatuses((s) => ({ ...s, [leg.id]: "failed" }));
+        setTopError(`Leg ${i + 1}: multiplier strikes require single-leg arm. Use price_usd or mc_usd in the strike field.`);
+        setFailedAtIndex(i);
+        setBusy(false);
+        return;
+      } else if (parsed.kind === "mc_usd" && parsed.usd != null) {
+        kind = "mc_usd";
+        value = parsed.usd;
+      } else if (parsed.kind === "price_usd" && parsed.usd != null) {
+        kind = "price_usd";
+        value = parsed.usd;
+      } else {
+        setErrors((e) => ({ ...e, [leg.id]: "unsupported strike kind" }));
         setStatuses((s) => ({ ...s, [leg.id]: "failed" }));
         setFailedAtIndex(i);
-        // Human-readable top banner — class-specific so the user knows
-        // what to actually do, not just "it failed."
-        const armedSoFar = i - startIndex;
-        const armedPrefix = startIndex > 0
-          ? `Resumed; armed ${armedSoFar} more before failure. `
-          : armedSoFar > 0
-            ? `Armed legs 1–${i} before failure. `
-            : "";
-        if (cls === "phantom_session") {
-          setTopError(
-            `${armedPrefix}Leg ${i + 1} failed: Phantom session is stale. ` +
-            `Open Phantom → Settings → Trusted Apps → find magpie.capital → Revoke, ` +
-            `then reload this page and reconnect. After that, click "Retry from leg ${i + 1}" below.`,
-          );
-        } else if (cls === "user_rejected") {
-          setTopError(
-            `${armedPrefix}Leg ${i + 1} failed: you rejected the Phantom popup. ` +
-            `Click "Retry from leg ${i + 1}" to try again — approve the signature in Phantom this time.`,
-          );
-        } else if (cls === "network") {
-          setTopError(
-            `${armedPrefix}Leg ${i + 1} failed: network blip (${msg.slice(0, 60)}). ` +
-            `Click "Retry from leg ${i + 1}" — already-armed legs are kept.`,
-          );
-        } else {
-          setTopError(
-            `${armedPrefix}Leg ${i + 1} failed: ${msg.slice(0, 140)}. ` +
-            `Click "Retry from leg ${i + 1}" once you've addressed the cause.`,
-          );
-        }
         setBusy(false);
         return;
       }
+      legSpecs.push({
+        direction: (props.isSl ? "below" : "above") as "above" | "below",
+        kind,
+        value,
+        sliceBps: Math.round(leg.slicePct * 100),
+        slippageBps: Math.round(props.slippagePct * 100),
+      });
     }
 
-    setBusy(false);
-    props.onArmed();
+    // All legs valid — flip every status to signing (single Phantom
+    // popup is about to open for all of them at once).
+    setStatuses(Object.fromEntries(legs.map((l) => [l.id, "signing"])));
+    try {
+      const { armTakeProfitBatch } = await import("@/lib/solana/site-take-profit");
+      const result = await armTakeProfitBatch({
+        botApiUrl: props.botApiUrl,
+        signerPubkey: publicKey.toBase58(),
+        signMessage,
+        loanIdChain: props.loanIdChain,
+        legs: legSpecs,
+      });
+      // Atomic success — every leg gets an order id.
+      const next: Record<string, LegStatus["state"]> = {};
+      for (let i = 0; i < legs.length; i++) {
+        next[legs[i].id] = "armed";
+      }
+      setStatuses(next);
+      setBusy(false);
+      void result;
+      props.onArmed();
+    } catch (err) {
+      // Atomic failure — NO orders were inserted.
+      const msg = err instanceof Error ? err.message : String(err);
+      const cls = classifyArmError(msg);
+      const next: Record<string, LegStatus["state"]> = {};
+      for (const leg of legs) next[leg.id] = "failed";
+      setStatuses(next);
+      // Surface a SINGLE top banner explaining what to do — class-
+      // aware so the user knows whether it's their Phantom session,
+      // their rejection, or a server-side issue.
+      if (cls === "phantom_session") {
+        setTopError(
+          "Phantom session is stale. Open Phantom → Settings → Trusted Apps → find magpie.capital → Revoke, " +
+          "then reload this page and reconnect. Re-click \"Arm N legs\" after that.",
+        );
+      } else if (cls === "user_rejected") {
+        setTopError(
+          "You rejected the Phantom popup. Click \"Arm N legs\" again — approve the signature this time.",
+        );
+      } else if (cls === "network") {
+        setTopError(`Network blip (${msg.slice(0, 80)}). No legs were armed. Try again.`);
+      } else {
+        setTopError(`Batch arm failed: ${msg.slice(0, 200)}. No legs were armed.`);
+      }
+      setFailedAtIndex(0);
+      setBusy(false);
+    }
   }, [legs, parsedPerLeg, publicKey, signMessage, props]);
 
   const remaining = Math.max(0, 100 - totalSlice);
