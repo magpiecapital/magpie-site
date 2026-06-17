@@ -13,10 +13,10 @@
 import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
-import { PROGRAM_ID, PROGRAM_ID_V2 } from "@/lib/solana/constants";
+import { PROGRAM_ID } from "@/lib/solana/constants";
 import { makeResilientConnection } from "@/lib/fallback/rpc-with-backup";
 import idl from "@/lib/solana/magpie.json";
-import idlV2 from "@/lib/solana/magpie-v2.json";
+// V2 deprecated 2026-06-17 PM — PROGRAM_ID_V2 + idlV2 imports removed.
 
 export const revalidate = 15;
 
@@ -80,15 +80,12 @@ export async function GET(req: Request) {
 
   try {
     const connection = makeResilientConnection();
-    // Pull from BOTH program versions and merge — RWA loans live on
-    // V2, memecoin loans live on V1. A single wallet can have both.
-    const [v1, v2] = await Promise.all([
+    // V2 deprecated + purged 2026-06-17 PM. RWAs are on V3, memecoins on V1/V4.
+    // V2 fetch removed; historical V2 loans live in DB only.
+    const v1 = await
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      loadProgramLoans(connection, PROGRAM_ID, idl as any, borrower).catch(() => []),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      loadProgramLoans(connection, PROGRAM_ID_V2, idlV2 as any, borrower).catch(() => []),
-    ]);
-    const loans = [...v1, ...v2];
+      loadProgramLoans(connection, PROGRAM_ID, idl as any, borrower).catch(() => []);
+    const loans = [...v1];
     return NextResponse.json({
       ok: true,
       source: "on-chain (fallback)",
