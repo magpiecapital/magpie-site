@@ -185,98 +185,65 @@ function BannerShell({
   const sym = symbol || "loan";
   const visual = visualForState(state);
 
-  // Operator-mandated 2026-06-16 PM
-  // ([[feedback_clean_dashboard_v4_ux]]): when a loan has actually
-  // fired (partial or complete), the vault balance becomes the
-  // headline of the card — large, high-contrast, mobile + web parity.
-  // Other states (no_exit / armed / firing) keep the original compact
-  // pill rendering so the dashboard doesn't grow excessively when
-  // nothing has filled yet.
-  const showProminentVault = state?.kind === "partial" || state?.kind === "complete";
+  // Always-prominent balance display. Operator-mandated 2026-06-17 PM
+  // (feedback_loan_card_current_value_must_be_prominent.md): the current
+  // value of the loan (remaining collateral + accumulated SOL in the
+  // V4 vault) MUST appear as the headline of every loan card, regardless
+  // of fire state. Previously this only kicked in on partial/complete;
+  // for armed/firing/no_exit_set we showed a compact pill that buried
+  // the position size. Operator: "we need to do a much better job
+  // displaying that current value inside the loan."
+  //
+  // The vault balance comes from state (when it includes vaultLamports
+  // — partial/complete) or from loan.sol_proceeds_amount otherwise.
+  // Remaining collateral is read from loan.current_collateral_amount via
+  // formatRemainingToken.
+  const vaultLamports: bigint =
+    state?.kind === "partial" || state?.kind === "complete"
+      ? state.vaultLamports
+      : BigInt(loan?.sol_proceeds_amount ?? "0");
+  const sol = lamportsToSolStr(vaultLamports);
+  const remaining = formatRemainingToken(loan, sym);
 
-  if (showProminentVault) {
-    const sol = lamportsToSolStr(state.vaultLamports);
-    const remaining = formatRemainingToken(loan, sym);
-    const fillSummary =
-      state.kind === "complete"
-        ? `All ${state.firedCount} legs filled`
-        : `${state.firedCount} of ${state.totalCount} legs filled`;
-    return (
-      <div
-        className="rounded-md border px-3 py-3 sm:px-4 sm:py-3.5"
-        style={{
-          borderColor: visual.border,
-          background: visual.bg,
-          color: visual.text,
-        }}
-        role="status"
-        aria-live="polite"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span
-              className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0"
-              style={{
-                background: visual.dot,
-                animation: visual.pulse
-                  ? "ladder-pulse 1.6s ease-in-out infinite"
-                  : undefined,
-              }}
-            />
-            <span
-              className="text-[10px] uppercase tracking-wide font-semibold opacity-70"
-              style={{ color: visual.text }}
-            >
-              In vault
-            </span>
-          </div>
-          {onRefresh && (
-            <button
-              onClick={onRefresh}
-              className="text-[10px] underline opacity-60 hover:opacity-100 flex-shrink-0"
-              style={{ color: visual.text }}
-              title="Refresh state"
-            >
-              Refresh
-            </button>
-          )}
-        </div>
-        <div
-          className="mt-1.5 flex items-baseline gap-1.5 sm:gap-2 flex-wrap"
-          style={{ color: visual.text }}
-        >
-          <span
-            className="font-bold tracking-tight text-[22px] leading-none sm:text-[26px] tabular-nums transition-opacity"
-            style={{ color: visual.text }}
-          >
-            {sol}
-          </span>
-          <span className="text-[13px] sm:text-[14px] font-semibold opacity-75">SOL</span>
-          {remaining && (
-            <>
-              <span className="text-[12px] opacity-50 mx-0.5">+</span>
-              <span className="text-[13px] sm:text-[14px] font-semibold opacity-85 tabular-nums">
-                {remaining}
-              </span>
-            </>
-          )}
-        </div>
-        <div
-          className="mt-1 text-[11px] opacity-70"
-          style={{ color: visual.text }}
-        >
-          {fillSummary}
-          {state.kind === "complete" ? " · ready to close" : ""}
-        </div>
-      </div>
-    );
+  // Status line below the headline varies by state. Keeps the visual
+  // color (via visualForState) and the pulse animation on for armed/
+  // firing so the user can still tell at a glance what the loan is
+  // doing — the prominent numbers carry the "current value" weight,
+  // the status line carries the "what stage" weight.
+  let statusLine: string;
+  let headlineLabel: string;
+  switch (state?.kind) {
+    case "no_exit_set":
+      headlineLabel = "Position";
+      statusLine = `No exits set — ${sym} loan position`;
+      break;
+    case "armed":
+      headlineLabel = "Position";
+      statusLine =
+        state.legs.length === 1
+          ? "1 leg armed · waiting for trigger"
+          : `${state.legs.length} legs armed · waiting for triggers`;
+      break;
+    case "firing":
+      headlineLabel = "Firing";
+      statusLine = `${state.inFlightCount} of ${state.totalCount} leg${state.totalCount === 1 ? "" : "s"} firing now`;
+      break;
+    case "partial":
+      headlineLabel = "In vault";
+      statusLine = `${state.firedCount} of ${state.totalCount} legs filled`;
+      break;
+    case "complete":
+      headlineLabel = "In vault";
+      statusLine = `All ${state.firedCount} legs filled · ready to close`;
+      break;
+    default:
+      headlineLabel = "Position";
+      statusLine = "";
   }
 
-  // Default compact pill for no_exit / armed / firing states.
-  const message = messageForState(state, sym, loan);
   return (
     <div
-      className="flex items-center justify-between gap-3 rounded-md border px-3 py-2"
+      className="rounded-md border px-3 py-3 sm:px-4 sm:py-3.5"
       style={{
         borderColor: visual.border,
         background: visual.bg,
@@ -285,29 +252,90 @@ function BannerShell({
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center gap-2 min-w-0">
-        <span
-          className="inline-block h-2 w-2 rounded-full flex-shrink-0"
-          style={{
-            background: visual.dot,
-            animation: visual.pulse
-              ? "ladder-pulse 1.6s ease-in-out infinite"
-              : undefined,
-          }}
-        />
-        <span className="text-[12px] font-medium truncate" style={{ color: visual.text }}>
-          {message}
-        </span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0"
+            style={{
+              background: visual.dot,
+              animation: visual.pulse
+                ? "ladder-pulse 1.6s ease-in-out infinite"
+                : undefined,
+            }}
+          />
+          <span
+            className="text-[10px] uppercase tracking-wide font-semibold opacity-70"
+            style={{ color: visual.text }}
+          >
+            {headlineLabel}
+          </span>
+        </div>
+        {onRefresh && (
+          <button
+            onClick={onRefresh}
+            className="text-[10px] underline opacity-60 hover:opacity-100 flex-shrink-0"
+            style={{ color: visual.text }}
+            title="Refresh state"
+          >
+            Refresh
+          </button>
+        )}
       </div>
-      {onRefresh && (
-        <button
-          onClick={onRefresh}
-          className="text-[10px] underline opacity-60 hover:opacity-100 flex-shrink-0"
+
+      {/* Headline: collateral + accumulated SOL. ALWAYS shown so the
+          user sees their current position prominently — regardless of
+          whether any leg has fired yet. */}
+      <div
+        className="mt-1.5 flex items-baseline gap-1.5 sm:gap-2 flex-wrap"
+        style={{ color: visual.text }}
+      >
+        {remaining && (
+          <>
+            <span
+              className="font-bold tracking-tight text-[22px] leading-none sm:text-[26px] tabular-nums transition-opacity"
+              style={{ color: visual.text }}
+            >
+              {remaining}
+            </span>
+          </>
+        )}
+        {vaultLamports > 0n && remaining && (
+          <span className="text-[12px] opacity-50 mx-0.5">+</span>
+        )}
+        {vaultLamports > 0n && (
+          <>
+            <span
+              className={
+                remaining
+                  ? "text-[16px] sm:text-[18px] font-semibold opacity-90 tabular-nums"
+                  : "font-bold tracking-tight text-[22px] leading-none sm:text-[26px] tabular-nums transition-opacity"
+              }
+              style={{ color: visual.text }}
+            >
+              {sol}
+            </span>
+            <span className="text-[12px] sm:text-[13px] font-semibold opacity-75">SOL</span>
+          </>
+        )}
+        {/* Defensive: if both remaining + vault are unavailable, show
+            a neutral 0 to avoid an empty headline. */}
+        {!remaining && vaultLamports === 0n && (
+          <span
+            className="font-bold tracking-tight text-[22px] leading-none sm:text-[26px] tabular-nums opacity-60"
+            style={{ color: visual.text }}
+          >
+            —
+          </span>
+        )}
+      </div>
+
+      {statusLine && (
+        <div
+          className="mt-1 text-[11px] opacity-70"
           style={{ color: visual.text }}
-          title="Refresh state"
         >
-          Refresh
-        </button>
+          {statusLine}
+        </div>
       )}
     </div>
   );
