@@ -82,7 +82,7 @@ Users can arm limit-close orders on TG with:
   • /cancellimitorder <order_id>  — cancels an armed order
 
 Supported on BOTH memecoin and RWA (tokenized stocks, ETFs, metals)
-collateral. RWA orders route through the V2 lending pool
+collateral. Orders route through the appropriate lending program
 automatically. Orders respect slippage caps; protocol takes a 1% fee
 on the proceeds.
 

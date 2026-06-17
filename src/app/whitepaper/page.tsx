@@ -501,7 +501,6 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 </div>
                 {[
                   { v: "v1 (memecoin)", addr: "4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh", role: "Legacy memecoin lending. Existing loans continue here; new memecoin borrows route to v3 (or v4 when an exit is attached)." },
-                  { v: "v2 (RWA legacy)", addr: "6wSpKAGuiRf3nYHj9raVwmoTPbG5MswBzTy6aMXZHBe", role: "Legacy tokenized-stock / ETF / metal lending. Existing loans continue here; new RWA borrows route to v3 (or v4 when an exit is attached)." },
                   { v: "v3 (dual-tier)", addr: "B8AwYzFmc3ZB5EWWVtJcJhJtEmKL78W5i3kZrL1uMCmP", role: "Live since 2026-06-13. Single program serves both memecoin (30/25/20% LTV) and RWA (50/60/70% LTV) borrows with on-chain TWAP oracle gating." },
                   { v: "v4 (in-vault auto-sells)", addr: "HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo", role: "Live since 2026-06-15 (patched). Routes any borrow that arms an exit (TP / SL / Trailing / Ladder / Bracket). Auto-sell proceeds accumulate inside the per-loan vault — loan stays Active until borrower repays." },
                 ].map(({ v, addr, role }) => (
