@@ -2532,7 +2532,14 @@ function DashboardPageInner() {
       // dashboard can render them cleanly under each V4 loan per
       // operator's non-negotiable rule. V1/V2/V3 loans return [] for
       // orders by routing-layer construction (no new arms allowed).
-      fetch(`/api/v1/loans?wallet=${publicKey.toBase58()}&include=orders`)
+      // `?_t=` defeats both Vercel edge cache and the browser HTTP cache
+      // for this URL — load-bearing for the "just borrowed, where is it?"
+      // moment. Without it, a poll that lands during the edge's s-maxage
+      // window can keep returning the stale empty response and the user
+      // thinks their funds vanished. See feedback_dashboard_active_loans_cache_busting.md.
+      fetch(`/api/v1/loans?wallet=${publicKey.toBase58()}&include=orders&_t=${Date.now()}`, {
+        cache: "no-store",
+      })
         .then(r => r.json())
         .then(d => {
           if (cancelled || !d.ok) return;
@@ -2550,7 +2557,23 @@ function DashboardPageInner() {
       if (typeof document !== "undefined" && document.hidden) return;
       fetchLoans();
     }, 60_000);
-    return () => { cancelled = true; clearInterval(interval); };
+    // Re-fetch IMMEDIATELY whenever the user tabs back to the dashboard.
+    // A user who just signed a borrow tx in their wallet popup is going to
+    // alt-tab back here — that's the exact moment they need to see the new
+    // loan, not 60s later.
+    const onVis = () => {
+      if (typeof document !== "undefined" && !document.hidden) fetchLoans();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVis);
+    }
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVis);
+      }
+    };
   }, [connected, publicKey, refreshTrigger]);
 
   // Eligible collateral — single server-computed list, polls every 30s.
@@ -3349,6 +3372,22 @@ function DashboardPageInner() {
                                 : undefined
                           }
                         />
+                        {/* Always-available manual refresh. Critical safety net for the
+                            "I just borrowed, where is it?" moment: visibility + cache-bust
+                            should handle 99% of cases, but if a user's HTTP cache is still
+                            stale this button is the unambiguous escape hatch — one click
+                            re-fetches /api/v1/loans with a fresh `?_t=` param. */}
+                        <div className="mt-2 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={forceRefresh}
+                            disabled={loansLoading}
+                            className="text-[11px] text-[var(--d-ink-soft)] hover:text-[var(--d-ink)] underline underline-offset-2 disabled:opacity-50"
+                            title="Re-fetch active loans (bypasses cache)"
+                          >
+                            {loansLoading ? "Refreshing…" : "Just borrowed? Refresh now"}
+                          </button>
+                        </div>
                       </>
                     ) : (
                       <div className="overflow-hidden rounded-2xl border border-[var(--d-accent)]/20 bg-[var(--d-bg-card)]">
