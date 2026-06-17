@@ -1510,6 +1510,15 @@ function DashboardPageInner() {
         return;
       }
 
+      // NOTE 2026-06-17 PM: a previous version of this code blocked
+      // non-custodial wallets from borrowing-with-exits. That block was
+      // wrong — V4 fires use `convert_collateral_slice` signed by the
+      // engine's lender keypair, NOT the borrower's. Every wallet, TG-
+      // linked or not, can use V4 auto-sells. Operator-mandated:
+      // "EVERY SINGLE WALLET, whether it is TG linked or not needs to
+      // bypass this." See
+      // feedback_v4_auto_sells_no_custodial_requirement_2026_06_17.md.
+
       // PRE-ATTEST the on-chain price feed before building / signing.
       // Without this, the wallet (Phantom) simulates the tx using its own
       // RPC and may see a feed > 120s old → "Transaction rejected:
