@@ -49,8 +49,14 @@ function filterLoansForWallet<T extends { loan_id: string | number | null; loan_
   });
 }
 
+// Active-loan freshness is load-bearing for the dashboard: when a user just
+// borrowed (or just repaid), seeing the state mirror chain within seconds is
+// the difference between trust and "did my funds vanish?". Tight s-maxage so
+// the edge cache can never hide a fresh borrow for more than ~3s. Combined
+// with the client's `?_t=` cache-buster + visibilitychange re-fetch, worst-
+// case latency from borrow-landed → dashboard-shows is one poll interval.
 const HEADERS = {
-  "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
+  "Cache-Control": "public, s-maxage=3, stale-while-revalidate=5",
   "X-Powered-By": "Magpie Protocol",
 };
 
