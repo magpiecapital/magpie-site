@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: false, error: "BOT_API_URL not configured" }, { status: 500 });
   }
   try {
-    const res = await fetch(`${BOT_API_URL}/api/v1/admin/pool-stats?wallet=${wallet}`, {
+    const res = await fetch(`${BOT_API_URL}/api/v1/admin/pool-stats?wallet=${encodeURIComponent(wallet)}`, {
       signal: AbortSignal.timeout(12_000),
     });
     const body = await res.json();

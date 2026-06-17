@@ -33,7 +33,7 @@ export async function GET(req: Request) {
   }
 
   try {
-    const res = await fetch(`${BOT_API_URL}/api/v1/wallet/balance?wallet=${wallet}`, {
+    const res = await fetch(`${BOT_API_URL}/api/v1/wallet/balance?wallet=${encodeURIComponent(wallet)}`, {
       signal: AbortSignal.timeout(10_000),
     });
     if (res.ok) {
