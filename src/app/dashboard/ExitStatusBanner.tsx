@@ -22,6 +22,7 @@ import { armTakeProfit } from "@/lib/solana/site-take-profit";
 import type {
   TakeProfitLoan,
   TakeProfitOrder,
+  TakeProfitPendingIntent,
 } from "@/lib/solana/site-take-profit";
 
 // V4 program id. The dashboard reads loan.program_id from the bot's
@@ -43,6 +44,11 @@ interface Props {
   botApiUrl?: string;
   /** Chain loan_id as a string — what the arm endpoint matches on. */
   loanIdChain?: string;
+  /** Pending arm intents for THIS wallet — used by the V4 recovery
+   *  banner to render the EXACT user-requested strike/multiplier as
+   *  the retry CTA. Falls back to 2x/3x/0.7x defaults only when no
+   *  intent exists for this loan. */
+  pendingIntents?: TakeProfitPendingIntent[];
   /** Optional: pass the parent's onMutated so the "Refresh" link works. */
   onRefresh?: () => void;
 }
@@ -61,6 +67,7 @@ export function ExitStatusBanner({
   collateralSymbol,
   botApiUrl,
   loanIdChain,
+  pendingIntents,
   onRefresh,
 }: Props) {
   const state = useMemo<ExitState | null>(
@@ -99,11 +106,18 @@ export function ExitStatusBanner({
   if (state == null && !eligibleForAny) return null;
 
   if (isSilentArmFailure && botApiUrl && loanIdChain) {
+    // Filter the wallet's pending_intents down to ones for THIS loan
+    // (loan_id_chain match) so the banner can render the exact strike
+    // the user requested instead of generic 2x/3x/0.7x defaults.
+    const intentsForLoan = (pendingIntents || []).filter(
+      (i) => i.loan_id_chain === loanIdChain,
+    );
     return (
       <V4SilentArmRecoveryBanner
         symbol={collateralSymbol}
         botApiUrl={botApiUrl}
         loanIdChain={loanIdChain}
+        intentsForLoan={intentsForLoan}
         onMutated={onRefresh}
       />
     );
@@ -499,37 +513,47 @@ function formatTriggerInline(kind: string, valueMicro: string): string {
 
 /* ─── V4 silent-arm-failure recovery banner ─────────────────────────
  * Operator-mandated 2026-06-16 PM
- * (feedback_v4_loans_never_show_exit_not_set.md). A V4 loan with no
+ * (feedback_v4_loans_never_show_exit_not_set.md +
+ *  feedback_tg_v4_must_match_site_quality.md). A V4 loan with no
  * orders means the auto-arm flow silently failed somewhere between
- * the post-borrow useEffect and the bot's arm endpoint. NEVER show
- * the generic "Exit not set" copy here — render this loud recovery
- * banner with one-click retry buttons that POST armTakeProfit
- * directly, bypassing the broken auto-arm chain.
+ * the post-borrow useEffect (or TG /sell, /takeprofit, /stoploss,
+ * /bracket) and the bot's arm endpoint. NEVER show the generic
+ * "Exit not set" copy here — render this loud recovery banner.
  *
- * Each button calls armTakeProfit with a fixed target (2x, 0.7x,
- * 3x) using the wallet's signMessage. Tracks busy state per button
- * so the user can see what's happening. On success → onMutated()
- * → state refetches → ExitStatusBanner re-renders as `armed`.
+ * INTENT-AWARE rendering (2026-06-16 PM follow-up): if the wallet
+ * has recorded `arm_intents` for this loan, render one retry button
+ * per intent showing the EXACT requested strike/multiplier/slice
+ * the user asked for. Operator caught a 1.3x request being shown
+ * as a 2x default; that mismatch is forbidden. Hardcoded 2x/3x/0.7x
+ * defaults render only as a SECONDARY tier when no intent exists.
  */
 function V4SilentArmRecoveryBanner({
   symbol,
   botApiUrl,
   loanIdChain,
+  intentsForLoan,
   onMutated,
 }: {
   symbol: string | null;
   botApiUrl: string;
   loanIdChain: string;
+  intentsForLoan: TakeProfitPendingIntent[];
   onMutated?: () => void;
 }) {
   const { publicKey, signMessage } = useWallet();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  type RetryTarget =
+    | { kind: "multiplier"; multiplier: number }
+    | { kind: "price_usd"; usd: number }
+    | { kind: "mc_usd"; mcDollars: number };
+
   const retry = async (
     label: string,
-    target: { kind: "multiplier"; multiplier: number },
+    target: RetryTarget,
     direction: "above" | "below",
+    sliceBps?: number,
   ) => {
     if (!publicKey || !signMessage) {
       setError("Connect your wallet to retry.");
@@ -549,6 +573,7 @@ function V4SilentArmRecoveryBanner({
           target,
           slippageBps: direction === "below" ? 300 : 200,
           sellDestination: "sol",
+          slicePctBps: sliceBps && sliceBps < 10000 ? sliceBps : undefined,
         },
       });
       onMutated?.();
@@ -560,6 +585,114 @@ function V4SilentArmRecoveryBanner({
   };
 
   const sym = symbol || "this loan";
+  const hasIntents = intentsForLoan.length > 0;
+
+  // Render one button per pending intent. Format strike from the
+  // intent's target_kind: multiplier → "1.3x", price_usd → "$0.0045",
+  // mc_usd → "$150M mc", trailing → "trail 8%".
+  const intentButtons = intentsForLoan.map((intent, idx) => {
+    const v = Number(intent.target_value_micro) / 1e6;
+    const sliceBps = intent.slice_pct_bps ?? 10000;
+    const slicePct = sliceBps / 100;
+    let label: string;
+    let target: RetryTarget;
+    if (intent.target_kind === "price_usd") {
+      label =
+        v >= 1 ? `$${v.toFixed(2)}` : v >= 0.01 ? `$${v.toFixed(4)}` : `$${v.toFixed(8)}`;
+      target = { kind: "price_usd", usd: v };
+    } else if (intent.target_kind === "mc_usd") {
+      label =
+        v >= 1e9
+          ? `$${(v / 1e9).toFixed(2)}B mc`
+          : `$${(v / 1e6).toFixed(2)}M mc`;
+      target = { kind: "mc_usd", mcDollars: v };
+    } else if (intent.target_kind === "trailing") {
+      // Trailing intents are SL-only; show as percentage and use the
+      // existing armTakeProfit path with a multiplier shim (the engine
+      // recomputes from peak). Keep this informational + best-effort.
+      label = `trail ${(v).toFixed(1)}%`;
+      target = { kind: "multiplier", multiplier: 1 - v / 100 };
+    } else {
+      // multiplier
+      label = `${v}x`;
+      target = { kind: "multiplier", multiplier: v };
+    }
+    const directionWord = intent.direction === "above" ? "Sell at" : "Stop at";
+    const slicePart = sliceBps < 10000 ? ` (${slicePct.toFixed(0)}% slice)` : "";
+    const buttonLabel = `${directionWord} ${label}${slicePart}`;
+    const busyKey = `intent-${intent.id}-${idx}`;
+    const isSl = intent.direction === "below";
+    return (
+      <button
+        key={`intent-${intent.id}`}
+        type="button"
+        onClick={() => retry(busyKey, target, intent.direction, sliceBps)}
+        disabled={!!busy || !publicKey}
+        className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
+        style={{
+          background: isSl ? "rgba(220, 38, 38, 0.12)" : "rgba(34, 197, 94, 0.15)",
+          borderColor: isSl ? "rgba(220, 38, 38, 0.85)" : "rgba(34, 197, 94, 0.85)",
+          color: "var(--d-ink)",
+        }}
+      >
+        {busy === busyKey ? "Signing…" : buttonLabel}
+      </button>
+    );
+  });
+
+  const defaultButtons = (
+    <>
+      <button
+        type="button"
+        onClick={() => retry("2x", { kind: "multiplier", multiplier: 2 }, "above")}
+        disabled={!!busy || !publicKey}
+        className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
+        style={{
+          background: "rgba(34, 197, 94, 0.15)",
+          borderColor: "rgba(34, 197, 94, 0.55)",
+          color: "var(--d-ink)",
+        }}
+      >
+        {busy === "2x" ? "Signing…" : "Sell at 2x"}
+      </button>
+      <button
+        type="button"
+        onClick={() => retry("3x", { kind: "multiplier", multiplier: 3 }, "above")}
+        disabled={!!busy || !publicKey}
+        className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
+        style={{
+          background: "rgba(34, 197, 94, 0.15)",
+          borderColor: "rgba(34, 197, 94, 0.55)",
+          color: "var(--d-ink)",
+        }}
+      >
+        {busy === "3x" ? "Signing…" : "Sell at 3x"}
+      </button>
+      <button
+        type="button"
+        onClick={() => retry("0.7x", { kind: "multiplier", multiplier: 0.7 }, "below")}
+        disabled={!!busy || !publicKey}
+        className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
+        style={{
+          background: "rgba(220, 38, 38, 0.12)",
+          borderColor: "rgba(220, 38, 38, 0.50)",
+          color: "var(--d-ink)",
+        }}
+      >
+        {busy === "0.7x" ? "Signing…" : "Sell at 0.7x"}
+      </button>
+    </>
+  );
+
+  const headline = hasIntents
+    ? intentsForLoan.length === 1
+      ? `Your auto-sell didn't finish arming on this ${sym} loan`
+      : `${intentsForLoan.length} auto-sells didn't finish arming on this ${sym} loan`
+    : `Your auto-sell didn't finish arming on this ${sym} loan`;
+
+  const subline = hasIntents
+    ? "We have your exact strike on file. One click retries it without losing the original target."
+    : "We routed this loan to V4 because you set up an auto-sell — the arming step didn't complete (likely a wallet session blip). Pick a quick-retry option:";
 
   return (
     <div
@@ -571,59 +704,10 @@ function V4SilentArmRecoveryBanner({
       }}
       role="alert"
     >
-      <div className="text-[12px] font-semibold">
-        Your auto-sell didn&apos;t finish arming on this {sym} loan
-      </div>
-      <div className="text-[11px] opacity-80">
-        We routed this loan to V4 because you set up an auto-sell — the arming step
-        didn&apos;t complete (likely a wallet session blip). Click any option to retry:
-      </div>
+      <div className="text-[12px] font-semibold">{headline}</div>
+      <div className="text-[11px] opacity-80">{subline}</div>
       <div className="flex flex-wrap gap-1.5">
-        <button
-          type="button"
-          onClick={() =>
-            retry("2x", { kind: "multiplier", multiplier: 2 }, "above")
-          }
-          disabled={!!busy || !publicKey}
-          className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
-          style={{
-            background: "rgba(34, 197, 94, 0.15)",
-            borderColor: "rgba(34, 197, 94, 0.55)",
-            color: "var(--d-ink)",
-          }}
-        >
-          {busy === "2x" ? "Signing…" : "Sell at 2x"}
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            retry("3x", { kind: "multiplier", multiplier: 3 }, "above")
-          }
-          disabled={!!busy || !publicKey}
-          className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
-          style={{
-            background: "rgba(34, 197, 94, 0.15)",
-            borderColor: "rgba(34, 197, 94, 0.55)",
-            color: "var(--d-ink)",
-          }}
-        >
-          {busy === "3x" ? "Signing…" : "Sell at 3x"}
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            retry("0.7x", { kind: "multiplier", multiplier: 0.7 }, "below")
-          }
-          disabled={!!busy || !publicKey}
-          className="text-[11px] font-semibold px-2.5 py-1 rounded border whitespace-nowrap disabled:opacity-50"
-          style={{
-            background: "rgba(220, 38, 38, 0.12)",
-            borderColor: "rgba(220, 38, 38, 0.50)",
-            color: "var(--d-ink)",
-          }}
-        >
-          {busy === "0.7x" ? "Signing…" : "Sell at 0.7x"}
-        </button>
+        {hasIntents ? intentButtons : defaultButtons}
       </div>
       {error && (
         <div
