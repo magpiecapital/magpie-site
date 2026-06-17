@@ -634,6 +634,19 @@ function LimitSlot(props: SlotProps) {
     if (reason === "take_profit_already_armed" || reason === "stop_loss_already_armed") {
       return null; // already covered by the armed branch above
     }
+    // Hide the V4-locked explainer entirely on V1/V2/V3 loans
+    // (operator-mandated 2026-06-17 PM —
+    // feedback_v4_locked_explainer_must_not_appear_on_legacy_loans.md).
+    // The user previously saw "exits live on V4. To use one, repay this
+    // loan and re-open the borrow…" as a regression on every plain
+    // (non-V4) borrow. That message is information, not an option, and
+    // contradicts the rule "Exit strategies must NEVER appear as
+    // options anywhere on V1/V2/V3 surfaces." Silent hide is the
+    // correct behavior — the pre-borrow exit picker is the chosen
+    // surface for setting exits.
+    if (reason === "exits_require_v4_loan") {
+      return null;
+    }
     return (
       <div className="text-[11px] text-[var(--d-ink-faint)]">
         <span className="opacity-70">{slotLabel}:</span>{" "}
