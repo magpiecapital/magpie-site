@@ -650,14 +650,9 @@ const ONCHAIN_ACCOUNTS: { label: string; address: string; note: string }[] = [
     note: "Anchor program handling all memecoin-collateralized loans. Open-source logic, immutable rules.",
   },
   {
-    label: "RWA lending program (v2)",
-    address: "6wSpKAGuiRf3nYHj9raVwmoTPbG5MswBzTy6aMXZHBe",
-    note: "Separate program for tokenized stocks, ETFs, and metals. Same lender authority, isolated state.",
-  },
-  {
     label: "Dual-tier lending program (v3)",
     address: "B8AwYzFmc3ZB5EWWVtJcJhJtEmKL78W5i3kZrL1uMCmP",
-    note: "Live on mainnet since 2026-06-13. Single program supports both memecoin (30/25/20% LTV) AND RWA (50/60/70% LTV) tiers, with on-chain TWAP oracle gating. Existing v1/v2 loans continue on their original programs.",
+    note: "Live on mainnet since 2026-06-13. Single program supports both memecoin (30/25/20% LTV) AND RWA (50/60/70% LTV) tiers, with on-chain TWAP oracle gating. Existing v1 loans continue on the original program.",
   },
   {
     label: "In-vault auto-sell program (v4)",
@@ -673,16 +668,6 @@ const ONCHAIN_ACCOUNTS: { label: string; address: string; note: string }[] = [
     label: "Memecoin pool wSOL vault",
     address: "5CYVDEqnLknmtyKkFEvpr5XnEJRzieXm1G5hSvYFG2Ko",
     note: "Holds the wSOL liquidity LPs deposit and borrowers draw from. Read the balance here for live TVL.",
-  },
-  {
-    label: "RWA pool state",
-    address: "3o8QBx6fH9cGZWgZ3Ng6GAseSehEqakvgna9squxaJVP",
-    note: "Live state of the v2 (RWA) lending pool.",
-  },
-  {
-    label: "RWA pool wSOL vault",
-    address: "58PER7L5WtZEDHRt473bSDCKk7KbZPNiw8mbLyn2UBa1",
-    note: "wSOL vault for the v2 (RWA) lending pool.",
   },
   {
     label: "v3 pool state",
