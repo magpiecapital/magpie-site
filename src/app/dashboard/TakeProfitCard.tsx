@@ -231,6 +231,7 @@ export function TakeProfitCard(props: Props) {
         botApiUrl={props.botApiUrl}
         loanIdChain={props.loanIdChain}
         pendingIntents={props.state.pending_intents}
+        pendingArms={props.state.pending_arms}
         onRefresh={props.onMutated}
       />
       {/* Ladder rollup — renders only when this loan has a ladder

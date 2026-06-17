@@ -158,6 +158,28 @@ export interface TakeProfitPendingIntent {
   created_at: string;
 }
 
+/**
+ * Tier-2 architectural fix (defense C in
+ * feedback_loan_830_full_postmortem_and_defenses.md). When the
+ * server queues an arm because the borrow's DB-write hadn't landed
+ * yet, it returns these rows so the dashboard knows to render an
+ * "Arming…" pill on the loan card instead of the recovery banner.
+ * The background watcher will replay them every 10s for up to 5 min.
+ */
+export interface PendingArm {
+  id: number;
+  loan_id_chain: string;
+  status: "pending" | "armed" | "expired" | "failed";
+  legs: unknown[];
+  intent_ids: number[] | null;
+  envelope_issued_at: string;
+  retry_count: number;
+  last_retry_at: string | null;
+  last_retry_error: string | null;
+  order_ids: number[] | null;
+  seconds_remaining: number;
+}
+
 export interface TakeProfitState {
   linked: boolean;
   custodial: boolean;
@@ -165,6 +187,8 @@ export interface TakeProfitState {
   orders: TakeProfitOrder[];
   /** Recent (24h) pending arm intents — used for V4 recovery banner. */
   pending_intents?: TakeProfitPendingIntent[];
+  /** Tier-2: in-flight pending_arms — render as "Arming…" not "failed". */
+  pending_arms?: PendingArm[];
   generated_at?: string;
 }
 
@@ -564,6 +588,20 @@ export interface ArmBatchResult {
     slicePctBps: number;
     slippageBps: number;
   }>;
+  /**
+   * Tier-2 architectural defense (B in
+   * feedback_loan_830_full_postmortem_and_defenses.md). When true, the
+   * batch arm was queued on the server because the borrow's DB-write
+   * hadn't landed yet. The pending-arm watcher will replay every 10s
+   * until orders land OR the signature freshness window (5 min)
+   * elapses. UI should switch the loan card to an "Arming…" state and
+   * poll the dashboard until the orders appear — NO recovery banner
+   * until envelope expires.
+   */
+  pending?: boolean;
+  pending_arm_id?: number;
+  envelope_expires_at_ms?: number;
+  retry_in_ms?: number;
 }
 
 function buildArmBatchMessage(args: {
