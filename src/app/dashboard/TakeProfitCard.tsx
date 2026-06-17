@@ -203,15 +203,22 @@ export function TakeProfitCard(props: Props) {
     );
   }
 
-  // Not linked or not custodial → single CTA (slots aren't useful yet).
-  if (!linked || !custodial) {
+  // Not linked → single CTA (slots aren't useful yet because the bot
+  // hasn't auto-linked this wallet on any signed envelope path).
+  //
+  // 2026-06-17 PM — DROPPED the `|| !custodial` half of the condition.
+  // V4 auto-sells fire with the LENDER keypair, not the borrower's, so
+  // a non-custodial wallet (no encrypted_secret) can ABSOLUTELY arm and
+  // execute V4 auto-sells. The card MUST render normally so the user
+  // can see their armed orders. Operator hit this on
+  // 3J1Ut4tK1... after the first 4 gates were already removed.
+  // See feedback_v4_takeprofit_card_must_render_for_noncustodial.md.
+  if (!linked) {
     return (
       <div className="mt-2 text-[11px] text-[var(--d-ink-faint)]">
         <span className="opacity-70">Auto-sells:</span>{" "}
         <span>
-          {linked
-            ? "needs a Magpie custodial keypair — connect via the Telegram bot to enable."
-            : "link this wallet to a Magpie account to enable automatic sells on price triggers."}
+          link this wallet to a Magpie account to enable automatic sells on price triggers.
         </span>
       </div>
     );
