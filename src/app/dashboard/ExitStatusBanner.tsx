@@ -203,7 +203,9 @@ function BannerShell({
       ? state.vaultLamports
       : BigInt(loan?.sol_proceeds_amount ?? "0");
   const sol = lamportsToSolStr(vaultLamports);
-  const remaining = formatRemainingToken(loan, sym);
+  const positionParts = formatPositionParts(loan, sym);
+  const hasPosition = !!positionParts;
+  const hasVault = vaultLamports > 0n;
 
   // Status line below the headline varies by state. Keeps the visual
   // color (via visualForState) and the pulse animation on for armed/
@@ -243,7 +245,7 @@ function BannerShell({
 
   return (
     <div
-      className="rounded-md border px-3 py-3 sm:px-4 sm:py-3.5"
+      className="rounded-lg border px-3.5 py-3 sm:px-4 sm:py-3.5"
       style={{
         borderColor: visual.border,
         background: visual.bg,
@@ -252,10 +254,11 @@ function BannerShell({
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-start justify-between gap-3">
+      {/* Top row: state chip (dot + label) + refresh action. */}
+      <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <span
-            className="inline-block h-2.5 w-2.5 rounded-full flex-shrink-0"
+            className="inline-block h-2 w-2 rounded-full flex-shrink-0"
             style={{
               background: visual.dot,
               animation: visual.pulse
@@ -264,7 +267,7 @@ function BannerShell({
             }}
           />
           <span
-            className="text-[10px] uppercase tracking-wide font-semibold opacity-70"
+            className="text-[10px] uppercase tracking-[0.08em] font-semibold opacity-60"
             style={{ color: visual.text }}
           >
             {headlineLabel}
@@ -273,55 +276,77 @@ function BannerShell({
         {onRefresh && (
           <button
             onClick={onRefresh}
-            className="text-[10px] underline opacity-60 hover:opacity-100 flex-shrink-0"
+            className="text-[10px] uppercase tracking-wider opacity-50 hover:opacity-100 transition-opacity flex-shrink-0"
             style={{ color: visual.text }}
             title="Refresh state"
+            aria-label="Refresh loan state"
           >
             Refresh
           </button>
         )}
       </div>
 
-      {/* Headline: collateral + accumulated SOL. ALWAYS shown so the
-          user sees their current position prominently — regardless of
-          whether any leg has fired yet. */}
+      {/* Headline: current value of the loan, ALWAYS shown.
+       *  Each value is a {big number} + {small ticker/unit} pair so
+       *  collateral and vault SOL share the same typography. A single
+       *  middle-dot separator (text on the same baseline) keeps the
+       *  line readable on phones at narrow widths. `min-w-0` + flex
+       *  `flex-wrap` allows graceful wrap on very small screens
+       *  without breaking the big-number rhythm. */}
       <div
-        className="mt-1.5 flex items-baseline gap-1.5 sm:gap-2 flex-wrap"
+        className="mt-2 flex items-baseline gap-x-2 gap-y-1 flex-wrap"
         style={{ color: visual.text }}
       >
-        {remaining && (
-          <>
+        {hasPosition && positionParts && (
+          <span className="flex items-baseline gap-1.5 min-w-0">
             <span
-              className="font-bold tracking-tight text-[22px] leading-none sm:text-[26px] tabular-nums transition-opacity"
+              className="font-bold tracking-tight text-[24px] sm:text-[28px] leading-none tabular-nums"
               style={{ color: visual.text }}
             >
-              {remaining}
+              {positionParts.amount}
             </span>
-          </>
+            <span
+              className="text-[12px] sm:text-[13px] font-semibold uppercase tracking-wider opacity-60 truncate max-w-[6.5rem]"
+              style={{ color: visual.text }}
+            >
+              {positionParts.ticker}
+            </span>
+          </span>
         )}
-        {vaultLamports > 0n && remaining && (
-          <span className="text-[12px] opacity-50 mx-0.5">+</span>
+        {hasPosition && hasVault && (
+          <span
+            aria-hidden
+            className="text-[18px] leading-none opacity-30 select-none -mx-0.5"
+            style={{ color: visual.text }}
+          >
+            ·
+          </span>
         )}
-        {vaultLamports > 0n && (
-          <>
+        {hasVault && (
+          <span className="flex items-baseline gap-1.5 min-w-0">
             <span
               className={
-                remaining
-                  ? "text-[16px] sm:text-[18px] font-semibold opacity-90 tabular-nums"
-                  : "font-bold tracking-tight text-[22px] leading-none sm:text-[26px] tabular-nums transition-opacity"
+                hasPosition
+                  ? "text-[18px] sm:text-[20px] font-bold tracking-tight leading-none tabular-nums opacity-95"
+                  : "text-[24px] sm:text-[28px] font-bold tracking-tight leading-none tabular-nums"
               }
               style={{ color: visual.text }}
             >
               {sol}
             </span>
-            <span className="text-[12px] sm:text-[13px] font-semibold opacity-75">SOL</span>
-          </>
+            <span
+              className="text-[12px] sm:text-[13px] font-semibold uppercase tracking-wider opacity-60"
+              style={{ color: visual.text }}
+            >
+              SOL
+            </span>
+          </span>
         )}
-        {/* Defensive: if both remaining + vault are unavailable, show
-            a neutral 0 to avoid an empty headline. */}
-        {!remaining && vaultLamports === 0n && (
+        {/* Empty-state fallback: no collateral, no vault. Render a
+         *  neutral em-dash so the headline never collapses to 0px tall. */}
+        {!hasPosition && !hasVault && (
           <span
-            className="font-bold tracking-tight text-[22px] leading-none sm:text-[26px] tabular-nums opacity-60"
+            className="font-bold tracking-tight text-[24px] sm:text-[28px] leading-none tabular-nums opacity-40"
             style={{ color: visual.text }}
           >
             —
@@ -329,9 +354,12 @@ function BannerShell({
         )}
       </div>
 
+      {/* Status line: what stage the loan is in. The headline already
+       *  carries the position weight; this line carries the action
+       *  weight (Armed / Firing / Filled / Ready to close). */}
       {statusLine && (
         <div
-          className="mt-1 text-[11px] opacity-70"
+          className="mt-1.5 text-[11.5px] sm:text-[12px] leading-relaxed opacity-65"
           style={{ color: visual.text }}
         >
           {statusLine}
@@ -555,6 +583,36 @@ function formatRemainingToken(
   else if (amount >= 0.01) formatted = amount.toFixed(4);
   else formatted = amount.toFixed(6);
   return `${formatted} ${symbol || "TOKEN"} remaining`;
+}
+
+/* Structured variant of formatRemainingToken used by the prominent
+ * loan-card headline (feedback_loan_card_current_value_must_be_prominent.md).
+ * Splitting the number from the ticker lets the headline render them
+ * with consistent typography against the SOL pair beside it (big number
+ * + small ticker / unit label). Returns null when the loan has no
+ * usable remaining collateral. */
+function formatPositionParts(
+  loan: TakeProfitLoan | null,
+  symbol: string,
+): { amount: string; ticker: string } | null {
+  if (!loan) return null;
+  const raw = loan.current_collateral_amount;
+  if (raw == null) return null;
+  const decimals = loan.collateral_decimals ?? 9;
+  let amount: number;
+  try {
+    amount = Number(raw) / Math.pow(10, decimals);
+  } catch {
+    return null;
+  }
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  let formatted: string;
+  if (amount >= 1e6) formatted = `${(amount / 1e6).toFixed(2)}M`;
+  else if (amount >= 1e3) formatted = `${(amount / 1e3).toFixed(2)}K`;
+  else if (amount >= 1) formatted = amount.toFixed(2);
+  else if (amount >= 0.01) formatted = amount.toFixed(4);
+  else formatted = amount.toFixed(6);
+  return { amount: formatted, ticker: symbol || "TOKEN" };
 }
 
 function lamportsToSolStr(lamports: bigint): string {
