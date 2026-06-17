@@ -23,6 +23,7 @@ import type {
   TakeProfitLoan,
   TakeProfitOrder,
   TakeProfitPendingIntent,
+  PendingArm,
 } from "@/lib/solana/site-take-profit";
 
 // V4 program id. The dashboard reads loan.program_id from the bot's
@@ -49,6 +50,12 @@ interface Props {
    *  the retry CTA. Falls back to 2x/3x/0.7x defaults only when no
    *  intent exists for this loan. */
   pendingIntents?: TakeProfitPendingIntent[];
+  /** Tier-2: in-flight pending_arms for THIS wallet. When a pending_arm
+   *  exists for this loan, the banner renders "Arming…" instead of
+   *  silent-arm-failure recovery. The server's background watcher will
+   *  replay every 10s while the user's signature stays fresh (5 min).
+   *  See feedback_loan_830_full_postmortem_and_defenses.md (defense C). */
+  pendingArms?: PendingArm[];
   /** Optional: pass the parent's onMutated so the "Refresh" link works. */
   onRefresh?: () => void;
 }
@@ -68,6 +75,7 @@ export function ExitStatusBanner({
   botApiUrl,
   loanIdChain,
   pendingIntents,
+  pendingArms,
   onRefresh,
 }: Props) {
   const state = useMemo<ExitState | null>(
@@ -104,6 +112,26 @@ export function ExitStatusBanner({
   const eligibleForAny =
     loan.is_eligible_for_takeprofit || (loan.is_eligible_for_stoploss ?? false);
   if (state == null && !eligibleForAny) return null;
+
+  // Tier-2 architectural fix (defense C in
+  // feedback_loan_830_full_postmortem_and_defenses.md): a pending_arm
+  // row for this loan_id_chain means the user's signed envelope is
+  // still inside the 5-min freshness window and the background
+  // watcher is replaying every 10s. Show a calm "Arming…" pill, NOT
+  // the recovery banner. The dashboard will flip to the normal
+  // armed state automatically once the watcher's next replay lands.
+  const pendingArmForLoan = (pendingArms || []).find(
+    (pa) => pa.loan_id_chain === loanIdChain && pa.status === "pending" && pa.seconds_remaining > 0,
+  );
+  if (isV4Loan && state?.kind === "no_exit_set" && pendingArmForLoan) {
+    return (
+      <PendingArmBanner
+        symbol={collateralSymbol}
+        nLegs={Array.isArray(pendingArmForLoan.legs) ? pendingArmForLoan.legs.length : 0}
+        secondsRemaining={pendingArmForLoan.seconds_remaining}
+      />
+    );
+  }
 
   if (isSilentArmFailure && botApiUrl && loanIdChain) {
     // Filter the wallet's pending_intents down to ones for THIS loan
@@ -542,6 +570,60 @@ function formatTriggerInline(kind: string, valueMicro: string): string {
  * as a 2x default; that mismatch is forbidden. Hardcoded 2x/3x/0.7x
  * defaults render only as a SECONDARY tier when no intent exists.
  */
+/* ────────────────────────────────────────────────────────────────
+ * PendingArmBanner — calm "Arming…" pill rendered when the server
+ * has a pending_arm row for this loan. The user's signed envelope is
+ * still fresh and the background watcher is replaying every 10s.
+ * Distinguishes the in-flight race from a true silent-arm failure
+ * so the user doesn't see a confusing red banner during the normal
+ * cosign-borrow → arm-batch handoff.
+ *
+ * Tier-2 architectural defense per
+ * [[feedback_loan_830_full_postmortem_and_defenses]] (defense C).
+ * ──────────────────────────────────────────────────────────────── */
+function PendingArmBanner({
+  symbol,
+  nLegs,
+  secondsRemaining,
+}: {
+  symbol: string | null;
+  nLegs: number;
+  secondsRemaining: number;
+}) {
+  const sym = symbol || "loan";
+  const remaining = Math.max(0, Math.min(300, secondsRemaining));
+  const minutes = Math.floor(remaining / 60);
+  const seconds = remaining % 60;
+  const remainingStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+  return (
+    <div
+      className="rounded-md border px-3 py-2.5"
+      style={{
+        background: "rgba(59, 130, 246, 0.08)",
+        borderColor: "rgba(59, 130, 246, 0.45)",
+        color: "var(--d-ink)",
+      }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[12px] font-semibold">
+            Arming {nLegs} {nLegs === 1 ? "auto-sell" : "auto-sells"} on {sym}…
+          </div>
+          <div className="text-[11px] opacity-75 mt-0.5">
+            Your signed request is waiting on the borrow to finish landing on-chain.
+            We&apos;ll retry automatically every 10 seconds — no re-signing needed.
+            Auto-cancels in {remainingStr} if it doesn&apos;t land.
+          </div>
+        </div>
+        <div
+          className="w-2.5 h-2.5 rounded-full animate-pulse flex-shrink-0"
+          style={{ background: "rgba(59, 130, 246, 0.9)" }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function V4SilentArmRecoveryBanner({
   symbol,
   botApiUrl,
