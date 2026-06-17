@@ -10,6 +10,17 @@ const connection = new Connection(
 const ADMIN_TG_ID = process.env.ADMIN_TELEGRAM_ID ?? "";
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "";
 
+// SECURITY: DexScreener-controlled token symbol/name fields can contain
+// Markdown control characters (e.g. a token named "[click](https://evil)").
+// Without escaping, those land as clickable phishing links in the operator's
+// TG. Mirror the MarkdownV2 sanitizer from /api/token-request/route.ts and
+// switch parse_mode to MarkdownV2 below. Caught by audit 2026-06-17 PM.
+const MAX_FIELD = 200;
+function escapeMd(s: string): string {
+  if (s == null) return "";
+  return String(s).replace(/[_*`\[\]()~>#+\-=|{}.!\\]/g, "\\$&").slice(0, MAX_FIELD);
+}
+
 // ── Thresholds (match bot's submit.js + token-screener.js) ──
 
 const AUTO_APPROVE = {
@@ -113,7 +124,10 @@ async function notifyAdmin(text: string, replyMarkup?: unknown) {
       body: JSON.stringify({
         chat_id: ADMIN_TG_ID,
         text,
-        parse_mode: "Markdown",
+        // SECURITY: MarkdownV2 + escape every interpolated field.
+        // DexScreener-supplied symbol/name can carry Markdown control chars
+        // and weaponize legacy Markdown parse_mode (audit finding S3).
+        parse_mode: "MarkdownV2",
         ...(replyMarkup ? { reply_markup: replyMarkup } : {}),
       }),
     });
@@ -227,23 +241,46 @@ export async function POST(req: Request) {
       market.marketCap >= AUTO_APPROVE.minMarketCap;
 
     if (canAutoApprove) {
+      // SECURITY: ON CONFLICT must NOT re-enable previously-disabled tokens.
+      // The operator's disable-token script (memory: feedback_token_safety_vigilance)
+      // sets enabled=FALSE for tokens flagged as scammy. If the auto-approve
+      // INSERT flipped enabled back to TRUE on conflict, ANY attacker could
+      // re-enable a disabled scam by re-submitting through the public form.
+      // Preserve the existing enabled flag on conflict; only refresh stats.
       await query(
         `INSERT INTO supported_mints
            (mint, symbol, name, decimals, category, image_url, liquidity_usd,
             holder_count, market_cap_usd, has_mint_authority, has_freeze_authority,
             lp_burned, token_age_hours, auto_approved, screened_at, source, enabled)
          VALUES ($1,$2,$3,$4,'memecoin',$5,$6,0,$7,FALSE,FALSE,FALSE,$8,TRUE,NOW(),'web_submit',TRUE)
-         ON CONFLICT (mint) DO UPDATE SET enabled = TRUE`,
+         ON CONFLICT (mint) DO UPDATE SET
+           liquidity_usd = EXCLUDED.liquidity_usd,
+           market_cap_usd = EXCLUDED.market_cap_usd,
+           token_age_hours = EXCLUDED.token_age_hours,
+           screened_at = NOW()
+         -- enabled deliberately NOT updated — disabled scams stay disabled.
+        `,
         [mint, market.symbol.toUpperCase(), market.name, onChain.decimals,
          market.imageUrl, market.liquidity, market.marketCap, ageHours],
       );
       await query("INSERT INTO token_screen_seen (mint) VALUES ($1) ON CONFLICT DO NOTHING", [mint]);
 
+      // If this re-submission targets a previously-disabled mint, flag for
+      // operator so they can review whether the disable was a false positive
+      // OR whether someone's trying to game the auto-approve gate.
+      const { rows: postRows } = await query(
+        `SELECT enabled, protected FROM supported_mints WHERE mint = $1`,
+        [mint],
+      );
+      const isDisabled = postRows[0] && postRows[0].enabled === false;
+
       await notifyAdmin(
-        `*Web submission auto-approved*\n\n${market.symbol} — $${Math.floor(market.liquidity).toLocaleString()} liq, $${Math.floor(market.marketCap).toLocaleString()} mcap\n\`${mint}\``,
+        isDisabled
+          ? `*Web submission RE-SUBMITTED a DISABLED token (NOT re-enabled)*\n\n${escapeMd(market.symbol)} — $${Math.floor(market.liquidity).toLocaleString()} liq, $${Math.floor(market.marketCap).toLocaleString()} mcap\n\`${mint}\`\n\n_Manual review only_`
+          : `*Web submission auto-approved*\n\n${escapeMd(market.symbol)} — $${Math.floor(market.liquidity).toLocaleString()} liq, $${Math.floor(market.marketCap).toLocaleString()} mcap\n\`${mint}\``,
       );
 
-      return NextResponse.json({ verdict: "approved", ...stats });
+      return NextResponse.json({ verdict: isDisabled ? "queued_disabled" : "approved", ...stats });
     }
 
     // Borderline — queue for review
@@ -263,7 +300,7 @@ export async function POST(req: Request) {
     await query("INSERT INTO token_screen_seen (mint) VALUES ($1) ON CONFLICT DO NOTHING", [mint]);
 
     await notifyAdmin(
-      `*Web submission needs review*\n\n*${market.symbol}* — ${market.name}\nLiq: $${Math.floor(market.liquidity).toLocaleString()} | Vol: $${Math.floor(market.volume24h).toLocaleString()} | MCap: $${Math.floor(market.marketCap).toLocaleString()}\nAge: ${ageHours}h\n\`${mint}\``,
+      `*Web submission needs review*\n\n*${escapeMd(market.symbol)}* — ${escapeMd(market.name)}\nLiq: $${Math.floor(market.liquidity).toLocaleString()} \\| Vol: $${Math.floor(market.volume24h).toLocaleString()} \\| MCap: $${Math.floor(market.marketCap).toLocaleString()}\nAge: ${ageHours}h\n\`${mint}\``,
       { inline_keyboard: [[
         { text: "Approve", callback_data: `screen:approve:${mint}` },
         { text: "Reject", callback_data: `screen:reject:${mint}` },

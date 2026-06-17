@@ -137,7 +137,7 @@ export async function GET(req: Request) {
   /* Strategy 2: bot API */
   if (BOT_API_URL) {
     try {
-      const res = await fetch(`${BOT_API_URL}/api/v1/credit/score?wallet=${wallet}`, {
+      const res = await fetch(`${BOT_API_URL}/api/v1/credit/score?wallet=${encodeURIComponent(wallet)}`, {
         signal: AbortSignal.timeout(5_000),
       });
       if (res.ok) {

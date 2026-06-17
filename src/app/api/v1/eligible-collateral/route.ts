@@ -53,7 +53,7 @@ export async function GET(req: Request) {
   // without forcing them to hit the per-token cap blindly during a
   // borrow attempt).
   const [balanceRes, approvedRes, openByMintRes] = await Promise.allSettled([
-    fetch(`${BOT_API_URL}/api/v1/wallet/balance?wallet=${wallet}`, {
+    fetch(`${BOT_API_URL}/api/v1/wallet/balance?wallet=${encodeURIComponent(wallet)}`, {
       signal: AbortSignal.timeout(10_000),
     }).then((r) => r.json()),
     query(
