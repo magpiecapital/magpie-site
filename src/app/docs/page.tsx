@@ -312,7 +312,7 @@ export default async function DocsPage() {
               than 100% leaves the unsold portion as remaining collateral.
             </P>
             <P>
-              <strong>Existing V1/V2/V3 loans are unaffected.</strong> V4
+              <strong>Existing V1/V3 loans are unaffected.</strong> V4
               is a parallel deploy at
               <code> HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo</code>.
               Legacy loans continue to repay, extend, partial-repay, top up,
