@@ -53,7 +53,7 @@ export async function GET(req: Request) {
 
   if (BOT_API_URL) {
     try {
-      const res = await fetch(`${BOT_API_URL}/api/v1/holders?wallet=${wallet}`, {
+      const res = await fetch(`${BOT_API_URL}/api/v1/holders?wallet=${encodeURIComponent(wallet)}`, {
         signal: AbortSignal.timeout(5_000),
       });
       if (res.ok) {
