@@ -107,17 +107,32 @@ export function ExitStatusBanner({
 
   if (isSilentArmFailure && botApiUrl && loanIdChain) {
     // Filter the wallet's pending_intents down to ones for THIS loan
-    // (loan_id_chain match) so the banner can render the exact strike
-    // the user requested instead of generic 2x/3x/0.7x defaults.
+    // AND dedupe by (direction, target_kind, target_value_micro,
+    // slice_pct_bps). Repeated user retries before today's server-side
+    // dedupe could pile up duplicate rows in arm_intents; the banner
+    // must NEVER show duplicates of the same strike+slice — operator
+    // saw "4 auto-sells didn't finish arming" with two pairs of
+    // identical buttons on SPCX loan 816 (2026-06-17 03:50 UTC).
+    // See feedback_no_duplicate_intents_in_recovery_banner_NEVER.md.
+    // Keep the MOST RECENT intent of each unique strike+slice group.
     const intentsForLoan = (pendingIntents || []).filter(
       (i) => i.loan_id_chain === loanIdChain,
     );
+    const dedupedByStrike = new Map<string, typeof intentsForLoan[number]>();
+    for (const i of intentsForLoan) {
+      const key = `${i.direction}|${i.target_kind}|${i.target_value_micro}|${i.slice_pct_bps ?? "null"}`;
+      const existing = dedupedByStrike.get(key);
+      if (!existing || new Date(i.created_at).getTime() > new Date(existing.created_at).getTime()) {
+        dedupedByStrike.set(key, i);
+      }
+    }
+    const uniqueIntents = Array.from(dedupedByStrike.values());
     return (
       <V4SilentArmRecoveryBanner
         symbol={collateralSymbol}
         botApiUrl={botApiUrl}
         loanIdChain={loanIdChain}
-        intentsForLoan={intentsForLoan}
+        intentsForLoan={uniqueIntents}
         onMutated={onRefresh}
       />
     );

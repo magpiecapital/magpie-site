@@ -160,7 +160,14 @@ function LadderCard({
   // already represented by an armed leg in this group. These are the
   // confirmed silent-drop victims — the user wanted them but they
   // never reached the arm endpoint.
-  const unfulfilledIntents = (missingIntents || []).filter((intent) => {
+  //
+  // ALSO dedupe by (target_value_micro, slice_pct_bps) — repeated user
+  // retries can pile up duplicate intent rows in arm_intents and the
+  // banner MUST NEVER show duplicates of the same strike+slice. The
+  // user's request is a SET, not a LIST. See
+  // feedback_no_duplicate_intents_in_recovery_banner_NEVER.md
+  // (operator-mandated 2026-06-17, ZERO TOLERANCE).
+  const filteredByOrders = (missingIntents || []).filter((intent) => {
     const intentTv = BigInt(intent.target_value_micro || "0");
     return !group.legs.some(
       (leg) =>
@@ -168,6 +175,15 @@ function LadderCard({
         BigInt(leg.trigger_value_micro || "0") === intentTv,
     );
   });
+  const dedupedIntentsMap = new Map<string, typeof filteredByOrders[number]>();
+  for (const i of filteredByOrders) {
+    const key = `${i.target_value_micro}|${i.slice_pct_bps ?? "null"}`;
+    const existing = dedupedIntentsMap.get(key);
+    if (!existing || new Date(i.created_at).getTime() > new Date(existing.created_at).getTime()) {
+      dedupedIntentsMap.set(key, i);
+    }
+  }
+  const unfulfilledIntents = Array.from(dedupedIntentsMap.values());
 
   const isSl = group.direction === "below";
   const accentColor = isSl
