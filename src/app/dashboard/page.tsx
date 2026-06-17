@@ -1462,26 +1462,68 @@ function DashboardPageInner() {
       // Collateral value in lamports = (uiAmount * priceUsd / solPriceUsd) * 1e9
       const priceUsd = holding.approved.priceUsd || 0;
       const collateralValueSolRaw = (collateralUiAmount * priceUsd) / solPriceUsd;
-      // 2026-06-16 — CollateralValueExceedsAttestation fix. The V1/V2/V3/V4
-      // programs check submitted collateral_value against the on-chain
-      // attested price with a 3% tolerance:
-      //   require!(collateral_value <= min(spot, TWAP) * amount * 1.03)
-      // The site reads DexScreener spot, which can drift above the on-chain
-      // TWAP (TWAP averages 8 samples over 5+ min, so it lags fresh spot
-      // moves). V4's pump cap allows spot up to 1.15 * TWAP — so worst case
-      // a legitimate borrow can have spot/TWAP = 1.15. To submit a value
-      // the program ALWAYS accepts while the borrow is legitimate, we
-      // multiply by 0.89 (1.03/1.15 ≈ 0.895 rounded down for safety).
-      // The borrower receives slightly less SOL (loan = LTV * submitted
-      // value), but the borrow never spuriously rejects.
+      // V4 hardening Item 4 (T15) — precise collateral_value via the bot's
+      // on-chain TWAP endpoint. The legacy 0.89 multiplier (1.03/1.15)
+      // worked but cost borrowers 11% borrowing power on EVERY V4 borrow.
+      // Worse, when SPCX (or any RWA / memecoin) actually pumps fast
+      // enough that spot/TWAP exceeds 1.15, even 0.89 isn't enough — the
+      // program returns PriceImpactPumpDetected and the user signs a tx
+      // that's guaranteed to fail. Operator hit this 2026-06-17 PM
+      // (feedback_v4_hardening_sprint_2026_06_17.md, Item 4).
       //
-      // Operator-mandated rule: "Price-oracle hiccup must NEVER block a
-      // legitimate borrow." Caught 2026-06-16 PM. Precise solution
-      // (bot endpoint that returns on-chain TWAP, site uses TWAP * 1.02)
-      // tracked as a follow-up task.
-      const COLLATERAL_VALUE_SAFETY = 0.89;
-      const collateralValueSol = collateralValueSolRaw * COLLATERAL_VALUE_SAFETY;
-      const collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
+      // Calls GET /api/v1/v4/twap with mint + decimals + amount_raw.
+      // If the bot has enough TWAP samples (≥8 within the 5-min window)
+      // we use the bot-computed safe_collateral_value_lamports directly
+      // — a ~0.3% under-shoot instead of 11%. If the bot's response says
+      // "wait_for_warmup" (cold feed), we fall back to the legacy 0.89
+      // path so the borrow can still proceed when V4 isn't warm yet.
+      //
+      // Hard 4s timeout so a flaky bot never hangs the borrow.
+      let collateralValueLamports: string;
+      let twapDiagnostic: string | null = null;
+      try {
+        const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+        const twapCtl = new AbortController();
+        const twapTimer = setTimeout(() => twapCtl.abort(), 4000);
+        let twapResp: Response;
+        try {
+          twapResp = await fetch(
+            `${botApi}/api/v1/v4/twap?mint=${encodeURIComponent(holding.mint)}` +
+              `&decimals=${holding.decimals}&amount_raw=${collateralAmountRaw}`,
+            { signal: twapCtl.signal },
+          );
+        } finally {
+          clearTimeout(twapTimer);
+        }
+        const twapBody = await twapResp.json().catch(() => ({} as Record<string, unknown>));
+        if (
+          twapResp.ok &&
+          twapBody &&
+          twapBody.recommendation === "use_precise_value" &&
+          typeof twapBody.safe_collateral_value_lamports === "string"
+        ) {
+          collateralValueLamports = twapBody.safe_collateral_value_lamports;
+        } else if (twapBody && twapBody.recommendation === "wait_for_warmup") {
+          // V4 feed is cold (< MIN_SAMPLES_FOR_TWAP samples). Borrow would
+          // fail with TwapInsufficientHistory anyway, but the legacy 0.89
+          // path is the cleanest fallback so the user still proceeds
+          // through borrow → cosign-borrow → TWAP warm-up than seeing a
+          // hard block here.
+          const collateralValueSol = collateralValueSolRaw * 0.89;
+          collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
+          twapDiagnostic = `V4 oracle still warming up (${twapBody.reason || "samples"})`;
+        } else {
+          // Unknown response shape — fall back conservatively.
+          const collateralValueSol = collateralValueSolRaw * 0.89;
+          collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
+        }
+      } catch (twapErr) {
+        // Network blip or timeout — fall back to legacy 0.89.
+        console.warn("[borrow] TWAP endpoint unreachable, falling back to 0.89:", (twapErr as Error).message);
+        const collateralValueSol = collateralValueSolRaw * 0.89;
+        collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
+      }
+      if (twapDiagnostic) console.log(`[borrow] ${twapDiagnostic}`);
 
       // Sub-1-SOL + exits guard (operator-mandated 2026-06-16 PM after
       // loan 799 on a different user revealed the trap: sub-1-SOL borrow
