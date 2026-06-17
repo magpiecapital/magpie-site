@@ -35,7 +35,7 @@ interface LegDraft {
 
 interface LegStatus {
   id: string;
-  state: "queued" | "signing" | "submitting" | "armed" | "failed";
+  state: "queued" | "signing" | "submitting" | "arming" | "armed" | "failed";
   error?: string;
   orderId?: number;
 }
@@ -250,8 +250,24 @@ export function LadderPanel(props: Props) {
         loanIdChain: props.loanIdChain,
         legs: legSpecs,
       });
-      // Atomic success — every leg gets an order id.
+      // Tier-2 race-tolerant path
+      // (feedback_loan_830_full_postmortem_and_defenses.md, defense C):
+      // server queued the arm because the borrow's DB-write hadn't
+      // landed yet. Background watcher replays every 10s while the
+      // signature is fresh (5 min). UI: show "Arming…" and let the
+      // dashboard's own poll loop flip to armed once orders appear.
+      // No banner, no failure copy — the signature is still valid.
       const next: Record<string, LegStatus["state"]> = {};
+      if (result.pending) {
+        for (let i = 0; i < legs.length; i++) {
+          next[legs[i].id] = "arming";
+        }
+        setStatuses(next);
+        setBusy(false);
+        props.onArmed();
+        return;
+      }
+      // Atomic success — every leg gets an order id.
       for (let i = 0; i < legs.length; i++) {
         next[legs[i].id] = "armed";
       }
@@ -372,8 +388,9 @@ export function LadderPanel(props: Props) {
               {/* Status badge or parse error */}
               {st === "signing" && <span className="text-[10px] opacity-70">signing…</span>}
               {st === "submitting" && <span className="text-[10px] opacity-70">arming…</span>}
-              {st === "armed" && <span className="text-[10px]" style={{ color: "var(--d-good)" }}>✓ armed</span>}
-              {st === "failed" && <span className="text-[10px]" style={{ color: "var(--d-bad)" }}>✗ failed</span>}
+              {st === "arming" && <span className="text-[10px] opacity-70">arming… (waiting for borrow to land)</span>}
+              {st === "armed" && <span className="text-[10px]" style={{ color: "var(--d-good)" }}>arm landed</span>}
+              {st === "failed" && <span className="text-[10px]" style={{ color: "var(--d-bad)" }}>failed</span>}
               {!st && p.ok && <span className="text-[10px] opacity-70">{p.display}</span>}
               {!st && !p.ok && leg.strikeText.trim() && <span className="text-[10px]" style={{ color: "var(--d-bad)" }}>{p.error}</span>}
               {errors[leg.id] && <span className="text-[10px] truncate" style={{ color: "var(--d-bad)" }}>{errors[leg.id].slice(0, 80)}</span>}
