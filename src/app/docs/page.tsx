@@ -948,7 +948,8 @@ Body (canonical JSON, no extra whitespace):
               rows={[
                 ["v0", "current", "Off-chain signal voting; operator commits to honor passing Tier A votes within 14 days"],
                 ["v1", "planned", "On-chain configuration contract enforces Tier A parameter bounds — operator cannot change LTV / fees / holder share outside the bounds without a new contract deploy"],
-                ["v2", "planned", "Full on-chain governance (SPL governance program or equivalent); token-weighted on-chain votes; operator key authority transitions to multisig + governance"],
+                ["v1.5", "shipped 2026-06-18", "Program upgrade authority migrated from a single hot key to a hardware-key Squads V4 multisig with a 48-hour public timelock and an immutable configuration. See /security for live verification."],
+                ["v2", "planned", "Full on-chain governance (SPL governance program or equivalent); token-weighted on-chain votes; remaining operator-discretion parameters move to on-chain governance"],
               ]}
             />
             <P>

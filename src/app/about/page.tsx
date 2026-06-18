@@ -97,7 +97,7 @@ const VALUES = [
   },
   {
     title: "Security",
-    body: "Non-custodial. On-chain liquidation. AES-256 encryption. Your keys, your coins.",
+    body: "Non-custodial. On-chain liquidation. Program upgrades require a hardware-key multisig with a 48-hour public timelock. Your keys, your coins.",
   },
 ];
 
