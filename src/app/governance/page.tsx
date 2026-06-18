@@ -63,8 +63,8 @@ const PROPOSALS: ProposalCard[] = [
     scope_letter: "B-as-A",
     title: "July 1, 2026 $MAGPIE Streamflow unlock allocation (~5% of supply)",
     tldr:
-      "Pick what happens with the ~50M $MAGPIE that unlocks on July 1: burn, re-lock 12 months, pro-rata to holders, utility-weighted to users, or hybrid (50% burn + 25% holders + 25% users). Five-option ballot.",
-    status: { kind: "draft", activates_target_iso: "2026-06-12T00:00:00Z" },
+      "Pick what happens with the ~50M $MAGPIE that unlocks on July 1: A=36-month re-lock (patience), B=24-month holder vest (loyalty), C=24-month locked growth treasury (build), D=50% burn + 50% treasury (discipline + build). No instant release.",
+    status: { kind: "draft", activates_target_iso: "2026-06-25T00:00:00Z" },
     spec_url:
       "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md",
   },
