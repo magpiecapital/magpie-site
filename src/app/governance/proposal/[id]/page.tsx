@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { VoteButtons } from "./VoteButtons";
 import { VotingCountdown } from "./VotingCountdown";
 import { LiveResults } from "./LiveResults";
+import { VoteAndLiveResults } from "./VoteAndLiveResults";
 import type { VoteChoice } from "@/lib/solana/site-governance-vote";
 
 interface ProposalQuestion {
@@ -82,19 +83,21 @@ const PROPOSALS: Record<string, Proposal> = {
     id: "MGP-003",
     title: "July 1, 2026 $MAGPIE Streamflow unlock allocation (~5% of supply)",
     tldr:
-      "On July 1, 2026, a Streamflow contract holding ~5% of $MAGPIE supply unlocks. Vote on what happens with it — burn, re-lock, distribute to holders, distribute to users, or hybrid.",
-    status: "active",
-    opens_at_iso: "2026-06-12T00:00:00Z",
-    closes_at_iso: "2026-06-15T23:59:59Z",
-    voting_window_human: "Opens Jun 11, 2026 8:00 PM EDT · closes Jun 15, 2026 7:59 PM EDT (3 days)",
+      "On July 1, 2026, a Streamflow contract holding ~5% of $MAGPIE supply (~50M) unlocks. Four options on the ballot — patience (long re-lock), loyalty (24-mo holder vest), build (locked growth treasury), or discipline + build (50% burn + 50% treasury). No option releases tokens at once.",
+    status: "draft",
+    opens_at_iso: "2026-06-25T00:00:00Z",
+    closes_at_iso: "2026-06-30T00:00:00Z",
+    voting_window_human:
+      "Opens Jun 24, 2026 8:00 PM EDT · closes Jun 29, 2026 8:00 PM EDT (5 days)",
     summary:
-      "On July 1, 2026 a Streamflow contract holding ~5% of $MAGPIE supply (~50M tokens) unlocks. Five options on the ballot: burn, re-lock 12 months, pro-rata distribution to holders (30-day stream), utility-weighted distribution to protocol users (30-day stream), or hybrid (50% burn + 25% holders + 25% users). Operator commits to honor the winning option. Execution must complete within 14 days of unlock.",
+      "On July 1, 2026 a Streamflow contract holding ~5% of $MAGPIE supply (~50M tokens) unlocks. The proposal asks token holders to choose one of four capital strategies. Each option is structured to avoid any single-event liquidity release. Operator commits to honor the winning option. Execution must complete within 14 days of unlock.",
     spec_url:
       "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md",
     parameters: [
       { label: "Streamflow contract", value: "GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc" },
       { label: "Unlock date", value: "2026-07-01" },
       { label: "Allocation size", value: "~5% of total supply (~50M $MAGPIE)" },
+      { label: "Voting window", value: "5 days (Jun 24 → Jun 29, 2026)" },
       { label: "Quorum requirement", value: "≥ 7.5% of eligible supply (non-ABSTAIN)" },
       { label: "Pass threshold", value: "Plurality, winner > 40% of cast votes" },
       { label: "Execution window", value: "≤ 14 days after July 1 unlock" },
@@ -103,8 +106,8 @@ const PROPOSALS: Record<string, Proposal> = {
       {
         id: "Vote",
         text:
-          "Pick ONE option. A = burn the full ~50M. B = re-lock for 12 months. C = pro-rata distribution to $MAGPIE holders over 30 days. D = utility-weighted distribution to protocol users over 30 days. E = hybrid (50% burn + 25% holders + 25% users). ABSTAIN = defer to operator discretion.",
-        choices: ["A", "B", "C", "D", "E", "ABSTAIN"],
+          "Pick ONE option. A = Patience: re-lock 100% for 36 more months (new Streamflow vest ending July 2029, no spend, no distribution). B = Loyalty: 100% to current $MAGPIE holders via 24-month linear vest (snapshot at proposal close; ~0.137%/day per holder; same exempt-wallet rules as today). C = Build: 100% to a multi-sig Magpie Treasury locked 24 months minimum, with pre-declared programmatic spend categories (deep-LP backing, partner integrations, security audits, x402 grants, matched LP top-ups) and full on-chain logging on /distributions. D = Discipline + Build: 50% burned permanently (~25M, -2.5% supply) + 50% to the same locked Growth Treasury (24-mo lock, Option C spend rules). ABSTAIN = defer to operator discretion.",
+        choices: ["A", "B", "C", "D", "ABSTAIN"],
       },
     ],
   },
@@ -190,7 +193,7 @@ export default async function ProposalPage({
               </div>
               <div className="px-5 py-6 sm:px-6">
                 {question.choices && (
-                  <VoteButtons
+                  <VoteAndLiveResults
                     proposalId={p.id}
                     questionId={question.id}
                     choices={question.choices}
@@ -198,9 +201,6 @@ export default async function ProposalPage({
                     opensAtIso={p.opens_at_iso}
                   />
                 )}
-                <p className="mt-4 text-xs leading-relaxed text-white/45">
-                  Wallet message-sign only. No SOL moves, no gas. Re-vote any time before close — latest signature wins.
-                </p>
               </div>
             </section>
           </Reveal>
@@ -213,28 +213,6 @@ export default async function ProposalPage({
                 <strong className="text-white/90">{p.voting_window_human}.</strong>{" "}
                 {p.summary}
               </p>
-            </section>
-          </Reveal>
-        )}
-
-        {/* ── Live results ─────────────────────────────────────── */}
-        {isActive && question?.choices && (
-          <Reveal delay={0.1}>
-            <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.025] p-5 sm:p-6">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-white/55">
-                  Live results
-                </h2>
-                <span className="inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-wider text-emerald-200/80">
-                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
-                  refreshes every 30s
-                </span>
-              </div>
-              <LiveResults
-                proposalId={p.id}
-                botApiUrl={botApiUrl}
-                choices={question.choices}
-              />
             </section>
           </Reveal>
         )}
