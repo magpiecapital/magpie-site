@@ -69,12 +69,13 @@ export function Header() {
               href={MAGPIE_TOKEN_HREF}
               target="_blank"
               rel="noopener noreferrer"
-              className="whitespace-nowrap rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-1 text-sm font-medium text-[var(--accent)] transition hover:bg-[var(--accent)]/15"
+              className="whitespace-nowrap text-sm font-medium text-[var(--ink-soft)] transition hover:text-[var(--ink)]"
+              title="$MAGPIE on pump.fun"
             >
               {MAGPIE_TOKEN_LABEL}
             </a>
           ) : (
-            <span className="whitespace-nowrap rounded-full border border-[var(--hairline)] px-3 py-1 text-sm font-medium text-[var(--ink-faint)]">
+            <span className="whitespace-nowrap text-sm font-medium text-[var(--ink-faint)]">
               {MAGPIE_TOKEN_LABEL}
             </span>
           )}
