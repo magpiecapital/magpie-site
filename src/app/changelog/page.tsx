@@ -19,6 +19,20 @@ interface Entry {
 
 const ENTRIES: Entry[] = [
   {
+    date: "June 18, 2026",
+    tag: "Security",
+    title: "Program upgrade authority moved to a hardware-key multisig with a 48h public timelock",
+    bullets: [
+      "V1, V3, and V4 program upgrade authority is now controlled by a Squads V4 multisig (32KiAKXAZpbqvpkubC4JVWgEbomRwbSh4fRVYCdakLec). The vault PDA that owns upgrade rights is 3FA8bGKuc4dK2pcmjA46zzxNWn2Pf5YT32jGfbSdwkWB",
+      "The sole signer is an offline hardware key (Ledger Nano X). The lender wallet that handles day-to-day operations no longer has upgrade authority",
+      "Every future upgrade is queued through Squads and is visible on-chain for a full 48 hours before it can execute. No surprise upgrades are possible. Anyone — including community members — can execute an upgrade after the timelock clears",
+      "The multisig configuration is permanently immutable: threshold, members, and timelock cannot ever be changed without deploying a brand new multisig",
+      "Day-to-day operations are unchanged — cosign-borrow, attestations, fee distribution, admin instructions (rates / allowlist / pause) all continue to run from the lender wallet (4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx) exactly as before",
+      "Live verification with on-chain reads: magpie.capital/security shows the current upgrade authority for each program, the multisig configuration, and any pending upgrades with their countdown",
+      "No bytecode changed during the migration — Last Deployed Slot is unchanged on all three programs. Every existing loan, every collateral vault, every active limit-close order continues to behave exactly as it did the day before",
+    ],
+  },
+  {
     date: "June 15, 2026",
     tag: "Launch",
     title: "V4 in-vault auto-sells — LIVE on mainnet",
