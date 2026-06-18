@@ -108,7 +108,8 @@ const TIER_B = [
 const ROADMAP = [
   { phase: "v0", current: true, title: "Off-chain signal voting", detail: "Holders vote with wallet signatures. Operator commits to honor passing votes within Tier A scope." },
   { phase: "v1", current: false, title: "On-chain parameter bounds", detail: "Configuration contract enforces Tier A bounds. Operator cannot change LTV / fees / holder share outside the bounds without a new contract deploy." },
-  { phase: "v2", current: false, title: "Full on-chain governance", detail: "SPL governance program. Token-weighted on-chain votes. Operator key authority transitions to multisig + governance." },
+  { phase: "v1.5 (shipped)", current: false, title: "Program upgrade authority moved to multisig", detail: "Shipped 2026-06-18. V1, V3, and V4 program upgrades now require a Squads multisig signed by an offline hardware key with a 48-hour public timelock. Configuration is immutable. Live verification at /security." },
+  { phase: "v2", current: false, title: "Full on-chain governance", detail: "SPL governance program. Token-weighted on-chain votes. Remaining operator-discretion parameters move to on-chain governance." },
 ];
 
 // ─── Page-level helpers ───────────────────────────────────────────────────
