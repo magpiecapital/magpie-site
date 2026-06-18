@@ -86,12 +86,12 @@ export async function GET() {
           id: "MGP-003",
           title: "Allocation decision for the July 1, 2026 $MAGPIE Streamflow unlock (~5% of supply)",
           scope_tier: "A6 — binding by operator commitment (one-time Tier B → de-facto Tier A exception)",
-          status: "active",
-          voting_window: "2026-06-12 to 2026-06-15",
-          voting_opens_at_iso: "2026-06-12T00:00:00Z",
-          voting_closes_at_iso: "2026-06-15T00:00:00Z",
+          status: "draft",
+          voting_window: "2026-06-24 to 2026-06-29 (5 days, 8:00 PM ET → 8:00 PM ET)",
+          voting_opens_at_iso: "2026-06-25T00:00:00Z",
+          voting_closes_at_iso: "2026-06-30T00:00:00Z",
           summary:
-            "Five options for the ~50M $MAGPIE balance unlocking on July 1, 2026 (Streamflow contract GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc): burn / re-lock 12 months / pro-rata distribution to holders (30-day stream) / utility-weighted distribution to protocol users (30-day stream) / hybrid (50% burn + 25% holders + 25% users). Plurality wins above 40%; 7.5% quorum; ABSTAIN ≥ 30% triggers operator discretion fallback.",
+            "Four options for the ~50M $MAGPIE balance unlocking on July 1, 2026 (Streamflow contract GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc). A = Patience (re-lock 100% for 36 more months). B = Loyalty (24-month linear vest to current $MAGPIE holders, snapshot at proposal close). C = Build (100% to a multi-sig Magpie Treasury, locked 24 months minimum, programmatic spend categories with on-chain logging on /distributions). D = Discipline + Build (50% burn + 50% to the same locked treasury). No option releases tokens at once. Plurality wins above 40%; 7.5% quorum; ABSTAIN ≥ 30% triggers operator discretion fallback.",
           vote_url: `${base}/governance/proposal/MGP-003`,
           spec_url:
             "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md",

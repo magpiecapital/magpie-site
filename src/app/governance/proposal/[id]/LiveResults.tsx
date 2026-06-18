@@ -16,6 +16,7 @@ interface TallyBody {
     abstain_weight: string;
     cast_weight: string;
     total_eligible_capped: string;
+    per_choice?: Record<string, string>;
   };
   percentages: { participation_pct: number; yes_share_of_cast_pct: number };
   computed_at: string;
@@ -25,6 +26,13 @@ interface LiveResultsProps {
   proposalId: string;
   botApiUrl: string;
   choices: string[];
+  /**
+   * Bumping this counter from the parent triggers an immediate refetch.
+   * VoteButtons calls onVoteRecorded → parent bumps this → bar moves NOW
+   * instead of waiting for the next 2s poll cycle. Prevents the "I voted
+   * and nothing happened for 2 seconds" UX issue operator flagged.
+   */
+  refreshNonce?: number;
 }
 
 // Convert raw $MAGPIE (6 decimals) to a short human string.
@@ -40,7 +48,12 @@ function fmtPct(pct: number): string {
   return `${pct.toFixed(2)}%`;
 }
 
-export function LiveResults({ proposalId, botApiUrl, choices }: LiveResultsProps) {
+export function LiveResults({
+  proposalId,
+  botApiUrl,
+  choices,
+  refreshNonce = 0,
+}: LiveResultsProps) {
   const [tally, setTally] = useState<TallyBody | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -67,17 +80,15 @@ export function LiveResults({ proposalId, botApiUrl, choices }: LiveResultsProps
       }
     }
     fetchTally();
-    // Tight cadence for near-instant tally updates after a vote lands.
-    // 2s polling is the v0 path; v1 will move to SSE / Postgres LISTEN
-    // for true push semantics. At 2s the user perceives "instant" on
-    // their own vote because they tabbed back to the page in ~1s and
-    // the next poll catches the new state.
+    // 2s poll. The refreshNonce dependency below triggers an immediate
+    // refetch the moment a vote is recorded — no need for SSE/LISTEN
+    // to feel instant in the common case.
     const id = setInterval(fetchTally, 2_000);
     return () => {
       cancelled = true;
       clearInterval(id);
     };
-  }, [proposalId, botApiUrl]);
+  }, [proposalId, botApiUrl, refreshNonce]);
 
   if (error) {
     return (
@@ -95,29 +106,44 @@ export function LiveResults({ proposalId, botApiUrl, choices }: LiveResultsProps
   }
 
   const castWeight = BigInt(tally.weights.cast_weight);
-  // Distribute the choice weights by name. The tally only stores yes/no/abstain
-  // explicitly, so for non-YES-NO ballots (e.g. MGP-003 A/B/C/D/E) the bot
-  // will return 0 weights — that's fine, the bars just render empty.
+  const perChoiceMap = tally.weights.per_choice || {};
+
   const perChoice: { label: string; weight: bigint; pct: number; color: string }[] = choices.map(
     (c) => {
       const norm = c.toLowerCase();
+      // Prefer the bot's per_choice map (correct for multi-choice ballots).
+      // Fall back to legacy yes/no/abstain fields for older proposals that
+      // haven't been re-tallied since the API got per_choice support.
       let w = 0n;
-      if (norm === "yes") w = BigInt(tally.weights.yes_weight);
-      else if (norm === "no") w = BigInt(tally.weights.no_weight);
-      else if (norm === "abstain") w = BigInt(tally.weights.abstain_weight);
+      const fromPerChoice = perChoiceMap[c.toUpperCase()] ?? perChoiceMap[c];
+      if (fromPerChoice) {
+        w = BigInt(fromPerChoice);
+      } else if (norm === "yes") {
+        w = BigInt(tally.weights.yes_weight);
+      } else if (norm === "no") {
+        w = BigInt(tally.weights.no_weight);
+      } else if (norm === "abstain") {
+        w = BigInt(tally.weights.abstain_weight);
+      }
       const pct = castWeight > 0n ? Number((w * 10000n) / castWeight) / 100 : 0;
       const color =
         norm === "yes"
           ? "from-emerald-500 to-emerald-400"
           : norm === "no"
             ? "from-rose-500 to-rose-400"
-            : "from-white/40 to-white/30";
+            : "from-cyan-500 to-cyan-400";
       return { label: c, weight: w, pct, color };
     },
   );
 
   const quorumMet = tally.percentages.participation_pct >= tally.quorum_pct;
-  const thresholdMet = tally.percentages.yes_share_of_cast_pct >= tally.threshold_pct;
+  // Threshold check uses yes_share for YES/NO proposals.
+  // For multi-choice (no YES in the choice set), use the leading-choice share.
+  const hasYesChoice = choices.some((c) => c.toLowerCase() === "yes");
+  const leadingChoicePct = hasYesChoice
+    ? tally.percentages.yes_share_of_cast_pct
+    : Math.max(0, ...perChoice.filter((p) => p.label.toLowerCase() !== "abstain").map((p) => p.pct));
+  const thresholdMet = leadingChoicePct >= tally.threshold_pct;
 
   return (
     <div className="space-y-5">
@@ -177,17 +203,20 @@ export function LiveResults({ proposalId, botApiUrl, choices }: LiveResultsProps
               : "border-white/10 bg-white/5")
           }
         >
-          <p className="text-[10px] uppercase tracking-wider text-white/40">YES share</p>
+          <p className="text-[10px] uppercase tracking-wider text-white/40">
+            {hasYesChoice ? "YES share" : "Leading choice"}
+          </p>
           <p className="mt-0.5 font-mono text-sm text-white/90 tabular-nums">
-            {fmtPct(tally.percentages.yes_share_of_cast_pct)}{" "}
+            {fmtPct(leadingChoicePct)}{" "}
             <span className="text-xs text-white/40">/ {tally.threshold_pct}% req</span>
           </p>
         </div>
       </div>
 
       <p className="text-[11px] text-white/40">
-        Live tally, refreshes every 30s. Aggregate weights only — per-wallet choices
-        stay private. Whale-cap 2% applied. Updated {formatEst(tally.computed_at)}.
+        Live tally, refreshes every 2 seconds (and instantly on your own vote).
+        Aggregate weights only — per-wallet choices stay private. Whale-cap 2%
+        applied. Updated {formatEst(tally.computed_at)}.
       </p>
     </div>
   );

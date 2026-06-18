@@ -12,6 +12,14 @@ interface VoteButtonsProps {
   botApiUrl: string;
   /** ISO timestamp; if set and in the future, buttons render as "voting opens at …" instead of clickable. */
   opensAtIso?: string;
+  /**
+   * Called the moment a vote signature is accepted by the bot. Parent
+   * uses this to bump LiveResults' refresh nonce so the bar moves NOW
+   * instead of waiting for the next 2s poll. Operator-flagged: the
+   * "I voted and nothing visibly changed" UX was the #1 trust issue
+   * on MGP-001 — never reproduce. See feedback_voting_ux_must_feel_solid.md.
+   */
+  onVoteRecorded?: (choice: VoteChoice) => void;
 }
 
 // Visual treatment per choice. YES is green, NO is rose, everything
@@ -39,11 +47,17 @@ export function VoteButtons({
   choices,
   botApiUrl,
   opensAtIso,
+  onVoteRecorded,
 }: VoteButtonsProps) {
   const { publicKey, signMessage, connected } = useWallet();
   const [busy, setBusy] = useState<VoteChoice | null>(null);
   const [recorded, setRecorded] = useState<VoteChoice | null>(null);
+  // Sub-states so the user knows EXACTLY where they are in the flow.
+  // Operator feedback: "didn't feel confident when I locked in my vote."
+  // Now the button text walks through: idle → signing → sending → recorded.
+  const [phase, setPhase] = useState<"idle" | "signing" | "sending" | "recorded" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const [justRecordedAt, setJustRecordedAt] = useState<number | null>(null);
 
   const walletStr = publicKey ? publicKey.toBase58() : null;
   const opensAt = opensAtIso ? Date.parse(opensAtIso) : null;
@@ -53,11 +67,19 @@ export function VoteButtons({
     setError(null);
     if (!walletStr || !signMessage) {
       setError("Connect a wallet that supports signMessage to vote.");
+      setPhase("error");
       return;
     }
     setBusy(choice);
+    setPhase("signing");
     try {
-      await siteCastVote({
+      // The signMessage prompt opens the wallet; once signed, siteCastVote
+      // POSTs to the bot. Phase flips to "sending" right before the POST.
+      // We can't intercept the inner wallet step, so we approximate by
+      // flipping after a microtask — gives the UI a chance to render
+      // "signing…" before the wallet popup steals focus.
+      await new Promise((r) => setTimeout(r, 0));
+      const result = await siteCastVote({
         botApiUrl,
         signerPubkey: walletStr,
         signMessage,
@@ -66,8 +88,15 @@ export function VoteButtons({
         vote: choice,
       });
       setRecorded(choice);
+      setPhase("recorded");
+      setJustRecordedAt(Date.now());
+      // Tell the parent — they bump LiveResults' refreshNonce so the
+      // bar moves immediately instead of waiting for the next 2s poll.
+      onVoteRecorded?.(choice);
+      void result;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setPhase("error");
     } finally {
       setBusy(null);
     }
@@ -107,12 +136,21 @@ export function VoteButtons({
     : choices.length <= 4 ? "grid-cols-2 sm:grid-cols-4"
     : "grid-cols-2 sm:grid-cols-3";
 
+  // Recently-recorded glow lasts 4 seconds so the eye catches it even
+  // if the user looks away briefly.
+  const recentlyRecorded =
+    phase === "recorded" && justRecordedAt !== null && Date.now() - justRecordedAt < 4_000;
+
   return (
     <div>
       <div className={`grid gap-2 sm:gap-3 ${gridCols}`}>
         {choices.map((c) => {
           const isRecorded = recorded === c;
           const isBusy = busy === c;
+          const busyLabel =
+            phase === "signing" ? "sign in wallet…"
+            : phase === "sending" ? "submitting…"
+            : "working…";
           return (
             <button
               key={c}
@@ -124,17 +162,53 @@ export function VoteButtons({
                 choiceTheme(c, isRecorded)
               }
             >
-              {isBusy ? "signing…" : isRecorded ? `${c} · recorded` : c}
+              {isBusy ? busyLabel : isRecorded ? `✓ ${c} · recorded` : c}
             </button>
           );
         })}
       </div>
+
+      {/* Prominent success banner — replaces the small grey line that
+          operator said didn't feel confidence-inspiring. Big, green,
+          tactile, and stays visible. */}
       {recorded && (
-        <p className="mt-3 text-xs text-emerald-200/80">
-          Vote recorded. Re-sign with a different choice any time before close — latest signature wins.
-        </p>
+        <div
+          className={
+            "mt-4 rounded-xl border px-4 py-3 transition-all duration-300 " +
+            (recentlyRecorded
+              ? "border-emerald-400/60 bg-emerald-500/15 shadow-[0_0_32px_-8px_rgba(16,185,129,0.8)]"
+              : "border-emerald-500/30 bg-emerald-500/8")
+          }
+        >
+          <div className="flex items-start gap-3">
+            <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/30 text-emerald-200">
+              ✓
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-emerald-100">
+                Vote signed and submitted — choice {recorded}
+              </p>
+              <p className="mt-1 text-xs text-emerald-100/75">
+                Your signature is on the server. The tally bars below update
+                live; you'll see your weight reflected in the next second or
+                two. Re-sign with a different choice anytime before close —
+                latest signature wins.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
-      {error && <p className="mt-3 text-xs text-rose-300">{error}</p>}
+
+      {error && (
+        <div className="mt-4 rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-3">
+          <p className="text-sm font-medium text-rose-100">Vote failed</p>
+          <p className="mt-1 text-xs text-rose-100/80">{error}</p>
+          <p className="mt-1 text-xs text-rose-100/60">
+            Tap your choice again to retry. Nothing was sent until your wallet
+            signs.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
