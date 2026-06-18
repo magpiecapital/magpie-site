@@ -126,8 +126,29 @@ export async function GET() {
          WHERE service = 'limit_close_watcher'
            AND hour > NOW() - INTERVAL '24 hours'`,
       ),
+      // 2026-06-18: UNION the recovery_credits table so out-of-band
+      // protocol contributions (e.g. the operator-funded exploit recovery
+      // after the cosign-borrow drain) count alongside profitable
+      // defaults from liquidation_economics. Both flow through the same
+      // 80/10/10 (holder / LP-loyalty / protocol-reserve) split via the
+      // distribution-watcher, so they're economically equivalent from a
+      // user's perspective. recovery_credits table may not exist on a
+      // fresh deploy before migration 078 — guarded with COALESCE +
+      // table-existence check in the outer query for safety.
       query(
-        `SELECT
+        `WITH all_profit_events AS (
+           SELECT net_profit_lamports, distribution_status, sale_detected_at,
+                  collateral_mint
+             FROM liquidation_economics
+           UNION ALL
+           SELECT amount_lamports AS net_profit_lamports,
+                  distribution_status,
+                  created_at AS sale_detected_at,
+                  NULL AS collateral_mint
+             FROM recovery_credits
+             WHERE distribution_status IN ('awaiting_distribution', 'distributing', 'distributed')
+         )
+         SELECT
            COALESCE(SUM(net_profit_lamports) FILTER (
              WHERE net_profit_lamports > 0 AND distribution_status != 'loss'
            ), 0)::text AS profit_lifetime_lamports,
@@ -143,18 +164,44 @@ export async function GET() {
            COUNT(*) FILTER (WHERE distribution_status = 'awaiting_distribution')::int AS awaiting_dist_count,
            COUNT(*) FILTER (WHERE distribution_status = 'magpie_burned')::int AS magpie_burned_count,
            COUNT(*) FILTER (WHERE distribution_status = 'magpie_burn_pending')::int AS magpie_pending_count
-         FROM liquidation_economics`,
-      ).catch(() => ({
-        rows: [{
-          profit_lifetime_lamports: null,
-          profit_24h_lamports: null,
-          profitable_count: null,
-          pending_sale_count: null,
-          awaiting_dist_count: null,
-          magpie_burned_count: null,
-          magpie_pending_count: null,
-        }],
-      })),
+         FROM all_profit_events`,
+      ).catch(async () => {
+        // Fallback when recovery_credits doesn't exist yet (migration 078
+        // hasn't applied). Read liquidation_economics alone.
+        try {
+          return await query(
+            `SELECT
+               COALESCE(SUM(net_profit_lamports) FILTER (
+                 WHERE net_profit_lamports > 0 AND distribution_status != 'loss'
+               ), 0)::text AS profit_lifetime_lamports,
+               COALESCE(SUM(net_profit_lamports) FILTER (
+                 WHERE net_profit_lamports > 0
+                   AND distribution_status != 'loss'
+                   AND sale_detected_at > NOW() - INTERVAL '24 hours'
+               ), 0)::text AS profit_24h_lamports,
+               COUNT(*) FILTER (
+                 WHERE net_profit_lamports > 0 AND distribution_status != 'loss'
+               )::int AS profitable_count,
+               COUNT(*) FILTER (WHERE distribution_status = 'pending_sale')::int AS pending_sale_count,
+               COUNT(*) FILTER (WHERE distribution_status = 'awaiting_distribution')::int AS awaiting_dist_count,
+               COUNT(*) FILTER (WHERE distribution_status = 'magpie_burned')::int AS magpie_burned_count,
+               COUNT(*) FILTER (WHERE distribution_status = 'magpie_burn_pending')::int AS magpie_pending_count
+             FROM liquidation_economics`,
+          );
+        } catch {
+          return {
+            rows: [{
+              profit_lifetime_lamports: null,
+              profit_24h_lamports: null,
+              profitable_count: null,
+              pending_sale_count: null,
+              awaiting_dist_count: null,
+              magpie_burned_count: null,
+              magpie_pending_count: null,
+            }],
+          };
+        }
+      }),
       query(
         `SELECT
            COALESCE(SUM(amount_raw), 0)::text                                            AS total_raw,
