@@ -447,7 +447,8 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 {[
                   { title: "Non-custodial architecture", body: "Users can export private keys anytime. Magpie never controls assets outside of pledged collateral held in loan-scoped PDAs." },
                   { title: "AES-256-GCM encryption", body: "Private keys are encrypted at rest using AES-256-GCM before storage. Keys are never stored in plaintext, never logged, never transmitted unencrypted." },
-                  { title: "On-chain liquidation", body: "Liquidation is deterministic, auditable, and has no admin override. The Anchor program logic is the final authority — no multisig, no emergency pause." },
+                  { title: "On-chain liquidation", body: "Liquidation is deterministic, auditable, and has no admin override. The Anchor program logic runs the same path for every loan — no privileged actor can pause, skip, or alter it." },
+                  { title: "Hardware-key upgrade authority", body: "Every change to V1, V3, or V4 must be queued through a Squads V4 multisig that only an offline hardware key can authorize. Every queued upgrade is publicly visible on-chain for 48 hours before it can execute. The multisig configuration is immutable — no signer, no threshold, no timelock can ever be changed." },
                   { title: "Open source", body: "Both the bot and site repositories are publicly available on GitHub. Anyone can audit the protocol logic, verify on-chain programs, and inspect off-chain code." },
                   { title: "Input sanitization & rate limiting", body: "All API endpoints are rate-limited. All user inputs are sanitized to prevent injection, overflow, and replay attacks." },
                   { title: "Internal audit", body: "Internal security audit completed April 2026. Zero secrets in public codebase. SSL/TLS on all external communications." },

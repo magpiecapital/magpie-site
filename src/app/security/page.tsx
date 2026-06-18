@@ -3,8 +3,13 @@ import { Mark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { UpgradeAuthoritySection } from "./UpgradeAuthoritySection";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
+
+// Revalidate every 60s — keeps the live Upgrade Authority block fresh
+// without hammering RPC on every request.
+export const revalidate = 60;
 
 export const metadata = {
   title: "Security | Magpie",
@@ -254,6 +259,9 @@ export default function SecurityPage() {
           </div>
         </div>
       </section>
+
+      {/* Upgrade Authority — live on-chain */}
+      <UpgradeAuthoritySection />
 
       {/* Architecture Security */}
       <section className="mx-auto max-w-6xl px-6 py-28 md:py-36">
