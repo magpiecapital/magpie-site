@@ -4,6 +4,7 @@ import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { UpgradeAuthoritySection } from "./UpgradeAuthoritySection";
+import { OperationalKeysSection } from "./OperationalKeysSection";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -262,6 +263,9 @@ export default function SecurityPage() {
 
       {/* Upgrade Authority — live on-chain */}
       <UpgradeAuthoritySection />
+
+      {/* Operational Keys — honest framing of the hot-wallet model */}
+      <OperationalKeysSection />
 
       {/* Architecture Security */}
       <section className="mx-auto max-w-6xl px-6 py-28 md:py-36">
