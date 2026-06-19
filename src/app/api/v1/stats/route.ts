@@ -162,6 +162,7 @@ export async function GET() {
            )::int AS profitable_count,
            COUNT(*) FILTER (WHERE distribution_status = 'pending_sale')::int AS pending_sale_count,
            COUNT(*) FILTER (WHERE distribution_status = 'awaiting_distribution')::int AS awaiting_dist_count,
+           COALESCE(SUM(net_profit_lamports) FILTER (WHERE distribution_status = 'awaiting_distribution'), 0)::text AS awaiting_dist_lamports,
            COUNT(*) FILTER (WHERE distribution_status = 'magpie_burned')::int AS magpie_burned_count,
            COUNT(*) FILTER (WHERE distribution_status = 'magpie_burn_pending')::int AS magpie_pending_count
          FROM all_profit_events`,
@@ -184,6 +185,7 @@ export async function GET() {
                )::int AS profitable_count,
                COUNT(*) FILTER (WHERE distribution_status = 'pending_sale')::int AS pending_sale_count,
                COUNT(*) FILTER (WHERE distribution_status = 'awaiting_distribution')::int AS awaiting_dist_count,
+           COALESCE(SUM(net_profit_lamports) FILTER (WHERE distribution_status = 'awaiting_distribution'), 0)::text AS awaiting_dist_lamports,
                COUNT(*) FILTER (WHERE distribution_status = 'magpie_burned')::int AS magpie_burned_count,
                COUNT(*) FILTER (WHERE distribution_status = 'magpie_burn_pending')::int AS magpie_pending_count
              FROM liquidation_economics`,
@@ -196,6 +198,7 @@ export async function GET() {
               profitable_count: null,
               pending_sale_count: null,
               awaiting_dist_count: null,
+              awaiting_dist_lamports: null,
               magpie_burned_count: null,
               magpie_pending_count: null,
             }],
@@ -388,6 +391,7 @@ export async function GET() {
               profitableDefaultsCount: Number(dp.profitable_count ?? 0),
               awaitingSaleCount: Number(dp.pending_sale_count ?? 0),
               awaitingDistributionCount: Number(dp.awaiting_dist_count ?? 0),
+              awaitingDistributionSol: lamportsToSol(dp.awaiting_dist_lamports),
               magpieBurnedCount: Number(dp.magpie_burned_count ?? 0),
               magpieBurnPendingCount: Number(dp.magpie_pending_count ?? 0),
               policy: {
