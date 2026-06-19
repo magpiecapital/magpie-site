@@ -1602,7 +1602,7 @@ function DashboardPageInner() {
           const second = await refreshOnce(12_000);
           refreshLanded = second.ok;
           if (!second.ok) {
-            console.warn("[borrow] price refresh attempt 2 also non-200:", second.status, "— falling back to cosign-borrow JIT");
+            console.warn("[borrow] price refresh attempt 2 also non-200:", second.status, "— entering deploy-window shield");
           }
         }
       } catch (refreshErr) {
@@ -1612,15 +1612,52 @@ function DashboardPageInner() {
           const retry = await refreshOnce(12_000);
           refreshLanded = retry.ok;
         } catch (retryErr) {
-          console.warn("[borrow] price refresh retry threw, proceeding:", (retryErr as Error).message);
+          console.warn("[borrow] price refresh retry threw, entering deploy-window shield:", (retryErr as Error).message);
+        }
+      }
+      // Deploy-window shield (2026-06-19, operator-mandated PROACTIVE
+      // prevention). When both /price/refresh retries fail it usually
+      // means the bot is mid-deploy. If we proceed, the wallet signs
+      // against a stale price-feed PDA and the V4 program rejects with
+      // AccountNotInitialized — exactly the class user 948 hit.
+      // Instead: poll /api/v1/health up to 15s waiting for restore,
+      // then attempt one more refresh. Only on persistent fail do we
+      // abort with a specific user-facing class the surface can map.
+      if (!refreshLanded) {
+        const healthPoll = async () => {
+          const deadline = Date.now() + 15_000;
+          while (Date.now() < deadline) {
+            try {
+              const hc = new AbortController();
+              const ht = setTimeout(() => hc.abort(), 3_000);
+              const hr = await fetch(`${botApiForRefresh}/api/v1/health`, { signal: hc.signal, cache: "no-store" });
+              clearTimeout(ht);
+              if (hr.ok) {
+                const body = await hr.json().catch(() => null);
+                if (body?.status === "ok") return true;
+              }
+            } catch { /* ignore, keep polling */ }
+            await new Promise((res) => setTimeout(res, 1500));
+          }
+          return false;
+        };
+        const healthy = await healthPoll();
+        if (healthy) {
+          console.warn("[borrow] deploy-window shield: health restored, final refresh attempt");
+          try {
+            const final = await refreshOnce(12_000);
+            refreshLanded = final.ok;
+          } catch (e) {
+            console.warn("[borrow] final refresh threw:", (e as Error).message);
+          }
         }
       }
       if (!refreshLanded) {
-        // Non-fatal — surface a soft client-side hint in the console
-        // (operator banned "briefly unavailable" copy in user-facing
-        // text per feedback_oracle_must_never_block_borrow). The
-        // server-side JIT in cosign-borrow is the safety net here.
-        console.warn("[borrow] proceeding without explicit pre-attest; cosign-borrow JIT will rescue");
+        // Persistent failure — abort the borrow flow rather than let
+        // the wallet sign stale data and the program reject with
+        // AccountNotInitialized. Toast the user with the specific
+        // class so the surface explains the wait, not a generic error.
+        throw new Error("BORROW_INFRA_WARMING");
       }
 
       const { transaction, loanId: chainLoanId } = await buildBorrowTransaction({
@@ -2152,10 +2189,21 @@ function DashboardPageInner() {
       connection.getBalance(publicKey).then((lamports) => setSolBalance(lamports / LAMPORTS_PER_SOL)).catch(() => {});
       forceRefresh();
     } catch (err) {
-      // Use the same translator as /earn so users see clean, educational
-      // error copy instead of raw Solana logs.
-      const friendly = translateTxError(err, { flow: "deposit" }); // borrow uses same patterns
-      setBorrowError(`${friendly.title}: ${friendly.body.split("\n")[0]}`);
+      // Deploy-window shield class — distinct copy that explains the
+      // wait rather than dropping into the generic Solana translator.
+      // Set 2026-06-19 after user 948 hit AccountNotInitialized during
+      // a bot redeploy window.
+      if ((err as Error)?.message === "BORROW_INFRA_WARMING") {
+        setBorrowError(
+          "Markets settling — give it ~30 seconds and try again. " +
+          "(The bot was briefly syncing; we held your borrow back so the program wouldn't reject it.)",
+        );
+      } else {
+        // Use the same translator as /earn so users see clean, educational
+        // error copy instead of raw Solana logs.
+        const friendly = translateTxError(err, { flow: "deposit" }); // borrow uses same patterns
+        setBorrowError(`${friendly.title}: ${friendly.body.split("\n")[0]}`);
+      }
     } finally {
       setBorrowing(false);
     }
