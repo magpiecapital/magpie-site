@@ -1461,29 +1461,38 @@ function DashboardPageInner() {
       // error classes — we shipped four patches today (PRs #176, #177,
       // #182, #183) that each tried to block the user at successively
       // later layers. This blocks them at the FIRST.
+      // PER-MINT READINESS — calls /api/v1/v4/feed-ready?mint=X which
+      // returns the on-chain sample-in-window count for THIS specific
+      // mint AND bumps it into the bot's high-priority on-demand
+      // warmup queue. Within ~30s of this call, the mint will be warm.
+      // Updated 2026-06-19 PM after the global readiness gate proved
+      // insufficient: priority-mint warmup covered ~39 mints, but the
+      // user could pick a non-priority mint and still hit
+      // wait_for_warmup. Per-mint check fixes that.
       const botApiForReadiness = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
       try {
         const rc = new AbortController();
-        const rt = setTimeout(() => rc.abort(), 3_000);
-        const hr = await fetch(`${botApiForReadiness}/api/v1/health`, { signal: rc.signal, cache: "no-store" });
+        const rt = setTimeout(() => rc.abort(), 4_000);
+        const hr = await fetch(
+          `${botApiForReadiness}/api/v1/v4/feed-ready?mint=${encodeURIComponent(holding.mint)}`,
+          { signal: rc.signal, cache: "no-store" },
+        );
         clearTimeout(rt);
         if (hr.ok) {
           const body = await hr.json().catch(() => null);
-          const v4 = body?.v4_feeds;
-          if (v4 && v4.ready === false) {
-            console.warn(`[borrow] feeds not ready: ${v4.warm_count}/${v4.total_count} warm (${v4.percent_warm}%) eta=${v4.eta_seconds}s`);
-            throw new Error(`BORROW_INFRA_WARMING:${v4.eta_seconds ?? 30}`);
+          if (body && body.ok && body.ready === false) {
+            const eta = typeof body.eta_seconds === "number" ? body.eta_seconds : 30;
+            console.warn(`[borrow] feed not ready for ${holding.mint.slice(0, 8)}: samples=${body.samples_in_window}/${body.samples_needed} reason=${body.reason} eta=${eta}s`);
+            throw new Error(`BORROW_INFRA_WARMING:${eta}`);
           }
         }
       } catch (readinessErr) {
-        // If our intentional BORROW_INFRA_WARMING signal — re-throw to
-        // outer catch. Real network/health errors fall through and
-        // let the existing deploy-window shield handle them.
         if (((readinessErr as Error).message || "").startsWith("BORROW_INFRA_WARMING")) {
           throw readinessErr;
         }
-        // Soft fail — health endpoint blip alone shouldn't block.
-        console.warn("[borrow] readiness check soft-fail:", (readinessErr as Error).message);
+        // Soft fail — endpoint blip alone shouldn't block. Existing
+        // deploy-window shield + per-mint TWAP check downstream still cover.
+        console.warn("[borrow] per-mint readiness check soft-fail:", (readinessErr as Error).message);
       }
 
       const uiAmount = Number(holding.amount) / Math.pow(10, holding.decimals);
