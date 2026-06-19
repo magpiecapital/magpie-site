@@ -1504,25 +1504,26 @@ function DashboardPageInner() {
         ) {
           collateralValueLamports = twapBody.safe_collateral_value_lamports;
         } else if (twapBody && twapBody.recommendation === "wait_for_warmup") {
-          // V4 feed is cold OR uninitialized. Split:
-          //   - `v4_price_feed_uninitialized_or_empty` → PDA literally
-          //     doesn't exist yet. Cosign-borrow's JIT cannot rescue
-          //     this — the on-chain program will reject
-          //     AccountNotInitialized regardless of 0.89 fallback.
-          //     User 948 hit exactly this 2026-06-19 PM. BLOCK the
-          //     borrow with a specific UX class so the wallet never
-          //     sees a tx that will fail. The bot's per-mint warm-up
-          //     auto-initializes on the next attestation tick (~35s).
-          //   - other reasons (insufficient_samples, attestation_stale)
-          //     → PDA exists but TWAP window is short. The legacy
-          //     0.89 fallback still produces a valid borrow because
-          //     the PriceFeed PDA can be read by the program.
-          if (twapBody.reason === "v4_price_feed_uninitialized_or_empty") {
-            throw new Error("BORROW_INFRA_WARMING");
-          }
-          const collateralValueSol = collateralValueSolRaw * 0.89;
-          collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
-          twapDiagnostic = `V4 oracle still warming up (${twapBody.reason || "samples"})`;
+          // V4 feed isn't ready. The bot endpoint returns one of FOUR
+          // reasons under wait_for_warmup, and ALL of them mean the
+          // on-chain program will reject because it needs samples
+          // in the TWAP window to validate collateral:
+          //
+          //   1. v4_price_feed_uninitialized_or_empty — PDA missing
+          //   2. no_samples_yet — PDA exists but zero attestations
+          //   3. only_X_samples_in_window_need_Y — window too narrow
+          //   4. rpc_unavailable — bot couldn't even check
+          //
+          // Earlier fix (PR #177) only blocked reason #1. User 948
+          // hit reason #2 (`no_samples_yet`) on 2026-06-19 PM —
+          // confirming the 0.89 fallback is unsafe for ANY warm-up
+          // reason because the on-chain program enforces TWAP
+          // freshness regardless of how off-chain quotes.
+          //
+          // Per V4 loan lifecycle zero-errors mandate NN1: BLOCK on
+          // any wait_for_warmup. The bot's attestor will fill samples
+          // within ~35s; user retries cleanly.
+          throw new Error("BORROW_INFRA_WARMING");
         } else {
           // Unknown response shape — fall back conservatively.
           const collateralValueSol = collateralValueSolRaw * 0.89;
