@@ -1530,6 +1530,14 @@ function DashboardPageInner() {
           collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
         }
       } catch (twapErr) {
+        // Re-throw our intentional BORROW_INFRA_WARMING signal so the
+        // outer borrow handler routes it to the "Markets settling"
+        // toast. Without this re-throw, my PR #182 fix was silently
+        // swallowed and the 0.89 fallback proceeded → user signed →
+        // on-chain rejected. User 948 caught this 2026-06-19 PM.
+        if ((twapErr as Error).message === "BORROW_INFRA_WARMING") {
+          throw twapErr;
+        }
         // Network blip or timeout — fall back to legacy 0.89.
         console.warn("[borrow] TWAP endpoint unreachable, falling back to 0.89:", (twapErr as Error).message);
         const collateralValueSol = collateralValueSolRaw * 0.89;
