@@ -58,6 +58,8 @@ interface HoldersRow {
 interface LpLoyRow {
   current_pool_lamports: string | null;
   lifetime_distributions: string;
+  last_distribution_lamports: string | null;
+  last_distribution_at: Date | string | null;
 }
 
 interface RefsRow {
@@ -123,10 +125,20 @@ export async function GET() {
       },
     ),
     tryQuery<LpLoyRow>(
+      // Surface uniformity — same shape as holder_rewards so /stats can render
+      // a "Last SOL LP distribution: X SOL — N ago" line that matches the
+      // $MAGPIE holders line. Operator-mandated 2026-06-19 PM.
       `SELECT
          (SELECT accrued_lamports::text FROM lp_loyalty_pool WHERE id = 1) AS current_pool_lamports,
-         (SELECT COUNT(*)::text FROM lp_loyalty_distributions) AS lifetime_distributions`,
-      { current_pool_lamports: null, lifetime_distributions: "0" },
+         (SELECT COUNT(*)::text FROM lp_loyalty_distributions) AS lifetime_distributions,
+         (SELECT pool_lamports::text FROM lp_loyalty_distributions
+            ORDER BY id DESC LIMIT 1) AS last_distribution_lamports,
+         (SELECT created_at FROM lp_loyalty_distributions
+            ORDER BY id DESC LIMIT 1) AS last_distribution_at`,
+      {
+        current_pool_lamports: null, lifetime_distributions: "0",
+        last_distribution_lamports: null, last_distribution_at: null,
+      },
     ),
     tryQuery<RefsRow>(
       `SELECT
@@ -195,6 +207,9 @@ export async function GET() {
         current_pool_sol: lpLoy.current_pool_lamports
           ? Number(lpLoy.current_pool_lamports) / 1e9 : 0,
         lifetime_distributions: Number(lpLoy.lifetime_distributions),
+        last_distribution_sol: lpLoy.last_distribution_lamports
+          ? Number(lpLoy.last_distribution_lamports) / 1e9 : null,
+        last_distribution_at: lpLoy.last_distribution_at,
       },
       referrals: {
         // current_pool_sol = accrued minus paid (still claimable).

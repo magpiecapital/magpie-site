@@ -41,6 +41,8 @@ interface TransparencyData {
   lp_loyalty: {
     current_pool_sol: number;
     lifetime_distributions: number;
+    last_distribution_sol: number | null;
+    last_distribution_at: string | null;
   };
   referrals: {
     current_pool_sol: number;
@@ -309,6 +311,12 @@ export default function StatsClient() {
           <p className="mt-5 text-[12px] text-[var(--ink-faint)] sm:text-[13px]">
             Last $MAGPIE holder distribution: {fmtSol(data.holder_rewards.last_distribution_sol ?? 0)} —{" "}
             {relTime(data.holder_rewards.last_distribution_at)}
+          </p>
+        )}
+        {data && data.lp_loyalty.last_distribution_at && (
+          <p className="mt-1 text-[12px] text-[var(--ink-faint)] sm:text-[13px]">
+            Last SOL LP loyalty distribution: {fmtSol(data.lp_loyalty.last_distribution_sol ?? 0)} —{" "}
+            {relTime(data.lp_loyalty.last_distribution_at)}
           </p>
         )}
       </section>
