@@ -1445,6 +1445,47 @@ function DashboardPageInner() {
     setAutoArmedAfterBorrow(null);
 
     try {
+      // PRE-BORROW FEED READINESS GATE (architectural class-elimination
+      // fix, 2026-06-19 PM per V4 loan lifecycle mandate NN1).
+      //
+      // Before any borrow path code runs, ask the bot whether V4 price
+      // feeds are warm enough for the on-chain TWAP gate. If not,
+      // throw BORROW_INFRA_WARMING with the ETA — the outer catch
+      // routes that to the "Markets settling" toast with a countdown.
+      // No /price/refresh call, no /v4/twap call, no wallet sim — the
+      // user is held back BEFORE any path that could produce a
+      // stale-feed rejection.
+      //
+      // This is the single layer that ends the
+      // AccountNotInitialized/no_samples_yet/insufficient-samples
+      // error classes — we shipped four patches today (PRs #176, #177,
+      // #182, #183) that each tried to block the user at successively
+      // later layers. This blocks them at the FIRST.
+      const botApiForReadiness = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+      try {
+        const rc = new AbortController();
+        const rt = setTimeout(() => rc.abort(), 3_000);
+        const hr = await fetch(`${botApiForReadiness}/api/v1/health`, { signal: rc.signal, cache: "no-store" });
+        clearTimeout(rt);
+        if (hr.ok) {
+          const body = await hr.json().catch(() => null);
+          const v4 = body?.v4_feeds;
+          if (v4 && v4.ready === false) {
+            console.warn(`[borrow] feeds not ready: ${v4.warm_count}/${v4.total_count} warm (${v4.percent_warm}%) eta=${v4.eta_seconds}s`);
+            throw new Error(`BORROW_INFRA_WARMING:${v4.eta_seconds ?? 30}`);
+          }
+        }
+      } catch (readinessErr) {
+        // If our intentional BORROW_INFRA_WARMING signal — re-throw to
+        // outer catch. Real network/health errors fall through and
+        // let the existing deploy-window shield handle them.
+        if (((readinessErr as Error).message || "").startsWith("BORROW_INFRA_WARMING")) {
+          throw readinessErr;
+        }
+        // Soft fail — health endpoint blip alone shouldn't block.
+        console.warn("[borrow] readiness check soft-fail:", (readinessErr as Error).message);
+      }
+
       const uiAmount = Number(holding.amount) / Math.pow(10, holding.decimals);
       const collateralUiAmount = uiAmount * (pct / 100);
       const collateralAmountRaw = BigInt(Math.floor(collateralUiAmount * Math.pow(10, holding.decimals))).toString();
@@ -2213,10 +2254,15 @@ function DashboardPageInner() {
       // wait rather than dropping into the generic Solana translator.
       // Set 2026-06-19 after user 948 hit AccountNotInitialized during
       // a bot redeploy window.
-      if ((err as Error)?.message === "BORROW_INFRA_WARMING") {
+      const errMsg = (err as Error)?.message || "";
+      if (errMsg === "BORROW_INFRA_WARMING" || errMsg.startsWith("BORROW_INFRA_WARMING:")) {
+        // ETA is appended after the colon when readiness gate fires
+        // (e.g. "BORROW_INFRA_WARMING:42"). Otherwise default to 30s.
+        const etaPart = errMsg.split(":")[1];
+        const eta = etaPart && /^\d+$/.test(etaPart) ? parseInt(etaPart, 10) : 30;
         setBorrowError(
-          "Markets settling — give it ~30 seconds and try again. " +
-          "(The bot was briefly syncing; we held your borrow back so the program wouldn't reject it.)",
+          `Markets warming up — try again in ~${eta} seconds. ` +
+          "(We held your borrow back so the program wouldn't reject it.)",
         );
       } else {
         // Use the same translator as /earn so users see clean, educational
