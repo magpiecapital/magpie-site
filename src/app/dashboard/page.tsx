@@ -1693,20 +1693,60 @@ function DashboardPageInner() {
       if (!signTransaction) {
         throw new Error("Wallet does not support signTransaction");
       }
-      const userSigned = await signTransaction(transaction);
-      const partialBase64 = userSigned.serialize({ requireAllSignatures: false }).toString("base64");
 
+      // Sign + cosign retry loop. The bot returns 409 with
+      // `stale_blockhash: true` when the user signed too late and the
+      // blockhash has aged out (PR #404 in magpie-bot classified this).
+      // Auto-recover by refreshing the blockhash, asking the wallet
+      // to re-sign, and retrying — one extra signing prompt is the
+      // only user-visible difference vs a successful first attempt.
+      // [[feedback_loans_must_never_fail_no_regressions]]
       const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-      const cosignRes = await fetch(`${botApi}/api/v1/cosign-borrow`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ partialSignedTxBase64: partialBase64 }),
-      });
-      const cosignBody = await cosignRes.json();
-      if (!cosignRes.ok || !cosignBody.ok) {
-        throw new Error(cosignBody.error || `Co-sign failed (${cosignRes.status})`);
+      const MAX_BLOCKHASH_RETRIES = 2;
+      let signature: string | null = null;
+      let cosignBody: {
+        ok?: boolean;
+        error?: string;
+        signature?: string;
+        stale_blockhash?: boolean;
+        loan_pda?: string;
+      } = {};
+      let lastStatus = 0;
+      for (let attempt = 1; attempt <= MAX_BLOCKHASH_RETRIES; attempt++) {
+        const userSigned = await signTransaction(transaction);
+        const partialBase64 = userSigned.serialize({ requireAllSignatures: false }).toString("base64");
+
+        const cosignRes = await fetch(`${botApi}/api/v1/cosign-borrow`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ partialSignedTxBase64: partialBase64 }),
+        });
+        cosignBody = await cosignRes.json();
+        lastStatus = cosignRes.status;
+        if (cosignRes.ok && cosignBody.ok) {
+          signature = cosignBody.signature!;
+          break;
+        }
+        // Stale blockhash → refresh + re-sign + retry. Only this specific
+        // class triggers a retry; real failures break out.
+        if (
+          cosignRes.status === 409 &&
+          cosignBody.stale_blockhash === true &&
+          attempt < MAX_BLOCKHASH_RETRIES
+        ) {
+          console.warn(`[borrow] stale_blockhash on attempt ${attempt}; refreshing + re-signing`);
+          const fresh = await connection.getLatestBlockhash("confirmed");
+          transaction.recentBlockhash = fresh.blockhash;
+          transaction.lastValidBlockHeight = fresh.lastValidBlockHeight;
+          // Clear existing signatures so wallet adapter re-signs.
+          for (const sigPair of transaction.signatures) sigPair.signature = null;
+          continue;
+        }
+        break;
       }
-      const signature: string = cosignBody.signature;
+      if (!signature) {
+        throw new Error(cosignBody.error || `Co-sign failed (${lastStatus})`);
+      }
 
       setBorrowTx(signature);
 
