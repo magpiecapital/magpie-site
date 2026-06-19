@@ -405,10 +405,11 @@ export async function GET() {
             };
           })(),
           // $MAGPIE burn ledger summary — supply contraction. Includes
-          // the dev-wallet baseline burn (2M $MAGPIE) seeded by migration
-          // 061 plus every operator-confirmed default burn and future
-          // buyback burn. 6 decimals; total_raw is the on-chain base
-          // unit count; total_tokens is the human-readable token count.
+          // operator personal-funds buyback-and-burns (NOT protocol
+          // funds — operator-personal acquisitions from open market
+          // then burned) plus every operator-confirmed default burn.
+          // 6 decimals; total_raw is the on-chain base unit count;
+          // total_tokens is the human-readable token count.
           magpieBurned: (() => {
             const mb = magpieBurnsResult.rows[0];
             if (!mb || mb.total_raw == null) return null;
