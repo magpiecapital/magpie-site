@@ -1504,11 +1504,22 @@ function DashboardPageInner() {
         ) {
           collateralValueLamports = twapBody.safe_collateral_value_lamports;
         } else if (twapBody && twapBody.recommendation === "wait_for_warmup") {
-          // V4 feed is cold (< MIN_SAMPLES_FOR_TWAP samples). Borrow would
-          // fail with TwapInsufficientHistory anyway, but the legacy 0.89
-          // path is the cleanest fallback so the user still proceeds
-          // through borrow → cosign-borrow → TWAP warm-up than seeing a
-          // hard block here.
+          // V4 feed is cold OR uninitialized. Split:
+          //   - `v4_price_feed_uninitialized_or_empty` → PDA literally
+          //     doesn't exist yet. Cosign-borrow's JIT cannot rescue
+          //     this — the on-chain program will reject
+          //     AccountNotInitialized regardless of 0.89 fallback.
+          //     User 948 hit exactly this 2026-06-19 PM. BLOCK the
+          //     borrow with a specific UX class so the wallet never
+          //     sees a tx that will fail. The bot's per-mint warm-up
+          //     auto-initializes on the next attestation tick (~35s).
+          //   - other reasons (insufficient_samples, attestation_stale)
+          //     → PDA exists but TWAP window is short. The legacy
+          //     0.89 fallback still produces a valid borrow because
+          //     the PriceFeed PDA can be read by the program.
+          if (twapBody.reason === "v4_price_feed_uninitialized_or_empty") {
+            throw new Error("BORROW_INFRA_WARMING");
+          }
           const collateralValueSol = collateralValueSolRaw * 0.89;
           collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
           twapDiagnostic = `V4 oracle still warming up (${twapBody.reason || "samples"})`;
