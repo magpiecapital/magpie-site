@@ -1521,88 +1521,82 @@ function DashboardPageInner() {
       // Collateral value in lamports = (uiAmount * priceUsd / solPriceUsd) * 1e9
       const priceUsd = holding.approved.priceUsd || 0;
       const collateralValueSolRaw = (collateralUiAmount * priceUsd) / solPriceUsd;
-      // V4 hardening Item 4 (T15) — precise collateral_value via the bot's
-      // on-chain TWAP endpoint. The legacy 0.89 multiplier (1.03/1.15)
-      // worked but cost borrowers 11% borrowing power on EVERY V4 borrow.
-      // Worse, when SPCX (or any RWA / memecoin) actually pumps fast
-      // enough that spot/TWAP exceeds 1.15, even 0.89 isn't enough — the
-      // program returns PriceImpactPumpDetected and the user signs a tx
-      // that's guaranteed to fail. Operator hit this 2026-06-17 PM
-      // (feedback_v4_hardening_sprint_2026_06_17.md, Item 4).
+
+      // ============================================================
+      // LANE SEPARATION — V1/V3 vs V4
+      // ============================================================
+      // Operator-mandated 2026-06-19 PM (escalated 3 times):
+      //   "V1 loan must NEVER be held back by V4 stuff. Same for V3.
+      //    Completely different LANES — operate as cleanly as possible."
       //
-      // Calls GET /api/v1/v4/twap with mint + decimals + amount_raw.
-      // If the bot has enough TWAP samples (≥8 within the 5-min window)
-      // we use the bot-computed safe_collateral_value_lamports directly
-      // — a ~0.3% under-shoot instead of 11%. If the bot's response says
-      // "wait_for_warmup" (cold feed), we fall back to the legacy 0.89
-      // path so the borrow can still proceed when V4 isn't warm yet.
+      // V1 (memecoin, no exits) and V3 (RWA, no exits) take the legacy
+      // 0.89 multiplier path. They DO NOT call /api/v1/v4/twap, DO NOT
+      // call /api/v1/v4/feed-ready, DO NOT touch any V4 infra. The
+      // on-chain V1/V3 programs use legacy attestor feeds — totally
+      // independent of the V4 attestor.
       //
-      // Hard 4s timeout so a flaky bot never hangs the borrow.
+      // V4 (any borrow with exits armed) takes the precise TWAP path
+      // via the bot's /api/v1/v4/twap endpoint (V4 hardening T15).
+      // Better borrowing power (~0.3% under-shoot vs 11%), at the cost
+      // of requiring V4 feeds to be warm.
+      //
+      // See: feedback_borrow_time_pool_routing_master,
+      //      feedback_v1_v3_never_blocked_by_v4_lane_separation
       let collateralValueLamports: string;
-      let twapDiagnostic: string | null = null;
-      try {
-        const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-        const twapCtl = new AbortController();
-        const twapTimer = setTimeout(() => twapCtl.abort(), 4000);
-        let twapResp: Response;
+      if (!isV4Borrow) {
+        // V1/V3 lane — legacy 0.89 multiplier. ZERO V4 dependencies.
+        const collateralValueSol = collateralValueSolRaw * 0.89;
+        collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
+      } else {
+        // V4 lane — precise TWAP via bot endpoint. Hard 4s timeout so
+        // a flaky bot never hangs the borrow.
         try {
-          twapResp = await fetch(
-            `${botApi}/api/v1/v4/twap?mint=${encodeURIComponent(holding.mint)}` +
-              `&decimals=${holding.decimals}&amount_raw=${collateralAmountRaw}`,
-            { signal: twapCtl.signal },
-          );
-        } finally {
-          clearTimeout(twapTimer);
-        }
-        const twapBody = await twapResp.json().catch(() => ({} as Record<string, unknown>));
-        if (
-          twapResp.ok &&
-          twapBody &&
-          twapBody.recommendation === "use_precise_value" &&
-          typeof twapBody.safe_collateral_value_lamports === "string"
-        ) {
-          collateralValueLamports = twapBody.safe_collateral_value_lamports;
-        } else if (twapBody && twapBody.recommendation === "wait_for_warmup") {
-          // V4 feed isn't ready. The bot endpoint returns one of FOUR
-          // reasons under wait_for_warmup, and ALL of them mean the
-          // on-chain program will reject because it needs samples
-          // in the TWAP window to validate collateral:
-          //
-          //   1. v4_price_feed_uninitialized_or_empty — PDA missing
-          //   2. no_samples_yet — PDA exists but zero attestations
-          //   3. only_X_samples_in_window_need_Y — window too narrow
-          //   4. rpc_unavailable — bot couldn't even check
-          //
-          // Earlier fix (PR #177) only blocked reason #1. User 948
-          // hit reason #2 (`no_samples_yet`) on 2026-06-19 PM —
-          // confirming the 0.89 fallback is unsafe for ANY warm-up
-          // reason because the on-chain program enforces TWAP
-          // freshness regardless of how off-chain quotes.
-          //
-          // Per V4 loan lifecycle zero-errors mandate NN1: BLOCK on
-          // any wait_for_warmup. The bot's attestor will fill samples
-          // within ~35s; user retries cleanly.
-          throw new Error("BORROW_INFRA_WARMING");
-        } else {
-          // Unknown response shape — fall back conservatively.
+          const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+          const twapCtl = new AbortController();
+          const twapTimer = setTimeout(() => twapCtl.abort(), 4000);
+          let twapResp: Response;
+          try {
+            twapResp = await fetch(
+              `${botApi}/api/v1/v4/twap?mint=${encodeURIComponent(holding.mint)}` +
+                `&decimals=${holding.decimals}&amount_raw=${collateralAmountRaw}`,
+              { signal: twapCtl.signal },
+            );
+          } finally {
+            clearTimeout(twapTimer);
+          }
+          const twapBody = await twapResp.json().catch(() => ({} as Record<string, unknown>));
+          if (
+            twapResp.ok &&
+            twapBody &&
+            twapBody.recommendation === "use_precise_value" &&
+            typeof twapBody.safe_collateral_value_lamports === "string"
+          ) {
+            collateralValueLamports = twapBody.safe_collateral_value_lamports;
+          } else if (twapBody && twapBody.recommendation === "wait_for_warmup") {
+            // V4 feed isn't ready. Four sub-reasons all mean the
+            // on-chain V4 program will reject:
+            //   1. v4_price_feed_uninitialized_or_empty — PDA missing
+            //   2. no_samples_yet — PDA exists but zero attestations
+            //   3. only_X_samples_in_window_need_Y — window too narrow
+            //   4. rpc_unavailable — bot couldn't even check
+            // V4 lifecycle NN1: BLOCK on any wait_for_warmup. Attestor
+            // fills samples within ~35s; user retries cleanly.
+            throw new Error("BORROW_INFRA_WARMING");
+          } else {
+            // Unknown response shape — conservative fallback.
+            const collateralValueSol = collateralValueSolRaw * 0.89;
+            collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
+          }
+        } catch (twapErr) {
+          if ((twapErr as Error).message === "BORROW_INFRA_WARMING") {
+            throw twapErr;
+          }
+          // Network blip — fall back to legacy 0.89.
+          console.warn("[borrow] TWAP endpoint unreachable, falling back to 0.89:", (twapErr as Error).message);
           const collateralValueSol = collateralValueSolRaw * 0.89;
           collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
         }
-      } catch (twapErr) {
-        // Re-throw our intentional BORROW_INFRA_WARMING signal so the
-        // outer borrow handler routes it to the "Markets settling"
-        // toast. Without this re-throw, my PR #182 fix was silently
-        // swallowed and the 0.89 fallback proceeded → user signed →
-        // on-chain rejected. User 948 caught this 2026-06-19 PM.
-        if ((twapErr as Error).message === "BORROW_INFRA_WARMING") {
-          throw twapErr;
-        }
-        // Network blip or timeout — fall back to legacy 0.89.
-        console.warn("[borrow] TWAP endpoint unreachable, falling back to 0.89:", (twapErr as Error).message);
-        const collateralValueSol = collateralValueSolRaw * 0.89;
-        collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
       }
-      if (twapDiagnostic) console.log(`[borrow] ${twapDiagnostic}`);
 
       // Sub-1-SOL + exits guard (operator-mandated 2026-06-16 PM after
       // loan 799 on a different user revealed the trap: sub-1-SOL borrow
