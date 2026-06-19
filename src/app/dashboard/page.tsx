@@ -1461,16 +1461,25 @@ function DashboardPageInner() {
       // error classes — we shipped four patches today (PRs #176, #177,
       // #182, #183) that each tried to block the user at successively
       // later layers. This blocks them at the FIRST.
-      // PER-MINT READINESS — calls /api/v1/v4/feed-ready?mint=X which
-      // returns the on-chain sample-in-window count for THIS specific
-      // mint AND bumps it into the bot's high-priority on-demand
-      // warmup queue. Within ~30s of this call, the mint will be warm.
-      // Updated 2026-06-19 PM after the global readiness gate proved
-      // insufficient: priority-mint warmup covered ~39 mints, but the
-      // user could pick a non-priority mint and still hit
-      // wait_for_warmup. Per-mint check fixes that.
+      // PER-MINT READINESS — only applies to V4-routed borrows.
+      //
+      // V4 routing happens ONLY when the user is arming exits at
+      // borrow time (preBorrowExits is set). Plain V1/V2/V3 borrows
+      // use the legacy attestor's price feeds, NOT V4's TWAP — so the
+      // V4 sample-in-window check is irrelevant for them.
+      //
+      // Earlier this gate fired for every borrow, blocking V1 FARM
+      // borrows on V4 cold feeds — a class-mismatch bug introduced by
+      // PR magpie-site#185. Operator caught it 2026-06-19 PM
+      // ("My current FARM bottom attempt is V1 thought, not V4. I am
+      // not putting any exit instructions").
+      //
+      // Skip the V4 readiness check entirely when preBorrowExits is
+      // empty — the legacy attestor handles V1/V2/V3 feeds via its
+      // own cadence.
+      const isV4Borrow = !!preBorrowExits;
       const botApiForReadiness = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-      try {
+      if (isV4Borrow) try {
         const rc = new AbortController();
         const rt = setTimeout(() => rc.abort(), 4_000);
         const hr = await fetch(
