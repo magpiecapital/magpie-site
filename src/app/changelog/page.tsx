@@ -78,8 +78,8 @@ const ENTRIES: Entry[] = [
     tag: "Feature",
     title: "$MAGPIE burn ledger — public total live across every surface",
     bullets: [
-      "Every $MAGPIE burn now lands in a single magpie_burns ledger — default-driven burns, operator-manual burns, and (future) buybacks all sum into one public running total",
-      "Seeded with the 2,000,000 $MAGPIE dev-wallet baseline burn that pre-dated the ledger, so the headline figure reflects the protocol's full supply contraction to date",
+      "Every $MAGPIE burn now lands in a single magpie_burns ledger — default-driven burns and operator-funded buyback-and-burns (operator personal funds, NOT protocol funds) all sum into one public running total",
+      "Seeded with two operator personal-funds buyback-and-burns predating the public ledger (2,000,000 $MAGPIE + 1,000,000 $MAGPIE), so the headline figure reflects the protocol's full supply contraction to date",
       "Surfaced everywhere with the same number: /stats in Telegram ($MAGPIE BURNED section), magpie.capital/stats in the magpieBurned field and the new Default economics tile, and Pip's knowledge base — single source of truth, no drift",
       "Operator confirms each $MAGPIE-default burn via /burn-confirm <loan_id> <tx_sig>; the command flips the liquidation_economics row to 'magpie_burned' AND inserts a magpie_burns row in one shot",
       "Supply contraction directly grows every holder's pro-rata share of the next SOL distribution — the dashboard's 'Est Next Payout' already auto-adjusts because the math reads live on-chain $MAGPIE supply",
