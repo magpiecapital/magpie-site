@@ -8,6 +8,7 @@
  * neutral zero-state response so the dashboard never sees an error.
  */
 import { NextResponse } from "next/server";
+import { PublicKey } from "@solana/web3.js";
 import { query } from "@/lib/db";
 
 const HEADERS = {
@@ -81,6 +82,17 @@ export async function GET(req: Request) {
           ],
         },
       },
+      { status: 400 },
+    );
+  }
+
+  // Validate wallet as Solana pubkey before DB query. Audit-mandated
+  // 2026-06-19 PM — defense-in-depth against garbage queries.
+  try {
+    new PublicKey(wallet);
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Invalid wallet — must be a valid base58 Solana pubkey" },
       { status: 400 },
     );
   }

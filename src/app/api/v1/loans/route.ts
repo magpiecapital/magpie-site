@@ -247,6 +247,19 @@ export async function GET(req: Request) {
     );
   }
 
+  // Validate that `wallet` is a real Solana pubkey before any downstream
+  // DB query / RPC call. Audit-mandated 2026-06-19 PM — without this an
+  // attacker can spam DB with garbage queries that all parameterize safely
+  // but waste cycles + leak error messages.
+  try {
+    new PublicKey(wallet);
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Invalid wallet — must be a valid base58 Solana pubkey" },
+      { status: 400 },
+    );
+  }
+
   /* Strategy 1: direct DB query */
   try {
     const { rows } = await query(

@@ -876,6 +876,36 @@ function DashboardPageInner() {
     router.replace("/dashboard", { scroll: false });
   }, [borrowMintQuery, holdings, holdingsLoading, hasAppliedBorrowQuery, router]);
 
+  // ── Hot-on-Select V4 warming beacon ────────────────────────────────
+  // When the user expands a holding to start the borrow flow, ping the
+  // bot's warm-mint endpoint. The bot adds this mint to its continuous-
+  // attestation loop for the next 10 minutes — so even if the mint is
+  // cold-tier, the V4 PriceHistory PDA fills with samples while the
+  // user reviews ladder options, picks slice percentages, and signs.
+  // By the time the borrow tx hits the program, the TWAP window is
+  // ready and the borrow doesn't reject with TwapInsufficientHistory.
+  //
+  // Operator-mandated 2026-06-19 PM after $TROLL V4 borrow hit
+  // "Markets warming up — try again in ~20 seconds." See bot endpoint
+  // /api/v1/v4/warm-mint + migration 086_mint_warming_intents.sql.
+  //
+  // Fire-and-forget; failure is silent so a Helius blip doesn't break
+  // the borrow flow. The bot's own JIT attestation at cosign time is
+  // the authoritative fallback.
+  useEffect(() => {
+    if (!expandedMint) return;
+    const BOT_API_URL =
+      process.env.NEXT_PUBLIC_BOT_API_URL ||
+      "https://magpie-bot-production.up.railway.app";
+    fetch(`${BOT_API_URL}/api/v1/v4/warm-mint`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mint: expandedMint, source: "site" }),
+    }).catch(() => {
+      // Silent — bot's JIT at cosign time covers us either way.
+    });
+  }, [expandedMint]);
+
   // Marketplace tier-card click: ?category=memecoin|stock&tier=0|1|2
   // Behavior:
   //   1. Switch to the holdings nav
