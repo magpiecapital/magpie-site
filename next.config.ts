@@ -51,7 +51,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.helius-rpc.com https://*.helius.xyz https://api.mainnet-beta.solana.com https://*.triton.one https://*.quiknode.pro https://magpie-bot-production.up.railway.app https://*.sentry.io https://*.ingest.sentry.io https://api.anthropic.com wss://*.helius-rpc.com",
+              "connect-src 'self' https://*.helius-rpc.com https://*.helius.xyz https://api.mainnet-beta.solana.com https://*.triton.one https://*.quiknode.pro https://*.quicknode.com https://magpie-bot-production.up.railway.app https://*.sentry.io https://*.ingest.sentry.io https://api.anthropic.com https://api.dexscreener.com https://api.pump.fun https://*.pump.fun https://price.jup.ag https://quote-api.jup.ag https://*.jup.ag https://api.birdeye.so https://public-api.birdeye.so https://api.coingecko.com wss://*.helius-rpc.com wss://*.solana.com",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
