@@ -31,10 +31,47 @@ const HELIUS_RPC_URL =
 // a second paid provider (Triton, QuickNode) via RPC_BACKUP_URLS env
 // (comma-separated). Operator-mandated 2026-06-19 PM after V4 TSLAx
 // borrow failed with a chain of /api/rpc 429s.
+// Allowlist of trusted RPC provider host suffixes. Operator can configure
+// RPC_BACKUP_URLS via env but ONLY URLs whose host matches an entry below
+// are accepted. Audit-mandated 2026-06-19 PM defense against env-injection
+// SSRF — if Vercel env is ever compromised, attacker can't redirect RPC
+// traffic to a malicious server.
+const ALLOWED_RPC_HOST_SUFFIXES = [
+  ".helius-rpc.com",
+  ".helius.xyz",
+  ".triton.one",
+  ".quiknode.pro",
+  ".quicknode.com",
+  ".alchemy.com",
+  ".genesysgo.net",
+  "api.mainnet-beta.solana.com",
+];
+
+function isAllowedRpcUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (u.protocol !== "https:") return false;
+    return ALLOWED_RPC_HOST_SUFFIXES.some(
+      (suffix) => u.hostname === suffix || u.hostname.endsWith(suffix),
+    );
+  } catch {
+    return false;
+  }
+}
+
 const BACKUP_RPC_URLS: string[] = (process.env.RPC_BACKUP_URLS || "")
   .split(",")
   .map((s) => s.trim())
-  .filter(Boolean);
+  .filter(Boolean)
+  .filter((u) => {
+    const ok = isAllowedRpcUrl(u);
+    if (!ok) {
+      console.warn(
+        `[rpc-proxy] REJECTED env-configured backup RPC (not in allowlist): ${u.slice(0, 60)}...`,
+      );
+    }
+    return ok;
+  });
 if (BACKUP_RPC_URLS.length === 0) {
   // Always include public mainnet as last-resort fallback.
   BACKUP_RPC_URLS.push("https://api.mainnet-beta.solana.com");
