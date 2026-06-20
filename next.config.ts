@@ -35,8 +35,30 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "DENY" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+          // CSP — audit-mandated 2026-06-19 PM. script-src has 'unsafe-inline'
+          // + 'unsafe-eval' because Next.js hydration + wallet-adapter need
+          // both; tailwind needs unsafe-inline style. Wide img/font for
+          // arbitrary token CDNs. connect-src is the real defense: only
+          // explicit RPC providers + bot API + Sentry + Anthropic for Pip.
+          {
+            key: "Content-Security-Policy",
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel-insights.com https://va.vercel-scripts.com",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "img-src 'self' data: blob: https:",
+              "font-src 'self' data: https://fonts.gstatic.com",
+              "connect-src 'self' https://*.helius-rpc.com https://*.helius.xyz https://api.mainnet-beta.solana.com https://*.triton.one https://*.quiknode.pro https://magpie-bot-production.up.railway.app https://*.sentry.io https://*.ingest.sentry.io https://api.anthropic.com wss://*.helius-rpc.com",
+              "frame-ancestors 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "object-src 'none'",
+              "upgrade-insecure-requests",
+            ].join("; "),
+          },
           { key: "Link", value: '</.well-known/security.txt>; rel="security-policy"' },
           { key: "X-Magpie-Security", value: "https://magpie.capital/security" },
           { key: "X-Magpie-Source", value: "https://github.com/magpiecapital" },
