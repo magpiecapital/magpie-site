@@ -32,6 +32,7 @@ import {
   type TakeProfitOrder, type TakeProfitLoan, type TakeProfitState,
 } from "@/lib/solana/site-take-profit";
 import { parseStrike } from "@/lib/strike-price-parser";
+import { robustTokenPriceUsd } from "@/lib/robust-price";
 import { LadderPanel } from "./LadderPanel";
 import { LadderRollup } from "./LadderRollup";
 import { ExitStatusBanner } from "./ExitStatusBanner";
@@ -313,29 +314,15 @@ const PRICE_TTL_MS = 60_000;
 async function fetchCurrentPriceUsd(mint: string): Promise<number | null> {
   const cached = PRICE_CACHE.get(mint);
   if (cached && Date.now() - cached.at < PRICE_TTL_MS) return cached.usd;
-  try {
-    const res = await fetch(
-      `https://api.dexscreener.com/tokens/v1/solana/${mint}`,
-      { cache: "no-store" },
-    );
-    if (!res.ok) return null;
-    const data: unknown = await res.json();
-    const pairs = Array.isArray(data)
-      ? (data as Array<{ priceUsd?: string; liquidity?: { usd?: number } }>)
-      : ((data as { pairs?: Array<{ priceUsd?: string; liquidity?: { usd?: number } }> })?.pairs ?? []);
-    if (!Array.isArray(pairs) || pairs.length === 0) return null;
-    // Pick the deepest-liquidity pair — same heuristic the dashboard
-    // uses for SOL price elsewhere in page.tsx.
-    const best = pairs.reduce((b, p) =>
-      ((p.liquidity?.usd ?? 0) > (b.liquidity?.usd ?? 0) ? p : b),
-    );
-    const usd = parseFloat(String(best?.priceUsd ?? ""));
-    if (!Number.isFinite(usd) || usd <= 0) return null;
+  // ROBUST cross-sourced price (Jupiter-primary, DexScreener outlier-rejected)
+  // — a single mis-priced pair can never skew a take-profit valuation.
+  // See lib/robust-price.
+  const usd = await robustTokenPriceUsd(mint);
+  if (usd != null && usd > 0) {
     PRICE_CACHE.set(mint, { usd, at: Date.now() });
     return usd;
-  } catch {
-    return null;
   }
+  return null;
 }
 
 function formatPctMove(pct: number): string {

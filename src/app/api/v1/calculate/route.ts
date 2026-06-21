@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { TOKEN_REGISTRY } from "@/lib/token-registry";
+import { robustTokenPricesUsd } from "@/lib/robust-price";
 
 /* ─── Constants ─── */
 const SOL_MINT = "So11111111111111111111111111111111111111112";
@@ -13,47 +14,22 @@ const REGISTRY = TOKEN_REGISTRY;
 
 const MINT_SET = new Set(REGISTRY.map((t) => t.mint));
 
-/* ─── Fetch token + SOL price from DexScreener ─── */
+/* ─── Fetch robust cross-sourced token + SOL price (Jupiter-primary) ─── */
+// Uses the shared robust-price util so a single mis-priced DexScreener pair
+// can never inflate a calculated loan. See lib/robust-price.
 async function fetchPrices(
   mint: string,
 ): Promise<{ tokenPriceUsd: number; solPriceUsd: number }> {
-  const [tokenRes, solRes] = await Promise.all([
-    fetch(`https://api.dexscreener.com/tokens/v1/solana/${mint}`),
-    fetch(`https://api.dexscreener.com/tokens/v1/solana/${SOL_MINT}`),
-  ]);
+  const prices = await robustTokenPricesUsd([mint, SOL_MINT]);
+  const tokenPriceUsd = prices.get(mint)?.priceUsd ?? NaN;
+  const solPriceUsd = prices.get(SOL_MINT)?.priceUsd ?? NaN;
 
-  if (!tokenRes.ok || !solRes.ok) {
-    throw new Error("Failed to fetch prices from DexScreener");
+  if (!isFinite(tokenPriceUsd) || tokenPriceUsd <= 0) {
+    throw new Error("No price found for this token");
   }
-
-  const tokenData = await tokenRes.json();
-  const solData = await solRes.json();
-
-  const tokenPairs = Array.isArray(tokenData)
-    ? tokenData
-    : tokenData.pairs || [];
-  const solPairs = Array.isArray(solData) ? solData : solData.pairs || [];
-
-  if (tokenPairs.length === 0) {
-    throw new Error("No trading pairs found for this token");
+  if (!isFinite(solPriceUsd) || solPriceUsd <= 0) {
+    throw new Error("Could not resolve SOL price");
   }
-
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  const bestToken = tokenPairs.reduce((best: any, pair: any) =>
-    (pair.liquidity?.usd || 0) > (best.liquidity?.usd || 0) ? pair : best,
-  );
-  const bestSol = solPairs.reduce((best: any, pair: any) =>
-    (pair.liquidity?.usd || 0) > (best.liquidity?.usd || 0) ? pair : best,
-  );
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-
-  const tokenPriceUsd = parseFloat(bestToken.priceUsd);
-  const solPriceUsd = parseFloat(bestSol.priceUsd);
-
-  if (isNaN(tokenPriceUsd) || isNaN(solPriceUsd)) {
-    throw new Error("Invalid price data from DexScreener");
-  }
-
   return { tokenPriceUsd, solPriceUsd };
 }
 
