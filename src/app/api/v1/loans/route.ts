@@ -11,6 +11,7 @@ import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
+import { robustTokenPricesUsd } from "@/lib/robust-price";
 
 const PROGRAM_ID = new PublicKey("4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh");
 const PROGRAM_ID_V2 = new PublicKey("7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P");
@@ -76,37 +77,16 @@ async function fetchPricesInSol(mints: string[]): Promise<Map<string, number>> {
   if (mints.length === 0) return result;
   const unique = Array.from(new Set([SOL_MINT, ...mints]));
   try {
-    // DexScreener supports comma-separated up to 30 mints per request.
-    const chunks: string[][] = [];
-    for (let i = 0; i < unique.length; i += 30) chunks.push(unique.slice(i, i + 30));
-    const responses = await Promise.all(
-      chunks.map((c) =>
-        fetch(`https://api.dexscreener.com/tokens/v1/solana/${c.join(",")}`, {
-          signal: AbortSignal.timeout(5_000),
-        }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
-      ),
-    );
-    // Combine + pick best (highest-liquidity) pair per mint.
-    const bestByMint = new Map<string, { priceUsd: number; liquidityUsd: number }>();
-    for (const data of responses) {
-      const pairs = Array.isArray(data) ? data : (data?.pairs ?? []);
-      for (const p of pairs) {
-        const mint = p.baseToken?.address;
-        if (!mint) continue;
-        const priceUsd = parseFloat(p.priceUsd);
-        const liquidityUsd = p.liquidity?.usd || 0;
-        if (!isFinite(priceUsd) || priceUsd <= 0) continue;
-        const existing = bestByMint.get(mint);
-        if (!existing || liquidityUsd > existing.liquidityUsd) {
-          bestByMint.set(mint, { priceUsd, liquidityUsd });
-        }
-      }
-    }
-    const solPriceUsd = bestByMint.get(SOL_MINT)?.priceUsd;
+    // ROBUST cross-sourced pricing (Jupiter-primary, DexScreener fallback +
+    // outlier-rejected) so a single mis-priced pair can't mis-value an active
+    // loan's collateral. See lib/robust-price.
+    const prices = await robustTokenPricesUsd([...unique, SOL_MINT]);
+    const solPriceUsd = prices.get(SOL_MINT)?.priceUsd;
     if (!solPriceUsd || solPriceUsd <= 0) return result; // can't price without SOL
-    for (const [mint, { priceUsd }] of bestByMint) {
+    for (const mint of unique) {
       if (mint === SOL_MINT) continue;
-      result.set(mint, priceUsd / solPriceUsd);
+      const usd = prices.get(mint)?.priceUsd;
+      if (usd && usd > 0) result.set(mint, usd / solPriceUsd);
     }
   } catch {
     // Network/timeout — return whatever we have, callers degrade gracefully.
