@@ -60,6 +60,37 @@ async function syncLoanWithBot(loanPda: string, signature: string) {
   }
 }
 
+/**
+ * Pre-flight simulation guard for client-side-built write txs
+ * (feedback_repay_must_never_simulate_fail). Pip builds the repay /
+ * partial-repay tx in-browser via buildRepayTransaction — there is NO
+ * bot proxy on this path, so the bot's executeRepay simulation never
+ * runs. Simulate against the RPC BEFORE the wallet popup so a doomed
+ * tx (wrong program id, missing V4 sol_proceeds_vault / wsol_mint /
+ * system_program / rent, stale repay_amount) surfaces a clear error
+ * instead of a wallet prompt the user signs into a guaranteed revert.
+ *
+ * HARD-fails only on a deterministic program error (sim.value.err);
+ * SOFT-fails (returns) on simulate-side infra blips so the authoritative
+ * submit + confirm path still runs. sigVerify defaults false — the tx
+ * isn't signed yet at this step.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function preflightSimulate(connection: any, transaction: any): Promise<void> {
+  try {
+    const sim = await connection.simulateTransaction(transaction);
+    if (sim.value.err) {
+      throw new Error(
+        `Pre-flight failed: ${JSON.stringify(sim.value.err)}. ` +
+          (sim.value.logs?.slice(-3).join(" | ") ?? ""),
+      );
+    }
+  } catch (simErr) {
+    if ((simErr as Error).message?.startsWith("Pre-flight failed:")) throw simErr;
+    // else: simulate-side infra error — let the authoritative submit run.
+  }
+}
+
 export function PipActionCard({
   action,
   onResult,
@@ -98,6 +129,7 @@ export function PipActionCard({
           connection,
           programId,
         });
+        await preflightSimulate(connection, transaction);
         const sig = await sendTransaction(transaction, connection);
         await waitConfirmed(connection, sig);
         await syncLoanWithBot(action.loan_pda, sig);
@@ -268,6 +300,7 @@ export function PipActionCard({
           connection,
           programId,
         });
+        await preflightSimulate(connection, transaction);
         const sig = await sendTransaction(transaction, connection);
         await waitConfirmed(connection, sig);
         await syncLoanWithBot(action.loan_pda, sig);
