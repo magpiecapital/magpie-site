@@ -1574,9 +1574,59 @@ function DashboardPageInner() {
       //      feedback_v1_v3_never_blocked_by_v4_lane_separation
       let collateralValueLamports: string;
       if (!isV4Borrow) {
-        // V1/V3 lane — legacy 0.89 multiplier. ZERO V4 dependencies.
-        const collateralValueSol = collateralValueSolRaw * 0.89;
-        collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
+        // V1/V3 lane — attestation-safe value from the bot's universal
+        // /safe-collateral-value endpoint. It reads the V1/V3 ON-CHAIN feed
+        // (PriceAttestation / PriceHistory) — NOT any V4 infra, so lane
+        // separation holds — and returns the largest collateral_value the
+        // program will accept. This caps the submitted value to the
+        // attestation so a borrow can NEVER reject with
+        // CollateralValueExceedsAttestation, and the user is never quoted an
+        // inflated figure. Fail-soft to the legacy 0.89 multiplier so a bot
+        // blip never blocks a V1/V3 borrow.
+        const safeProgram = ["stock", "etf", "metal", "rwa"].includes(
+          (holding.category || "").toLowerCase(),
+        )
+          ? "v3"
+          : "v1";
+        const legacyFallback = () =>
+          Math.floor(collateralValueSolRaw * 0.89 * 1e9).toString();
+        try {
+          const botApi =
+            process.env.NEXT_PUBLIC_BOT_API_URL ||
+            "https://magpie-bot-production.up.railway.app";
+          const sc = new AbortController();
+          const st = setTimeout(() => sc.abort(), 4000);
+          let scResp: Response;
+          try {
+            scResp = await fetch(
+              `${botApi}/api/v1/safe-collateral-value?mint=${encodeURIComponent(holding.mint)}` +
+                `&decimals=${holding.decimals}&amount_raw=${collateralAmountRaw}&program=${safeProgram}`,
+              { signal: sc.signal },
+            );
+          } finally {
+            clearTimeout(st);
+          }
+          const scBody = await scResp
+            .json()
+            .catch(() => ({} as Record<string, unknown>));
+          if (
+            scResp.ok &&
+            scBody &&
+            scBody.recommendation === "use_precise_value" &&
+            typeof scBody.safe_collateral_value_lamports === "string"
+          ) {
+            collateralValueLamports = scBody.safe_collateral_value_lamports;
+          } else {
+            // warmup / unexpected shape → conservative legacy multiplier.
+            collateralValueLamports = legacyFallback();
+          }
+        } catch (scErr) {
+          console.warn(
+            "[borrow] safe-collateral-value unreachable, falling back to 0.89:",
+            (scErr as Error).message,
+          );
+          collateralValueLamports = legacyFallback();
+        }
       } else {
         // V4 lane — precise TWAP via bot endpoint. Hard 4s timeout so
         // a flaky bot never hangs the borrow.
