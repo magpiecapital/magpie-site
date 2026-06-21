@@ -11,6 +11,7 @@
  */
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
+import { robustTokenPricesUsd } from "@/lib/robust-price";
 
 const HEADERS = {
   "Cache-Control": "public, s-maxage=15, stale-while-revalidate=30",
@@ -192,61 +193,24 @@ export async function GET(req: Request) {
     })
     .sort((a, b) => (b.amount || 0) - (a.amount || 0));
 
-  // Enrich with live USD price from DexScreener — without this, the
-  // dashboard's tier cards show "You receive $0.00" because valueUsd
-  // can't be computed. DexScreener accepts up to 30 mints per call
-  // and returns price + liquidity for each in a single roundtrip.
+  // Enrich with ROBUST cross-sourced USD price (Jupiter-primary, DexScreener
+  // for liquidity/volume + fallback, wild outliers rejected). See
+  // lib/robust-price — a single mis-priced DexScreener pair (e.g. PUMP/MET on
+  // Meteora at $7.32 vs $PUMP's real ~$0.00146) can never inflate a loan
+  // option again. Jupiter is the same oracle the on-chain attestation uses.
   if (eligibleBase.length > 0) {
-    const mintList = eligibleBase.map((e) => e.mint).join(",");
     try {
-      const r = await fetch(
-        `https://api.dexscreener.com/tokens/v1/solana/${mintList}`,
-        { signal: AbortSignal.timeout(7_000) },
-      );
-      if (r.ok) {
-        const pairs = (await r.json()) as Array<{
-          baseToken?: { address?: string };
-          priceUsd?: string;
-          priceChange?: { h24?: number };
-          volume?: { h24?: number };
-          liquidity?: { usd?: number };
-        }>;
-        // Pick the deepest-liquidity pair per mint (defensive against
-        // shallow-pool spoofing the price).
-        const bestByMint = new Map<string, {
-          price: number;
-          liquidity: number;
-          volume24h: number;
-          priceChange24h: number;
-        }>();
-        for (const p of Array.isArray(pairs) ? pairs : []) {
-          const addr = p?.baseToken?.address;
-          const price = parseFloat(p?.priceUsd ?? "0");
-          const liq = p?.liquidity?.usd ?? 0;
-          if (!addr || !price) continue;
-          const existing = bestByMint.get(addr);
-          if (!existing || liq > existing.liquidity) {
-            bestByMint.set(addr, {
-              price,
-              liquidity: liq,
-              volume24h: p?.volume?.h24 ?? 0,
-              priceChange24h: p?.priceChange?.h24 ?? 0,
-            });
-          }
-        }
-        for (const e of eligibleBase) {
-          const best = bestByMint.get(e.mint);
-          if (best && isFinite(best.price) && best.price > 0) {
-            e.priceUsd = best.price;
-            e.liquidityUsd = best.liquidity || null;
-            e.volume24hUsd = best.volume24h || null;
-            e.priceChange24hPct = isFinite(best.priceChange24h) ? best.priceChange24h : null;
-          }
-        }
+      const prices = await robustTokenPricesUsd(eligibleBase.map((e) => e.mint));
+      for (const e of eligibleBase) {
+        const rp = prices.get(e.mint);
+        if (!rp) continue;
+        if (rp.priceUsd != null) e.priceUsd = rp.priceUsd;
+        e.liquidityUsd = rp.liquidityUsd;
+        e.volume24hUsd = rp.volume24hUsd;
+        e.priceChange24hPct = rp.priceChange24hPct;
       }
     } catch {
-      // Network blip — return without priceUsd; dashboard will show
-      // $0.00 (existing behavior) until next refresh.
+      // Network blip — return without priceUsd; dashboard shows $0.00 until refresh.
     }
   }
 
