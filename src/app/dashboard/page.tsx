@@ -2194,14 +2194,13 @@ function DashboardPageInner() {
             // silent leg-drops on loans 798 and 802. The batch endpoint
             // either inserts all N rows atomically or rejects without
             // inserting any — no more partial-arm state.
-            // Multiplier strikes still require single-arm (server
-            // resolves multiplier per-leg). For the picker which uses
-            // price_usd / mc_usd literal strikes, this batch path
-            // covers ~100% of real-world ladder shapes.
+            // armTakeProfitBatch accepts multiplier legs directly (the
+            // bot resolves each multiplier against the cross-source
+            // oracle at batch time), exactly like the preset tp/sl
+            // ladders above. So custom ladders mixing 2x / 3x / -30%
+            // legs batch-arm in one signature alongside literal
+            // price_usd / mc_usd strikes — no single-leg fallback.
             const allParseOk = parsedLegs.every(({ parsed }) => parsed.ok);
-            const hasMultiplier = parsedLegs.some(
-              ({ parsed }) => parsed.ok && parsed.kind === "multiplier",
-            );
             if (!allParseOk) {
               const failures = parsedLegs
                 .map(({ parsed }, i) => (parsed.ok ? null : `Leg ${i + 1}: ${parsed.error || "parse failed"}`))
@@ -2210,16 +2209,19 @@ function DashboardPageInner() {
                 failures.map((f) => ({ label: f, ok: false, error: f })),
               );
               autoArmedOk = false;
-            } else if (hasMultiplier) {
-              // Multiplier strikes can't batch yet (bot resolves per-
-              // leg at single-arm time). Fall back to the historical
-              // single-arm loop — these are rare in this picker.
-              setAutoArmLegProgress([{ label: "Custom ladder", ok: false, error: "multiplier strikes require single-leg arming. Type literal price targets (e.g. $0.0023) for batch ladder arming." }]);
-              autoArmedOk = false;
             } else {
               const legSpecs = parsedLegs.map(({ leg, parsed }) => {
                 // parsed.ok is true here by virtue of allParseOk check.
                 if (!parsed.ok) throw new Error("unreachable");
+                if (parsed.kind === "multiplier") {
+                  return {
+                    direction,
+                    kind: "multiplier" as const,
+                    value: parsed.multiplier as number,
+                    sliceBps: leg.sliceBps,
+                    slippageBps: direction === "below" ? 300 : 200,
+                  };
+                }
                 const value = Number(parsed.valueMicro) / 1e6;
                 const kind: "price_usd" | "mc_usd" =
                   parsed.kind === "mc_usd" ? "mc_usd" : "price_usd";
@@ -2567,6 +2569,34 @@ function DashboardPageInner() {
           programId,
         });
         transaction = r.transaction;
+      }
+      // PRE-FLIGHT SIMULATION (defense-in-depth,
+      // feedback_repay_must_never_simulate_fail): repay txs are built
+      // client-side here (NOT proxied to the bot), so the bot's
+      // executeRepay simulation never runs on this path. Simulate against
+      // the RPC BEFORE the wallet popup so a doomed repay (wrong program
+      // id, missing V4 sol_proceeds_vault / wsol_mint / system_program /
+      // rent, stale repay_amount, etc.) surfaces a clear error instead of
+      // a wallet prompt the user signs into a guaranteed on-chain revert.
+      // sigVerify defaults false — the tx isn't signed yet at this step.
+      // Soft-fail on infra blips (network error during simulate): the
+      // real submit + confirm-poll below gives the authoritative answer;
+      // we only HARD-fail when the simulation itself returns a program
+      // error (sim.value.err), which is a deterministic revert.
+      try {
+        const sim = await connection.simulateTransaction(transaction);
+        if (sim.value.err) {
+          throw new Error(
+            `Pre-flight failed: ${JSON.stringify(sim.value.err)}. ` +
+              (sim.value.logs?.slice(-3).join(" | ") ?? ""),
+          );
+        }
+      } catch (simErr) {
+        // Re-throw deterministic program reverts (so the wallet popup
+        // never appears); swallow simulate-side infra errors and let the
+        // authoritative submit path run.
+        if ((simErr as Error).message?.startsWith("Pre-flight failed:")) throw simErr;
+        // else continue
       }
       const sig = await sendTransaction(transaction, connection);
       // Poll for confirmation
