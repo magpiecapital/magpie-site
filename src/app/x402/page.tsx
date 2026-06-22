@@ -4,15 +4,22 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { WalletLookupWidget } from "@/components/WalletLookupWidget";
+import { MintAddressCopy } from "@/components/MintAddressCopy";
+
+// The $MAGPIE token mint. 44 chars, copied VERBATIM — one wrong character
+// routes a buyer to the wrong token. Single source of truth for this page.
+const MAGPIE_MINT = "9UuLsJ3jf8ViBNeRcwXD53re5G3ypgfKK3s2EiMMpump";
+const PUMP_URL = `https://pump.fun/coin/${MAGPIE_MINT}`;
+const SOLSCAN_URL = `https://solscan.io/token/${MAGPIE_MINT}`;
 
 export const metadata: Metadata = {
-  title: "magpie-x402 · Agent-native lending on Solana | Magpie",
+  title: "magpie-x402 · Permissionless agent lending on Solana | Magpie",
   description:
-    "AI agents borrow SOL on-chain in 10 lines. Pay per call via x402, sign with your own wallet, build portable credit. The first lending protocol designed for autonomous agents.",
+    "An autonomous agent takes a permissionless loan against its OWN assets — borrow SOL against memecoin or tokenized-RWA collateral, arm in-vault take-profit/stop-loss exits, repay. No signup, no API key, zero custody. 70% of x402 protocol fees flow to $MAGPIE holders.",
   openGraph: {
-    title: "magpie-x402 · Agent-native lending on Solana",
+    title: "magpie-x402 · Permissionless agent lending on Solana",
     description:
-      "Your agent borrows SOL on Magpie. No API keys, no accounts, no custody. Open source SDK + MCP server + cryptographically signed credit attestations.",
+      "Your agent borrows SOL against its own collateral, arms its own in-vault exits, repays. No API keys, no accounts, zero custody. 70% of x402 protocol fees are distributed to $MAGPIE holders.",
   },
 };
 
@@ -163,12 +170,12 @@ export default async function X402Page() {
           </Reveal>
           <Reveal delay={80}>
             <h1 className="font-display mx-auto max-w-5xl text-5xl font-medium tracking-[-0.04em] md:text-7xl lg:text-8xl leading-[0.95]">
-              The first lending protocol where AI agents borrow SOL automatically<span className="italic">.</span>
+              An autonomous agent takes a permissionless loan against its own assets<span className="italic">.</span>
             </h1>
           </Reveal>
           <Reveal delay={160}>
             <p className="mx-auto mt-8 max-w-3xl text-xl leading-relaxed text-[var(--ink-soft)]">
-              Drop one config block into Claude Desktop, Cursor, Windsurf, or ChatGPT — or <code className="font-mono text-base">npm install</code> the SDK in your own code. Your agent borrows, lends, runs liquidation bots, posts conditional borrow intents. No signup. No API keys. Pay per call in SOL. Same anti-exploit gauntlet humans get.
+              Your agent borrows SOL against its own memecoin or tokenized-RWA collateral on Solana, arms self-owned <strong className="text-[var(--ink)]">in-vault take-profit / stop-loss exits</strong>, and repays — all on-chain. No signup. No API key. Zero custody: the borrower account is the agent&apos;s own wallet, and the only path out is a borrower-signed repay. Same anti-exploit gauntlet humans get.
             </p>
           </Reveal>
           <Reveal delay={240}>
@@ -631,6 +638,79 @@ const valid = nacl.sign.detached.verify(
             </Reveal>
           ))}
         </div>
+      </section>
+
+      {/* $MAGPIE token + fee-share flywheel — promotional centerpiece */}
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <Reveal>
+          <div className="rounded-2xl border border-[var(--accent)]/40 bg-gradient-to-br from-[var(--accent)]/10 via-[var(--accent)]/5 to-transparent p-8 md:p-12">
+            <div className="text-xs uppercase tracking-widest text-[var(--accent-deep)] mb-3 font-mono">
+              The flywheel · $MAGPIE
+            </div>
+            <h2 className="font-display text-3xl md:text-5xl tracking-tight mb-5 leading-[1.02]">
+              Every agent call pays. <span className="text-[var(--accent)]">70% flows to $MAGPIE holders.</span>
+            </h2>
+            <p className="text-lg leading-relaxed text-[var(--ink)] max-w-3xl mb-8">
+              Every agent borrow, exit, and conditional intent on magpie-x402 accrues protocol fees, and <strong>70% of those x402 protocol fees are distributed to $MAGPIE holders</strong> — pro-rata, paid in SOL, no staking, no lockup. More agents borrowing means more fees, which means more rewards back to the token. Agent adoption directly rewards holders.
+            </p>
+
+            <div className="grid md:grid-cols-3 gap-4 mb-8">
+              <div className="rounded-xl border border-[var(--ink)]/15 bg-[var(--ink)]/[0.03] p-5">
+                <div className="font-display text-4xl tracking-tight text-[var(--accent)]">70%</div>
+                <div className="text-sm text-[var(--ink-soft)] mt-1 leading-snug">
+                  of every x402 protocol fee distributed to $MAGPIE holders
+                </div>
+              </div>
+              <div className="rounded-xl border border-[var(--ink)]/15 bg-[var(--ink)]/[0.03] p-5">
+                <div className="font-display text-4xl tracking-tight text-[var(--accent)]">SOL</div>
+                <div className="text-sm text-[var(--ink-soft)] mt-1 leading-snug">
+                  real on-chain payout — not emissions — pro-rata to every holder
+                </div>
+              </div>
+              <div className="rounded-xl border border-[var(--ink)]/15 bg-[var(--ink)]/[0.03] p-5">
+                <div className="font-display text-4xl tracking-tight text-[var(--accent)]">0</div>
+                <div className="text-sm text-[var(--ink-soft)] mt-1 leading-snug">
+                  staking, lockup, or claim friction — hold the token, receive the share
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[var(--ink)]/15 bg-[var(--ink)]/[0.02] p-5 md:p-6 max-w-3xl">
+              <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-3">
+                $MAGPIE mint address · Solana
+              </div>
+              <MintAddressCopy address={MAGPIE_MINT} />
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Link
+                  href={PUMP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 rounded-full bg-[var(--ink)] text-[var(--bg)] hover:opacity-90 transition text-sm font-medium"
+                >
+                  Buy $MAGPIE on pump.fun →
+                </Link>
+                <Link
+                  href={SOLSCAN_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 rounded-full border border-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--bg)] transition text-sm font-medium"
+                >
+                  View on Solscan
+                </Link>
+                <Link
+                  href="/holders"
+                  className="px-5 py-2.5 rounded-full border border-[var(--ink)]/40 hover:border-[var(--ink)] transition text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]"
+                >
+                  How holder rewards work
+                </Link>
+              </div>
+              <p className="text-xs text-[var(--ink-soft)] mt-4 leading-relaxed">
+                Copy the address exactly — a single wrong character is a different token. Always verify it matches{" "}
+                <code className="font-mono text-[11px] break-all">{MAGPIE_MINT}</code> before buying.
+              </p>
+            </div>
+          </div>
+        </Reveal>
       </section>
 
       {/* Security note */}
