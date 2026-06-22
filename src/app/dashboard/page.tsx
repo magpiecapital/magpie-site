@@ -1012,6 +1012,10 @@ function DashboardPageInner() {
   };
   const [activeLoans, setActiveLoans] = useState<Loan[]>([]);
   const [loanHistory, setLoanHistory] = useState<Loan[]>([]);
+  // True when /api/v1/loans couldn't reach EITHER the DB or the bot (source:
+  // "unavailable"). Lets the empty state say "couldn't load — retrying" instead
+  // of a false "No active loans" when we simply failed to verify.
+  const [loansUnavailable, setLoansUnavailable] = useState(false);
 
   // Deep-link to a specific loan from the TG bot health alert.
   // When the bot DMs "Loan health dipped" with a [Loan #X](magpie.capital/dashboard?loan=X)
@@ -2860,7 +2864,15 @@ function DashboardPageInner() {
       })
         .then(r => r.json())
         .then(d => {
-          if (cancelled || !d.ok) return;
+          if (cancelled) return;
+          if (!d.ok) {
+            // Both upstreams unreachable. Keep last-good loans (do NOT blank to
+            // "No active loans") and flag the degraded state so the empty view
+            // shows "couldn't load — retrying" on a fresh load.
+            if (d.source === "unavailable") setLoansUnavailable(true);
+            return;
+          }
+          setLoansUnavailable(false);
           setActiveLoans(d.active ?? []);
           setLoanHistory(d.history ?? []);
           setOtherWalletsActiveCount(
@@ -3578,7 +3590,7 @@ function DashboardPageInner() {
                   { label: "SOL Balance", value: solBalance.toFixed(4), sub: "SOL", accent: false },
                   { label: "Holdings", value: `${holdings.length}`, sub: "SPL tokens", accent: false },
                   { label: "Eligible Collateral", value: `${eligibleCollateral.length}`, sub: totalEligibleUsd > 0 ? `$${totalEligibleUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : "No eligible tokens", accent: eligibleCollateral.length > 0 },
-                  { label: "Active Loans", value: `${activeLoans.length}`, sub: activeLoans.length > 0 ? "outstanding" : "No active loans", accent: activeLoans.length > 0 },
+                  { label: "Active Loans", value: activeLoans.length > 0 ? `${activeLoans.length}` : (loansUnavailable ? "—" : "0"), sub: activeLoans.length > 0 ? "outstanding" : (loansUnavailable ? "couldn't load — retrying" : "No active loans"), accent: activeLoans.length > 0 },
                   { label: "Total Owed", value: `${totalOwedSol.toFixed(4)} SOL`, sub: totalOwedSol > 0 ? "outstanding" : "No debt", accent: totalOwedSol > 0 },
                   { label: "Credit Score", value: `${creditScore}`, sub: `${creditTier} tier`, accent: true },
                 ];
@@ -3676,14 +3688,18 @@ function DashboardPageInner() {
                       <>
                         <EmptyState
                           message={
-                            otherWalletsActiveCount > 0
+                            loansUnavailable
+                              ? "Couldn't load your loans right now — retrying… Your loans are safe on-chain; this is a temporary data hiccup, not a zero balance."
+                              : otherWalletsActiveCount > 0
                               ? `No active loans on this wallet — ${otherWalletsActiveCount} loan${otherWalletsActiveCount === 1 ? "" : "s"} on another linked wallet`
                               : eligibleCollateral.length > 0
                                 ? "No active loans — pick a token in Eligible Collateral below to borrow"
                                 : "No active loans — deposit a supported token to use as collateral"
                           }
                           cta={
-                            otherWalletsActiveCount > 0
+                            loansUnavailable
+                              ? undefined // never prompt a (re-)borrow when we couldn't verify existing loans
+                              : otherWalletsActiveCount > 0
                               ? { label: "Switch wallets", onClick: () => scrollTo("wallets") }
                               : eligibleCollateral.length > 0
                                 ? { label: "Scroll to collateral", onClick: () => scrollTo("eligible") }
