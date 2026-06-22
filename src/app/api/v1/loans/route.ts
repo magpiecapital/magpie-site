@@ -320,9 +320,16 @@ export async function GET(req: Request) {
     }
   }
 
-  /* Strategy 3: empty zero state */
+  /* Strategy 3: both upstreams unreachable.
+     CRITICAL: do NOT claim zero loans. A borrower WITH active loans must never
+     be told they have none just because the DB + bot are both briefly down —
+     that is the trust-destroying "did my funds vanish?" ambiguity the mandates
+     forbid (zero ambiguity about loan ownership). Return ok:false + an explicit
+     `unavailable` signal so every consumer treats it as "couldn't load" — the
+     dashboard keeps its last-good loans (it returns early on !d.ok) and renders
+     a "retrying" state instead of a false "No active loans". */
   return NextResponse.json(
-    { ok: true, wallet, active: [], history: [], source: "fallback_empty" },
+    { ok: false, wallet, active: [], history: [], source: "unavailable", error: "loans_temporarily_unavailable" },
     { headers: HEADERS },
   );
 }
