@@ -7,9 +7,10 @@ import { Mark, Wordmark } from "@/components/Logo";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
-import { LOAN_TIERS } from "@/lib/solana/constants";
+import { LOAN_TIERS, chooseProgramId } from "@/lib/solana/constants";
+import { isOnChainFeedBorrowable } from "@/lib/solana/feed-freshness";
 import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
 import { translateTxError } from "@/lib/solana/tx-error";
 import dynamic from "next/dynamic";
@@ -1810,11 +1811,47 @@ function DashboardPageInner() {
         }
       }
       if (!refreshLanded) {
-        // Persistent failure — abort the borrow flow rather than let
-        // the wallet sign stale data and the program reject with
-        // AccountNotInitialized. Toast the user with the specific
-        // class so the surface explains the wait, not a generic error.
-        throw new Error("BORROW_INFRA_WARMING");
+        // FAIL OPEN when the on-chain feed is provably fresh.
+        // /price/refresh is a best-effort top-up — the attestor keeps
+        // every enabled mint's feed warm on its own cadence. The
+        // AUTHORITATIVE gate is the on-chain feed the program reads at
+        // execution; read it DIRECTLY here (no bot dependency, works
+        // even mid-deploy). If it's fresh enough that the program will
+        // accept the borrow, a failed redundant refresh must NOT surface
+        // a false "Markets warming up" hold. Only block when the chain
+        // itself isn't ready (genuinely cold / stale). Root-cause fix
+        // for the recurring warm-up false-positive: the feed was warm
+        // but the refresh call hit a cooldown / blip / deploy window and
+        // the old code blocked unconditionally on its HTTP status. See
+        // feedback_no_markets_warming_up_error_ever.md +
+        // feedback_defense_in_depth_failopen_when_lower_layer_proven.md.
+        let onChainOk = false;
+        try {
+          const borrowProgramId = chooseProgramId(
+            holding.category ?? holding.approved?.category,
+            { hasExitArming: !!preBorrowExits },
+          );
+          const fresh = await isOnChainFeedBorrowable(
+            connection,
+            new PublicKey(holding.mint),
+            borrowProgramId,
+          );
+          onChainOk = fresh.borrowable;
+          console.warn(
+            `[borrow] price refresh failed; on-chain feed check: borrowable=${fresh.borrowable} (${fresh.reason})`,
+          );
+        } catch (chainErr) {
+          console.warn(
+            "[borrow] on-chain freshness check threw:",
+            (chainErr as Error).message,
+          );
+        }
+        if (!onChainOk) {
+          // The chain itself isn't ready — hold the borrow back with the
+          // warm-up class so the surface explains the wait rather than
+          // letting the wallet sign stale data and the program reject.
+          throw new Error("BORROW_INFRA_WARMING");
+        }
       }
 
       const { transaction, loanId: chainLoanId } = await buildBorrowTransaction({
