@@ -117,6 +117,23 @@ export function translateTxError(
         title: "Amount must be greater than zero",
         body: "Enter a positive amount and try again.",
       },
+      // Borrow-path price/attestation errors — friendly retry copy
+      // instead of the raw "Transaction rejected: <Name>".
+      StalePriceAttestation: {
+        title: "Price refreshed while you were signing",
+        body: "The on-chain price feed updated in the moment you took to sign. No funds moved — click Borrow again for a fresh quote.",
+        action: { label: "Try again" },
+      },
+      CollateralValueExceedsAttestation: {
+        title: "Collateral price moved while you were signing",
+        body: "The collateral's price ticked between your quote and signing, so the program declined the amount. No funds moved — click Borrow again to requote at the current price.",
+        action: { label: "Try again" },
+      },
+      TwapInsufficientHistory: {
+        title: "Market is warming up",
+        body: "This market's price history is still filling in. Try again in about 30 seconds — no funds moved.",
+        action: { label: "Try again" },
+      },
     };
     if (codeMessages[code]) return codeMessages[code];
     return {
@@ -152,6 +169,57 @@ export function translateTxError(
         ? `It usually still lands. Check the transaction on Solscan in a minute — if it shows Success, your ${flow} is in.`
         : "It usually still lands. Refresh in a minute — if your balance updated, you're good.",
       action: ctx.sig ? { label: "View on Solscan", href: `https://solscan.io/tx/${ctx.sig}` } : undefined,
+    };
+  }
+
+  // 8) Raw numeric program error codes — the RPC pre-sim / wallet
+  // rejection shape `{"InstructionError":[N,{"Custom":6014}]}` or
+  // `custom program error: 0x177e` in logs. These carry NO
+  // "Error Code: Name" text, so without this they leak raw JSON through
+  // the fallback below. Map the borrow-path codes to clean retry copy;
+  // any other code gets a clean message, never raw JSON.
+  // See feedback_borrow_errors_eliminate_every_class_client_side.
+  const customDec = blob.match(/"Custom"\s*:\s*(\d+)/);
+  const customHex = blob.match(/custom program error:\s*0x([0-9a-f]+)/i);
+  const customCode = customDec
+    ? parseInt(customDec[1], 10)
+    : customHex
+      ? parseInt(customHex[1], 16)
+      : null;
+  if (customCode !== null) {
+    if (customCode === 6013) {
+      return {
+        title: "Price refreshed while you were signing",
+        body: "The on-chain price feed updated in the moment you took to sign. No funds moved — click Borrow again for a fresh quote.",
+        action: { label: "Try again" },
+      };
+    }
+    if (customCode === 6014 || customCode === 6018) {
+      return {
+        title: "Collateral price moved while you were signing",
+        body: "The collateral's price ticked between your quote and signing, so the program declined the amount. No funds moved — click Borrow again to requote at the current price.",
+        action: { label: "Try again" },
+      };
+    }
+    if (customCode === 6016) {
+      return {
+        title: "Market is warming up",
+        body: "This market's price history is still filling in. Try again in about 30 seconds — no funds moved.",
+        action: { label: "Try again" },
+      };
+    }
+    if (customCode === 3012) {
+      return {
+        title: "Market is still being set up",
+        body: "This market's on-chain accounts are still initializing. Try again in about 30 seconds — no funds moved.",
+        action: { label: "Try again" },
+      };
+    }
+    // Any other custom code — clean copy, never the raw JSON blob.
+    return {
+      title: "The program declined this transaction",
+      body: `No funds moved. Refresh the page and try again — if it persists, ping us in Telegram (code ${customCode}).`,
+      action: { label: "Try again" },
     };
   }
 

@@ -1543,15 +1543,55 @@ function DashboardPageInner() {
       const collateralUiAmount = uiAmount * (pct / 100);
       const collateralAmountRaw = BigInt(Math.floor(collateralUiAmount * Math.pow(10, holding.decimals))).toString();
 
-      // Fetch SOL price to convert USD value to lamports
-      const solPriceRes = await fetch("https://api.dexscreener.com/tokens/v1/solana/So11111111111111111111111111111111111111112");
-      const solPriceData = await solPriceRes.json();
-      const solPairs = Array.isArray(solPriceData) ? solPriceData : solPriceData.pairs || [];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const bestSol = solPairs.reduce((best: any, pair: any) =>
-        (pair.liquidity?.usd || 0) > (best.liquidity?.usd || 0) ? pair : best,
-      );
-      const solPriceUsd = parseFloat(bestSol.priceUsd);
+      // Fetch SOL price (cross-sourced + guarded) to convert USD value to
+      // lamports. The previous single-source, unguarded version crashed the
+      // whole borrow with `BigInt(NaN)` (RangeError) whenever DexScreener
+      // blipped, timed out, or returned an empty array (reduce-of-empty /
+      // parseFloat(undefined) → NaN). Try DexScreener, fall back to Jupiter,
+      // and refuse cleanly if neither gives a finite price — never feed NaN
+      // downstream. See feedback_collateral_price_must_be_cross_sourced_jupiter_primary.
+      const SOL_MINT_STR = "So11111111111111111111111111111111111111112";
+      let solPriceUsd = NaN;
+      try {
+        const ctl = new AbortController();
+        const t = setTimeout(() => ctl.abort(), 5000);
+        const solPriceRes = await fetch(
+          `https://api.dexscreener.com/tokens/v1/solana/${SOL_MINT_STR}`,
+          { signal: ctl.signal },
+        );
+        clearTimeout(t);
+        const solPriceData = await solPriceRes.json();
+        const solPairs = Array.isArray(solPriceData) ? solPriceData : solPriceData.pairs || [];
+        if (solPairs.length > 0) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const bestSol = solPairs.reduce((best: any, pair: any) =>
+            (pair.liquidity?.usd || 0) > (best?.liquidity?.usd || 0) ? pair : best,
+            solPairs[0],
+          );
+          solPriceUsd = parseFloat(bestSol?.priceUsd);
+        }
+      } catch (e) {
+        console.warn("[borrow] DexScreener SOL price failed, falling back to Jupiter:", (e as Error).message);
+      }
+      if (!Number.isFinite(solPriceUsd) || solPriceUsd <= 0) {
+        try {
+          const ctl = new AbortController();
+          const t = setTimeout(() => ctl.abort(), 5000);
+          const jr = await fetch(
+            `https://lite-api.jup.ag/price/v3?ids=${SOL_MINT_STR}`,
+            { signal: ctl.signal },
+          );
+          clearTimeout(t);
+          const jj = await jr.json();
+          solPriceUsd = parseFloat(jj?.[SOL_MINT_STR]?.usdPrice);
+        } catch (e) {
+          console.warn("[borrow] Jupiter SOL price fallback failed:", (e as Error).message);
+        }
+      }
+      if (!Number.isFinite(solPriceUsd) || solPriceUsd <= 0) {
+        // Both sources failed — refuse cleanly instead of crashing on NaN.
+        throw new Error("BORROW_PRICE_UNAVAILABLE");
+      }
 
       // Collateral value in lamports = (uiAmount * priceUsd / solPriceUsd) * 1e9
       const priceUsd = holding.approved.priceUsd || 0;
@@ -2398,6 +2438,12 @@ function DashboardPageInner() {
         setBorrowError(
           `Markets warming up — try again in ~${eta} seconds. ` +
           "(We held your borrow back so the program wouldn't reject it.)",
+        );
+      } else if (errMsg === "BORROW_PRICE_UNAVAILABLE") {
+        // Both SOL-price sources (DexScreener + Jupiter) failed — we refused
+        // to build the borrow rather than feed a NaN value. No funds moved.
+        setBorrowError(
+          "Couldn't fetch a live SOL price just now — no funds moved. Give it a few seconds and click Borrow again.",
         );
       } else {
         // Use the same translator as /earn so users see clean, educational
