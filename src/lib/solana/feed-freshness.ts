@@ -89,3 +89,76 @@ export async function isOnChainFeedBorrowable(
     return { borrowable: false, reason: `read_error:${(e as Error)?.message?.slice(0, 40)}` };
   }
 }
+
+export interface AttestedRef {
+  /** Reference price the program checks against, in lamports per WHOLE token. */
+  refLamportsPerWholeToken: number;
+  source: string;
+}
+
+// ── On-chain attested reference price (the CEILING the program enforces) ──
+//
+// Reads the exact price the lending program will compare a borrow's
+// submitted collateral_value against. The borrow builder caps the
+// submitted value to this (minus a small drift margin) so the program's
+// CollateralValueExceedsAttestation check (V1=6014, V3/V4=6018) can NEVER
+// fire from the site — even when the bot's safe-value endpoint was
+// unreachable and the flow fell back to its own price source.
+//
+//   V1/V2 — the single PriceAttestation.price_lamports.
+//   V3/V4 — min(spot, median TWAP) over in-window ring-buffer samples,
+//           mirroring the bot's /v4/twap "min_of_spot_or_twap".
+//
+// Returns null if the feed can't be read or has no usable samples — the
+// caller then keeps its own value (the on-chain program stays the final
+// guard). See feedback_borrow_errors_eliminate_every_class_client_side.
+export async function getOnChainAttestedRef(
+  connection: Connection,
+  mint: PublicKey,
+  programId: PublicKey,
+): Promise<AttestedRef | null> {
+  try {
+    const [pool] = poolPda(LENDER_PUBKEY, programId);
+    const [feed] = priceFeedPda(mint, pool, programId);
+    const info = await connection.getAccountInfo(feed, "confirmed");
+    if (!info || !info.data || info.data.length < 120) return null;
+    const d = info.data;
+    const isRingBuffer =
+      programId.equals(PROGRAM_ID_V3) ||
+      (!!PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4));
+
+    if (!isRingBuffer) {
+      // PriceAttestation: disc(8)+mint(32)+pool(32)+authority(32)
+      //   +price_lamports(u64)@104
+      const price = Number(d.readBigUInt64LE(104));
+      return price > 0
+        ? { refLamportsPerWholeToken: price, source: "v1_single" }
+        : null;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    let off = 112;
+    const inWindow: number[] = [];
+    let newest = { t: 0, p: 0 };
+    for (let k = 0; k < 32; k++) {
+      if (d.length < off + 16) break;
+      const p = Number(d.readBigUInt64LE(off));
+      const t = Number(d.readBigInt64LE(off + 8));
+      off += 16;
+      if (t > 0 && now - t <= TWAP_WINDOW_SECONDS) {
+        inWindow.push(p);
+        if (t > newest.t) newest = { t, p };
+      }
+    }
+    if (inWindow.length === 0) return null;
+    const sorted = inWindow.slice().sort((a, b) => a - b);
+    const twap = sorted[Math.floor(sorted.length / 2)];
+    const spot = newest.p || twap;
+    const ref = Math.min(spot, twap);
+    return ref > 0
+      ? { refLamportsPerWholeToken: ref, source: `v4_min(spot=${spot},twap=${twap})` }
+      : null;
+  } catch {
+    return null;
+  }
+}
