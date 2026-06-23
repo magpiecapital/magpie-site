@@ -32,6 +32,7 @@ import {
   collateralVaultPda,
   priceFeedPda,
 } from "./pdas";
+import { getOnChainAttestedRef } from "./feed-freshness";
 import idl from "./magpie.json";
 import idlV2 from "./magpie-v2.json";
 import idlV3 from "./magpie-v3.json";
@@ -41,15 +42,23 @@ import idlV3 from "./magpie-v3.json";
 // directly (engine-only).
 import idlV4 from "./magpie-v4.json";
 
-/** Detect whether a mint uses Token-2022 or classic Token program. */
-async function getMintTokenProgram(
+/**
+ * Detect the collateral mint's token program AND decimals in one read.
+ * Decimals are needed to convert the raw collateral amount into whole
+ * tokens for the on-chain attestation ceiling. The decimals byte sits at
+ * offset 44 in both classic SPL and Token-2022 base Mint layouts.
+ */
+async function getMintProgramAndDecimals(
   connection: Connection,
   mint: string,
-): Promise<PublicKey> {
+): Promise<{ tokenProgram: PublicKey; decimals: number }> {
   const info = await connection.getAccountInfo(new PublicKey(mint));
   if (!info) throw new Error(`Mint ${mint} not found on-chain`);
-  if (info.owner.equals(TOKEN_2022_PROGRAM_ID)) return TOKEN_2022_PROGRAM_ID;
-  return TOKEN_PROGRAM_ID;
+  const tokenProgram = info.owner.equals(TOKEN_2022_PROGRAM_ID)
+    ? TOKEN_2022_PROGRAM_ID
+    : TOKEN_PROGRAM_ID;
+  const decimals = info.data.length > 44 ? info.data.readUInt8(44) : 0;
+  return { tokenProgram, decimals };
 }
 
 export interface BorrowParams {
@@ -184,10 +193,8 @@ export async function buildBorrowTransaction({
   const [pool] = poolPda(LENDER_PUBKEY, targetProgramId);
   const [loanTokenVault] = loanTokenVaultPda(pool, targetProgramId);
 
-  const collateralTokenProgram = await getMintTokenProgram(
-    connection,
-    collateralMint,
-  );
+  const { tokenProgram: collateralTokenProgram, decimals: collateralDecimals } =
+    await getMintProgramAndDecimals(connection, collateralMint);
   const loanTokenProgram = TOKEN_PROGRAM_ID; // wSOL is classic SPL
 
   // loan_id is baked into the loan PDA. Two borrows hitting the SAME
@@ -301,6 +308,57 @@ export async function buildBorrowTransaction({
     ),
   ];
 
+  // ── CLIENT-SIDE ATTESTATION CEILING (2026-06-23) ──
+  // Make CollateralValueExceedsAttestation (V1=6014, V3/V4=6018)
+  // structurally impossible from the site. The bot's safe-value/twap
+  // endpoints cap the submitted value correctly, but when they're
+  // unreachable/non-precise the borrow flow falls back to its OWN price
+  // source (DexScreener × 0.89) which is UNCAPPED and can exceed the
+  // on-chain attestation → the program rejects. Here we read the exact
+  // attested reference the program checks and cap the submitted value to
+  // it, leaving a 1% margin under the attestation (well within the
+  // program's tolerance, and enough to absorb minor sign→execute drift).
+  //
+  // This ONLY ever LOWERS the value — a correctly-computed precise value
+  // already sits ~2%+ under the attestation, so min() leaves it untouched;
+  // only an over-aggressive fallback value gets clamped. If the feed can't
+  // be read, we keep the caller's value (the program stays the final
+  // guard). See feedback_borrow_errors_eliminate_every_class_client_side +
+  // feedback_collateral_value_must_cap_to_attestation.
+  let effectiveCollateralValueLamports = collateralValueLamports;
+  try {
+    const ref = await getOnChainAttestedRef(
+      connection,
+      collateralMintPk,
+      targetProgramId,
+    );
+    if (ref && ref.refLamportsPerWholeToken > 0 && collateralDecimals >= 0) {
+      // maxLamports = refPerWholeToken × (amountRaw / 10^decimals) × 0.99
+      // computed in BigInt to avoid float precision loss on large supplies.
+      const denom = 10n ** BigInt(collateralDecimals);
+      const maxLamports =
+        (BigInt(ref.refLamportsPerWholeToken) * BigInt(collateralAmountRaw) * 99n) /
+        (denom * 100n);
+      const submitted = BigInt(collateralValueLamports);
+      if (maxLamports > 0n && submitted > maxLamports) {
+        console.warn(
+          `[borrow] attestation ceiling: capping collateral value ${submitted.toString()} → ${maxLamports.toString()} lamports ` +
+            `(attested ${ref.refLamportsPerWholeToken}/whole-token via ${ref.source})`,
+        );
+        effectiveCollateralValueLamports = maxLamports.toString();
+      }
+    } else {
+      console.warn(
+        "[borrow] attestation ceiling: feed unreadable — using caller value (on-chain program remains the final guard)",
+      );
+    }
+  } catch (e) {
+    console.warn(
+      "[borrow] attestation ceiling check failed — using caller value:",
+      (e as Error).message,
+    );
+  }
+
   // V3 introduced a category arg (u8) to pick the right tier ladder:
   //   0 = memecoin (30/25/20% LTV @ 2/3/7d)
   //   1 = RWA      (50/60/70% LTV @ 7/15/30d)
@@ -312,14 +370,14 @@ export async function buildBorrowTransaction({
     ? [
         new BN(collateralAmountRaw),
         loanOption,
-        new BN(collateralValueLamports),
+        new BN(effectiveCollateralValueLamports),
         loanId,
         v3Category,
       ]
     : [
         new BN(collateralAmountRaw),
         loanOption,
-        new BN(collateralValueLamports),
+        new BN(effectiveCollateralValueLamports),
         loanId,
       ];
 
