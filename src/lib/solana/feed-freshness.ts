@@ -120,7 +120,18 @@ export async function getOnChainAttestedRef(
   try {
     const [pool] = poolPda(LENDER_PUBKEY, programId);
     const [feed] = priceFeedPda(mint, pool, programId);
-    const info = await connection.getAccountInfo(feed, "confirmed");
+    // Retry once on a transient RPC miss (null OR throw) so a single blip
+    // doesn't leave the borrow value uncapped — this read IS the structural
+    // CollateralValueExceedsAttestation guard.
+    let info = null;
+    for (let i = 0; i < 2; i++) {
+      try {
+        info = await connection.getAccountInfo(feed, "confirmed");
+        if (info) break;
+      } catch {
+        /* transient — retry */
+      }
+    }
     if (!info || !info.data || info.data.length < 120) return null;
     const d = info.data;
     const isRingBuffer =
