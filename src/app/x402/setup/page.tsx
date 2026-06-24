@@ -56,6 +56,19 @@ export default function X402SetupPage() {
         </div>
       </section>
 
+      {/* Before you start */}
+      <section className="mx-auto max-w-3xl px-6 pt-10">
+        <Callout>
+          <strong>Before you start —</strong> you need almost nothing. The free
+          read tools and the entire &ldquo;test it by hand&rdquo; path need only a
+          terminal: no account, no API key, no signup. To make a <em>paid</em>{" "}
+          call you also need a Solana wallet holding a little SOL, exported as a
+          JSON keypair file (the number array that Phantom or{" "}
+          <code>solana-keygen</code> produces). That keypair stays on your
+          machine — Magpie never sees it.
+        </Callout>
+      </section>
+
       {/* What is x402 / how / why */}
       <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
         <div className="mx-auto max-w-3xl px-6 py-20 md:py-28">
@@ -120,9 +133,10 @@ export default function X402SetupPage() {
         <div className="mx-auto max-w-3xl px-6 py-20 md:py-28">
           <Section chip="Path A · for agents" title="Connect any MCP agent in one line">
             <P>
-              The fastest way to use Magpie is the official MCP server. It works
-              in Claude Desktop, Cursor, Windsurf, and any MCP-aware host. Add
-              this to your MCP config — that&apos;s the entire install:
+              The fastest way to use Magpie is the official MCP server — a
+              standard plug-in that lets AI apps (Claude Desktop, Cursor,
+              Windsurf, and any MCP-aware host) use external tools. Add this to
+              your MCP config and that&apos;s the entire install:
             </P>
             <CodeBlock>{`{
   "mcpServers": {
@@ -199,11 +213,12 @@ X-Payment-Required-Memo: magpie-x402:<nonce>
 
             <H3>3 · Pay, then retry with the proof</H3>
             <P>
-              Send the exact lamports to the recipient with that memo (any
-              wallet or the snippet below), then retry the same URL with the
-              transaction signature in the <code>X-Payment</code> header. The
-              server verifies the payment on-chain — right amount, right
-              recipient, right memo, used only once — and serves the result:
+              Send the exact amount of SOL to the recipient with that memo (from
+              any Solana wallet, or let the SDK / MCP server do it for you), then
+              retry the same URL with the transaction signature in the{" "}
+              <code>X-Payment</code> header. The server verifies the payment
+              on-chain — right amount, right recipient, right memo, used only
+              once — and serves the result:
             </P>
             <CodeBlock>{`curl -i -H "X-Payment: <your_tx_signature>" \\
   "${BASE}/api/v1/credit-score?wallet=<ANY_WALLET_PUBKEY>"`}</CodeBlock>
@@ -216,13 +231,13 @@ X-Payment-Required-Memo: magpie-x402:<nonce>
             <H3>The two payment rails</H3>
             <P>
               Every paid endpoint accepts either rail — your agent picks
-              whichever it already holds:
+              whichever it already holds (wSOL is simply SOL wrapped as a token):
             </P>
             <Table
               headers={["Rail", "Asset", "How"]}
               rows={[
                 ["Native", "SOL", "Direct SOL transfer + memo. Simplest — no token accounts."],
-                ["Standard x402 v2", "USDC / wSOL", "SPL transfer via a facilitator fee-payer. The challenge's PAYMENT-REQUIRED header carries the full offer."],
+                ["Standard x402 v2", "USDC / wSOL", "Token transfer via a facilitator (a helper service that pays the network fee for you). The challenge's PAYMENT-REQUIRED header carries the full offer."],
               ]}
             />
           </Section>
