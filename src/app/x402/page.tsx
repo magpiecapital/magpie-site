@@ -175,7 +175,7 @@ export default async function X402Page() {
           </Reveal>
           <Reveal delay={160}>
             <p className="mx-auto mt-8 max-w-3xl text-xl leading-relaxed text-[var(--ink-soft)]">
-              Your agent borrows SOL against its own memecoin or tokenized-RWA collateral on Solana, arms self-owned <strong className="text-[var(--ink)]">in-vault take-profit / stop-loss exits</strong>, and repays — all on-chain. No signup. No API key. Zero custody: the borrower account is the agent&apos;s own wallet, and the only path out is a borrower-signed repay. Same anti-exploit gauntlet humans get.
+              <strong className="text-[var(--ink)]">x402 lets AI agents pay for things on their own</strong> — no human, no signup, no card. Magpie uses it so an agent can borrow crypto by itself: your agent borrows SOL against its own memecoin or tokenized-RWA collateral on Solana, arms self-owned <strong className="text-[var(--ink)]">in-vault take-profit / stop-loss exits</strong>, and repays — all on-chain. No signup. No API key. Zero custody: the borrower account is the agent&apos;s own wallet, and the only path out is a borrower-signed repay. Same anti-exploit gauntlet humans get.
             </p>
           </Reveal>
           <Reveal delay={240}>
@@ -212,7 +212,35 @@ export default async function X402Page() {
               </Link>
             </div>
           </Reveal>
+          <Reveal delay={320}>
+            <p className="mx-auto mt-6 max-w-2xl text-sm text-[var(--ink-soft)]">
+              <strong className="text-[var(--ink)]">Building an AI agent?</strong> You&apos;re in the right place — start with{" "}
+              <Link href="/x402/setup" className="underline hover:text-[var(--ink)]">the setup guide</Link>.{" "}
+              Just want to borrow against your own tokens yourself?{" "}
+              <Link href="/marketplace" className="underline hover:text-[var(--ink)]">Use the Borrow dashboard instead →</Link>
+            </p>
+          </Reveal>
         </div>
+      </section>
+
+      {/* In plain English — human-friendly orientation */}
+      <section className="mx-auto max-w-3xl px-6 pb-16">
+        <Reveal>
+          <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--ink)]/[0.02] p-6 md:p-8">
+            <div className="text-xs uppercase tracking-widest text-[var(--accent-deep)] mb-3 font-mono">
+              In plain English
+            </div>
+            <p className="text-[var(--ink-soft)] leading-relaxed">
+              Normally a person clicks &ldquo;borrow,&rdquo; signs, and waits.{" "}
+              <strong className="text-[var(--ink)]">x402 lets an AI agent do that whole loop by itself</strong> — it pays a few cents per request (in crypto, no card or login), borrows SOL against tokens it already holds, sets its own take-profit / stop-loss, and repays. Magpie never holds the agent&apos;s wallet or keys.
+            </p>
+            <p className="mt-3 text-[var(--ink-soft)] leading-relaxed">
+              <strong className="text-[var(--ink)]">Who&apos;s it for?</strong> Developers building autonomous agents. If you just want to borrow against your own tokens by hand, the{" "}
+              <Link href="/marketplace" className="underline hover:text-[var(--ink)]">Borrow dashboard</Link>{" "}is your door. New to agents and want to try this?{" "}
+              <Link href="/x402/setup" className="underline hover:text-[var(--ink)]">Start with the setup guide →</Link>
+            </p>
+          </div>
+        </Reveal>
       </section>
 
       {/* Live protocol pulse — proof of life */}
@@ -429,7 +457,7 @@ export default async function X402Page() {
             Two ways to plug in <span className="text-base text-[var(--accent)] font-mono align-middle ml-3">live on npm</span>
           </h2>
           <p className="text-[var(--ink-soft)] mb-8 max-w-2xl">
-            Install the TypeScript SDK and write your agent in 10 lines, or drop the MCP server into Claude Desktop / Cursor / Windsurf / ChatGPT desktop and your agent gets 19 Magpie tools automatically.
+            Install the TypeScript SDK and write your agent in 10 lines, or drop the MCP server into Claude Desktop / Cursor / Windsurf / ChatGPT desktop and your agent gets all 26 Magpie tools automatically (16 free reads + 10 paid actions).
           </p>
         </Reveal>
 
@@ -441,14 +469,20 @@ export default async function X402Page() {
             <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)] mb-4">{`npm install @magpieloans/magpie-agent @solana/web3.js`}</pre>
             <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)]">{`import { MagpieAgent } from "@magpieloans/magpie-agent";
 import { Keypair } from "@solana/web3.js";
+import { readFileSync } from "fs";
 
+// Your agent's OWN wallet — it is the borrower. Magpie never holds it.
+const keypair = Keypair.fromSecretKey(
+  new Uint8Array(JSON.parse(readFileSync("/path/to/payer.json", "utf8")))
+);
+const rpcUrl = "https://api.mainnet-beta.solana.com";
 const agent = new MagpieAgent({ keypair, rpcUrl });
 
 // One line borrows SOL against any approved token:
 const loan = await agent.borrow({
-  collateralMint,
-  collateralAmount: 1_000_000_000n,
-  tier: "express",
+  collateralMint,                   // from GET /collateral/eligible
+  collateralAmount: 1_000_000_000n, // base units = amount × 10^decimals
+  tier: "express",                  // "express" | "quick" | "standard"
 });
 
 console.log(loan.signature);
@@ -496,7 +530,7 @@ console.log(loan.signature);
   }
 }`}</pre>
             <p className="text-xs text-[var(--ink-soft)] mt-3">
-              Restart your host. The agent now has 19 Magpie tools — free reads work without any keypair; paid endpoints sign x402 payment txs locally.{" "}
+              Restart your host. The agent now has all 26 Magpie tools (16 free reads + 10 paid actions) — free reads work without any keypair; paid endpoints sign x402 payment txs locally.{" "}
               <a
                 href="https://www.npmjs.com/package/@magpieloans/magpie-mcp"
                 target="_blank"
@@ -590,9 +624,16 @@ const valid = nacl.sign.detached.verify(
       {/* Endpoints */}
       <section className="mx-auto max-w-6xl px-6 pb-20">
         <Reveal>
-          <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-8">
+          <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-3">
             Endpoints
           </h2>
+          <p className="text-[var(--ink-soft)] mb-8 max-w-2xl">
+            All paths are relative to{" "}
+            <code className="font-mono text-sm text-[var(--ink)]">https://x402.magpie.capital/api/v1</code>. Read
+            endpoints are free; paid endpoints return an x402{" "}
+            <code className="font-mono text-sm text-[var(--ink)]">402</code> challenge first (the price is quoted before
+            you pay).
+          </p>
         </Reveal>
         <div className="rounded-2xl border border-[var(--ink)]/15 overflow-hidden">
           <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-[var(--ink)]/[0.03] text-xs uppercase tracking-widest text-[var(--ink-soft)]">
@@ -654,17 +695,17 @@ const valid = nacl.sign.detached.verify(
               The flywheel · $MAGPIE
             </div>
             <h2 className="font-display text-3xl md:text-5xl tracking-tight mb-5 leading-[1.02]">
-              Every agent call pays. <span className="text-[var(--accent)]">70% flows to $MAGPIE holders.</span>
+              Every agent call pays. <span className="text-[var(--accent)]">70% targets $MAGPIE holders.</span>
             </h2>
             <p className="text-lg leading-relaxed text-[var(--ink)] max-w-3xl mb-8">
-              Every agent borrow, exit, and conditional intent on magpie-x402 accrues protocol fees, and <strong>70% of those x402 protocol fees are distributed to $MAGPIE holders</strong> — pro-rata, paid in SOL, no staking, no lockup. More agents borrowing means more fees, which means more rewards back to the token. Agent adoption directly rewards holders.
+              Every agent borrow, exit, and conditional intent on magpie-x402 accrues protocol fees. <strong>70% of protocol fees is the governance-ratified (MGP-001) target allocation to the $MAGPIE holder-rewards pool</strong> — paid pro-rata in SOL on a governance cadence, no staking, no lockup. (Separately, SOL depositors earn a 10% LP-loyalty cut — a different pool.) More agents borrowing means more fees, which means more rewards back to the token.
             </p>
 
             <div className="grid md:grid-cols-3 gap-4 mb-8">
               <div className="rounded-xl border border-[var(--ink)]/15 bg-[var(--ink)]/[0.03] p-5">
                 <div className="font-display text-4xl tracking-tight text-[var(--accent)]">70%</div>
                 <div className="text-sm text-[var(--ink-soft)] mt-1 leading-snug">
-                  of every x402 protocol fee distributed to $MAGPIE holders
+                  governance-ratified (MGP-001) target allocation of protocol fees to $MAGPIE holders
                 </div>
               </div>
               <div className="rounded-xl border border-[var(--ink)]/15 bg-[var(--ink)]/[0.03] p-5">

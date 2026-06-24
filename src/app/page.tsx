@@ -46,8 +46,9 @@ const PROTOCOL_FEATURES = [
   },
   {
     title: "Agent-native via x402",
-    desc: "AI agents pay in SOL to query our credit and loan data — no API keys, no accounts, no custody. The first paid agent API for permissionless lending on Solana.",
+    desc: "AI agents borrow SOL against their own tokens, arm automatic exits, and repay — paying per call over the open x402 standard. No API keys, no accounts, no custody. The first permissionless lending protocol built for autonomous AI agents.",
     icon: "⌬",
+    href: "/x402",
   },
 ];
 
@@ -484,8 +485,9 @@ export default async function Home() {
           </Reveal>
 
           <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--hairline)] md:grid-cols-2">
-            {PROTOCOL_FEATURES.map((f, i) => (
-              <Reveal key={f.title} delay={i * 80}>
+            {PROTOCOL_FEATURES.map((f, i) => {
+              const href = (f as { href?: string }).href;
+              const body = (
                 <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-6 sm:p-8 md:p-10">
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-base text-[var(--accent-deep)] sm:h-10 sm:w-10 sm:text-lg">
@@ -496,9 +498,25 @@ export default async function Home() {
                   <div className="text-sm leading-relaxed text-[var(--ink-soft)] sm:text-base">
                     {f.desc}
                   </div>
+                  {href && (
+                    <div className="mt-auto pt-1 text-sm font-medium text-[var(--accent-deep)]">
+                      Explore the agent API →
+                    </div>
+                  )}
                 </div>
-              </Reveal>
-            ))}
+              );
+              return (
+                <Reveal key={f.title} delay={i * 80}>
+                  {href ? (
+                    <Link href={href} className="block h-full transition-colors hover:bg-[var(--accent-dim)]/40">
+                      {body}
+                    </Link>
+                  ) : (
+                    body
+                  )}
+                </Reveal>
+              );
+            })}
           </div>
 
           {/* Protocol code snippet */}

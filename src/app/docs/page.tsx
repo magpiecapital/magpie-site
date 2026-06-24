@@ -714,8 +714,16 @@ export default async function DocsPage() {
        → Telegram: alert user`}</CodeBlock>
           </Section>
 
-          {/* ─── Agents & x402 ─── */}
-          <Section id="agents-x402" title="Agents & x402" chip="Programmatic">
+          {/* ─── Delegated agent take-profit ─── */}
+          <Section id="agents-x402" title="Delegated agent take-profit" chip="Programmatic">
+            <Callout>
+              <strong>This section covers one specific mode:</strong> an agent
+              arming a take-profit on <em>someone else&apos;s</em> loan via a
+              signed delegation. For the main agent surface — an agent that
+              borrows against its <em>own</em> assets, arms its own exits, and
+              repays, all paid per call over x402 — see the{" "}
+              <a href="/x402" className="font-medium underline">x402 page</a>.
+            </Callout>
             <P>
               Magpie exposes a paid agent surface for autonomous take-profit
               orders. Agents (other on-chain programs, bots, or AI orchestrators)
