@@ -86,6 +86,12 @@ interface X402Metrics {
   revenue_7d_sol: number;
   unique_payers_24h: number;
   top_endpoints: Array<{ path: string; calls: number; revenue_sol: number }>;
+  // x402-originated borrows — present once the bot ships PR #483; gated below so
+  // this strip is a no-op until the field exists + is > 0.
+  x402_borrows_24h?: number;
+  x402_borrows_total?: number;
+  last_x402_borrow_at?: string | null;
+  last_x402_borrow_tx?: string | null;
 }
 
 interface ActivityEvent {
@@ -432,6 +438,60 @@ export default async function X402Page() {
                 calls, settled on-chain — distinct from the whole-protocol pulse above. Live from the
                 protocol&apos;s public feed{" "}
                 <code className="font-mono">GET /api/v1/public/x402-metrics</code>, refreshed every 60s.
+              </p>
+            </div>
+          </Reveal>
+        </section>
+      )}
+
+      {/* x402-originated borrows — the money shot: agents actually completing loans */}
+      {x402metrics && (x402metrics.x402_borrows_total ?? 0) > 0 && (
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <Reveal>
+            <div className="rounded-2xl border border-[var(--accent)]/40 bg-gradient-to-br from-[var(--accent)]/10 via-[var(--accent)]/5 to-transparent p-6 md:p-8">
+              <div className="flex items-center gap-2 mb-6">
+                <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+                <span className="text-xs uppercase tracking-widest text-[var(--accent-deep)]">
+                  Agents have borrowed through x402
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                <div>
+                  <div className="font-display text-3xl md:text-4xl tracking-tight">
+                    {(x402metrics.x402_borrows_total ?? 0).toLocaleString()}
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mt-1">
+                    agent loans · all-time
+                  </div>
+                </div>
+                <div>
+                  <div className="font-display text-3xl md:text-4xl tracking-tight">
+                    {(x402metrics.x402_borrows_24h ?? 0).toLocaleString()}
+                  </div>
+                  <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mt-1">
+                    agent loans · 24h
+                  </div>
+                </div>
+                {x402metrics.last_x402_borrow_tx && (
+                  <div className="flex flex-col justify-center">
+                    <Link
+                      href={`https://solscan.io/tx/${x402metrics.last_x402_borrow_tx}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-medium underline hover:text-[var(--accent-deep)]"
+                    >
+                      View the latest agent loan on Solscan →
+                    </Link>
+                    <span className="text-xs text-[var(--ink-soft)] mt-1">on-chain proof</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-[var(--ink-soft)] mt-6">
+                Real loans an x402 agent opened end-to-end — paid build-borrow → signed → cosigned →
+                funded on-chain. This figure is <strong className="text-[var(--ink)]">approximate</strong>:
+                a loan is counted as x402-originated when the funding wallet paid for a build-borrow call
+                within 30 minutes of the loan, so it never over-states. Same public feed:{" "}
+                <code className="font-mono">GET /api/v1/public/x402-metrics</code>.
               </p>
             </div>
           </Reveal>
