@@ -181,6 +181,12 @@ export default async function X402Page() {
           <Reveal delay={240}>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <Link
+                href="/x402/setup"
+                className="px-6 py-3 rounded-full bg-[var(--accent)] text-[var(--ink)] hover:bg-[var(--accent-hover)] transition text-sm font-semibold"
+              >
+                ⚡ Set up &amp; test in minutes →
+              </Link>
+              <Link
                 href="https://www.npmjs.com/package/@magpieloans/magpie-agent"
                 target="_blank"
                 rel="noopener"
