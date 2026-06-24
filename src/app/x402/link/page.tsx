@@ -214,6 +214,10 @@ export default function X402LinkPage() {
                   </span>
                 </label>
               ))}
+              <p className="mt-3 text-sm text-[var(--ink-soft)]">
+                Heads up — Magpie&apos;s minimum loan is ~0.2 SOL, so a very small position may not be
+                borrowable on its own. If a borrow later comes back as nothing, add more collateral value.
+              </p>
             </div>
           )}
         </Step>
@@ -232,6 +236,15 @@ export default function X402LinkPage() {
             placeholder="Brain wallet public address (base58)"
             className="mt-3 w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3 font-mono text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
           />
+          {connected && publicKey && brainAddr !== publicKey.toBase58() && (
+            <button
+              type="button"
+              onClick={() => setBrainAddr(publicKey.toBase58())}
+              className="btn-ghost mt-2 text-sm"
+            >
+              Use the wallet I connected — it&apos;s already my brain
+            </button>
+          )}
           {brainAddr && !brainValid && <p className="mt-2 text-sm text-red-600">Not a valid Solana address.</p>}
           {sameAsConnected && (
             <Callout>
@@ -244,54 +257,66 @@ export default function X402LinkPage() {
 
         {/* STEP 4 — fund */}
         <Step n="4" title="Fund the brain" muted={!connected || !brainValid}>
-          <Callout>
-            <strong>Only move what you&apos;re willing to delegate.</strong> Whoever holds the brain
-            wallet&apos;s key controls these tokens and the SOL it borrows. It&apos;s a normal wallet you
-            control — you can send everything back anytime.
-          </Callout>
-          <P>
-            This moves the <strong>full balance</strong> of each ticked token into the brain wallet, plus a
-            little SOL for x402 fees + gas:
-          </P>
-          <div className="mt-3 flex items-center gap-2 text-[15px] text-[var(--ink-soft)]">
-            <span>SOL for fees:</span>
-            <input
-              value={solForFees}
-              onChange={(e) => setSolForFees(e.target.value)}
-              className="w-24 rounded-lg border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3 py-1.5 font-mono text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
-            />
-            <span>SOL</span>
-          </div>
-          <button
-            onClick={() => void fund()}
-            disabled={!connected || !brainValid || funding || (selected.size === 0 && Number(solForFees) <= 0)}
-            className="btn-accent mt-4 disabled:opacity-40"
-          >
-            {funding ? "Sending…" : `Move ${selected.size} token${selected.size === 1 ? "" : "s"} + ${solForFees} SOL →`}
-          </button>
-          {fundErr && <p className="mt-3 text-sm text-red-600">{fundErr}</p>}
-          {fundSig && (
+          {sameAsConnected ? (
             <Callout>
-              ✓ Funded the brain wallet.{" "}
-              <a href={`https://solscan.io/tx/${fundSig}`} target="_blank" rel="noopener noreferrer" className="underline">
-                View transaction
-              </a>
+              ✓ <strong>Nothing to do here — skip to step 5.</strong> Your brain wallet <em>is</em> the
+              wallet you connected, so your tokens are already where the brain can borrow against them.
             </Callout>
+          ) : (
+            <>
+              <Callout>
+                <strong>Only move what you&apos;re willing to delegate.</strong> Whoever holds the brain
+                wallet&apos;s key controls these tokens and the SOL it borrows. It&apos;s a normal wallet you
+                control — you can send everything back anytime.
+              </Callout>
+              <P>
+                This moves the <strong>full balance</strong> of each ticked token into the brain wallet, plus
+                a little SOL for x402 fees + gas:
+              </P>
+              <div className="mt-3 flex items-center gap-2 text-[15px] text-[var(--ink-soft)]">
+                <span>SOL for fees:</span>
+                <input
+                  value={solForFees}
+                  onChange={(e) => setSolForFees(e.target.value)}
+                  className="w-24 rounded-lg border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3 py-1.5 font-mono text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+                />
+                <span>SOL</span>
+              </div>
+              <button
+                onClick={() => void fund()}
+                disabled={!connected || !brainValid || funding || (selected.size === 0 && Number(solForFees) <= 0)}
+                className="btn-accent mt-4 disabled:opacity-40"
+              >
+                {funding ? "Sending…" : `Move ${selected.size} token${selected.size === 1 ? "" : "s"} + ${solForFees} SOL →`}
+              </button>
+              {fundErr && <p className="mt-3 text-sm text-red-600">{fundErr}</p>}
+              {fundSig && (
+                <Callout>
+                  ✓ Funded the brain wallet.{" "}
+                  <a href={`https://solscan.io/tx/${fundSig}`} target="_blank" rel="noopener noreferrer" className="underline">
+                    View transaction
+                  </a>
+                </Callout>
+              )}
+              <P>
+                Prefer to send manually? Just transfer those tokens to{" "}
+                <code className="font-mono text-[13px] break-all">{brainAddr || "your brain address"}</code>{" "}
+                from any wallet — same result.
+              </P>
+            </>
           )}
-          <P>
-            Prefer to send manually? Just transfer those tokens to{" "}
-            <code className="font-mono text-[13px] break-all">{brainAddr || "your brain address"}</code> from
-            any wallet — same result.
-          </P>
         </Step>
 
         {/* STEP 5 — wire up */}
         <Step n="5" title="Point your brain at Magpie x402" muted={!connected || !brainValid}>
           <P>
-            Drop this into your AI host&apos;s MCP config (Claude Desktop / Cursor / Windsurf), pointing
-            <code className="mx-1 font-mono text-[13px]">MAGPIE_MCP_PAYER_KEYPAIR</code>
-            at your brain&apos;s keypair file. Restart, and your brain can borrow against the tokens you just
-            moved:
+            This goes in your AI host&apos;s <strong>MCP config file</strong> — <em>not</em> your terminal.
+            In Claude Desktop: <strong>Settings → Developer → Edit Config</strong>, paste this block, and set{" "}
+            <code className="mx-1 font-mono text-[13px]">MAGPIE_MCP_PAYER_KEYPAIR</code> to the{" "}
+            <strong>full path</strong> of your brain&apos;s keypair file. (Run{" "}
+            <code className="font-mono text-[13px]">echo &quot;$HOME/agent-wallet.json&quot;</code> in a
+            terminal to get that path — paste what it prints; don&apos;t use <code>~</code>, it won&apos;t
+            expand here.) Save, restart, and your brain can borrow:
           </P>
           <pre className="mt-3 overflow-x-auto rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-5 font-mono text-[13px] leading-relaxed text-[var(--ink)]">
             <code>{mcpConfig}</code>
