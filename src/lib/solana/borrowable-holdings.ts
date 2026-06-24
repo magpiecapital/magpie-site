@@ -12,9 +12,9 @@
 import type { Connection, PublicKey } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
-const CATALOG_URL =
-  (process.env.NEXT_PUBLIC_X402_BASE_URL || "https://x402.magpie.capital") +
-  "/api/v1/collateral/eligible";
+// Same-origin proxy (src/app/api/collateral/route.ts) — fetching the x402
+// service directly from the browser is blocked by CORS.
+const CATALOG_URL = "/api/collateral";
 
 export interface CatalogToken {
   mint: string;
