@@ -1,12 +1,13 @@
 /**
- * /api/v1/cosign-borrow — proxy to the bot's lender-cosign endpoint.
+ * /api/v1/cosign-borrow — proxy + field adapter to the bot's lender-cosign.
  *
  * The x402 SDK signs the borrow tx, then POSTs { signed_tx_b64 } to
  * `${siteUrl}/api/v1/cosign-borrow` (siteUrl defaults to magpie.capital). The
- * cosign step (where Magpie's lender authority adds its signature + submits)
- * lives on the bot — so the site must forward it here, the same way /api/rpc
- * and /api/collateral proxy their upstreams. Without this route the SDK got the
- * site's HTML page back and the whole agent borrow failed at the final hop.
+ * lender-cosign step lives on the bot, which reads { partialSignedTxBase64 }.
+ * Two halves built separately + never integration-tested (the auth bug blocked
+ * this path), so they disagree on the field name. This proxy forwards to the
+ * bot (same pattern as /api/rpc, /api/collateral) AND adapts the field name so
+ * the SDK's borrow completes.
  */
 const BOT =
   process.env.BOT_API_URL ||
@@ -14,7 +15,17 @@ const BOT =
   "https://magpie-bot-production.up.railway.app";
 
 export async function POST(req: Request) {
-  const body = await req.text();
+  let raw: Record<string, unknown> = {};
+  try {
+    raw = (await req.json()) as Record<string, unknown>;
+  } catch {
+    /* leave raw empty → bot returns its own validation error */
+  }
+  // SDK sends signed_tx_b64; the bot reads partialSignedTxBase64. Accept any of
+  // the known names, forward the bot's expected one. Pass everything else through.
+  const tx = raw.partialSignedTxBase64 ?? raw.signed_tx_b64 ?? raw.partial_signed_tx_b64;
+  const body = JSON.stringify({ ...raw, partialSignedTxBase64: tx });
+
   try {
     const res = await fetch(`${BOT}/api/v1/cosign-borrow`, {
       method: "POST",
