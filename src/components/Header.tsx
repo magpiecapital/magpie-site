@@ -18,7 +18,7 @@ const NAV_LINKS = [
   { label: "Earn", href: "/earn" },
   { label: "Borrow", href: "/marketplace" },
   { label: "Tokens", href: "/tokens" },
-  { label: "x402", href: "/x402" },
+  { label: "Agents · x402", href: "/x402" },
   { label: "Dashboard", href: "/dashboard" },
   { label: "Stats", href: "/stats" },
   { label: "Docs", href: "/docs" },
