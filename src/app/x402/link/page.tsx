@@ -179,7 +179,12 @@ export default function X402LinkPage() {
           ) : loading ? (
             <P>Scanning your token accounts (incl. Token-2022)…</P>
           ) : holdingsErr ? (
-            <Callout>Couldn&apos;t load: {holdingsErr}. <button className="underline" onClick={() => void loadHoldings()}>Retry</button></Callout>
+            <Callout>
+              <div>Couldn&apos;t load your holdings: {holdingsErr}</div>
+              <button onClick={() => void loadHoldings()} className="btn-ghost mt-3" disabled={loading}>
+                {loading ? "Retrying…" : "Retry"}
+              </button>
+            </Callout>
           ) : holdings && holdings.length === 0 ? (
             <Callout>
               No Magpie-eligible collateral found in this wallet. You can still set up the brain wallet —
