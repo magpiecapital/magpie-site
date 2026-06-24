@@ -67,6 +67,16 @@ export default function X402SetupPage() {
           <code>solana-keygen</code> produces). That keypair stays on your
           machine — Magpie never sees it.
         </Callout>
+        <Callout>
+          <strong>Not a developer?</strong> If you just hold some tokens and want
+          an agent to borrow against them, skip the curl and use the guided{" "}
+          <Link href="/x402/link" className="underline">
+            5-step Link wizard
+          </Link>{" "}
+          — connect your wallet, see what you can borrow against, designate a
+          &ldquo;brain&rdquo; wallet, fund it, and copy one config. This page is the
+          reference for wiring it in code.
+        </Callout>
       </section>
 
       {/* What is x402 / how / why */}

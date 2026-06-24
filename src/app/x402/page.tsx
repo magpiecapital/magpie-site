@@ -15,11 +15,11 @@ const SOLSCAN_URL = `https://solscan.io/token/${MAGPIE_MINT}`;
 export const metadata: Metadata = {
   title: "magpie-x402 · Permissionless agent lending on Solana | Magpie",
   description:
-    "An autonomous agent takes a permissionless loan against its OWN assets — borrow SOL against memecoin or tokenized-RWA collateral, arm in-vault take-profit/stop-loss exits, repay. No signup, no API key, zero custody. 70% of x402 protocol fees flow to $MAGPIE holders.",
+    "An autonomous agent takes a permissionless loan against its OWN assets — borrow SOL against memecoin (V1) or tokenized-RWA (V3) collateral, arm in-vault take-profit/stop-loss exits (V4), repay. No signup, no API key, zero custody. A governance-set 70% target of protocol fees (MGP-001) is allocated to $MAGPIE holders.",
   openGraph: {
     title: "magpie-x402 · Permissionless agent lending on Solana",
     description:
-      "Your agent borrows SOL against its own collateral, arms its own in-vault exits, repays. No API keys, no accounts, zero custody. 70% of x402 protocol fees are distributed to $MAGPIE holders.",
+      "Your agent borrows SOL against its own collateral across three live lending pools, arms its own in-vault exits, repays. No API keys, no accounts, zero custody. A governance-set 70% target of protocol fees (MGP-001) is allocated to $MAGPIE holders.",
   },
 };
 
@@ -98,6 +98,19 @@ interface ActivityEvent {
   duration_days?: number | null;
 }
 
+interface PoolLane {
+  program_version: string;
+  sol?: { totalDeposits?: number; totalBorrowed?: number };
+  counts?: { loansIssuedLifetime?: number };
+}
+
+interface PoolsResponse {
+  versions: string[];
+  pools: Record<string, PoolLane>;
+}
+
+const X402_BASE = "https://x402.magpie.capital";
+
 async function fetchProtocolPulse(): Promise<ProtocolPulse | null> {
   const BOT_API = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
   try {
@@ -138,6 +151,32 @@ async function fetchX402Metrics(): Promise<X402Metrics | null> {
   }
 }
 
+// Live three-lane pool state (V1 memecoin · V3 RWA · V4 in-vault exits) — real
+// on-chain proof that every lane is funded and lending, straight from the x402 service.
+async function fetchPools(): Promise<PoolsResponse | null> {
+  try {
+    const res = await fetch(`${X402_BASE}/api/v1/pools`, { next: { revalidate: 120 } });
+    if (!res.ok) return null;
+    return (await res.json()) as PoolsResponse;
+  } catch {
+    return null;
+  }
+}
+
+// Always-on liveness signal for the status pill — pings the x402 service /health.
+// Cached 60s; reflects last-known status so the page can show "live" / "reconnecting"
+// instead of silently collapsing to a claims-only page when the API blips.
+async function fetchX402Health(): Promise<boolean> {
+  try {
+    const res = await fetch(`${X402_BASE}/health`, { next: { revalidate: 60 } });
+    if (!res.ok) return false;
+    const j = (await res.json()) as { ok?: boolean };
+    return j.ok === true;
+  } catch {
+    return false;
+  }
+}
+
 function timeAgo(iso: string): string {
   const ms = Date.now() - new Date(iso).getTime();
   const sec = Math.max(0, Math.floor(ms / 1000));
@@ -150,9 +189,11 @@ function timeAgo(iso: string): string {
 }
 
 export default async function X402Page() {
-  const [pulse, activity] = await Promise.all([
+  const [pulse, activity, pools, apiLive] = await Promise.all([
     fetchProtocolPulse(),
     fetchActivity(),
+    fetchPools(),
+    fetchX402Health(),
   ]);
   const x402metrics = await fetchX402Metrics();
   return (
@@ -164,8 +205,25 @@ export default async function X402Page() {
         <div className="hero-glow" />
         <div className="mx-auto max-w-6xl px-6 pt-24 pb-12 text-center md:pt-32 md:pb-16">
           <Reveal>
-            <div className="text-[var(--accent)] text-sm tracking-widest uppercase mb-4 font-mono">
-              now live on npm · npm install @magpieloans/magpie-agent
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-4">
+              <div className="text-[var(--accent)] text-sm tracking-widest uppercase font-mono">
+                now live on npm · npm install @magpieloans/magpie-agent
+              </div>
+              {/* Always-present liveness pill — never collapses to claims-only */}
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-mono uppercase tracking-wider ${
+                  apiLive
+                    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+                    : "border-amber-500/40 bg-amber-500/10 text-amber-600"
+                }`}
+              >
+                <span
+                  className={`inline-block w-1.5 h-1.5 rounded-full ${
+                    apiLive ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+                  }`}
+                />
+                {apiLive ? "x402 API · live" : "x402 API · reconnecting"}
+              </span>
             </div>
           </Reveal>
           <Reveal delay={80}>
@@ -181,43 +239,44 @@ export default async function X402Page() {
           <Reveal delay={240}>
             <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
               <Link
-                href="/x402/setup"
+                href="/x402/link"
                 className="px-6 py-3 rounded-full bg-[var(--accent)] text-[var(--ink)] hover:bg-[var(--accent-hover)] transition text-sm font-semibold"
               >
-                ⚡ Set up &amp; test in minutes →
+                🔗 Link your wallet — let your agent borrow →
+              </Link>
+              <Link
+                href="/x402/setup"
+                className="px-6 py-3 rounded-full bg-[var(--ink)] text-[var(--bg)] hover:opacity-90 transition text-sm font-medium"
+              >
+                ⚡ Set up &amp; test in minutes
               </Link>
               <Link
                 href="https://www.npmjs.com/package/@magpieloans/magpie-agent"
                 target="_blank"
                 rel="noopener"
-                className="px-6 py-3 rounded-full bg-[var(--ink)] text-[var(--bg)] hover:opacity-90 transition text-sm font-medium"
+                className="px-6 py-3 rounded-full border border-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--bg)] transition text-sm font-medium"
               >
-                📦 npm install @magpieloans/magpie-agent
+                📦 npm · magpie-agent
               </Link>
               <Link
                 href="https://www.npmjs.com/package/@magpieloans/magpie-mcp"
                 target="_blank"
                 rel="noopener"
-                className="px-6 py-3 rounded-full border border-[var(--ink)] hover:bg-[var(--ink)] hover:text-[var(--bg)] transition text-sm font-medium"
-              >
-                🧩 MCP server for Claude / Cursor / Windsurf
-              </Link>
-              <Link
-                href="https://github.com/magpiecapital/magpie-x402/blob/main/QUICKSTART.md"
-                target="_blank"
-                rel="noopener"
                 className="px-6 py-3 rounded-full border border-[var(--ink)]/40 hover:border-[var(--ink)] transition text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]"
               >
-                10-min quickstart
+                🧩 MCP for Claude / Cursor / Windsurf
               </Link>
             </div>
           </Reveal>
           <Reveal delay={320}>
             <p className="mx-auto mt-6 max-w-2xl text-sm text-[var(--ink-soft)]">
-              <strong className="text-[var(--ink)]">Building an AI agent?</strong> You&apos;re in the right place — start with{" "}
-              <Link href="/x402/setup" className="underline hover:text-[var(--ink)]">the setup guide</Link>.{" "}
-              Just want to borrow against your own tokens yourself?{" "}
-              <Link href="/marketplace" className="underline hover:text-[var(--ink)]">Use the Borrow dashboard instead →</Link>
+              <strong className="text-[var(--ink)]">Hold tokens and want an agent to borrow for you?</strong>{" "}
+              <Link href="/x402/link" className="underline hover:text-[var(--ink)]">The 5-step Link wizard</Link>{" "}
+              is your start here.{" "}
+              <strong className="text-[var(--ink)]">Building an AI agent?</strong>{" "}
+              <Link href="/x402/setup" className="underline hover:text-[var(--ink)]">The setup guide</Link>{" "}
+              is your reference. Just want to borrow by hand?{" "}
+              <Link href="/marketplace" className="underline hover:text-[var(--ink)]">Use the Borrow dashboard →</Link>
             </p>
           </Reveal>
         </div>
@@ -235,9 +294,10 @@ export default async function X402Page() {
               <strong className="text-[var(--ink)]">x402 lets an AI agent do that whole loop by itself</strong> — it pays a few cents per request (in crypto, no card or login), borrows SOL against tokens it already holds, sets its own take-profit / stop-loss, and repays. Magpie never holds the agent&apos;s wallet or keys.
             </p>
             <p className="mt-3 text-[var(--ink-soft)] leading-relaxed">
-              <strong className="text-[var(--ink)]">Who&apos;s it for?</strong> Developers building autonomous agents. If you just want to borrow against your own tokens by hand, the{" "}
-              <Link href="/marketplace" className="underline hover:text-[var(--ink)]">Borrow dashboard</Link>{" "}is your door. New to agents and want to try this?{" "}
-              <Link href="/x402/setup" className="underline hover:text-[var(--ink)]">Start with the setup guide →</Link>
+              <strong className="text-[var(--ink)]">Who&apos;s it for?</strong> Anyone who holds tokens and wants an autonomous agent to borrow against them — and developers building those agents. The easiest way in is the{" "}
+              <Link href="/x402/link" className="underline hover:text-[var(--ink)]">5-step Link wizard</Link>: connect your wallet, see what you can borrow against, designate a &ldquo;brain&rdquo; wallet, and copy one config. Prefer to wire it in code?{" "}
+              <Link href="/x402/setup" className="underline hover:text-[var(--ink)]">The setup guide</Link>{" "}has the SDK + MCP path. Just want to borrow by hand?{" "}
+              <Link href="/marketplace" className="underline hover:text-[var(--ink)]">The Borrow dashboard</Link>.
             </p>
           </div>
         </Reveal>
@@ -251,7 +311,7 @@ export default async function X402Page() {
               <div className="flex items-center gap-2 mb-6">
                 <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
                 <span className="text-xs uppercase tracking-widest text-[var(--ink-soft)]">
-                  Live protocol pulse · last 24h
+                  Live protocol pulse · last 24h · whole protocol (humans + agents)
                 </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -290,9 +350,10 @@ export default async function X402Page() {
                 </div>
               </div>
               <p className="text-xs text-[var(--ink-soft)] mt-6">
-                Pulled from{" "}
-                <code className="font-mono">/api/v1/agent/protocol-pulse</code> —
-                same free endpoint your agent can hit on every tick.
+                Pulled live from{" "}
+                <code className="font-mono">https://x402.magpie.capital/api/v1/agent/protocol-pulse</code>{" "}
+                — the same free endpoint your agent can hit on every tick. These are
+                whole-protocol totals (website, Telegram, and x402 agents combined).
               </p>
             </div>
           </Reveal>
@@ -307,7 +368,7 @@ export default async function X402Page() {
               <div className="flex items-center gap-2 mb-6">
                 <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
                 <span className="text-xs uppercase tracking-widest text-[var(--accent-deep)]">
-                  Agents are paying for it · last 24h
+                  Agents are paying for it · last 24h · x402-only
                 </span>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
@@ -367,8 +428,10 @@ export default async function X402Page() {
                 </div>
               )}
               <p className="text-xs text-[var(--ink-soft)] mt-5">
-                Same data via <code className="font-mono">GET /api/v1/agent/x402-metrics</code> on the bot —
-                refresh interval 60s.
+                These are <strong className="text-[var(--ink)]">x402-only</strong> figures — real paid agent
+                calls, settled on-chain — distinct from the whole-protocol pulse above. Live from the
+                protocol&apos;s public feed{" "}
+                <code className="font-mono">GET /api/v1/public/x402-metrics</code>, refreshed every 60s.
               </p>
             </div>
           </Reveal>
@@ -442,6 +505,97 @@ export default async function X402Page() {
           </Reveal>
         </section>
       )}
+
+      {/* Three lending lanes — V1 / V3 / V4, with live on-chain pool proof */}
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <Reveal>
+          <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-3">
+            One API, three lending lanes
+          </h2>
+          <p className="text-[var(--ink-soft)] mb-8 max-w-3xl">
+            Your agent borrows through the same SDK call no matter what it holds — Magpie routes the loan to the
+            right on-chain program automatically. No-exit memecoin loans open on{" "}
+            <strong className="text-[var(--ink)]">V1</strong>, no-exit tokenized-RWA loans on{" "}
+            <strong className="text-[var(--ink)]">V3</strong>, and anything with armed take-profit / stop-loss
+            exits on <strong className="text-[var(--ink)]">V4</strong>. All three are live and lending right now.
+          </p>
+        </Reveal>
+        <div className="grid md:grid-cols-3 gap-6">
+          {[
+            {
+              v: "v1",
+              tag: "V1 · memecoin",
+              title: "Borrow against memecoins",
+              desc: "Lock an approved memecoin, borrow SOL against it. The classic no-exit loan — borrow, hold, repay. Routed here automatically when your agent borrows a memecoin with no exits armed.",
+            },
+            {
+              v: "v3",
+              tag: "V3 · tokenized RWA",
+              title: "Borrow against stocks & RWAs",
+              desc: "Lock a tokenized equity or real-world asset (xStocks like TSLAx, SNDK, MU) and borrow SOL against it. Same flow, RWA-grade collateral. No-exit RWA loans route here.",
+            },
+            {
+              v: "v4",
+              tag: "V4 · in-vault exits",
+              title: "Borrow + auto-sell exits",
+              desc: "Borrow and arm take-profit / stop-loss that fire in-vault: proceeds accrue inside the loan's own vault, the loan stays open, and the only path to the wallet is a borrower-signed repay. The auto-sell agent's edge.",
+            },
+          ].map((lane) => {
+            const p = pools?.pools?.[lane.v];
+            const deposits = p?.sol?.totalDeposits;
+            const borrowed = p?.sol?.totalBorrowed;
+            const loans = p?.counts?.loansIssuedLifetime;
+            return (
+              <Reveal key={lane.v}>
+                <div className="rounded-2xl border border-[var(--ink)]/15 p-6 h-full flex flex-col bg-[var(--ink)]/[0.02]">
+                  <div className="text-xs uppercase tracking-widest text-[var(--accent-deep)] mb-2 font-mono">
+                    {lane.tag}
+                  </div>
+                  <h3 className="font-display text-xl tracking-tight mb-3">{lane.title}</h3>
+                  <p className="text-sm text-[var(--ink-soft)] leading-relaxed flex-1">{lane.desc}</p>
+                  {p && (
+                    <div className="mt-5 pt-4 border-t border-[var(--ink)]/10 grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <div className="font-display text-lg tracking-tight">
+                          {deposits != null ? deposits.toFixed(1) : "—"}
+                        </div>
+                        <div className="text-[10px] uppercase tracking-widest text-[var(--ink-soft)] mt-0.5">
+                          SOL pool
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-display text-lg tracking-tight">
+                          {borrowed != null ? borrowed.toFixed(1) : "—"}
+                        </div>
+                        <div className="text-[10px] uppercase tracking-widest text-[var(--ink-soft)] mt-0.5">
+                          borrowed
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-display text-lg tracking-tight">
+                          {loans != null ? loans.toLocaleString() : "—"}
+                        </div>
+                        <div className="text-[10px] uppercase tracking-widest text-[var(--ink-soft)] mt-0.5">
+                          loans
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
+        <Reveal>
+          <p className="text-xs text-[var(--ink-soft)] mt-5">
+            {pools
+              ? "Per-lane numbers are live on-chain pool state from "
+              : "Live per-lane pool state is served at "}
+            <code className="font-mono">https://x402.magpie.capital/api/v1/pools</code>
+            {" "}— deposits, borrowed, and lifetime loans for every program version.
+          </p>
+        </Reveal>
+      </section>
 
       {/* Try-it-now wallet lookup */}
       <section className="mx-auto max-w-6xl px-6 pb-20">
@@ -550,6 +704,64 @@ console.log(loan.signature);
               </a>
             </p>
           </div>
+        </div>
+      </section>
+
+      {/* Full borrow lifecycle — what actually funds a loan */}
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <Reveal>
+          <h2 className="font-display text-3xl md:text-4xl tracking-tight mb-3">
+            How a borrow actually completes
+          </h2>
+          <p className="text-[var(--ink-soft)] mb-8 max-w-3xl">
+            One detail worth knowing: <strong className="text-[var(--ink)]">building the transaction is not the
+            same as funding the loan.</strong> A borrow takes two signed steps — your agent signs first, then
+            Magpie&apos;s lender authority co-signs and broadcasts. The SDK does all of this in one call; here it
+            is unwrapped so the manual-HTTP path is just as clear.
+          </p>
+        </Reveal>
+        <div className="grid md:grid-cols-2 gap-6">
+          <Reveal>
+            <ol className="space-y-4">
+              {[
+                { n: "1", t: "Pay + POST /agent/build-borrow", d: "The x402 fee (0.005 SOL) is quoted, you pay, and the server returns partial_signed_tx_b64 — an UNSIGNED borrow tx. Every anti-exploit gate runs here. No loan exists yet." },
+                { n: "2", t: "Your agent signs", d: "The agent signs the tx with its OWN keypair. Magpie never sees the key. The agent is the borrower on the resulting loan." },
+                { n: "3", t: "POST to /api/v1/cosign-borrow", d: "Magpie's lender authority adds its co-signature — restricted to the single allowlisted request_and_fund_loan instruction — and broadcasts. The principal SOL lands in the agent's wallet. NOW the loan is funded on-chain." },
+                { n: "4", t: "Verify with GET /loan/:id", d: "Confirm terms, collateral, status, health, and due time. Free endpoint — poll it any time over the life of the loan." },
+              ].map((s) => (
+                <li key={s.n} className="flex gap-4">
+                  <span className="shrink-0 w-8 h-8 rounded-full bg-[var(--accent)] text-[var(--ink)] font-display flex items-center justify-center text-sm">
+                    {s.n}
+                  </span>
+                  <div>
+                    <div className="font-mono text-sm text-[var(--ink)]">{s.t}</div>
+                    <div className="text-sm text-[var(--ink-soft)] leading-relaxed mt-1">{s.d}</div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </Reveal>
+          <Reveal delay={80}>
+            <div className="rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-6 h-full">
+              <div className="text-xs uppercase tracking-widest text-[var(--accent-deep)] mb-3 font-mono">
+                …or just one line
+              </div>
+              <pre className="font-mono text-xs md:text-sm overflow-x-auto rounded-lg bg-black/30 p-4 text-[var(--ink)]">{`// agent.borrow() does all four steps for you:
+const loan = await agent.borrow({
+  collateralMint,
+  collateralAmount: 1_000_000_000n,
+  tier: "express",
+});
+
+console.log(loan.signature);
+// → funded on-chain; loan.loanId is live`}</pre>
+              <p className="text-xs text-[var(--ink-soft)] mt-4 leading-relaxed">
+                The SDK and MCP server handle the pay → build → sign → cosign → confirm loop internally, so a
+                single <code className="font-mono">borrow()</code> returns a funded loan. The manual steps on the
+                left are what runs under the hood — useful if you&apos;re integrating over raw HTTP.
+              </p>
+            </div>
+          </Reveal>
         </div>
       </section>
 
