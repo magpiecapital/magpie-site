@@ -19,16 +19,20 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { PROPOSAL_LIFECYCLES, resolveProposalStatus } from "@/lib/governance";
 
 const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || "";
 
-// Active proposals — hardcoded list. Keep in sync with the canonical
-// list in /api/v1/governance/route.ts. Future: replace with a fetch of
-// /api/v1/governance/proposals (endpoint TBD). MGP-002 was withdrawn on
-// 2026-06-09; MGP-001 and MGP-003 are the two active proposals as of
-// 2026-06-10. Hardcoding keeps the dashboard card decoupled from a
-// not-yet-implemented list endpoint.
-const ACTIVE_PROPOSAL_IDS = ["MGP-001", "MGP-003"];
+// Which proposals to query voting power for — DERIVED from the single source of
+// truth (src/lib/governance.ts), not hardcoded, so a closed proposal drops off
+// and a newly-opened one appears automatically. The bot's voting-window check
+// below is still the authoritative "is it open right now" gate.
+function candidateProposalIds(now = new Date()): string[] {
+  return Object.keys(PROPOSAL_LIFECYCLES).filter((id) => {
+    const kind = resolveProposalStatus(id, now)?.kind;
+    return kind === "active" || kind === "upcoming";
+  });
+}
 
 // Mirrors the public response from
 // magpie-bot /api/v1/governance/voting-power. The bot intentionally
@@ -80,8 +84,10 @@ export default function GovernanceCard() {
     let cancelled = false;
     (async () => {
       const wallet = publicKey.toBase58();
+      const ids = candidateProposalIds();
+      if (ids.length === 0) { setLoading(false); return; }
       const results = await Promise.all(
-        ACTIVE_PROPOSAL_IDS.map(async (pid) => {
+        ids.map(async (pid) => {
           try {
             const r = await fetch(`${botApiUrl}/api/v1/governance/voting-power?wallet=${wallet}&proposal_id=${pid}`);
             if (!r.ok) return null;
