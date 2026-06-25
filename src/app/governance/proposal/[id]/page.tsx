@@ -7,7 +7,7 @@ import { VoteButtons } from "./VoteButtons";
 import { VotingCountdown } from "./VotingCountdown";
 import { LiveResults } from "./LiveResults";
 import { VoteAndLiveResults } from "./VoteAndLiveResults";
-import type { VoteChoice } from "@/lib/solana/site-governance-vote";
+import type { VoteOption } from "@/lib/solana/site-governance-vote";
 import { resolveProposalStatus } from "@/lib/governance";
 
 // Re-evaluate date-driven status at runtime so the vote UI opens/closes on schedule.
@@ -16,7 +16,8 @@ export const revalidate = 60;
 interface ProposalQuestion {
   id: string;
   text: string;
-  choices?: VoteChoice[];
+  /** The ballot, with a plain-English label + description per option. */
+  options?: VoteOption[];
 }
 
 // NOTE: status/opens/closes are NOT stored here — they are DERIVED from
@@ -56,9 +57,12 @@ const PROPOSALS: Record<string, Proposal> = {
     questions: [
       {
         id: "Vote",
-        text:
-          "Adopt the 70/10/10/10 loan-fee split? YES adopts the split. NO keeps the current split. ABSTAIN defers to operator discretion.",
-        choices: ["YES", "NO", "ABSTAIN"],
+        text: "Should Magpie adopt the 70/10/10/10 loan-fee split?",
+        options: [
+          { value: "YES", label: "Adopt 70/10/10/10", description: "Send 70% of every loan fee to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, 10% to the protocol reserve. Holder-first." },
+          { value: "NO", label: "Keep the current split", description: "Leave the existing 10% holder share unchanged." },
+          { value: "ABSTAIN", label: "Defer to operator", description: "No preference — defer to operator discretion." },
+        ],
       },
     ],
   },
@@ -101,8 +105,14 @@ const PROPOSALS: Record<string, Proposal> = {
       {
         id: "Vote",
         text:
-          "Pick ONE option. A = Patience: re-lock 100% for 36 more months (new Streamflow vest ending July 2029, no spend, no distribution). B = Loyalty: 100% to current $MAGPIE holders via 24-month linear vest (snapshot at proposal close; ~0.137%/day per holder; same exempt-wallet rules as today). C = Build: 100% to a multi-sig Magpie Treasury locked 24 months minimum, with pre-declared programmatic spend categories (deep-LP backing, partner integrations, security audits, x402 grants, matched LP top-ups) and full on-chain logging on /distributions. D = Discipline + Build: 50% burned permanently (~25M, -2.5% supply) + 50% to the same locked Growth Treasury (24-mo lock, Option C spend rules). ABSTAIN = defer to operator discretion.",
-        choices: ["A", "B", "C", "D", "ABSTAIN"],
+          "On July 1, 2026 a Streamflow contract holding ~5% of $MAGPIE supply (~50M tokens) unlocks. Pick ONE option for what happens to it. No option releases tokens to the market at once. The winning option (>40% of cast votes) binds the operator's execution within 14 days.",
+        options: [
+          { value: "A", label: "Patience — 36-month re-lock", description: "Re-lock 100% of the ~50M into a new Streamflow vest ending July 2029. No spend, no distribution, no supply change today. Keeps every option open for later." },
+          { value: "B", label: "Loyalty — 24-month holder vest", description: "Distribute 100% to current $MAGPIE holders via a 24-month linear vest (snapshot at proposal close, ~0.137%/day per holder, same exempt-wallet rules as today). Rewards today's holders; no instant dump." },
+          { value: "C", label: "Build — locked Growth Treasury", description: "Move 100% to a multi-sig Magpie Treasury locked ≥24 months, spendable only on pre-declared categories (deep-LP backing, partner integrations, security audits, x402 grants, matched LP top-ups), fully logged on /distributions." },
+          { value: "D", label: "Discipline + Build — 50% burn / 50% treasury", description: "Permanently burn 50% (~25M, −2.5% of supply) and lock the other 50% in the same Growth Treasury (24-month lock, Option C spend rules). Tightens supply and funds growth." },
+          { value: "ABSTAIN", label: "Defer to operator", description: "No preference. If ABSTAIN reaches ≥30% of weight, the operator chooses among A–D." },
+        ],
       },
     ],
   },
@@ -201,11 +211,14 @@ export default async function ProposalPage({
                 </div>
               </div>
               <div className="px-5 py-6 sm:px-6">
-                {question.choices && (
+                <p className="mb-5 text-sm leading-relaxed text-white/75">
+                  {question.text}
+                </p>
+                {question.options && (
                   <VoteAndLiveResults
                     proposalId={p.id}
                     questionId={question.id}
-                    choices={question.choices}
+                    options={question.options}
                     botApiUrl={botApiUrl}
                     opensAtIso={status?.activates_at_iso ?? ""}
                   />

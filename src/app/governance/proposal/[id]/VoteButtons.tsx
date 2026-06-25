@@ -2,13 +2,13 @@
 
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useState } from "react";
-import { siteCastVote, type VoteChoice } from "@/lib/solana/site-governance-vote";
+import { siteCastVote, type VoteChoice, type VoteOption } from "@/lib/solana/site-governance-vote";
 import { formatEst } from "@/lib/time";
 
 interface VoteButtonsProps {
   proposalId: string;
   questionId: string;
-  choices: VoteChoice[];
+  options: VoteOption[];
   botApiUrl: string;
   /** ISO timestamp; if set and in the future, buttons render as "voting opens at …" instead of clickable. */
   opensAtIso?: string;
@@ -44,7 +44,7 @@ function choiceTheme(choice: string, isRecorded: boolean) {
 export function VoteButtons({
   proposalId,
   questionId,
-  choices,
+  options,
   botApiUrl,
   opensAtIso,
   onVoteRecorded,
@@ -129,40 +129,53 @@ export function VoteButtons({
     );
   }
 
-  // n-up grid — 2 cols on mobile for 3-choice ballots, scales up.
-  const gridCols =
-    choices.length <= 2 ? "grid-cols-2"
-    : choices.length === 3 ? "grid-cols-3"
-    : choices.length <= 4 ? "grid-cols-2 sm:grid-cols-4"
-    : "grid-cols-2 sm:grid-cols-3";
-
   // Recently-recorded glow lasts 4 seconds so the eye catches it even
   // if the user looks away briefly.
   const recentlyRecorded =
     phase === "recorded" && justRecordedAt !== null && Date.now() - justRecordedAt < 4_000;
+  const recordedOption = options.find((o) => o.value === recorded);
 
   return (
     <div>
-      <div className={`grid gap-2 sm:gap-3 ${gridCols}`}>
-        {choices.map((c) => {
-          const isRecorded = recorded === c;
-          const isBusy = busy === c;
+      {/* Rich option cards — every ballot option shows its letter, a clear
+          label, and a plain-English description. A voter never sees a bare
+          letter and has to guess. See feedback_governance_ballots_must_be_self_explanatory.md */}
+      <div className="space-y-2.5">
+        {options.map((opt) => {
+          const isRecorded = recorded === opt.value;
+          const isBusy = busy === opt.value;
           const busyLabel =
             phase === "signing" ? "sign in wallet…"
             : phase === "sending" ? "submitting…"
             : "working…";
           return (
             <button
-              key={c}
+              key={opt.value}
               type="button"
               disabled={busy !== null}
-              onClick={() => handleVote(c)}
+              onClick={() => handleVote(opt.value)}
               className={
-                "rounded-xl border px-4 py-4 font-mono text-sm uppercase tracking-wider transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:py-5 sm:text-base " +
-                choiceTheme(c, isRecorded)
+                "flex w-full items-start gap-3 rounded-xl border px-4 py-3.5 text-left transition-all duration-150 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 " +
+                choiceTheme(opt.value, isRecorded)
               }
             >
-              {isBusy ? busyLabel : isRecorded ? `✓ ${c} · recorded` : c}
+              <span className="mt-0.5 inline-flex h-7 min-w-[1.75rem] shrink-0 items-center justify-center rounded-md border border-white/15 bg-white/10 px-1.5 font-mono text-xs font-semibold uppercase tracking-wider">
+                {opt.value}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-semibold">
+                  {opt.label}
+                  {isRecorded && (
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-emerald-200">✓ your vote</span>
+                  )}
+                  {isBusy && (
+                    <span className="font-mono text-[10px] uppercase tracking-wider text-white/60">{busyLabel}</span>
+                  )}
+                </span>
+                <span className="mt-1 block text-xs leading-relaxed text-white/60">
+                  {opt.description}
+                </span>
+              </span>
             </button>
           );
         })}
@@ -186,7 +199,7 @@ export function VoteButtons({
             </span>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-emerald-100">
-                Vote signed and submitted — choice {recorded}
+                Vote signed and submitted — {recordedOption ? `${recordedOption.value} · ${recordedOption.label}` : recorded}
               </p>
               <p className="mt-1 text-xs text-emerald-100/75">
                 Your signature is on the server. The tally bars below update

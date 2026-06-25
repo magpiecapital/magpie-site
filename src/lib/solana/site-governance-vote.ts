@@ -22,6 +22,18 @@ import bs58 from "bs58";
 
 export type VoteChoice = "YES" | "NO" | "ABSTAIN" | "A" | "B" | "C" | "D" | "E";
 
+/**
+ * A ballot option as SHOWN to the voter. `value` is what gets signed + sent to
+ * the bot; `label` + `description` are what the human reads. EVERY ballot option
+ * must carry a label and a plain-English description — a voter must never face a
+ * bare letter and have to guess what it means.
+ */
+export interface VoteOption {
+  value: VoteChoice;
+  label: string;
+  description: string;
+}
+
 export interface SignMessageFn {
   (message: Uint8Array): Promise<Uint8Array>;
 }

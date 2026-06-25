@@ -16,14 +16,14 @@
  */
 
 import { useState } from "react";
-import type { VoteChoice } from "@/lib/solana/site-governance-vote";
+import type { VoteOption } from "@/lib/solana/site-governance-vote";
 import { VoteButtons } from "./VoteButtons";
 import { LiveResults } from "./LiveResults";
 
 interface VoteAndLiveResultsProps {
   proposalId: string;
   questionId: string;
-  choices: VoteChoice[];
+  options: VoteOption[];
   botApiUrl: string;
   opensAtIso?: string;
 }
@@ -31,7 +31,7 @@ interface VoteAndLiveResultsProps {
 export function VoteAndLiveResults({
   proposalId,
   questionId,
-  choices,
+  options,
   botApiUrl,
   opensAtIso,
 }: VoteAndLiveResultsProps) {
@@ -45,7 +45,7 @@ export function VoteAndLiveResults({
       <VoteButtons
         proposalId={proposalId}
         questionId={questionId}
-        choices={choices}
+        options={options}
         botApiUrl={botApiUrl}
         opensAtIso={opensAtIso}
         onVoteRecorded={() => setRefreshNonce((n) => n + 1)}
@@ -67,7 +67,7 @@ export function VoteAndLiveResults({
         <LiveResults
           proposalId={proposalId}
           botApiUrl={botApiUrl}
-          choices={choices}
+          options={options}
           refreshNonce={refreshNonce}
         />
       </div>
