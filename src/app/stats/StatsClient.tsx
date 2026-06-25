@@ -122,11 +122,24 @@ interface DefaultedLoanProfitData {
   profitableDefaultsCount: number;
 }
 
+interface X402Data {
+  calls_24h: number;
+  calls_7d: number;
+  revenue_24h_sol: number;
+  revenue_7d_sol: number;
+  unique_payers_24h: number;
+  x402_borrows_total: number;
+  x402_borrows_24h: number;
+  last_x402_borrow_at?: string | null;
+  last_x402_borrow_tx?: string | null;
+}
+
 export default function StatsClient() {
   const [data, setData] = useState<TransparencyData | null>(null);
   const [engine, setEngine] = useState<EngineData | null>(null);
   const [magpieBurned, setMagpieBurned] = useState<MagpieBurnedData | null>(null);
   const [defaultedProfit, setDefaultedProfit] = useState<DefaultedLoanProfitData | null>(null);
+  const [x402, setX402] = useState<X402Data | null>(null);
   const [error, setError] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
 
@@ -138,10 +151,15 @@ export default function StatsClient() {
         // sections, /stats now also carries the limit-close engine
         // rollup. Either failing shouldn't block the other from
         // rendering, so we Promise.allSettled and degrade per slot.
-        const [tRes, sRes] = await Promise.allSettled([
+        const [tRes, sRes, xRes] = await Promise.allSettled([
           fetch("/api/v1/transparency", { cache: "no-store" }),
           fetch("/api/v1/stats", { cache: "no-store" }),
+          fetch("/api/v1/x402-metrics", { cache: "no-store" }),
         ]);
+        if (xRes.status === "fulfilled" && xRes.value.ok) {
+          const json = (await xRes.value.json()) as X402Data;
+          if (!cancelled && json && typeof json.calls_24h === "number") setX402(json);
+        }
         if (tRes.status === "fulfilled" && tRes.value.ok) {
           const json = (await tRes.value.json()) as TransparencyData;
           if (!cancelled) {
@@ -267,6 +285,52 @@ export default function StatsClient() {
           }
         />
         <LiveActivityFeed />
+      </section>
+
+      {/* ── x402 agent lending — autonomous AI agents borrowing via pay-per-call ── */}
+      <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+        <SectionHead title="x402 agent lending" tag="Autonomous agents · pay-per-call" />
+        <p className="mb-5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+          Magpie is borrowable by autonomous AI agents over the{" "}
+          <Link href="/x402" className="underline hover:text-[var(--ink)]">x402</Link>{" "}
+          protocol — agents pay per API call (in SOL) and borrow against memecoins, tokenized
+          stocks, and RWAs across V1/V3/V4. Live counters below.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Stat
+            label="Paid agent calls (24h)"
+            value={x402 ? x402.calls_24h.toLocaleString() : "—"}
+            sub={x402 ? `${x402.calls_7d.toLocaleString()} in 7d` : undefined}
+          />
+          <Stat
+            label="Agent fee revenue (24h)"
+            value={x402 ? `${x402.revenue_24h_sol.toFixed(3)} SOL` : "—"}
+            sub={x402 ? `${x402.revenue_7d_sol.toFixed(3)} SOL · 7d` : undefined}
+          />
+          <Stat
+            label="x402-originated loans"
+            value={x402 ? x402.x402_borrows_total.toLocaleString() : "—"}
+            sub={x402 ? `${x402.x402_borrows_24h} in 24h` : "all-time"}
+          />
+          <Stat
+            label="Paying agents (24h)"
+            value={x402 ? x402.unique_payers_24h.toLocaleString() : "—"}
+            sub="unique wallets"
+          />
+        </div>
+        {x402?.last_x402_borrow_tx && (
+          <p className="mt-4 text-[12px] text-[var(--ink-faint)]">
+            Last agent borrow:{" "}
+            <a
+              href={`https://solscan.io/tx/${x402.last_x402_borrow_tx}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-[var(--ink)]"
+            >
+              {x402.last_x402_borrow_tx.slice(0, 8)}…{x402.last_x402_borrow_tx.slice(-8)}
+            </a>
+          </p>
+        )}
       </section>
 
       {/* ── Snapshot rewards (MGP-001 four-channel split) ── */}
