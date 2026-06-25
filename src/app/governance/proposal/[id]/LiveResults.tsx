@@ -21,6 +21,15 @@ interface TallyBody {
   };
   percentages: { participation_pct: number; yes_share_of_cast_pct: number };
   computed_at: string;
+  /** Present only after close, once the autopilot has recorded the final result. */
+  outcome?: {
+    result: string; // "A" | "passed" | "failed" | "operator_discretion"
+    closed_at?: string;
+    winner_choice?: string | null;
+    winner_share_pct?: number;
+    quorum_met?: boolean;
+    threshold_met?: boolean;
+  };
 }
 
 interface LiveResultsProps {
@@ -152,6 +161,35 @@ export function LiveResults({
 
   return (
     <div className="space-y-5">
+      {/* Final result banner — appears automatically once voting closes and the
+          autopilot records the outcome. No manual edit. */}
+      {tally.outcome && (() => {
+        const o = tally.outcome;
+        const isWinner = /^[A-E]$/.test(o.result);
+        const winLabel = isWinner ? options.find((opt) => opt.value === o.result)?.label : null;
+        const passed = isWinner || o.result === "passed";
+        const heading = isWinner
+          ? `Winner — Option ${o.result}${winLabel ? `: ${winLabel}` : ""}`
+          : o.result === "passed" ? "Passed"
+          : o.result === "operator_discretion" ? "No clear winner — operator discretion"
+          : "Did not pass";
+        const sub = isWinner && o.winner_share_pct != null
+          ? `${fmtPct(o.winner_share_pct)} of cast · quorum ${o.quorum_met ? "met" : "missed"}`
+          : o.result === "operator_discretion"
+            ? "ABSTAIN reached the discretion threshold (or an exact tie) — the operator decides among the options."
+            : `quorum ${o.quorum_met ? "met" : "missed"} · threshold ${o.threshold_met ? "met" : "missed"}`;
+        return (
+          <div className={"rounded-xl border px-4 py-3 " + (passed ? "border-emerald-400/50 bg-emerald-500/12" : "border-white/15 bg-white/5")}>
+            <p className={"text-sm font-semibold " + (passed ? "text-emerald-100" : "text-white/85")}>
+              ✓ Final result — {heading}
+            </p>
+            <p className="mt-1 text-xs text-white/60">
+              {sub}{o.closed_at ? ` · closed ${formatEst(o.closed_at)}` : ""}
+            </p>
+          </div>
+        );
+      })()}
+
       {/* Per-choice bars */}
       <div className="space-y-3">
         {perChoice.map((c) => {
