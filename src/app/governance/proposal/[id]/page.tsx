@@ -9,9 +9,12 @@ import { LiveResults } from "./LiveResults";
 import { VoteAndLiveResults } from "./VoteAndLiveResults";
 import type { VoteOption } from "@/lib/solana/site-governance-vote";
 import { resolveProposalStatus } from "@/lib/governance";
+import { GovernanceAutoAdvance } from "../../GovernanceAutoAdvance";
+import { formatEst } from "@/lib/time";
 
-// Re-evaluate date-driven status at runtime so the vote UI opens/closes on schedule.
-export const revalidate = 60;
+// force-dynamic = re-resolve against the current second on every request, so the
+// vote UI opens/closes exactly on schedule; GovernanceAutoAdvance flips a watched page.
+export const dynamic = "force-dynamic";
 
 interface ProposalQuestion {
   id: string;
@@ -40,7 +43,7 @@ const PROPOSALS: Record<string, Proposal> = {
     title: "Restructure the loan-fee split — 70/10/10/10",
     tldr:
       "PASSED + IN EFFECT. The 70/10/10/10 split is now live for every loan fee. Final tally at 2026-06-13 22:00 UTC: 98% YES, 8.72% participation, both quorum (5%) and threshold (66.6%) cleared.",
-    voting_window_human: "Opened Jun 10, 2026 6:00 PM EDT · closed Jun 13, 2026 6:00 PM EDT (72h)",
+    voting_window_human: "Opened Jun 10, 2026 6:00 PM EST · closed Jun 13, 2026 6:00 PM EST (72h)",
     summary:
       "Restructure the loan-fee split so 70% goes to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, and 10% to the protocol reserve. Replaces the current 10% holder share with a holder-first split. Forward-only — distributions already accrued under the old split are not retroactively re-cut.",
     spec_url:
@@ -87,7 +90,7 @@ const PROPOSALS: Record<string, Proposal> = {
     tldr:
       "On July 1, 2026, a Streamflow contract holding ~5% of $MAGPIE supply (~50M) unlocks. Four options on the ballot — patience (long re-lock), loyalty (24-mo holder vest), build (locked growth treasury), or discipline + build (50% burn + 50% treasury). No option releases tokens at once.",
     voting_window_human:
-      "Opens Jun 24, 2026 8:00 PM EDT · closes Jun 29, 2026 8:00 PM EDT (5 days)",
+      "Opens Jun 24, 2026 8:00 PM EST · closes Jun 29, 2026 8:00 PM EST (5 days)",
     summary:
       "On July 1, 2026 a Streamflow contract holding ~5% of $MAGPIE supply (~50M tokens) unlocks. The proposal asks token holders to choose one of four capital strategies. Each option is structured to avoid any single-event liquidity release. Operator commits to honor the winning option. Execution must complete within 14 days of unlock.",
     spec_url:
@@ -164,6 +167,7 @@ export default async function ProposalPage({
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
+      <GovernanceAutoAdvance thresholdsIso={status ? [status.activates_at_iso, status.closes_at_iso] : []} />
       <main className="mx-auto max-w-2xl px-4 pb-20 pt-10 sm:px-6 sm:pt-16">
         {/* ── Heading ─────────────────────────────────────────── */}
         <Reveal>
@@ -209,6 +213,10 @@ export default async function ProposalPage({
                   </h2>
                   <VotingCountdown closesAtIso={status?.closes_at_iso ?? ""} />
                 </div>
+                <p className="mt-2 text-xs text-white/45">
+                  Official close:{" "}
+                  <span className="font-medium text-white/75">{formatEst(status?.closes_at_iso ?? "")}</span>
+                </p>
               </div>
               <div className="px-5 py-6 sm:px-6">
                 <p className="mb-5 text-sm leading-relaxed text-white/75">

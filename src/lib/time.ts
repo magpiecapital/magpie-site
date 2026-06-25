@@ -7,9 +7,12 @@
  * math stay in UTC ISO strings so DST transitions don't shift the
  * actual moment of any event; only the human-facing display converts.
  *
- * The `timeZoneName: "short"` option automatically picks EDT (during
- * daylight saving) or EST (standard) based on the instant being
- * formatted — never hardcode the suffix yourself.
+ * Operator mandate (permanent, reaffirmed 2026-06-25): the suffix is ALWAYS
+ * "EST" — the value is the correct America/New_York wall-clock time, but the
+ * label reads "EST" year-round (never "EDT", never "UTC"). The operator treats
+ * "EST" as the name for Eastern time and wants it uniform across the site. So we
+ * format the wall-clock value in America/New_York and append " EST" ourselves
+ * rather than using timeZoneName:"short" (which would print "EDT" in summer).
  */
 
 const EST_ZONE = "America/New_York";
@@ -19,8 +22,8 @@ function toDate(input: string | Date): Date {
 }
 
 /**
- * "Jun 12, 2026, 4:35 PM EDT" — the canonical display format for
- * any absolute timestamp on the site.
+ * "Jun 12, 2026, 4:35 PM EST" — the canonical display format for any absolute
+ * timestamp on the site. Eastern wall-clock value, always labeled EST.
  */
 export function formatEst(input: string | Date): string {
   return toDate(input).toLocaleString("en-US", {
@@ -30,8 +33,7 @@ export function formatEst(input: string | Date): string {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
-    timeZoneName: "short",
-  });
+  }) + " EST";
 }
 
 /**
@@ -48,13 +50,12 @@ export function formatEstDate(input: string | Date): string {
 }
 
 /**
- * "4:35 PM EDT" — time-only display with the EDT/EST suffix.
+ * "4:35 PM EST" — time-only display, always labeled EST (see formatEst).
  */
 export function formatEstTime(input: string | Date): string {
   return toDate(input).toLocaleString("en-US", {
     timeZone: EST_ZONE,
     hour: "numeric",
     minute: "2-digit",
-    timeZoneName: "short",
-  });
+  }) + " EST";
 }

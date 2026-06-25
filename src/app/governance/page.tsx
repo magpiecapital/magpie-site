@@ -6,6 +6,7 @@ import { MiniLiveResults } from "./MiniLiveResults";
 import { GovernanceCountdown } from "./GovernanceCountdown";
 import { formatEst } from "@/lib/time";
 import { resolveProposalStatus, bucketOf, type ResolvedStatus } from "@/lib/governance";
+import { GovernanceAutoAdvance } from "./GovernanceAutoAdvance";
 
 export const metadata = {
   title: "Governance | Magpie",
@@ -13,9 +14,10 @@ export const metadata = {
     "Active proposals, completed votes, and the model that governs them. $MAGPIE holders vote on the levers that matter; operator commits to honor within explicit scope.",
 };
 
-// Status is DATE-DRIVEN (see src/lib/governance.ts). Re-evaluate at runtime so a
-// proposal opens/closes on its scheduled date without a redeploy or manual edit.
-export const revalidate = 60;
+// Status is DATE-DRIVEN (src/lib/governance.ts). force-dynamic = every request
+// re-resolves against the current second, so a freshly-loaded page is always
+// correct; GovernanceAutoAdvance flips a page being watched at the exact second.
+export const dynamic = "force-dynamic";
 
 // ─── Proposal registry ────────────────────────────────────────────────────
 //
@@ -303,9 +305,13 @@ export default function GovernancePage() {
 
   const totalProposals = resolved.length;
 
+  // Every upcoming open/close boundary — the client flips the page at the exact second.
+  const transitionThresholds = resolved.flatMap((p) => [p.status.activates_at_iso, p.status.closes_at_iso]);
+
   return (
     <div className="min-h-screen bg-black text-white">
       <Header />
+      <GovernanceAutoAdvance thresholdsIso={transitionThresholds} />
       <main className="mx-auto max-w-3xl px-4 pb-20 pt-10 sm:px-6 sm:pt-16">
         {/* ── Hero ─────────────────────────────────────────────── */}
         <Reveal>
