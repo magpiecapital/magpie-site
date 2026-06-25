@@ -8,6 +8,10 @@ import { VotingCountdown } from "./VotingCountdown";
 import { LiveResults } from "./LiveResults";
 import { VoteAndLiveResults } from "./VoteAndLiveResults";
 import type { VoteChoice } from "@/lib/solana/site-governance-vote";
+import { resolveProposalStatus } from "@/lib/governance";
+
+// Re-evaluate date-driven status at runtime so the vote UI opens/closes on schedule.
+export const revalidate = 60;
 
 interface ProposalQuestion {
   id: string;
@@ -15,13 +19,13 @@ interface ProposalQuestion {
   choices?: VoteChoice[];
 }
 
+// NOTE: status/opens/closes are NOT stored here — they are DERIVED from
+// src/lib/governance.ts (resolveProposalStatus). This page only holds the
+// proposal's presentation content. Never hand-type a status string here.
 interface Proposal {
   id: string;
   title: string;
   tldr: string;
-  status: "draft" | "active" | "closed" | "executed" | "failed";
-  opens_at_iso: string;
-  closes_at_iso: string;
   voting_window_human: string;
   summary: string;
   spec_url: string;
@@ -35,10 +39,7 @@ const PROPOSALS: Record<string, Proposal> = {
     title: "Restructure the loan-fee split — 70/10/10/10",
     tldr:
       "PASSED + IN EFFECT. The 70/10/10/10 split is now live for every loan fee. Final tally at 2026-06-13 22:00 UTC: 98% YES, 8.72% participation, both quorum (5%) and threshold (66.6%) cleared.",
-    status: "executed",
-    opens_at_iso: "2026-06-10T20:40:00Z",
-    closes_at_iso: "2026-06-13T20:40:00Z",
-    voting_window_human: "Opens Jun 10, 2026 4:40 PM EDT · closes Jun 13, 2026 4:40 PM EDT (72h)",
+    voting_window_human: "Opened Jun 10, 2026 6:00 PM EDT · closed Jun 13, 2026 6:00 PM EDT (72h)",
     summary:
       "Restructure the loan-fee split so 70% goes to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, and 10% to the protocol reserve. Replaces the current 10% holder share with a holder-first split. Forward-only — distributions already accrued under the old split are not retroactively re-cut.",
     spec_url:
@@ -66,9 +67,6 @@ const PROPOSALS: Record<string, Proposal> = {
     title: "[WITHDRAWN] Signal poll on the Premium tier",
     tldr:
       "Operator activated this as a non-binding signal poll, then chose to ship the Premium tier under Tier B discretion. Withdrawn before close.",
-    status: "failed",
-    opens_at_iso: "2026-06-09T00:00:00Z",
-    closes_at_iso: "2026-06-09T23:59:59Z",
     voting_window_human: "Withdrawn 2026-06-09",
     summary:
       "Withdrawn 2026-06-09. The operator activated MGP-002 as a non-binding signal poll on whether to add a Premium tier, then chose to ship the tier directly under Tier B operator discretion (with both 15-day and 30-day duration options, tokenized stocks only).",
@@ -84,9 +82,6 @@ const PROPOSALS: Record<string, Proposal> = {
     title: "July 1, 2026 $MAGPIE Streamflow unlock allocation (~5% of supply)",
     tldr:
       "On July 1, 2026, a Streamflow contract holding ~5% of $MAGPIE supply (~50M) unlocks. Four options on the ballot — patience (long re-lock), loyalty (24-mo holder vest), build (locked growth treasury), or discipline + build (50% burn + 50% treasury). No option releases tokens at once.",
-    status: "draft",
-    opens_at_iso: "2026-06-25T00:00:00Z",
-    closes_at_iso: "2026-06-30T00:00:00Z",
     voting_window_human:
       "Opens Jun 24, 2026 8:00 PM EDT · closes Jun 29, 2026 8:00 PM EDT (5 days)",
     summary:
@@ -136,7 +131,21 @@ export default async function ProposalPage({
   const p = PROPOSALS[id.toUpperCase()];
   if (!p) notFound();
 
-  const isActive = p.status === "active";
+  // Status + dates are derived from the single source of truth, not stored here.
+  const status = resolveProposalStatus(p.id);
+  const isActive = status?.votingOpen ?? false;
+  const badgeLabel =
+    status?.kind === "active"
+      ? "live"
+      : status?.kind === "upcoming"
+        ? "draft"
+        : status?.kind === "tallying"
+          ? "voting closed"
+          : status?.kind === "passed"
+            ? status.terminal && status.terminal.kind === "passed" && status.terminal.executed_at_iso
+              ? "executed"
+              : "passed"
+            : (status?.kind ?? "draft");
   const botApiUrl =
     process.env.NEXT_PUBLIC_BOT_API_URL ||
     "https://magpie-bot-production.up.railway.app";
@@ -168,7 +177,7 @@ export default async function ProposalPage({
               {isActive && (
                 <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" />
               )}
-              {p.status === "active" ? "live" : p.status}
+              {badgeLabel}
             </span>
           </div>
           <h1 className="mt-5 text-[26px] font-semibold leading-[1.15] tracking-tight sm:text-[34px]">
@@ -188,7 +197,7 @@ export default async function ProposalPage({
                   <h2 className="text-sm font-semibold uppercase tracking-wider text-white/55">
                     Cast vote
                   </h2>
-                  <VotingCountdown closesAtIso={p.closes_at_iso} />
+                  <VotingCountdown closesAtIso={status?.closes_at_iso ?? ""} />
                 </div>
               </div>
               <div className="px-5 py-6 sm:px-6">
@@ -198,7 +207,7 @@ export default async function ProposalPage({
                     questionId={question.id}
                     choices={question.choices}
                     botApiUrl={botApiUrl}
-                    opensAtIso={p.opens_at_iso}
+                    opensAtIso={status?.activates_at_iso ?? ""}
                   />
                 )}
               </div>

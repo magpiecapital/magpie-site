@@ -2,7 +2,7 @@
 id: MGP-003
 title: Allocation decision for the July 1, 2026 $MAGPIE Streamflow unlock (~5% of supply)
 scope_tier: A6 (binding by operator commitment — see §3)
-status: draft
+status: active
 voting_window: 2026-06-25T00:00:00Z to 2026-06-30T00:00:00Z (5 days; opens Jun 24 8:00 PM ET, closes Jun 29 8:00 PM ET)
 activated_at: 2026-06-25T00:00:00Z
 author: "@MagpieLoans"

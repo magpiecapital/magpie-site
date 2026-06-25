@@ -12,11 +12,50 @@
  * Public, cached.
  */
 import { NextResponse } from "next/server";
+import { resolveProposalStatus, type ResolvedKind } from "@/lib/governance";
 
-export const revalidate = 3600;
+// Date-driven status (src/lib/governance.ts) needs a short revalidate so the
+// machine-readable mirror flips a proposal active/closed on its scheduled date.
+export const revalidate = 60;
+
+// Map the canonical resolved kind to the string this public API has always used.
+function apiStatus(kind: ResolvedKind): string {
+  switch (kind) {
+    case "active": return "active";
+    case "upcoming": return "draft";
+    case "tallying": return "voting_closed";
+    case "passed": return "passed";
+    case "failed": return "failed";
+    case "withdrawn": return "withdrawn";
+  }
+}
 
 export async function GET() {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.magpie.capital";
+
+  // Resolve MGP-003 from the single source of truth and place it in the right
+  // bucket — never hand-label it. (MGP-001/002 are terminal: always past.)
+  const mgp003Kind = resolveProposalStatus("MGP-003")?.kind ?? "upcoming";
+  const mgp003 = {
+    id: "MGP-003",
+    title: "Allocation decision for the July 1, 2026 $MAGPIE Streamflow unlock (~5% of supply)",
+    scope_tier: "A6 — binding by operator commitment (one-time Tier B → de-facto Tier A exception)",
+    status: apiStatus(mgp003Kind),
+    voting_window: "2026-06-24 to 2026-06-29 (5 days, 8:00 PM ET → 8:00 PM ET)",
+    voting_opens_at_iso: "2026-06-25T00:00:00Z",
+    voting_closes_at_iso: "2026-06-30T00:00:00Z",
+    summary:
+      "Four options for the ~50M $MAGPIE balance unlocking on July 1, 2026 (Streamflow contract GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc). A = Patience (re-lock 100% for 36 more months). B = Loyalty (24-month linear vest to current $MAGPIE holders, snapshot at proposal close). C = Build (100% to a multi-sig Magpie Treasury, locked 24 months minimum, programmatic spend categories with on-chain logging on /distributions). D = Discipline + Build (50% burn + 50% to the same locked treasury). No option releases tokens at once. Plurality wins above 40%; 7.5% quorum; ABSTAIN ≥ 30% triggers operator discretion fallback.",
+    vote_url: `${base}/governance/proposal/MGP-003`,
+    spec_url:
+      "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md",
+    streamflow_contract: "GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc",
+    unlock_date: "2026-07-01",
+  };
+  const activeProposals = mgp003Kind === "active" ? [mgp003] : [];
+  const draftProposals = mgp003Kind === "upcoming" ? [mgp003] : [];
+  const mgp003Past =
+    mgp003Kind === "tallying" || mgp003Kind === "passed" || mgp003Kind === "failed" ? [mgp003] : [];
 
   return NextResponse.json(
     {
@@ -81,32 +120,15 @@ export async function GET() {
         v1: { status: "planned", description: "On-chain parameter-bounds contract" },
         v2: { status: "planned", description: "Full on-chain governance (SPL governance or equivalent)" },
       },
-      active_proposals: [
-        {
-          id: "MGP-003",
-          title: "Allocation decision for the July 1, 2026 $MAGPIE Streamflow unlock (~5% of supply)",
-          scope_tier: "A6 — binding by operator commitment (one-time Tier B → de-facto Tier A exception)",
-          status: "draft",
-          voting_window: "2026-06-24 to 2026-06-29 (5 days, 8:00 PM ET → 8:00 PM ET)",
-          voting_opens_at_iso: "2026-06-25T00:00:00Z",
-          voting_closes_at_iso: "2026-06-30T00:00:00Z",
-          summary:
-            "Four options for the ~50M $MAGPIE balance unlocking on July 1, 2026 (Streamflow contract GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc). A = Patience (re-lock 100% for 36 more months). B = Loyalty (24-month linear vest to current $MAGPIE holders, snapshot at proposal close). C = Build (100% to a multi-sig Magpie Treasury, locked 24 months minimum, programmatic spend categories with on-chain logging on /distributions). D = Discipline + Build (50% burn + 50% to the same locked treasury). No option releases tokens at once. Plurality wins above 40%; 7.5% quorum; ABSTAIN ≥ 30% triggers operator discretion fallback.",
-          vote_url: `${base}/governance/proposal/MGP-003`,
-          spec_url:
-            "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md",
-          streamflow_contract:
-            "GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc",
-          unlock_date: "2026-07-01",
-        },
-      ],
-      drafts: [],
+      active_proposals: activeProposals,
+      drafts: draftProposals,
       past_proposals: [
+        ...mgp003Past,
         {
           id: "MGP-001",
           title: "Restructure the loan-fee split — 70/10/10/10",
           scope_tier: "A4 — binding by operator commitment (one-time Tier B → de-facto Tier A exception, same path as MGP-003)",
-          status: "passed",
+          status: apiStatus(resolveProposalStatus("MGP-001")?.kind ?? "passed"),
           voting_window: "2026-06-10 22:00 UTC to 2026-06-13 22:00 UTC",
           voting_opens_at_iso: "2026-06-10T22:00:00Z",
           voting_closes_at_iso: "2026-06-13T22:00:00Z",
@@ -144,7 +166,7 @@ export async function GET() {
           id: "MGP-002",
           title: "Signal poll — should Magpie add a Premium tier (30-day, 40% LTV, 5% fee, tokenized stocks only)?",
           scope_tier: "A6",
-          status: "withdrawn",
+          status: apiStatus(resolveProposalStatus("MGP-002")?.kind ?? "withdrawn"),
           voting_window: "2026-06-09 (withdrawn same day)",
           summary: "Withdrawn 2026-06-09. Operator decided to ship the Premium tier (both 15-day and 30-day options) under Tier B operator discretion rather than running the signal poll to conclusion. Tier B is the legitimate path per GOVERNANCE.md v0 — loan-duration adjustments and new-tier additions are operator-discretion in v0. Execution plan documented in magpie-bot/docs/PREMIUM-TIER-DEPLOY-PLAN-2026-06-09.md.",
           spec_url:
