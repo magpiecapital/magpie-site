@@ -1,7 +1,7 @@
 "use client";
 
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { siteCastVote, type VoteChoice, type VoteOption } from "@/lib/solana/site-governance-vote";
 import { formatEst } from "@/lib/time";
 
@@ -63,6 +63,29 @@ export function VoteButtons({
   const opensAt = opensAtIso ? Date.parse(opensAtIso) : null;
   const notYetOpen = opensAt !== null && Date.now() < opensAt;
 
+  // Persist the voter's own latest choice locally so a refresh doesn't "forget"
+  // it. The server is the source of truth, but per-wallet choices are PRIVATE
+  // (no public "my vote" endpoint by design), so we mirror only this user's own
+  // pick in their own browser, keyed by proposal + wallet. This is what makes
+  // "I voted C, refreshed, and it still shows C" work. See
+  // feedback_voting_experience_must_be_flawless.md.
+  const storageKey = walletStr ? `magpie_gov_vote:${proposalId}:${walletStr}` : null;
+  useEffect(() => {
+    if (!storageKey) { setRecorded(null); return; }
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved && options.some((o) => o.value === saved)) {
+        setRecorded(saved as VoteChoice);
+        setPhase("recorded");
+      } else {
+        setRecorded(null);
+        setPhase("idle");
+      }
+    } catch {
+      /* localStorage blocked (private mode) — non-fatal, just no restore */
+    }
+  }, [storageKey, options]);
+
   async function handleVote(choice: VoteChoice) {
     setError(null);
     if (!walletStr || !signMessage) {
@@ -90,6 +113,7 @@ export function VoteButtons({
       setRecorded(choice);
       setPhase("recorded");
       setJustRecordedAt(Date.now());
+      try { if (storageKey) localStorage.setItem(storageKey, choice); } catch { /* non-fatal */ }
       // Tell the parent — they bump LiveResults' refreshNonce so the
       // bar moves immediately instead of waiting for the next 2s poll.
       onVoteRecorded?.(choice);
@@ -199,7 +223,7 @@ export function VoteButtons({
             </span>
             <div className="min-w-0">
               <p className="text-sm font-semibold text-emerald-100">
-                Vote signed and submitted — {recordedOption ? `${recordedOption.value} · ${recordedOption.label}` : recorded}
+                {justRecordedAt ? "Vote signed and submitted" : "Your vote is recorded"} — {recordedOption ? `${recordedOption.value} · ${recordedOption.label}` : recorded}
               </p>
               <p className="mt-1 text-xs text-emerald-100/75">
                 Your signature is on the server. The tally bars below update
