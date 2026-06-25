@@ -71,6 +71,7 @@ interface RefsRow {
 interface ReserveRow {
   current_pool_lamports: string | null;
   spent_lamports: string | null;
+  lifetime_accrued_lamports: string | null;
 }
 
 export async function GET() {
@@ -170,13 +171,22 @@ export async function GET() {
       { lifetime_accrued: "0", lifetime_paid: "0" },
     ),
     tryQuery<ReserveRow>(
-      // MGP-001 protocol reserve pool (migration 049). Safe to read on
-      // older deploys — tryQuery defaults to {null, null} on absence.
+      // MGP-001 protocol reserve pool (migration 049). PER-CYCLE (operator
+      // 2026-06-25: every Snapshot-rewards number must reset to 0 each cycle):
+      // current_pool = reserve accrued SINCE the last $MAGPIE snapshot, so it
+      // resets to 0 every distribution cycle instead of accumulating. Display-only
+      // — the protocol_reserve_pool ledger is untouched; lifetime_accrued kept for
+      // transparency. Safe on older deploys — tryQuery defaults on absence.
       `SELECT
-         accrued_lamports::text AS current_pool_lamports,
-         spent_lamports::text   AS spent_lamports
+         COALESCE((
+           SELECT SUM(reward_lamports)::text FROM protocol_reserve_events
+            WHERE created_at > COALESCE(
+              (SELECT MAX(created_at) FROM magpie_holder_distributions), '1970-01-01'::timestamptz)
+         ), '0') AS current_pool_lamports,
+         spent_lamports::text   AS spent_lamports,
+         accrued_lamports::text AS lifetime_accrued_lamports
        FROM protocol_reserve_pool WHERE id = 1`,
-      { current_pool_lamports: null, spent_lamports: null },
+      { current_pool_lamports: null, spent_lamports: null, lifetime_accrued_lamports: null },
     ),
   ]);
 
@@ -243,11 +253,14 @@ export async function GET() {
         lifetime_paid_sol: Number(refs.lifetime_paid) / 1e9,
       },
       protocol_reserve: {
-        // MGP-001 channel — 10% of every loan fee accrues here as the
-        // counter-cyclical buffer. Spend is manual + governance-visible.
-        // Read may degrade to 0 if migration 049 hasn't applied yet.
+        // MGP-001 channel — 10% of every loan fee. PER-CYCLE: current_pool_sol =
+        // accrued since the last $MAGPIE snapshot, resetting to 0 each cycle (so it
+        // never shows as a growing buffer). lifetime_accrued_sol kept for
+        // transparency. Spend is manual + governance-visible.
         current_pool_sol: reserveRow.current_pool_lamports
           ? Number(reserveRow.current_pool_lamports) / 1e9 : 0,
+        lifetime_accrued_sol: reserveRow.lifetime_accrued_lamports
+          ? Number(reserveRow.lifetime_accrued_lamports) / 1e9 : 0,
         lifetime_spent_sol: reserveRow.spent_lamports
           ? Number(reserveRow.spent_lamports) / 1e9 : 0,
       },
