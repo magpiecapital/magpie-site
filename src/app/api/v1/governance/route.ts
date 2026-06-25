@@ -67,7 +67,9 @@ export async function GET() {
       public_page: `${base}/governance`,
       voting_power: {
         rule: "1_token_1_vote",
-        eligibility: "wallet_balance_at_proposal_activation",
+        eligibility: "current_holder_balance_at_vote_close",
+        eligibility_note:
+          "Voting weight = $MAGPIE balance at vote close (current holders), including tokens on-loan as collateral (1:1). Buying during the window counts; selling before close removes weight.",
         excluded_addresses: [
           { kind: "bonding_curve", label: "pump.fun bonding curve" },
           { kind: "dex_pool", label: "PumpSwap MAGPIE/SOL pool" },

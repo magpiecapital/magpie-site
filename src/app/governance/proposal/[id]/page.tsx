@@ -255,7 +255,7 @@ export default async function ProposalPage({
                 Who can vote
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-white/75">
-                Anyone holding $MAGPIE at the activation snapshot. Tokens you have <strong className="text-white/95">on-loan as collateral</strong> count 1:1 alongside tokens in your wallet — using Magpie doesn&apos;t reduce your governance weight. LP providers in the SOL pool are also credited.
+                Anyone holding $MAGPIE. Your voting weight = your $MAGPIE balance at <strong className="text-white/95">vote close</strong> (current holders), including tokens you have <strong className="text-white/95">on-loan as collateral</strong> (counted 1:1) — using Magpie doesn&apos;t reduce your governance weight. Buying during the window counts; selling before close removes your weight.
               </p>
               <p className="mt-3 text-xs text-white/45">
                 Whale cap: 2% per wallet. Re-vote any time before close.
