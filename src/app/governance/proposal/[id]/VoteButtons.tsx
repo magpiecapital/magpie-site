@@ -12,12 +12,14 @@ interface VoteButtonsProps {
   botApiUrl: string;
   /** ISO timestamp; if set and in the future, buttons render as "voting opens at …" instead of clickable. */
   opensAtIso?: string;
+  /** The voter's persisted choice (held + restored by the parent). Keeps the option highlighted across refresh. */
+  userVote?: VoteChoice | null;
   /**
-   * Called the moment a vote signature is accepted by the bot. Parent
-   * uses this to bump LiveResults' refresh nonce so the bar moves NOW
-   * instead of waiting for the next 2s poll. Operator-flagged: the
-   * "I voted and nothing visibly changed" UX was the #1 trust issue
-   * on MGP-001 — never reproduce. See feedback_voting_ux_must_feel_solid.md.
+   * Called the moment a vote signature is accepted by the bot. Parent persists
+   * it + bumps LiveResults' refresh nonce so the bar moves NOW instead of
+   * waiting for the next 2s poll. Operator-flagged: the "I voted and nothing
+   * visibly changed" UX was the #1 trust issue — never reproduce.
+   * See feedback_voting_ux_must_feel_solid.md.
    */
   onVoteRecorded?: (choice: VoteChoice) => void;
 }
@@ -47,6 +49,7 @@ export function VoteButtons({
   options,
   botApiUrl,
   opensAtIso,
+  userVote,
   onVoteRecorded,
 }: VoteButtonsProps) {
   const { publicKey, signMessage, connected } = useWallet();
@@ -63,28 +66,14 @@ export function VoteButtons({
   const opensAt = opensAtIso ? Date.parse(opensAtIso) : null;
   const notYetOpen = opensAt !== null && Date.now() < opensAt;
 
-  // Persist the voter's own latest choice locally so a refresh doesn't "forget"
-  // it. The server is the source of truth, but per-wallet choices are PRIVATE
-  // (no public "my vote" endpoint by design), so we mirror only this user's own
-  // pick in their own browser, keyed by proposal + wallet. This is what makes
-  // "I voted C, refreshed, and it still shows C" work. See
-  // feedback_voting_experience_must_be_flawless.md.
-  const storageKey = walletStr ? `magpie_gov_vote:${proposalId}:${walletStr}` : null;
+  // Reflect the persisted choice (the parent restores it from localStorage at
+  // browser level, so it survives refresh INSTANTLY without waiting on the
+  // wallet to reconnect). Keeps the chosen option highlighted. The fresh-vote
+  // glow is driven by justRecordedAt, which only a NEW vote sets.
   useEffect(() => {
-    if (!storageKey) { setRecorded(null); return; }
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved && options.some((o) => o.value === saved)) {
-        setRecorded(saved as VoteChoice);
-        setPhase("recorded");
-      } else {
-        setRecorded(null);
-        setPhase("idle");
-      }
-    } catch {
-      /* localStorage blocked (private mode) — non-fatal, just no restore */
-    }
-  }, [storageKey, options]);
+    setRecorded(userVote ?? null);
+    setPhase(userVote ? "recorded" : "idle");
+  }, [userVote]);
 
   async function handleVote(choice: VoteChoice) {
     setError(null);
@@ -113,7 +102,6 @@ export function VoteButtons({
       setRecorded(choice);
       setPhase("recorded");
       setJustRecordedAt(Date.now());
-      try { if (storageKey) localStorage.setItem(storageKey, choice); } catch { /* non-fatal */ }
       // Tell the parent — they bump LiveResults' refreshNonce so the
       // bar moves immediately instead of waiting for the next 2s poll.
       onVoteRecorded?.(choice);

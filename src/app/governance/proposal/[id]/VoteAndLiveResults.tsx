@@ -15,8 +15,8 @@
  * See feedback_voting_ux_must_feel_solid.md.
  */
 
-import { useState } from "react";
-import type { VoteOption } from "@/lib/solana/site-governance-vote";
+import { useState, useEffect } from "react";
+import type { VoteChoice, VoteOption } from "@/lib/solana/site-governance-vote";
 import { VoteButtons } from "./VoteButtons";
 import { LiveResults } from "./LiveResults";
 
@@ -40,6 +40,29 @@ export function VoteAndLiveResults({
   // fetch the moment it changes.
   const [refreshNonce, setRefreshNonce] = useState(0);
 
+  // The voter's own choice — held HERE (the shared parent) so BOTH the ballot
+  // (keeps the option highlighted) and the live-results bars (shows the "you
+  // voted" marker) know it. Persisted at BROWSER level (per proposal, not
+  // wallet-gated) so a refresh shows it INSTANTLY without waiting on the wallet
+  // to reconnect. The vote value isn't secret to the voter — it's their own
+  // pick, in their own browser. See feedback_voting_experience_must_be_flawless.
+  const storageKey = `magpie_gov_vote:${proposalId}`;
+  const [userVote, setUserVote] = useState<VoteChoice | null>(null);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved && options.some((o) => o.value === saved)) setUserVote(saved as VoteChoice);
+    } catch {
+      /* localStorage blocked — non-fatal */
+    }
+  }, [storageKey, options]);
+
+  const handleRecorded = (choice: VoteChoice) => {
+    setUserVote(choice);
+    try { localStorage.setItem(storageKey, choice); } catch { /* non-fatal */ }
+    setRefreshNonce((n) => n + 1);
+  };
+
   return (
     <>
       <VoteButtons
@@ -48,7 +71,8 @@ export function VoteAndLiveResults({
         options={options}
         botApiUrl={botApiUrl}
         opensAtIso={opensAtIso}
-        onVoteRecorded={() => setRefreshNonce((n) => n + 1)}
+        userVote={userVote}
+        onVoteRecorded={handleRecorded}
       />
       <p className="mt-4 text-xs leading-relaxed text-white/45">
         Wallet message-sign only. No SOL moves, no gas. Re-vote any time before
@@ -68,6 +92,7 @@ export function VoteAndLiveResults({
           proposalId={proposalId}
           botApiUrl={botApiUrl}
           options={options}
+          userVote={userVote}
           refreshNonce={refreshNonce}
         />
       </div>
