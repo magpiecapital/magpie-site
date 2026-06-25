@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatEst } from "@/lib/time";
+import type { VoteOption } from "@/lib/solana/site-governance-vote";
 
 interface TallyBody {
   proposal_id: string;
@@ -25,7 +26,7 @@ interface TallyBody {
 interface LiveResultsProps {
   proposalId: string;
   botApiUrl: string;
-  choices: string[];
+  options: VoteOption[];
   /**
    * Bumping this counter from the parent triggers an immediate refetch.
    * VoteButtons calls onVoteRecorded → parent bumps this → bar moves NOW
@@ -51,7 +52,7 @@ function fmtPct(pct: number): string {
 export function LiveResults({
   proposalId,
   botApiUrl,
-  choices,
+  options,
   refreshNonce = 0,
 }: LiveResultsProps) {
   const [tally, setTally] = useState<TallyBody | null>(null);
@@ -108,8 +109,9 @@ export function LiveResults({
   const castWeight = BigInt(tally.weights.cast_weight);
   const perChoiceMap = tally.weights.per_choice || {};
 
-  const perChoice: { label: string; weight: bigint; pct: number; color: string }[] = choices.map(
-    (c) => {
+  const perChoice: { value: string; label: string; weight: bigint; pct: number; color: string }[] = options.map(
+    (opt) => {
+      const c = opt.value;
       const norm = c.toLowerCase();
       // Prefer the bot's per_choice map (correct for multi-choice ballots).
       // Fall back to legacy yes/no/abstain fields for older proposals that
@@ -132,17 +134,17 @@ export function LiveResults({
           : norm === "no"
             ? "from-rose-500 to-rose-400"
             : "from-cyan-500 to-cyan-400";
-      return { label: c, weight: w, pct, color };
+      return { value: c, label: opt.label, weight: w, pct, color };
     },
   );
 
   const quorumMet = tally.percentages.participation_pct >= tally.quorum_pct;
   // Threshold check uses yes_share for YES/NO proposals.
   // For multi-choice (no YES in the choice set), use the leading-choice share.
-  const hasYesChoice = choices.some((c) => c.toLowerCase() === "yes");
+  const hasYesChoice = options.some((o) => o.value.toLowerCase() === "yes");
   const leadingChoicePct = hasYesChoice
     ? tally.percentages.yes_share_of_cast_pct
-    : Math.max(0, ...perChoice.filter((p) => p.label.toLowerCase() !== "abstain").map((p) => p.pct));
+    : Math.max(0, ...perChoice.filter((p) => p.value.toLowerCase() !== "abstain").map((p) => p.pct));
   const thresholdMet = leadingChoicePct >= tally.threshold_pct;
 
   return (
@@ -150,10 +152,15 @@ export function LiveResults({
       {/* Per-choice bars */}
       <div className="space-y-3">
         {perChoice.map((c) => (
-          <div key={c.label}>
-            <div className="flex items-baseline justify-between text-sm">
-              <span className="font-medium text-white/90">{c.label}</span>
-              <span className="font-mono text-white/70 tabular-nums">
+          <div key={c.value}>
+            <div className="flex items-baseline justify-between gap-3 text-sm">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded border border-white/10 bg-white/5 px-1 font-mono text-[10px] font-semibold uppercase text-white/70">
+                  {c.value}
+                </span>
+                <span className="truncate font-medium text-white/90">{c.label}</span>
+              </span>
+              <span className="shrink-0 font-mono text-white/70 tabular-nums">
                 {fmtPct(c.pct)}
                 <span className="ml-2 text-xs text-white/40">
                   {fmtMagpie(c.weight.toString())}
