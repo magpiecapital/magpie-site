@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatEst } from "@/lib/time";
-import type { VoteOption } from "@/lib/solana/site-governance-vote";
+import type { VoteChoice, VoteOption } from "@/lib/solana/site-governance-vote";
 
 interface TallyBody {
   proposal_id: string;
@@ -27,6 +27,8 @@ interface LiveResultsProps {
   proposalId: string;
   botApiUrl: string;
   options: VoteOption[];
+  /** The viewer's own recorded choice — its bar gets a "you voted" marker. */
+  userVote?: VoteChoice | null;
   /**
    * Bumping this counter from the parent triggers an immediate refetch.
    * VoteButtons calls onVoteRecorded → parent bumps this → bar moves NOW
@@ -53,6 +55,7 @@ export function LiveResults({
   proposalId,
   botApiUrl,
   options,
+  userVote,
   refreshNonce = 0,
 }: LiveResultsProps) {
   const [tally, setTally] = useState<TallyBody | null>(null);
@@ -151,30 +154,38 @@ export function LiveResults({
     <div className="space-y-5">
       {/* Per-choice bars */}
       <div className="space-y-3">
-        {perChoice.map((c) => (
-          <div key={c.value}>
-            <div className="flex items-baseline justify-between gap-3 text-sm">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded border border-white/10 bg-white/5 px-1 font-mono text-[10px] font-semibold uppercase text-white/70">
-                  {c.value}
+        {perChoice.map((c) => {
+          const isYours = userVote != null && c.value === userVote;
+          return (
+            <div key={c.value} className={isYours ? "rounded-lg -mx-2 px-2 py-1.5 ring-1 ring-emerald-400/40 bg-emerald-500/[0.06]" : undefined}>
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="inline-flex h-5 min-w-[1.25rem] shrink-0 items-center justify-center rounded border border-white/10 bg-white/5 px-1 font-mono text-[10px] font-semibold uppercase text-white/70">
+                    {c.value}
+                  </span>
+                  <span className="truncate font-medium text-white/90">{c.label}</span>
+                  {isYours && (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-emerald-200">
+                      ✓ you voted
+                    </span>
+                  )}
                 </span>
-                <span className="truncate font-medium text-white/90">{c.label}</span>
-              </span>
-              <span className="shrink-0 font-mono text-white/70 tabular-nums">
-                {fmtPct(c.pct)}
-                <span className="ml-2 text-xs text-white/40">
-                  {fmtMagpie(c.weight.toString())}
+                <span className="shrink-0 font-mono text-white/70 tabular-nums">
+                  {fmtPct(c.pct)}
+                  <span className="ml-2 text-xs text-white/40">
+                    {fmtMagpie(c.weight.toString())}
+                  </span>
                 </span>
-              </span>
+              </div>
+              <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/5">
+                <div
+                  className={`h-full rounded-full bg-gradient-to-r ${c.color} transition-all duration-700`}
+                  style={{ width: `${Math.min(100, c.pct)}%` }}
+                />
+              </div>
             </div>
-            <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/5">
-              <div
-                className={`h-full rounded-full bg-gradient-to-r ${c.color} transition-all duration-700`}
-                style={{ width: `${Math.min(100, c.pct)}%` }}
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Quorum + threshold + voter count */}
