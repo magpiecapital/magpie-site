@@ -57,6 +57,7 @@ interface HoldersRow {
 
 interface LpLoyRow {
   current_pool_lamports: string | null;
+  gross_pool_lamports: string | null;
   lifetime_distributions: string;
   last_distribution_lamports: string | null;
   last_distribution_at: Date | string | null;
@@ -128,15 +129,35 @@ export async function GET() {
       // Surface uniformity — same shape as holder_rewards so /stats can render
       // a "Last SOL LP distribution: X SOL — N ago" line that matches the
       // $MAGPIE holders line. Operator-mandated 2026-06-19 PM.
+      // "SOL LPs" current_pool = the THIRD-PARTY distributable, with the operator's
+      // exempt lender wallet TAKEN OUT (operator decision 2026-06-25). The exempt
+      // wallet is ~96% of LP weight; it stays in the denominator but is never paid,
+      // so third parties receive only their proportional slice. Net figure =
+      // gross accrued × (non-exempt weight / total weight), weight = shares ×
+      // seconds_held — the same model snapshotAndDistributeLpLoyalty uses. Falls
+      // back to the gross pool if the weight ratio can't be computed.
       `SELECT
-         (SELECT accrued_lamports::text FROM lp_loyalty_pool WHERE id = 1) AS current_pool_lamports,
+         ROUND(
+           (SELECT accrued_lamports FROM lp_loyalty_pool WHERE id = 1)::numeric
+           * COALESCE(
+               (SELECT SUM(shares * EXTRACT(EPOCH FROM (NOW() - weighted_deposit_at)))
+                  FROM lp_positions
+                 WHERE shares > 0 AND EXTRACT(EPOCH FROM (NOW() - weighted_deposit_at)) > 0
+                   AND wallet_address NOT IN (SELECT wallet_address FROM lp_loyalty_exempt_wallets))
+               / NULLIF(
+               (SELECT SUM(shares * EXTRACT(EPOCH FROM (NOW() - weighted_deposit_at)))
+                  FROM lp_positions
+                 WHERE shares > 0 AND EXTRACT(EPOCH FROM (NOW() - weighted_deposit_at)) > 0), 0)
+             , 1)
+         )::bigint::text AS current_pool_lamports,
+         (SELECT accrued_lamports::text FROM lp_loyalty_pool WHERE id = 1) AS gross_pool_lamports,
          (SELECT COUNT(*)::text FROM lp_loyalty_distributions) AS lifetime_distributions,
          (SELECT pool_lamports::text FROM lp_loyalty_distributions
             ORDER BY id DESC LIMIT 1) AS last_distribution_lamports,
          (SELECT created_at FROM lp_loyalty_distributions
             ORDER BY id DESC LIMIT 1) AS last_distribution_at`,
       {
-        current_pool_lamports: null, lifetime_distributions: "0",
+        current_pool_lamports: null, gross_pool_lamports: null, lifetime_distributions: "0",
         last_distribution_lamports: null, last_distribution_at: null,
       },
     ),
@@ -204,8 +225,12 @@ export async function GET() {
         last_distribution_at: holders.last_distribution_at,
       },
       lp_loyalty: {
+        // Net distributable to third-party LPs (operator's exempt LP share taken out).
         current_pool_sol: lpLoy.current_pool_lamports
           ? Number(lpLoy.current_pool_lamports) / 1e9 : 0,
+        // Gross accrued (10% of fees, before the operator-exempt slice is removed).
+        gross_pool_sol: lpLoy.gross_pool_lamports
+          ? Number(lpLoy.gross_pool_lamports) / 1e9 : 0,
         lifetime_distributions: Number(lpLoy.lifetime_distributions),
         last_distribution_sol: lpLoy.last_distribution_lamports
           ? Number(lpLoy.last_distribution_lamports) / 1e9 : null,
