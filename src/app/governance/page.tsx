@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { MiniLiveResults } from "./MiniLiveResults";
 import { GovernanceCountdown } from "./GovernanceCountdown";
 import { formatEst } from "@/lib/time";
+import { resolveProposalStatus, bucketOf, type ResolvedStatus } from "@/lib/governance";
 
 export const metadata = {
   title: "Governance | Magpie",
@@ -12,36 +13,27 @@ export const metadata = {
     "Active proposals, completed votes, and the model that governs them. $MAGPIE holders vote on the levers that matter; operator commits to honor within explicit scope.",
 };
 
+// Status is DATE-DRIVEN (see src/lib/governance.ts). Re-evaluate at runtime so a
+// proposal opens/closes on its scheduled date without a redeploy or manual edit.
+export const revalidate = 60;
+
 // ─── Proposal registry ────────────────────────────────────────────────────
 //
-// Add new entries here as proposals move through the lifecycle. The page
-// auto-buckets by `status.kind` into Active / Drafts / Completed.
-
-type ResultSummary = {
-  yes_pct: number;
-  no_pct: number;
-  abstain_pct: number;
-  participation_pct: number;
-  quorum_pct: number;
-  threshold_pct: number;
-  notes?: string;
-};
-
-type ProposalStatus =
-  | { kind: "active"; opens_at_iso: string; closes_at_iso: string }
-  | { kind: "draft"; activates_target_iso?: string }
-  | { kind: "withdrawn"; withdrawn_at_iso: string; reason: string }
-  | { kind: "passed"; closed_at_iso: string; outcome: ResultSummary; executed_at_iso?: string; execution_notes?: string }
-  | { kind: "failed"; closed_at_iso: string; outcome: ResultSummary };
+// Presentation only (title / tldr / scope / spec link). The STATUS is NOT here —
+// it is derived from dates in src/lib/governance.ts via resolveProposalStatus().
+// That's the whole point: never hand-type a status that can go stale. To open a
+// future proposal, add its dates to PROPOSAL_LIFECYCLES in the lib; it goes live
+// automatically. The page auto-buckets into Active / Upcoming / Completed.
 
 type ProposalCard = {
   id: string;
   scope_letter: "A1" | "A2" | "A3" | "A4" | "A5" | "A6" | "B-as-A";
   title: string;
   tldr: string;
-  status: ProposalStatus;
   spec_url: string;
 };
+
+type ResolvedCard = ProposalCard & { status: ResolvedStatus };
 
 const PROPOSALS: ProposalCard[] = [
   {
@@ -50,11 +42,6 @@ const PROPOSALS: ProposalCard[] = [
     title: "Restructure the loan-fee split — 70/10/10/10",
     tldr:
       "Send 70% of every loan fee to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, and 10% to the protocol reserve. Replaces the current 10% holder share.",
-    status: {
-      kind: "active",
-      opens_at_iso: "2026-06-10T22:00:00Z",
-      closes_at_iso: "2026-06-13T22:00:00Z",
-    },
     spec_url:
       "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-001-fee-split-70-10-10-10.md",
   },
@@ -64,7 +51,6 @@ const PROPOSALS: ProposalCard[] = [
     title: "July 1, 2026 $MAGPIE Streamflow unlock allocation (~5% of supply)",
     tldr:
       "Pick what happens with the ~50M $MAGPIE that unlocks on July 1: A=36-month re-lock (patience), B=24-month holder vest (loyalty), C=24-month locked growth treasury (build), D=50% burn + 50% treasury (discipline + build). No instant release.",
-    status: { kind: "draft", activates_target_iso: "2026-06-25T00:00:00Z" },
     spec_url:
       "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md",
   },
@@ -74,12 +60,6 @@ const PROPOSALS: ProposalCard[] = [
     title: "Signal poll on adding a Premium loan tier",
     tldr:
       "Non-binding signal poll on whether to add a Premium tier for tokenized stocks with longer durations.",
-    status: {
-      kind: "withdrawn",
-      withdrawn_at_iso: "2026-06-09T00:00:00Z",
-      reason:
-        "Operator shipped the Premium tier directly under Tier-B discretion (15-day and 30-day durations, tokenized stocks only). Vote became redundant before it opened.",
-    },
     spec_url:
       "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-002-extended-duration-tier-signal-poll.md",
   },
@@ -114,7 +94,7 @@ const ROADMAP = [
 
 // ─── Page-level helpers ───────────────────────────────────────────────────
 
-function statusBadge(s: ProposalStatus) {
+function statusBadge(s: ResolvedStatus) {
   switch (s.kind) {
     case "active":
       return (
@@ -123,16 +103,22 @@ function statusBadge(s: ProposalStatus) {
           live
         </span>
       );
-    case "draft":
+    case "upcoming":
       return (
         <span className="rounded-md bg-amber-500/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-amber-200">
           draft
         </span>
       );
+    case "tallying":
+      return (
+        <span className="rounded-md bg-cyan-500/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-cyan-200">
+          voting closed
+        </span>
+      );
     case "passed":
       return (
         <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-200">
-          passed
+          {s.terminal && s.terminal.kind === "passed" && s.terminal.executed_at_iso ? "executed" : "passed"}
         </span>
       );
     case "failed":
@@ -150,7 +136,7 @@ function statusBadge(s: ProposalStatus) {
   }
 }
 
-function statusSubline(s: ProposalStatus) {
+function statusSubline(s: ResolvedStatus) {
   switch (s.kind) {
     case "active":
       return (
@@ -158,31 +144,33 @@ function statusSubline(s: ProposalStatus) {
           <GovernanceCountdown targetIso={s.closes_at_iso} label="left" /> · closes {formatEst(s.closes_at_iso)}
         </>
       );
-    case "draft":
-      return s.activates_target_iso ? (
+    case "upcoming":
+      return (
         <>
-          <GovernanceCountdown targetIso={s.activates_target_iso} label="until open" /> · opens {formatEst(s.activates_target_iso)}
+          <GovernanceCountdown targetIso={s.activates_at_iso} label="until open" /> · opens {formatEst(s.activates_at_iso)}
         </>
-      ) : (
-        <>pending operator scope review</>
       );
+    case "tallying":
+      return <>closed {formatEst(s.closes_at_iso)} · final tally pending</>;
     case "passed":
       return (
         <>
-          closed {formatEst(s.closed_at_iso)}
-          {s.executed_at_iso ? ` · executed ${formatEst(s.executed_at_iso)}` : " · execution pending"}
+          closed {formatEst(s.closes_at_iso)}
+          {s.terminal && s.terminal.kind === "passed" && s.terminal.executed_at_iso
+            ? ` · executed ${formatEst(s.terminal.executed_at_iso)}`
+            : " · execution pending"}
         </>
       );
     case "failed":
-      return <>closed {formatEst(s.closed_at_iso)}</>;
+      return <>closed {formatEst(s.closes_at_iso)}</>;
     case "withdrawn":
-      return <>withdrawn {formatEst(s.withdrawn_at_iso)}</>;
+      return <>withdrawn {formatEst(s.terminal && s.terminal.kind === "withdrawn" ? s.terminal.at_iso : s.closes_at_iso)}</>;
   }
 }
 
-function ProposalCardView({ p, botApiUrl }: { p: ProposalCard; botApiUrl: string }) {
+function ProposalCardView({ p, botApiUrl }: { p: ResolvedCard; botApiUrl: string }) {
   const isActive = p.status.kind === "active";
-  const isDraft = p.status.kind === "draft";
+  const isDraft = p.status.kind === "upcoming";
   const isWithdrawn = p.status.kind === "withdrawn";
 
   return (
@@ -234,23 +222,23 @@ function ProposalCardView({ p, botApiUrl }: { p: ProposalCard; botApiUrl: string
       {isActive && <MiniLiveResults proposalId={p.id} botApiUrl={botApiUrl} />}
 
       {/* Result summary for closed proposals */}
-      {(p.status.kind === "passed" || p.status.kind === "failed") && (
+      {p.status.terminal && (p.status.terminal.kind === "passed" || p.status.terminal.kind === "failed") && (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <ResultPill label="YES" value={`${p.status.outcome.yes_pct.toFixed(1)}%`} tone={p.status.kind === "passed" ? "emerald" : "neutral"} />
-          <ResultPill label="NO" value={`${p.status.outcome.no_pct.toFixed(1)}%`} tone="neutral" />
-          <ResultPill label="Participation" value={`${p.status.outcome.participation_pct.toFixed(1)}%`} tone="neutral" />
-          <ResultPill label="Quorum" value={`${p.status.outcome.quorum_pct}% req`} tone="neutral" />
+          <ResultPill label="YES" value={`${p.status.terminal.outcome.yes_pct.toFixed(1)}%`} tone={p.status.terminal.kind === "passed" ? "emerald" : "neutral"} />
+          <ResultPill label="NO" value={`${p.status.terminal.outcome.no_pct.toFixed(1)}%`} tone="neutral" />
+          <ResultPill label="Participation" value={`${p.status.terminal.outcome.participation_pct.toFixed(1)}%`} tone="neutral" />
+          <ResultPill label="Quorum" value={`${p.status.terminal.outcome.quorum_pct}% req`} tone="neutral" />
         </div>
       )}
 
-      {p.status.kind === "withdrawn" && (
+      {p.status.terminal && p.status.terminal.kind === "withdrawn" && (
         <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.025] p-3 text-xs text-white/55">
-          <strong className="text-white/75">Why:</strong> {p.status.reason}
+          <strong className="text-white/75">Why:</strong> {p.status.terminal.reason}
         </div>
       )}
-      {p.status.kind === "passed" && p.status.execution_notes && (
+      {p.status.terminal && p.status.terminal.kind === "passed" && p.status.terminal.execution_notes && (
         <div className="mt-4 rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] p-3 text-xs text-white/65">
-          <strong className="text-emerald-200">Implementation:</strong> {p.status.execution_notes}
+          <strong className="text-emerald-200">Implementation:</strong> {p.status.terminal.execution_notes}
         </div>
       )}
 
@@ -301,15 +289,19 @@ export default function GovernancePage() {
     process.env.NEXT_PUBLIC_BOT_API_URL ||
     "https://magpie-bot-production.up.railway.app";
 
-  const active = PROPOSALS.filter((p) => p.status.kind === "active");
-  const drafts = PROPOSALS.filter((p) => p.status.kind === "draft");
-  const completed = PROPOSALS.filter((p) =>
-    p.status.kind === "passed" || p.status.kind === "failed" || p.status.kind === "withdrawn",
-  );
+  // Resolve every proposal's status from the single date-driven source of truth.
+  // No status is hand-typed here — open/close transitions happen automatically.
+  const now = new Date();
+  const resolved: ResolvedCard[] = PROPOSALS.flatMap((p) => {
+    const status = resolveProposalStatus(p.id, now);
+    return status ? [{ ...p, status }] : [];
+  });
 
-  // Stat-strip numbers — derive from the registry where reasonable;
-  // hardcode operator-confirmed numbers where the registry is too thin.
-  const totalProposals = PROPOSALS.length;
+  const active = resolved.filter((p) => bucketOf(p.status.kind) === "active");
+  const drafts = resolved.filter((p) => bucketOf(p.status.kind) === "upcoming");
+  const completed = resolved.filter((p) => bucketOf(p.status.kind) === "completed");
+
+  const totalProposals = resolved.length;
 
   return (
     <div className="min-h-screen bg-black text-white">

@@ -139,10 +139,11 @@ No timeline commitments on v1 or v2. The model evolves when the protocol's track
 
 Each governance proposal is a Markdown file in [`/proposals`](./proposals/). See [`/proposals/README.md`](./proposals/README.md) for the file-naming convention, required frontmatter, required sections, and lifecycle states.
 
-Drafted proposals at the time of v0 launch:
+Proposals to date — **live, authoritative status is always at [magpie.capital/governance](https://www.magpie.capital/governance)** (date-derived; this list is a convenience snapshot):
 
-- [`MGP-001`](./proposals/MGP-001-holder-distribution-share-15pct.md) — Increase $MAGPIE holder fee share from 10% to 15%; LP share decreases from 80% to 75%. (Tier A4, draft.)
-- [`MGP-002`](./proposals/MGP-002-extended-duration-tier-signal-poll.md) — Signal poll: should Magpie add an Extended-duration loan tier (≥14 days)? (Tier A6, draft.)
+- [`MGP-001`](./proposals/MGP-001-fee-split-70-10-10-10.md) — Restructure the loan-fee split to 70/10/10/10. (Tier A4 — **passed & in effect**.)
+- [`MGP-002`](./proposals/MGP-002-extended-duration-tier-signal-poll.md) — Signal poll on a Premium / extended-duration loan tier. (Tier A6 — **withdrawn**; shipped under Tier B discretion.)
+- [`MGP-003`](./proposals/MGP-003-streamflow-unlock-allocation.md) — Allocation of the July 1, 2026 Streamflow unlock (~5% of supply). (Tier A6 — live status at /governance.)
 
 Subsequent proposal numbers are reserved for follow-ups (LTV adjustments per tier, fee-rate adjustments per tier, Tier C scope amendments).
 

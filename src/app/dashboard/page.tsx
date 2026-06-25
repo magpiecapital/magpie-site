@@ -13,6 +13,7 @@ import { LOAN_TIERS, chooseProgramId } from "@/lib/solana/constants";
 import { isOnChainFeedBorrowable } from "@/lib/solana/feed-freshness";
 import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
 import { translateTxError } from "@/lib/solana/tx-error";
+import { PROPOSAL_LIFECYCLES, resolveProposalStatus } from "@/lib/governance";
 import dynamic from "next/dynamic";
 import CustodialWithdraw from "./CustodialWithdraw";
 import WalletsList from "./WalletsList";
@@ -4953,13 +4954,22 @@ function DashboardPageInner() {
                         View all proposals
                         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
                       </Link>
-                      <Link
-                        href="/governance/proposal/MGP-001"
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--d-accent)] px-3 py-1.5 text-[11px] font-semibold text-[var(--d-accent-ink)] hover:opacity-90"
-                      >
-                        Vote on MGP-001
-                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
-                      </Link>
+                      {(() => {
+                        // Derive the votable proposal from the single source of
+                        // truth — never hardcode a (possibly closed) proposal id.
+                        const activeId = Object.keys(PROPOSAL_LIFECYCLES).find(
+                          (id) => resolveProposalStatus(id)?.votingOpen,
+                        );
+                        return activeId ? (
+                          <Link
+                            href={`/governance/proposal/${activeId}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--d-accent)] px-3 py-1.5 text-[11px] font-semibold text-[var(--d-accent-ink)] hover:opacity-90"
+                          >
+                            Vote on {activeId}
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M13 5l7 7-7 7" /></svg>
+                          </Link>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
                 )}
