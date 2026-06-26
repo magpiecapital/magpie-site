@@ -1574,10 +1574,16 @@ function DashboardPageInner() {
               }
             }
             if (!warmed) {
-              console.warn(`[borrow] feed still cold for ${holding.mint.slice(0, 8)} after warm wait — surfacing warming message.`);
-              throw new Error(`BORROW_INFRA_WARMING:${eta}`);
+              // DON'T block the user. Proceed to cosign, where the server's JIT
+              // warmer (90s budget) fills the feed and the on-chain TWAP guard +
+              // safe-collateral-value cap are authoritative — for a real mint the
+              // cosign warms it and the borrow goes through, so the user never sees
+              // a "warming up" error. A genuinely un-warmable mint is caught by the
+              // on-chain guard at cosign, not pre-blocked here.
+              console.warn(`[borrow] feed not warm in client budget for ${holding.mint.slice(0, 8)} (last eta ~${eta}s) — proceeding to cosign (server JIT authoritative).`);
+            } else {
+              console.info(`[borrow] feed warmed for ${holding.mint.slice(0, 8)} — proceeding with borrow.`);
             }
-            console.info(`[borrow] feed warmed for ${holding.mint.slice(0, 8)} — proceeding with borrow.`);
           }
         }
       } catch (readinessErr) {
@@ -1748,15 +1754,12 @@ function DashboardPageInner() {
           ) {
             collateralValueLamports = twapBody.safe_collateral_value_lamports;
           } else if (twapBody && twapBody.recommendation === "wait_for_warmup") {
-            // V4 feed isn't ready. Four sub-reasons all mean the
-            // on-chain V4 program will reject:
-            //   1. v4_price_feed_uninitialized_or_empty — PDA missing
-            //   2. no_samples_yet — PDA exists but zero attestations
-            //   3. only_X_samples_in_window_need_Y — window too narrow
-            //   4. rpc_unavailable — bot couldn't even check
-            // V4 lifecycle NN1: BLOCK on any wait_for_warmup. Attestor
-            // fills samples within ~35s; user retries cleanly.
-            throw new Error("BORROW_INFRA_WARMING");
+            // Feed still warming — DON'T block the user. Use the conservative
+            // collateral value; the cosign caps it to the on-chain attestation and
+            // its JIT warmer (90s budget) fills the feed there. No user-facing
+            // "warming up" error — the on-chain TWAP guard stays authoritative.
+            const collateralValueSol = collateralValueSolRaw * 0.89;
+            collateralValueLamports = Math.floor(collateralValueSol * 1e9).toString();
           } else {
             // Unknown response shape — conservative fallback.
             const collateralValueSol = collateralValueSolRaw * 0.89;
