@@ -138,9 +138,13 @@ export default function CalculatorClient() {
     setLoading(true);
     setError(null);
     try {
-      const [tokenRes, solRes] = await Promise.all([
+      const [tokenRes, solRes, jupRes] = await Promise.all([
         fetch(`https://api.dexscreener.com/tokens/v1/solana/${mint}`),
         fetch(`https://api.dexscreener.com/tokens/v1/solana/${SOL_MINT}`),
+        // Jupiter (trusted, PRIMARY) — a single mis-priced DexScreener pair
+        // (~5000x off on e.g. JUP/PUMP) would otherwise produce a wildly wrong
+        // borrow estimate. Fails soft to the DexScreener best-pair price.
+        fetch(`https://lite-api.jup.ag/price/v3?ids=${mint},${SOL_MINT}`).catch(() => null),
       ]);
 
       if (!tokenRes.ok || !solRes.ok) throw new Error("Failed to fetch prices");
@@ -148,7 +152,7 @@ export default function CalculatorClient() {
       const tokenData = await tokenRes.json();
       const solData = await solRes.json();
 
-      // Pick the pair with highest liquidity
+      // Pick the pair with highest liquidity (DexScreener fallback only)
       const tokenPairs = Array.isArray(tokenData) ? tokenData : tokenData.pairs || [];
       const solPairs = Array.isArray(solData) ? solData : solData.pairs || [];
 
@@ -161,8 +165,21 @@ export default function CalculatorClient() {
         (pair.liquidity?.usd || 0) > (best.liquidity?.usd || 0) ? pair : best
       );
 
-      const tp = parseFloat(bestTokenPair.priceUsd);
-      const sp = parseFloat(bestSolPair.priceUsd);
+      // Jupiter-primary; DexScreener best-pair only when Jupiter lacks the mint.
+      let jupToken: number | null = null;
+      let jupSol: number | null = null;
+      if (jupRes && jupRes.ok) {
+        try {
+          const jd = await jupRes.json();
+          const jt = jd?.[mint]?.usdPrice;
+          const js = jd?.[SOL_MINT]?.usdPrice;
+          if (typeof jt === "number" && isFinite(jt) && jt > 0) jupToken = jt;
+          if (typeof js === "number" && isFinite(js) && js > 0) jupSol = js;
+        } catch { /* ignore — fall back to DexScreener */ }
+      }
+
+      const tp = jupToken ?? parseFloat(bestTokenPair.priceUsd);
+      const sp = jupSol ?? parseFloat(bestSolPair.priceUsd);
 
       if (isNaN(tp) || isNaN(sp)) throw new Error("Invalid price data");
 
