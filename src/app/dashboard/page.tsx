@@ -899,13 +899,20 @@ function DashboardPageInner() {
     const BOT_API_URL =
       process.env.NEXT_PUBLIC_BOT_API_URL ||
       "https://magpie-bot-production.up.railway.app";
-    fetch(`${BOT_API_URL}/api/v1/v4/warm-mint`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mint: expandedMint, source: "site" }),
-    }).catch(() => {
-      // Silent — bot's JIT at cosign time covers us either way.
-    });
+    const ping = () =>
+      fetch(`${BOT_API_URL}/api/v1/v4/warm-mint`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mint: expandedMint, source: "site" }),
+      }).catch(() => {
+        // Silent — bot's JIT at cosign time covers us either way.
+      });
+    ping(); // warm immediately on expand
+    // Re-ping while the row stays expanded so the 10-min warming intent + the
+    // on-demand attestor stay fresh through a long session — by borrow time the
+    // TWAP window is full and the wait-for-ready loop is a no-op.
+    const id = setInterval(ping, 30_000);
+    return () => clearInterval(id);
   }, [expandedMint]);
 
   // Marketplace tier-card click: ?category=memecoin|stock&tier=0|1|2
@@ -1526,9 +1533,51 @@ function DashboardPageInner() {
         if (hr.ok) {
           const body = await hr.json().catch(() => null);
           if (body && body.ok && body.ready === false) {
-            const eta = typeof body.eta_seconds === "number" ? body.eta_seconds : 30;
-            console.warn(`[borrow] feed not ready for ${holding.mint.slice(0, 8)}: samples=${body.samples_in_window}/${body.samples_needed} reason=${body.reason} eta=${eta}s`);
-            throw new Error(`BORROW_INFRA_WARMING:${eta}`);
+            let eta = typeof body.eta_seconds === "number" ? body.eta_seconds : 30;
+            console.warn(`[borrow] feed not ready for ${holding.mint.slice(0, 8)}: samples=${body.samples_in_window}/${body.samples_needed} reason=${body.reason} eta=${eta}s — waiting for warm-up instead of blocking`);
+            // DON'T hard-block on a cold-start snapshot. Actively wait for the JIT
+            // attestor to fill the TWAP window: re-ping warm-mint + re-poll
+            // /feed-ready (~3s cadence, ~45s budget) and proceed the instant it's
+            // ready. The on-chain TWAP guard + safe-collateral-value cap at cosign
+            // remain authoritative, so this can NEVER cause a rejection — it turns
+            // a false "Markets warming up" hold into a short silent wait. Only
+            // surface the warming message if the feed is STILL cold after the budget.
+            const warmDeadline = Date.now() + 45_000;
+            let warmed = false;
+            const nudge = () =>
+              fetch(`${botApiForReadiness}/api/v1/v4/warm-mint`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ mint: holding.mint, source: "borrow-wait" }),
+              }).catch(() => {});
+            nudge();
+            while (Date.now() < warmDeadline) {
+              await new Promise((r) => setTimeout(r, 3_000));
+              try {
+                const pc = new AbortController();
+                const pt = setTimeout(() => pc.abort(), 4_000);
+                const pr = await fetch(
+                  `${botApiForReadiness}/api/v1/v4/feed-ready?mint=${encodeURIComponent(holding.mint)}`,
+                  { signal: pc.signal, cache: "no-store" },
+                );
+                clearTimeout(pt);
+                if (pr.ok) {
+                  const pb = await pr.json().catch(() => null);
+                  if (pb && pb.ok) {
+                    if (pb.ready === true) { warmed = true; break; }
+                    if (typeof pb.eta_seconds === "number") eta = pb.eta_seconds;
+                  }
+                }
+                nudge();
+              } catch {
+                /* transient feed-ready blip — keep polling within budget */
+              }
+            }
+            if (!warmed) {
+              console.warn(`[borrow] feed still cold for ${holding.mint.slice(0, 8)} after warm wait — surfacing warming message.`);
+              throw new Error(`BORROW_INFRA_WARMING:${eta}`);
+            }
+            console.info(`[borrow] feed warmed for ${holding.mint.slice(0, 8)} — proceeding with borrow.`);
           }
         }
       } catch (readinessErr) {
