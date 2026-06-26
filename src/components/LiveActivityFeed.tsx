@@ -4,7 +4,7 @@
  * LiveActivityFeed — anonymized streaming feed of recent loans / repays.
  *
  * Renders on the /stats page. Auto-refreshes every 15s. Each event is
- * a single line: [icon] [wallet stub] [verb] [amount] SOL [token] [time]
+ * a single line: [icon] [verb] [amount] SOL [token] [time]
  * with a subtle entrance animation when new events appear at the top.
  *
  * Designed to sit on a public-facing trust surface — uses custom
@@ -112,7 +112,6 @@ function SkeletonRow() {
     <div className="flex items-center gap-3 px-5 py-3.5">
       <div className="h-8 w-8 rounded-full bg-[var(--hairline)] animate-pulse shrink-0" />
       <div className="flex-1 flex items-center gap-3 min-w-0">
-        <div className="h-3 w-16 rounded bg-[var(--hairline)] animate-pulse" />
         <div className="h-3 w-20 rounded bg-[var(--hairline)] animate-pulse" />
         <div className="h-3 w-24 rounded bg-[var(--hairline)] animate-pulse" />
       </div>
@@ -201,11 +200,8 @@ export function LiveActivityFeed() {
                 <s.Icon className={`h-4 w-4 ${s.iconColor}`} />
               </div>
 
-              {/* Body: wallet · verb · amount · context */}
+              {/* Body: verb · amount · context */}
               <div className="flex items-center gap-2 min-w-0 flex-1 flex-wrap sm:flex-nowrap">
-                <span className="font-mono text-[11px] text-[var(--ink-faint)] shrink-0">
-                  {e.wallet_stub}
-                </span>
                 <span className={`shrink-0 ${s.verb}`}>{s.word}</span>
                 <span className="font-display tabular text-[15px] font-medium text-[var(--ink)] shrink-0">
                   {fmtSol(e.loan_amount_sol)} <span className="text-[var(--ink-soft)] font-normal text-[12px]">SOL</span>
