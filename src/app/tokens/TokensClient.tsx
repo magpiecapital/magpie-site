@@ -114,6 +114,69 @@ async function fetchMarketData(
   return map;
 }
 
+/* ─── Jupiter price (cross-source, primary) ─── */
+async function fetchJupiterPrices(mints: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const BATCH = 100; // Jupiter price v3 accepts up to 100 ids per call
+  const batches: string[][] = [];
+  for (let i = 0; i < mints.length; i += BATCH)
+    batches.push(mints.slice(i, i + BATCH));
+
+  await Promise.all(
+    batches.map(async (batch) => {
+      try {
+        const res = await fetch(
+          `https://lite-api.jup.ag/price/v3?ids=${batch.join(",")}`,
+        );
+        if (!res.ok) return;
+        const data = (await res.json()) as Record<
+          string,
+          { usdPrice?: number } | null
+        >;
+        for (const [mint, v] of Object.entries(data)) {
+          if (
+            v &&
+            typeof v.usdPrice === "number" &&
+            isFinite(v.usdPrice) &&
+            v.usdPrice > 0
+          ) {
+            out.set(mint, v.usdPrice);
+          }
+        }
+      } catch {
+        /* ignore — falls back to DexScreener price for that batch */
+      }
+    }),
+  );
+  return out;
+}
+
+/* ─── Robust market cap ───
+   A single mis-priced DexScreener pair (e.g. a thin Meteora pool ~5000x off,
+   as seen live on JUP/PUMP) otherwise blows the displayed market cap up into
+   the trillions. We re-derive it from a TRUSTED price:
+     impliedSupply = dexMcap / dexPrice   (the bad price cancels → real supply)
+     mcap          = impliedSupply * trustedPrice   (Jupiter-primary)
+   For a sane pair (Jupiter ≈ DexScreener) this is a no-op, so it self-heals for
+   every current AND future approved token. Falls back to the raw DexScreener
+   mcap only when an input is missing. See feedback_collateral_price_must_be_
+   cross_sourced_jupiter_primary. */
+function robustMcap(
+  dexMcap: number | null,
+  dexPrice: number | null,
+  trustedPrice: number | null,
+): number | null {
+  if (
+    dexMcap != null && dexMcap > 0 &&
+    dexPrice != null && dexPrice > 0 &&
+    trustedPrice != null && trustedPrice > 0
+  ) {
+    const impliedSupply = dexMcap / dexPrice;
+    return impliedSupply * trustedPrice;
+  }
+  return dexMcap;
+}
+
 /* ═══════════════════════════════════════════
    Main Component
    ═══════════════════════════════════════════ */
@@ -150,21 +213,30 @@ export default function TokensClient() {
     }
 
     const mints = registry.map((t) => t.mint);
-    const map = await fetchMarketData(mints);
+    // Cross-source: DexScreener (pairs/volume/liquidity) + Jupiter (trusted
+    // price, PRIMARY). Fetched together so a bad DexScreener pair can't dictate
+    // the displayed price or market cap.
+    const [map, jupPrices] = await Promise.all([
+      fetchMarketData(mints),
+      fetchJupiterPrices(mints),
+    ]);
     const merged: TokenData[] = registry.map((t) => {
       const d = map.get(t.mint);
+      const dexPrice = d?.price ?? null;
+      // Jupiter-primary price; DexScreener only when Jupiter lacks the mint.
+      const price = jupPrices.get(t.mint) ?? dexPrice;
       return {
         symbol: t.symbol,
         name: t.name,
         mint: t.mint,
         category: t.category,
         registryImage: t.image ?? null,
-        price: d?.price ?? null,
+        price,
         change1h: d?.change1h ?? null,
         change6h: d?.change6h ?? null,
         change24h: d?.change24h ?? null,
         volume24h: d?.volume24h ?? null,
-        mcap: d?.mcap ?? null,
+        mcap: robustMcap(d?.mcap ?? null, dexPrice, price),
         liquidity: d?.liquidity ?? null,
         imageUrl: d?.imageUrl ?? null,
       };
