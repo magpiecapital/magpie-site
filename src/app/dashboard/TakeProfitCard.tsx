@@ -750,6 +750,7 @@ function LimitSlot(props: SlotProps) {
                 onChange={(e) => setEditSlippagePct(Number(e.target.value))}
                 disabled={busy}
                 className="flex-1"
+                style={{ accentColor: "var(--d-accent)" }}
               />
               <span className="text-[11px] tabular-nums w-10 text-right">
                 {(editSlippagePct ?? armed.slippage_bps / 100).toFixed(1)}%
@@ -772,6 +773,7 @@ function LimitSlot(props: SlotProps) {
                   onChange={(e) => setEditTrailingPct(Number(e.target.value))}
                   disabled={busy}
                   className="flex-1"
+                  style={{ accentColor: "var(--d-accent)" }}
                 />
                 <span className="text-[11px] tabular-nums w-10 text-right">
                   {(editTrailingPct ?? armed.trailing_distance_bps / 100).toFixed(1)}%
@@ -1009,6 +1011,7 @@ function LimitSlot(props: SlotProps) {
           onChange={(e) => setSlippagePct(Number(e.target.value))}
           disabled={busy}
           className="flex-1"
+          style={{ accentColor: "var(--d-accent)" }}
         />
         <span className="text-[11px] tabular-nums w-10 text-right">{slippagePct.toFixed(1)}%</span>
       </div>
