@@ -60,12 +60,11 @@ function isAuthorizedCron(req: Request): boolean {
   return auth === `Bearer ${secret}`;
 }
 
-async function pingBot(): Promise<{ ok: boolean; status: number; detail: string; dbDegraded: boolean }> {
-  const url = process.env.MAGPIE_BOT_HEALTH_URL || DEFAULT_HEALTH_URL;
+async function pingOnce(url: string): Promise<{ ok: boolean; status: number; detail: string; dbDegraded: boolean }> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), HEALTH_TIMEOUT_MS);
   try {
-    const res = await fetch(url, { signal: ctl.signal });
+    const res = await fetch(url, { signal: ctl.signal, cache: "no-store" });
     clearTimeout(timer);
     // 200 = healthy, 503 = degraded BUT REACHABLE. Both are "process
     // is alive and serving HTTP" — only 503 means a sub-system is
@@ -74,9 +73,6 @@ async function pingBot(): Promise<{ ok: boolean; status: number; detail: string;
     // + Pip work. So 503 is acceptable.
     //
     // 2026-06-14: ALSO parse the body to detect db: "degraded" / "fail".
-    // The bot reports those when its own DB-quota-guard caught a
-    // DB-dead error. We feed that signal into the auto-restart gate
-    // so the watchdog stops restarting a bot whose dependency is dead.
     let dbDegraded = false;
     try {
       const body = await res.json();
@@ -90,7 +86,12 @@ async function pingBot(): Promise<{ ok: boolean; status: number; detail: string;
     return {
       ok: res.status === 200 || res.status === 503,
       status: res.status,
-      detail: res.status === 503 ? "degraded (some sub-system unhealthy but reachable)" : "ok",
+      detail:
+        res.status === 200
+          ? "ok"
+          : res.status === 503
+            ? "degraded (some sub-system unhealthy but reachable)"
+            : `unreachable (http ${res.status})`,
       dbDegraded,
     };
   } catch (err) {
@@ -105,6 +106,25 @@ async function pingBot(): Promise<{ ok: boolean; status: number; detail: string;
       dbDegraded: false,
     };
   }
+}
+
+async function pingBot(): Promise<{ ok: boolean; status: number; detail: string; dbDegraded: boolean }> {
+  const url = process.env.MAGPIE_BOT_HEALTH_URL || DEFAULT_HEALTH_URL;
+  // RE-CHECK before declaring the bot down. A SINGLE transient blip — a Railway
+  // proxy hiccup, a 1-second timeout, a momentary load spike — must NEVER fire
+  // "BOT DOWN" (it pages the operator AND DMs every active user). Only a
+  // SUSTAINED failure across retries is a real outage. We retry up to 3 times
+  // (~5s of sustained failure) and a recovery on ANY attempt clears the alarm;
+  // a genuine outage still surfaces within ~10s. (2026-06-26: false alarm on a
+  // transient 502 while the bot had ~17h uptime — never restarted.)
+  const ATTEMPTS = 3;
+  const RETRY_DELAY_MS = 2_500;
+  let last = await pingOnce(url);
+  for (let i = 1; i < ATTEMPTS && !last.ok; i++) {
+    await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    last = await pingOnce(url);
+  }
+  return last;
 }
 
 async function sendOperatorAlert(text: string): Promise<{ sent: boolean; error?: string }> {
