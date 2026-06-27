@@ -1168,6 +1168,9 @@ function DashboardPageInner() {
   // events default) — clients with more lifetime activity would see
   // a lower total than reality. The bot's SUM is the source of truth.
   const [lifetimePoints, setLifetimePoints] = useState<number>(0);
+  // Per-category points breakdown from /api/v1/points (lending / repayment /
+  // bonus / referral / governance / liquidity / holding).
+  const [pointsByCategory, setPointsByCategory] = useState<{ category: string; points: number }[]>([]);
 
   // Take-profit state — one fetch for all loans on the connected wallet,
   // polled every 60s. Lifted up so we don't fire N requests for N loans
@@ -3082,14 +3085,25 @@ function DashboardPageInner() {
     let cancelled = false;
     const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
     const fetchActivity = () => {
-      fetch(`${botApi}/api/v1/activity?wallet=${publicKey.toBase58()}`)
+      const pk = publicKey.toBase58();
+      // Activity LIST from /api/v1/activity. Gate on the response SHAPE, not a
+      // single `ok` field, so the list never silently sticks empty.
+      fetch(`${botApi}/api/v1/activity?wallet=${pk}`)
         .then(r => r.json())
         .then(d => {
-          if (!cancelled && d.ok) {
+          if (!cancelled && (d.ok || Array.isArray(d.events))) {
             setActivity(d.events ?? []);
-            // Use the bot's cumulative total (server-side SUM across
-            // entire history) instead of summing limited paged events.
-            if (typeof d.total_points === "number") setLifetimePoints(d.total_points);
+          }
+        })
+        .catch(() => { /* keep last good */ });
+      // Points NUMBER from the dedicated /api/v1/points ledger (retroactive +
+      // synced), NOT the legacy credit-event SUM. Shape-robust gate.
+      fetch(`${botApi}/api/v1/points?wallet=${pk}`)
+        .then(r => r.json())
+        .then(d => {
+          if (!cancelled && typeof d.total_points === "number") {
+            setLifetimePoints(d.total_points);
+            if (Array.isArray(d.by_category)) setPointsByCategory(d.by_category);
           }
         })
         .catch(() => { /* keep last good */ });
@@ -5284,8 +5298,18 @@ function DashboardPageInner() {
                     <div className="flex items-end gap-3">
                       <div className="font-display text-3xl font-bold tracking-tight">{animatedPoints.toLocaleString()}</div>
                     </div>
+                    {pointsByCategory.length > 0 && (
+                      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+                        {pointsByCategory.map((c) => (
+                          <div key={c.category} className="text-xs text-[var(--d-ink-soft)]">
+                            <span className="capitalize">{c.category}</span>{" "}
+                            <span className="font-semibold text-[var(--d-ink)]">{c.points.toLocaleString()}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <p className="mt-3 text-xs text-[var(--d-ink-soft)]">
-                      Earn points by repaying loans on time
+                      Earn points by borrowing and repaying loans on time
                     </p>
                     <Link href="/points" className="mt-3 block text-center text-xs font-medium text-[var(--d-accent-deep)] hover:underline underline-offset-4">
                       Points calculator &rarr;
