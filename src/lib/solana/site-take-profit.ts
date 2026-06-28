@@ -104,6 +104,9 @@ export interface TakeProfitOrder {
     | "twap_in_progress"
     | "awaiting_user"
     | "fired"
+    // A TWAP/chunked exit that sold SOME collateral into the vault (audit
+    // 2026-06-28 P1 #3) — a FIRED (terminal) state with real proceeds.
+    | "partial_fired"
     | "cancelled"
     | "failed"
     | "max_retries_exceeded";
