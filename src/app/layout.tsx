@@ -168,6 +168,7 @@ export default function RootLayout({
                     "https://t.me/magpie_capital_bot",
                     "https://t.me/magpietalk",
                     "https://github.com/magpiecapital",
+                    "https://linktr.ee/magpiecapital",
                   ],
                   contactPoint: [
                     {
