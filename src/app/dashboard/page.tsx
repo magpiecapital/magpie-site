@@ -9,7 +9,7 @@ import { useConnection } from "@solana/wallet-adapter-react";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
-import { LOAN_TIERS, chooseProgramId } from "@/lib/solana/constants";
+import { LOAN_TIERS, chooseProgramId, PROGRAM_ID_V4 } from "@/lib/solana/constants";
 import { isOnChainFeedBorrowable } from "@/lib/solana/feed-freshness";
 import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
 import { translateTxError } from "@/lib/solana/tx-error";
@@ -3306,35 +3306,77 @@ function DashboardPageInner() {
                 ))}
               </div>
 
-              {/* Summary */}
-              <div className="mt-4 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] p-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-[var(--d-ink-soft)]">You repay</span>
-                  <span className="font-mono font-semibold text-[var(--d-ink)]">{repayAmount.toFixed(4)} SOL</span>
-                </div>
-                <div className="mt-1.5 flex justify-between">
-                  <span className="text-[var(--d-ink-soft)]">Collateral</span>
-                  <span className="font-mono text-[var(--d-ink)]">
-                    {isFull ? "returns to wallet" : "stays locked"}
-                  </span>
-                </div>
-                {isFull && (
-                  <div className="mt-1.5 text-[11px] text-[var(--d-ink-faint)]">
-                    {collateralDisplay} {repayConfirmFor.collateral.symbol || "tokens"}
-                  </div>
-                )}
-              </div>
+              {/* V4 vault proceeds — when an auto-sell fired, the loan's
+                  per-loan vault holds SOL that returns to the borrower on
+                  FULL repay, IN THE SAME TRANSACTION. The wallet then
+                  previews the NET (proceeds − repay), which made a user
+                  think they were "paying 3.33 SOL" when they only repaid
+                  1.226 (operator 2026-06-28). Compute + surface the full
+                  breakdown so the ACTUAL repay amount is unmistakable and
+                  the wallet's net number is explained BEFORE the popup. */}
+              {(() => {
+                const isV4Loan =
+                  !!PROGRAM_ID_V4 && repayConfirmFor.program_id === PROGRAM_ID_V4.toBase58();
+                const vaultLamports = BigInt(
+                  repayConfirmFor.collateral.sol_proceeds_lamports ?? "0",
+                );
+                const vaultSol = Number(vaultLamports) / 1e9;
+                const showVault = isV4Loan && isFull && vaultSol > 0;
+                const net = vaultSol - repayAmount;
+                return (
+                  <>
+                    {/* Summary */}
+                    <div className="mt-4 rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] p-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-[var(--d-ink-soft)]">You repay</span>
+                        <span className="font-mono font-semibold text-[var(--d-ink)]">{repayAmount.toFixed(4)} SOL</span>
+                      </div>
+                      {showVault && (
+                        <div className="mt-1.5 flex justify-between">
+                          <span className="text-[var(--d-ink-soft)]">Vault proceeds returned</span>
+                          <span className="font-mono text-emerald-500">+{vaultSol.toFixed(4)} SOL</span>
+                        </div>
+                      )}
+                      <div className="mt-1.5 flex justify-between">
+                        <span className="text-[var(--d-ink-soft)]">Collateral</span>
+                        <span className="font-mono text-[var(--d-ink)]">
+                          {isFull ? "returns to wallet" : "stays locked"}
+                        </span>
+                      </div>
+                      {isFull && (
+                        <div className="mt-1.5 text-[11px] text-[var(--d-ink-faint)]">
+                          {collateralDisplay} {repayConfirmFor.collateral.symbol || "tokens"}
+                        </div>
+                      )}
+                      {showVault && (
+                        <div className="mt-2 flex justify-between border-t border-[var(--d-border)] pt-2">
+                          <span className="font-semibold text-[var(--d-ink)]">Net to your wallet</span>
+                          <span className={`font-mono font-semibold ${net >= 0 ? "text-emerald-500" : "text-[var(--d-ink)]"}`}>
+                            {net >= 0 ? "+" : ""}{net.toFixed(4)} SOL
+                          </span>
+                        </div>
+                      )}
+                    </div>
 
-              {/* Explanation when partial is selected */}
-              {!isFull && (
-                <p className="mt-3 text-xs text-[var(--d-ink-faint)] leading-relaxed">
-                  Partial repay pays down the debt and lowers your liquidation risk, but the loan stays open and the collateral stays locked. To get collateral back, pick &ldquo;Full&rdquo;.
-                </p>
-              )}
+                    {/* Explanation when partial is selected */}
+                    {!isFull && (
+                      <p className="mt-3 text-xs text-[var(--d-ink-faint)] leading-relaxed">
+                        Partial repay pays down the debt, but the loan stays open and the collateral stays locked. To get collateral back, pick &ldquo;Full&rdquo;.
+                      </p>
+                    )}
 
-              <p className="mt-3 text-[11px] text-[var(--d-ink-faint)]">
-                Wallet popup is next. Amounts come from the on-chain loan state — never a stored display value.
-              </p>
+                    {showVault ? (
+                      <p className="mt-3 text-[11px] text-[var(--d-ink-soft)] leading-relaxed">
+                        You are repaying <span className="font-semibold text-[var(--d-ink)]">{repayAmount.toFixed(4)} SOL</span>. Because an auto-sell already filled, your <span className="font-semibold text-[var(--d-ink)]">{vaultSol.toFixed(4)} SOL</span> of vault proceeds + your collateral come back to you in the <span className="font-semibold text-[var(--d-ink)]">same</span> transaction — so your wallet will preview a net change of about <span className="font-semibold text-[var(--d-ink)]">{net >= 0 ? "+" : ""}{net.toFixed(2)} SOL</span>, not the repay amount. That net is your proceeds minus the repayment; you are only repaying {repayAmount.toFixed(4)} SOL.
+                      </p>
+                    ) : (
+                      <p className="mt-3 text-[11px] text-[var(--d-ink-faint)]">
+                        Wallet popup is next. Amounts come from the on-chain loan state — never a stored display value.
+                      </p>
+                    )}
+                  </>
+                );
+              })()}
 
               <div className="mt-5 flex gap-2 justify-end">
                 <button
