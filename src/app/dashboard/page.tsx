@@ -4354,28 +4354,6 @@ function DashboardPageInner() {
                                     );
                                   })()}
 
-                                  {/* Thin-liquidity caution. Renders only
-                                      when DexScreener data is available
-                                      AND liquidity is genuinely shallow
-                                      ($50k threshold matches the
-                                      protocol's borrow-time liquidity
-                                      floor in services/anti-exploit.js).
-                                      Same idea on extreme 24h moves —
-                                      if a token is pumping or dumping
-                                      hard right now, the user should
-                                      pause and think about liquidation
-                                      risk before signing. */}
-                                  {h.approved.liquidity != null && h.approved.liquidity < 50_000 && (
-                                    <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-700">
-                                      <span className="font-semibold">⚠ Thin liquidity</span> · only ${Math.round(h.approved.liquidity).toLocaleString()} across DEX pools. A repay-time sell could move price more than usual — consider borrowing a smaller % or picking a different token.
-                                    </div>
-                                  )}
-                                  {h.approved.priceChange24h != null && Math.abs(h.approved.priceChange24h) >= 25 && (
-                                    <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-700">
-                                      <span className="font-semibold">⚠ High volatility</span> · {h.approved.priceChange24h >= 0 ? "+" : ""}{h.approved.priceChange24h.toFixed(1)}% in 24h. If price reverses, your loan could approach the liquidation threshold faster than usual.
-                                    </div>
-                                  )}
-
                                   {/* Pre-borrow exit strategy picker.
                                       Mirrors the TG /borrow wizard: user picks an exit plan
                                       BEFORE selecting a tier; handleBorrow auto-arms the
