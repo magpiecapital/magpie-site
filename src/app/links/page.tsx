@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Magpie · Official Links",
     description:
-      "All four official Magpie surfaces in one place. Anything else is impersonation.",
+      "Every official Magpie surface in one place. Anything else is impersonation.",
     url: `${SITE_URL}/links`,
     siteName: "Magpie",
     type: "website",
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Magpie · Official Links",
     description:
-      "All four official Magpie surfaces. Anything else is impersonation.",
+      "Every official Magpie surface in one place. Anything else is impersonation.",
     site: "@MagpieLoans",
     creator: "@MagpieLoans",
     images: ["/opengraph-image"],
@@ -126,6 +126,13 @@ const PRIMARY_LINKS: LinkCard[] = [
     description: "Dashboard, docs, live stats, calculator, all of it.",
     icon: <GlobeIcon />,
   },
+  {
+    href: "https://linktr.ee/magpiecapital",
+    label: "Linktree",
+    handle: "linktr.ee/magpiecapital",
+    description: "Every official Magpie link in one tap — socials, app, docs.",
+    icon: <GlobeIcon />,
+  },
 ];
 
 export default function LinksPage() {
@@ -141,7 +148,7 @@ export default function LinksPage() {
             Magpie · Official Links
           </h1>
           <p className="mt-3 text-sm text-[var(--ink-soft)] leading-relaxed">
-            All four official Magpie surfaces. Anything else is impersonation.
+            Every official Magpie surface in one place. Anything else is impersonation.
           </p>
         </div>
 

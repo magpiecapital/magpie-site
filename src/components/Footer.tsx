@@ -4,6 +4,7 @@ import { TELEGRAM_BOT, TELEGRAM_COMMUNITY } from "@/lib/telegram-links";
 
 const X_URL = "https://x.com/MagpieLoans";
 const GITHUB_URL = "https://github.com/magpiecapital";
+const LINKTREE_URL = "https://linktr.ee/magpiecapital";
 
 export function Footer() {
   return (
@@ -51,6 +52,7 @@ export function Footer() {
               Telegram — Wallet bot
             </FooterLink>
             <FooterLink href={GITHUB_URL}>GitHub</FooterLink>
+            <FooterLink href={LINKTREE_URL}>Linktree</FooterLink>
             <FooterLink href="/links">All official links</FooterLink>
           </FooterCol>
         </div>
