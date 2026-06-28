@@ -407,7 +407,15 @@ function computeExitState(
       o.status === "twap_in_progress" ||
       o.status === "awaiting_user",
   );
-  const fired = loanOrders.filter((o) => o.status === "fired");
+  // 'partial_fired' IS a fired leg (audit 2026-06-28 P1 #3 + P3 #17): a TWAP/
+  // chunked exit that sold SOME collateral into the vault lands in
+  // 'partial_fired'. Excluding it (a) dropped the order so the banner read
+  // "No exit set" despite real vault proceeds, and (b) under-counted fired
+  // legs in the "M of N legs filled" ladder rollup. Its proceeds_lamports is
+  // populated, so the vault reductions below sum it correctly.
+  const fired = loanOrders.filter(
+    (o) => o.status === "fired" || o.status === "partial_fired",
+  );
   // Cancelled orders are ignored for status — they're terminal but
   // shouldn't make the banner say "exit not set" (the user did
   // affirmative work; cancelled state shows in the rollup).
