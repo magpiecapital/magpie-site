@@ -151,30 +151,45 @@ async function fetchJupiterPrices(mints: string[]): Promise<Map<string, number>>
   return out;
 }
 
+/* No Solana token is anywhere near $1T market cap (SOL's own FDV is ~$100B).
+   A displayed value above this can ONLY be a single mis-priced DexScreener
+   pair, so it is rejected outright rather than shown. */
+const MAX_SANE_MCAP_USD = 1_000_000_000_000;
+
 /* ─── Robust market cap ───
-   A single mis-priced DexScreener pair (e.g. a thin Meteora pool ~5000x off,
-   as seen live on JUP/PUMP) otherwise blows the displayed market cap up into
-   the trillions. We re-derive it from a TRUSTED price:
-     impliedSupply = dexMcap / dexPrice   (the bad price cancels → real supply)
-     mcap          = impliedSupply * trustedPrice   (Jupiter-primary)
-   For a sane pair (Jupiter ≈ DexScreener) this is a no-op, so it self-heals for
-   every current AND future approved token. Falls back to the raw DexScreener
-   mcap only when an input is missing. See feedback_collateral_price_must_be_
-   cross_sourced_jupiter_primary. */
+   A single mis-priced DexScreener pair (e.g. a thin Meteora pool ~1000x off,
+   seen live on JUP showing $3.7T) otherwise blows the displayed market cap up
+   into the trillions. We re-derive supply from the SAME pair (so the bad price
+   cancels) and re-price at a TRUSTED Jupiter price:
+     impliedSupply = dexMcap / dexPrice          (bad price cancels → real supply)
+     mcap          = impliedSupply * trustedPrice (Jupiter cross-source)
+
+   CRITICAL: trustedPrice MUST be a genuine Jupiter price, NEVER the DexScreener
+   price itself — if the caller passes the dex price as the "trusted" price (e.g.
+   a Jupiter ?? dex fallback), the formula degenerates to impliedSupply*dexPrice
+   = the raw (trillions) dexMcap. That degeneration is exactly the JUP bug. When
+   no genuine trusted price exists we refuse to surface an absurd raw mcap
+   (cap → null = "—") rather than show a fake trillions figure. For a sane pair
+   (Jupiter ≈ DexScreener) the correction is a no-op, so it self-heals for every
+   current AND future token. See feedback_token_display_must_cross_source_market_cap. */
 function robustMcap(
   dexMcap: number | null,
   dexPrice: number | null,
   trustedPrice: number | null,
 ): number | null {
+  const sane = (v: number | null) =>
+    v != null && v > 0 && v <= MAX_SANE_MCAP_USD ? v : null;
   if (
     dexMcap != null && dexMcap > 0 &&
     dexPrice != null && dexPrice > 0 &&
     trustedPrice != null && trustedPrice > 0
   ) {
     const impliedSupply = dexMcap / dexPrice;
-    return impliedSupply * trustedPrice;
+    return sane(impliedSupply * trustedPrice);
   }
-  return dexMcap;
+  // No genuine trusted price to cross-correct with — never surface an absurd
+  // single-pair mcap (the trillions case); a sane raw value passes through.
+  return sane(dexMcap);
 }
 
 /* ═══════════════════════════════════════════
@@ -236,7 +251,11 @@ export default function TokensClient() {
         change6h: d?.change6h ?? null,
         change24h: d?.change24h ?? null,
         volume24h: d?.volume24h ?? null,
-        mcap: robustMcap(d?.mcap ?? null, dexPrice, price),
+        // Pass the GENUINE Jupiter price (null when Jupiter lacks it) as the
+        // trusted price — NOT `price` (which falls back to dexPrice). Passing
+        // the dex price here would degenerate the correction back to the raw
+        // trillions dexMcap (the JUP $3.7T bug).
+        mcap: robustMcap(d?.mcap ?? null, dexPrice, jupPrices.get(t.mint) ?? null),
         liquidity: d?.liquidity ?? null,
         imageUrl: d?.imageUrl ?? null,
       };
