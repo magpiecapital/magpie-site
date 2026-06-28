@@ -198,14 +198,25 @@ function BannerShell({
   // — partial/complete) or from loan.sol_proceeds_amount otherwise.
   // Remaining collateral is read from loan.current_collateral_amount via
   // formatRemainingToken.
-  const vaultLamports: bigint =
-    state?.kind === "partial" || state?.kind === "complete"
-      ? state.vaultLamports
-      : BigInt(loan?.sol_proceeds_amount ?? "0");
+  const vaultLamports: bigint = vaultLamportsFor(state, loan);
   const sol = lamportsToSolStr(vaultLamports);
-  const positionParts = formatPositionParts(loan, sym);
-  const hasPosition = !!positionParts;
   const hasVault = vaultLamports > 0n;
+  let positionParts = formatPositionParts(loan, sym);
+  // Fully-sold V4 position: when ALL collateral has been converted
+  // (current_collateral_amount explicitly "0") and the vault holds
+  // proceeds, synthesize a "0 TICKER" part so this "IN VAULT" banner
+  // matches the main loan card's "0 ANSEM + X SOL vault" EXACTLY
+  // (operator 2026-06-28, protocol uniformity for all V4). Only for an
+  // explicit on-chain zero — a null (pre-remainder-watcher) loan still
+  // omits the token part to avoid a misleading zero.
+  if (
+    !positionParts &&
+    hasVault &&
+    String(loan?.current_collateral_amount ?? "") === "0"
+  ) {
+    positionParts = { amount: "0", ticker: symbol || "TOKEN" };
+  }
+  const hasPosition = !!positionParts;
 
   // Status line below the headline varies by state. Keeps the visual
   // color (via visualForState) and the pulse animation on for armed/
@@ -522,6 +533,27 @@ function visualForState(state: ExitState | null): {
   };
 }
 
+/* The authoritative "accumulated SOL in the V4 vault" figure for a loan,
+ * used by EVERY V4 surface so they all agree (operator 2026-06-28: "make
+ * sure this reflects on the display properly across the protocol for all
+ * V4"). Prefers the loan mirror (loan.sol_proceeds_amount) — synced from
+ * ON-CHAIN truth by the engine's post-fire write + the bot reconciler, so
+ * it is authoritative — over state.vaultLamports, which is summed from
+ * per-order proceeds_lamports and can read 0 when an order record lagged
+ * its loan-mirror write. Takes the larger so "IN VAULT" never shows a
+ * stale 0 / em-dash after a fire. */
+function vaultLamportsFor(
+  state: ExitState | null,
+  loan: TakeProfitLoan | null,
+): bigint {
+  const fromState =
+    state && (state.kind === "partial" || state.kind === "complete")
+      ? state.vaultLamports
+      : 0n;
+  const fromLoanMirror = BigInt(loan?.sol_proceeds_amount ?? "0");
+  return fromLoanMirror > fromState ? fromLoanMirror : fromState;
+}
+
 function messageForState(
   state: ExitState | null,
   symbol: string,
@@ -543,14 +575,14 @@ function messageForState(
     return `Auto-sell firing now · ${state.inFlightCount} of ${state.totalCount} in flight`;
   }
   if (state.kind === "partial") {
-    const sol = lamportsToSolStr(state.vaultLamports);
+    const sol = lamportsToSolStr(vaultLamportsFor(state, loan));
     const remaining = formatRemainingToken(loan, symbol);
     return `${state.firedCount} of ${state.totalCount} legs filled · ${sol} SOL in vault${
       remaining ? ` + ${remaining}` : ""
     }`;
   }
   // complete
-  const sol = lamportsToSolStr(state.vaultLamports);
+  const sol = lamportsToSolStr(vaultLamportsFor(state, loan));
   const remaining = formatRemainingToken(loan, symbol);
   return `All ${state.firedCount} legs filled · ${sol} SOL in vault${
     remaining ? ` + ${remaining}` : ""
