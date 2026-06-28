@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "Magpie Referrals — earn 5% of every loan fee from anyone you refer.";
+export const alt = "Magpie Referrals — earn 10% of every loan fee from anyone you refer.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

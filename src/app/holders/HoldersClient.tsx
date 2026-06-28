@@ -82,7 +82,7 @@ export default function HoldersClient() {
             Hold $MAGPIE. <span className="text-[var(--accent)]">Earn</span> from every loan.
           </h1>
           <p className="mt-6 max-w-2xl text-base text-[var(--ink-soft)] sm:text-lg">
-            <span className="font-semibold text-[var(--ink)]">10% of every loan fee</span>{" "}
+            <span className="font-semibold text-[var(--ink)]">70% of every loan fee</span>{" "}
             on Magpie accrues to a holder reward pool, distributed on a randomized
             5–10 day cadence to every $MAGPIE holder pro-rata. Real yield, on-chain
             payout, no staking, no lockup.

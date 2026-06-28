@@ -188,7 +188,7 @@ export default async function MagpiePage() {
             Holder economics
           </div>
           <p className="text-sm text-[var(--ink-soft)] leading-relaxed">
-            <strong className="text-[var(--ink)]">10% of every loan fee</strong> on the
+            <strong className="text-[var(--ink)]">70% of every loan fee</strong> on the
             protocol accrues to a $MAGPIE holder reward pool, distributed pro-rata
             as SOL to every eligible $MAGPIE wallet on a randomized 5–10 day
             cadence. No claim required — SOL lands directly in holder wallets.

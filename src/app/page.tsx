@@ -327,7 +327,7 @@ export default async function Home() {
             {" "}<span className="italic text-[var(--accent-deep)]">borrow SOL</span>{" "}
             against memecoins and tokenized stocks. Anyone can
             {" "}<span className="italic text-[var(--accent-deep)]">hold $MAGPIE</span>{" "}
-            to earn 10% of every loan fee, distributed automatically. And anyone can
+            to earn 70% of every loan fee, distributed automatically. And anyone can
             {" "}<span className="italic text-[var(--accent-deep)]">run a keeper</span>{" "}
             to earn bounties on liquidations.
           </p>
@@ -370,7 +370,7 @@ export default async function Home() {
                 <span>Hold $MAGPIE · NEW</span>
               </div>
               <div className="mt-3 font-display text-2xl font-medium tracking-tight">
-                Earn 10% of every loan fee
+                Earn 70% of every loan fee
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
                 Every $MAGPIE in your wallet is a passive stream. Snapshots happen periodically;
