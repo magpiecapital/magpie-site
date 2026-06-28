@@ -159,7 +159,7 @@ const FAQ = [
   },
   {
     q: "What happens if the price drops?",
-    a: "Your loan has a health ratio tracking collateral value vs. debt. You get alerts at 90% health. You can top-up or partial-repay. If health drops below threshold, the position is liquidated on-chain by the keeper network.",
+    a: "Nothing automatic — a price drop does NOT liquidate you. Magpie liquidation is time-based: you keep your collateral through any volatility as long as you repay before your loan's fixed term ends. There's no margin call and no health-factor liquidation; your LTV just sets how much you can borrow, it isn't a liquidation line. You'll get repay-deadline reminders, and you can repay, partial-repay, or extend the term anytime before it's due.",
   },
   {
     q: "How do I earn yield?",
@@ -1004,7 +1004,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                 </h2>
               </div>
               <div className="max-w-md text-base leading-relaxed text-[var(--ink-soft)] sm:text-lg">
-                <p>LTV (Loan-to-Value) is the percentage of your collateral&apos;s value you receive as SOL. Higher LTV = more SOL, but less room before liquidation.</p>
+                <p>LTV (Loan-to-Value) is the percentage of your collateral&apos;s value you receive as SOL. Higher LTV = more SOL borrowed against the same collateral, and a larger amount to repay by your term&apos;s end. LTV sets how much you can borrow — it is not a liquidation line (Magpie liquidation is time-based, not price-based).</p>
                 <p className="mt-3 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-2.5 text-sm sm:px-4 sm:py-3">
                   <span className="font-semibold text-[var(--ink)]">Example:</span> $1,000 of WIF at 20% LTV = <span className="font-semibold text-[var(--ink)]">$200 in SOL</span>, minus 1.5% fee. Choose Express (30% LTV) to borrow $300, at a 3% fee.
                 </p>

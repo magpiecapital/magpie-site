@@ -61,7 +61,7 @@ export function Footer() {
             &copy; {new Date().getFullYear()} Magpie &middot; Built on Solana
           </div>
           <div className="text-xs text-[var(--ink-faint)]">
-            Not financial advice. Loans carry liquidation risk.
+            Not financial advice. Loans are time-based — repay before your term ends to keep your collateral.
           </div>
         </div>
       </div>
