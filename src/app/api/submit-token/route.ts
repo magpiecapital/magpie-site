@@ -241,46 +241,38 @@ export async function POST(req: Request) {
       market.marketCap >= AUTO_APPROVE.minMarketCap;
 
     if (canAutoApprove) {
-      // SECURITY: ON CONFLICT must NOT re-enable previously-disabled tokens.
-      // The operator's disable-token script (memory: feedback_token_safety_vigilance)
-      // sets enabled=FALSE for tokens flagged as scammy. If the auto-approve
-      // INSERT flipped enabled back to TRUE on conflict, ANY attacker could
-      // re-enable a disabled scam by re-submitting through the public form.
-      // Preserve the existing enabled flag on conflict; only refresh stats.
+      // SECURITY (2026-06-28 audit): a public, unauthenticated web submission
+      // must NEVER write enabled=TRUE to supported_mints. Passing the SIZE
+      // gates (liquidity / age / volume / mcap) is NOT a scam audit — those
+      // can be wash-traded. The bot's /submit path runs the real gauntlet
+      // (sellability/honeypot, holder-concentration, LP-burn, RugCheck) and
+      // hard-rejects before enabling; this endpoint cannot, so an auto-enabled
+      // honeypot would be INSTANTLY BORROWABLE and the pool could be drained
+      // (borrow → pull LP → seized collateral is unsellable; liquidation is
+      // time-based and can't recover it). So we QUEUE high-quality submissions
+      // for the full audit (token_screen_queue, status='pending') exactly like
+      // borderline ones — the bot screener / operator enables ONLY after the
+      // gauntlet passes. We deliberately do NOT insert token_screen_seen, so
+      // the background screener WILL pick it up and audit it.
       await query(
-        `INSERT INTO supported_mints
+        `INSERT INTO token_screen_queue
            (mint, symbol, name, decimals, category, image_url, liquidity_usd,
-            holder_count, market_cap_usd, has_mint_authority, has_freeze_authority,
-            lp_burned, token_age_hours, auto_approved, screened_at, source, enabled)
-         VALUES ($1,$2,$3,$4,'memecoin',$5,$6,0,$7,FALSE,FALSE,FALSE,$8,TRUE,NOW(),'web_submit',TRUE)
+            volume_24h_usd, market_cap_usd, holder_count, has_mint_authority,
+            has_freeze_authority, token_age_hours, safety_score, fail_reasons, status)
+         VALUES ($1,$2,$3,$4,'memecoin',$5,$6,$7,$8,0,FALSE,FALSE,$9,90,$10,'pending')
          ON CONFLICT (mint) DO UPDATE SET
-           liquidity_usd = EXCLUDED.liquidity_usd,
-           market_cap_usd = EXCLUDED.market_cap_usd,
-           token_age_hours = EXCLUDED.token_age_hours,
-           screened_at = NOW()
-         -- enabled deliberately NOT updated — disabled scams stay disabled.
-        `,
+           liquidity_usd = EXCLUDED.liquidity_usd, volume_24h_usd = EXCLUDED.volume_24h_usd,
+           market_cap_usd = EXCLUDED.market_cap_usd, status = 'pending'`,
         [mint, market.symbol.toUpperCase(), market.name, onChain.decimals,
-         market.imageUrl, market.liquidity, market.marketCap, ageHours],
+         market.imageUrl, market.liquidity, market.volume24h, market.marketCap,
+         ageHours, ["Passed auto-approve size gates — fast-track candidate, pending full scam audit"]],
       );
-      await query("INSERT INTO token_screen_seen (mint) VALUES ($1) ON CONFLICT DO NOTHING", [mint]);
-
-      // If this re-submission targets a previously-disabled mint, flag for
-      // operator so they can review whether the disable was a false positive
-      // OR whether someone's trying to game the auto-approve gate.
-      const { rows: postRows } = await query(
-        `SELECT enabled, protected FROM supported_mints WHERE mint = $1`,
-        [mint],
-      );
-      const isDisabled = postRows[0] && postRows[0].enabled === false;
 
       await notifyAdmin(
-        isDisabled
-          ? `*Web submission RE-SUBMITTED a DISABLED token (NOT re-enabled)*\n\n${escapeMd(market.symbol)} — $${Math.floor(market.liquidity).toLocaleString()} liq, $${Math.floor(market.marketCap).toLocaleString()} mcap\n\`${mint}\`\n\n_Manual review only_`
-          : `*Web submission auto-approved*\n\n${escapeMd(market.symbol)} — $${Math.floor(market.liquidity).toLocaleString()} liq, $${Math.floor(market.marketCap).toLocaleString()} mcap\n\`${mint}\``,
+        `*Web submission — fast-track candidate (PENDING scam audit, not yet enabled)*\n\n${escapeMd(market.symbol)} — $${Math.floor(market.liquidity).toLocaleString()} liq, $${Math.floor(market.marketCap).toLocaleString()} mcap\n\`${mint}\`\n\n_Passed size gates. Enable only after the full audit (sellability / holder-concentration / LP-burn / rugcheck)._`,
       );
 
-      return NextResponse.json({ verdict: isDisabled ? "queued_disabled" : "approved", ...stats });
+      return NextResponse.json({ verdict: "pending_review", ...stats });
     }
 
     // Borderline — queue for review
