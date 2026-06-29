@@ -467,7 +467,7 @@ export default function StatsClient() {
         <p className="mb-5 text-[13px] leading-relaxed text-[var(--ink-faint)] sm:text-sm">
           Auto-closes your position at the price you set. When your target hits, we instantly repay your loan and sell the collateral — no chart-staring required. If the first attempt would exceed your slippage allowance, we auto-retry with a slightly wider one (up to your cap) so you don't miss a trigger. Every successful auto-sell collects a 1% protocol fee that flows into the snapshot reward pools (same 70/10/10/10 split as borrow fees).
         </p>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5">
           <Stat
             label="Engine status"
             value={engineStatusLabel(engine?.status)}
@@ -490,15 +490,6 @@ export default function StatsClient() {
                 ? `${engine.firesFailed24h} unable to fill`
                 : "All filled"
             }
-          />
-          <Stat
-            label="Fill rate 24h"
-            value={
-              engine?.fireSuccessRate24h != null
-                ? `${(engine.fireSuccessRate24h * 100).toFixed(1)}%`
-                : "—"
-            }
-            sub="Filled / attempted"
           />
         </div>
         {engine != null && (engine.firesLifetime ?? 0) > 0 && (
