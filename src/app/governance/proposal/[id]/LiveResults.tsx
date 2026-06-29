@@ -45,6 +45,8 @@ interface LiveResultsProps {
    * and nothing happened for 2 seconds" UX issue operator flagged.
    */
   refreshNonce?: number;
+  /** When true, voting has closed: render a FINAL (non-live) tally — no 2s poll, no "live" footer/pulse. */
+  isClosed?: boolean;
 }
 
 // Convert raw $MAGPIE (6 decimals) to a short human string.
@@ -66,6 +68,7 @@ export function LiveResults({
   options,
   userVote,
   refreshNonce = 0,
+  isClosed = false,
 }: LiveResultsProps) {
   const [tally, setTally] = useState<TallyBody | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -95,13 +98,14 @@ export function LiveResults({
     fetchTally();
     // 2s poll. The refreshNonce dependency below triggers an immediate
     // refetch the moment a vote is recorded — no need for SSE/LISTEN
-    // to feel instant in the common case.
-    const id = setInterval(fetchTally, 2_000);
+    // to feel instant in the common case. Once voting has CLOSED the tally is
+    // final, so fetch once and do NOT poll (no "live"-feeling animation).
+    const id = isClosed ? null : setInterval(fetchTally, 2_000);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      if (id) clearInterval(id);
     };
-  }, [proposalId, botApiUrl, refreshNonce]);
+  }, [proposalId, botApiUrl, refreshNonce, isClosed]);
 
   if (error) {
     return (
@@ -270,7 +274,9 @@ export function LiveResults({
       </div>
 
       <p className="text-[11px] text-white/40">
-        Live tally, refreshes every 2 seconds (and instantly on your own vote).
+        {isClosed
+          ? "Final tally — voting closed."
+          : "Live tally, refreshes every 2 seconds (and instantly on your own vote)."}{" "}
         Aggregate weights only — per-wallet choices stay private. Whale-cap 2%
         applied. Updated {formatEst(tally.computed_at)}.
       </p>

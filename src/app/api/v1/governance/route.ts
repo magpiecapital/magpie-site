@@ -185,7 +185,10 @@ export async function GET() {
     },
     {
       headers: {
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+        // s-maxage was 3600 (1h) which pinned a stale `status:"active"` copy in the
+        // CDN for up to an hour after a proposal closes — external readers saw a
+        // closed proposal as still open. 60s keeps the date-driven status fresh at close.
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
         "Access-Control-Allow-Origin": "*",
       },
     },

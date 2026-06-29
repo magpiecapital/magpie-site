@@ -247,6 +247,29 @@ export default async function ProposalPage({
           </Reveal>
         )}
 
+        {/* Final results — once voting has CLOSED (tallying / passed / failed), show the
+            per-option result + winner banner. Not shown for "upcoming" (voting hasn't
+            happened yet). LiveResults self-draws the post-close outcome from the tally API. */}
+        {!isActive && status && status.kind !== "upcoming" && question?.options && (
+          <Reveal delay={0.08}>
+            <section className="mt-6 overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-cyan-500/[0.08] to-transparent">
+              <div className="border-b border-white/5 px-5 py-4 sm:px-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-white/55">
+                  Final results — voting closed
+                </h2>
+              </div>
+              <div className="px-5 py-6 sm:px-6">
+                <LiveResults
+                  proposalId={p.id}
+                  botApiUrl={botApiUrl}
+                  options={question.options}
+                  isClosed
+                />
+              </div>
+            </section>
+          </Reveal>
+        )}
+
         {/* ── Voter eligibility note ──────────────────────────── */}
         {isActive && (
           <Reveal delay={0.15}>
