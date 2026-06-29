@@ -127,6 +127,8 @@ interface X402Data {
   calls_7d: number;
   revenue_24h_sol: number;
   revenue_7d_sol: number;
+  revenue_total_sol: number;
+  calls_total: number;
   unique_payers_24h: number;
   x402_borrows_total: number;
   x402_borrows_24h: number;
@@ -303,9 +305,9 @@ export default function StatsClient() {
             sub={x402 ? `${x402.calls_7d.toLocaleString()} in 7d` : undefined}
           />
           <Stat
-            label="Agent fee revenue (24h)"
-            value={x402 ? `${x402.revenue_24h_sol.toFixed(3)} SOL` : "—"}
-            sub={x402 ? `${x402.revenue_7d_sol.toFixed(3)} SOL · 7d` : undefined}
+            label="Agent fee revenue (all-time)"
+            value={x402 && x402.revenue_total_sol != null ? `${x402.revenue_total_sol.toFixed(3)} SOL` : "—"}
+            sub={x402 ? `${x402.revenue_24h_sol.toFixed(3)} SOL · 24h` : undefined}
           />
           <Stat
             label="x402-originated loans"
