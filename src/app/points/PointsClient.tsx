@@ -357,7 +357,7 @@ function PointsCalculator() {
           <select
             value={streak}
             onChange={(e) => setStreak(parseInt(e.target.value))}
-            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3 text-sm font-semibold text-[var(--ink)] transition focus:border-[var(--accent-deep)] focus:outline-none"
+            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3 text-base sm:text-sm font-semibold text-[var(--ink)] transition focus:border-[var(--accent-deep)] focus:outline-none"
           >
             <option value={0}>0 (no streak)</option>
             <option value={1}>1</option>
@@ -376,7 +376,7 @@ function PointsCalculator() {
           <select
             value={uniqueTokens}
             onChange={(e) => setUniqueTokens(parseInt(e.target.value))}
-            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3 text-sm font-semibold text-[var(--ink)] transition focus:border-[var(--accent-deep)] focus:outline-none"
+            className="w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3 text-base sm:text-sm font-semibold text-[var(--ink)] transition focus:border-[var(--accent-deep)] focus:outline-none"
           >
             {[1, 2, 3, 4, 5].map((n) => (
               <option key={n} value={n}>

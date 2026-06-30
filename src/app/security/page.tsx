@@ -541,7 +541,7 @@ export default function SecurityPage() {
                   <div className="font-mono">
                     <a
                       href="/.well-known/security.txt"
-                      className="underline underline-offset-2 hover:text-[var(--ink)] transition"
+                      className="break-all underline underline-offset-2 hover:text-[var(--ink)] transition"
                     >
                       magpie.capital/.well-known/security.txt
                     </a>

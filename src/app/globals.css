@@ -133,6 +133,12 @@ body {
   letter-spacing: -0.011em;
 }
 
+/* Global horizontal-overflow guard. `clip` (not `hidden`) so it doesn't
+   create a scroll container that would break position:sticky on the
+   header. Catches any single offending child on any page that would
+   otherwise force site-wide sideways scroll on narrow phones. */
+html, body { overflow-x: clip; max-width: 100%; }
+
 /* Dark-mode body gradient — warm dim spotlights instead of silver. */
 html[data-theme="dark"] body {
   background:

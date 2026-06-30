@@ -941,7 +941,7 @@ export default function EarnPage() {
               </p>
 
               <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg)] overflow-hidden">
-                <div className="grid grid-cols-3 border-b border-[var(--hairline)] bg-[var(--surface)] px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                <div className="grid grid-cols-[1.5fr_1fr_1fr] border-b border-[var(--hairline)] bg-[var(--surface)] px-2 sm:px-3 py-2 text-[9px] sm:text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
                   <div>Tier</div>
                   <div className="text-right">Borrower fee</div>
                   <div className="text-right">Your LP loyalty share</div>
@@ -954,7 +954,7 @@ export default function EarnPage() {
                   { tier: "RWA Quick · 60% LTV · 15d (v3)",   fee: "3.50%", lp: "0.350%" },
                   { tier: "RWA Standard · 70% LTV · 30d (v3)", fee: "5.00%", lp: "0.500%" },
                 ].map((row) => (
-                  <div key={row.tier} className="grid grid-cols-3 border-b border-[var(--hairline)] px-3 py-2 text-xs last:border-b-0">
+                  <div key={row.tier} className="grid grid-cols-[1.5fr_1fr_1fr] border-b border-[var(--hairline)] px-2 sm:px-3 py-2 text-xs last:border-b-0">
                     <div className="text-[var(--ink-soft)]">{row.tier}</div>
                     <div className="text-right text-[var(--ink-soft)]">{row.fee}</div>
                     <div className="text-right font-semibold text-[var(--accent-deep)]">{row.lp}</div>

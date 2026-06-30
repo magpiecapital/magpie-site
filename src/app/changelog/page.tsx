@@ -597,7 +597,7 @@ export default function ChangelogPage() {
                           aria-hidden
                           className="mt-2 h-1 w-1 flex-shrink-0 rounded-full bg-[var(--ink-faint)]"
                         />
-                        {bullet}
+                        <span className="min-w-0 break-words">{bullet}</span>
                       </li>
                     ))}
                   </ul>

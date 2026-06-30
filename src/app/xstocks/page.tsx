@@ -149,7 +149,7 @@ export default function XStocksPage() {
                 fundamentals are crypto exposure — they trade like equities but realize
                 memecoin volatility. Same LTV as a blue-chip would get borrowers liquidated.
               </p>
-              <div className="mt-5 grid grid-cols-4 gap-1.5">
+              <div className="mt-5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                 {CRYPTO_ADJACENT.map((t) => (
                   <div
                     key={t.sym}

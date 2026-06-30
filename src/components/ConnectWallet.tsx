@@ -30,7 +30,7 @@ export function ConnectWallet({
   // it. Same border-radius (full), comparable padding, comparable text
   // weight — so the two buttons read as a pair rather than competing.
   const baseStyles =
-    "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition whitespace-nowrap";
+    "inline-flex items-center gap-1.5 rounded-full px-3.5 py-2.5 text-sm font-medium transition whitespace-nowrap min-h-[44px]";
 
   const variantStyles = {
     accent:

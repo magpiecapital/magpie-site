@@ -821,7 +821,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                 </div>
                 <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">1:1 with bot</span>
               </div>
-              <h3 className="font-display text-2xl font-semibold tracking-tight">
+              <h3 className="font-display text-xl sm:text-2xl font-semibold tracking-tight break-all">
                 {TELEGRAM_BOT.handle}
               </h3>
               <div className="text-sm font-semibold mt-1 text-[var(--accent-deep)]">
@@ -859,7 +859,7 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
                 </div>
                 <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Group chat</span>
               </div>
-              <h3 className="font-display text-2xl font-semibold tracking-tight">
+              <h3 className="font-display text-xl sm:text-2xl font-semibold tracking-tight break-all">
                 {TELEGRAM_COMMUNITY.handle}
               </h3>
               <div className="text-sm font-semibold mt-1 text-[var(--ink)]">

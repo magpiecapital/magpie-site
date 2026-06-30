@@ -234,7 +234,7 @@ export default function X402LinkPage() {
             value={brainAddr}
             onChange={(e) => setBrainAddr(e.target.value)}
             placeholder="Brain wallet public address (base58)"
-            className="mt-3 w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3 font-mono text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+            className="mt-3 w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3 font-mono text-base sm:text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
           />
           {connected && publicKey && brainAddr !== publicKey.toBase58() && (
             <button
@@ -278,7 +278,8 @@ export default function X402LinkPage() {
                 <input
                   value={solForFees}
                   onChange={(e) => setSolForFees(e.target.value)}
-                  className="w-24 rounded-lg border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3 py-1.5 font-mono text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
+                  inputMode="decimal"
+                  className="w-24 rounded-lg border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3 py-1.5 font-mono text-base sm:text-sm text-[var(--ink)] outline-none focus:border-[var(--accent)]"
                 />
                 <span>SOL</span>
               </div>
