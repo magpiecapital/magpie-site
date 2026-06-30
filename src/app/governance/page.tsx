@@ -332,8 +332,8 @@ export default function GovernancePage() {
           <div className="mt-8 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Stat label="Proposals" value={String(totalProposals)} />
             <Stat label="Active" value={String(active.length)} accent={active.length > 0} />
-            <Stat label="Eligible voters" value="2,185" sub="snapshot" />
-            <Stat label="$MAGPIE eligible" value="759M" sub="held + on-loan" />
+            <Stat label="Eligible voters" value="1,805" sub="snapshot" />
+            <Stat label="$MAGPIE eligible" value="733M" sub="held + on-loan" />
           </div>
         </Reveal>
 
