@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { TOKEN_REGISTRY } from "@/lib/token-registry";
 
 export const runtime = "edge";
-export const alt = "Magpie — Permissionless lending protocol on Solana.";
+export const alt = "Magpie — Collateral that can still sell itself.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -54,9 +54,9 @@ export default async function Image() {
               flexDirection: "column",
             }}
           >
-            <div>Borrow SOL.</div>
+            <div>Collateral that can</div>
             <div>
-              <span style={{ fontStyle: "italic", color: "#c99a2c" }}>Keep</span> your bag.
+              <span style={{ fontStyle: "italic", color: "#c99a2c" }}>still</span> sell itself.
             </div>
           </div>
           <div
@@ -66,7 +66,7 @@ export default async function Image() {
               letterSpacing: "-0.01em",
             }}
           >
-            Permissionless lending on Solana. Memecoins + tokenized stocks as collateral.
+            Borrow SOL against your tokens — and set auto-sells on the same collateral. Memecoins + tokenized stocks.
           </div>
         </div>
 

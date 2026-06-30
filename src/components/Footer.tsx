@@ -16,7 +16,7 @@ export function Footer() {
               <Wordmark size={24} />
             </Link>
             <p className="mt-3 max-w-[280px] text-sm leading-relaxed text-[var(--ink-soft)] sm:mt-4">
-              Permissionless lending on Solana. Borrow SOL against memecoins and tokenized stocks.
+              Collateral that can still sell itself. Borrow SOL against memecoins and tokenized stocks on Solana — set auto-sells on the same collateral.
             </p>
           </div>
           <FooterCol title="Product">
