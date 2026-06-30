@@ -220,14 +220,16 @@ export default async function Home() {
             <span className="text-[var(--ink)]">Live on Solana mainnet</span>
           </div>
 
-          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-[clamp(3rem,9vw,8.5rem)] leading-[0.92] tracking-[-0.04em] font-medium">
-            Collateral that can
-            <br />
+          {/* Hero headline — min font lowered to 2rem + the stylized line break is sm:+ only, so the
+              longer slogan wraps cleanly (word-by-word) on narrow phones instead of overflowing/clipping. */}
+          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-balance [text-wrap:balance] text-[clamp(2rem,9vw,8.5rem)] leading-[0.95] tracking-[-0.04em] font-medium sm:leading-[0.92]">
+            Collateral that can{" "}
+            <br className="hidden sm:block" />
             <span className="italic">still sell itself.</span>
           </h1>
 
           <p className="fade-up fade-up-2 mt-5 max-w-xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-8 sm:text-xl">
-            Borrow SOL against your tokens — and set auto-sells on the same collateral. Liquidity, without giving up the upside. Pledge memecoins or tokenized stocks, get SOL in seconds, and manage from the dashboard or your Telegram chat — same on-chain program, your call. Every repayment builds your on-chain credit score.
+            Borrow SOL against your tokens — and set auto-sells on the same collateral. Liquidity, without giving up the upside. Pledge memecoins or tokenized stocks, get SOL in seconds, and build on-chain credit with every repay — all from the dashboard or Telegram.
           </p>
 
           <div className="fade-up fade-up-3 mt-8 flex flex-wrap items-center gap-3 sm:mt-10 sm:gap-4">
