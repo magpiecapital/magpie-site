@@ -36,9 +36,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Magpie — Permissionless lending protocol on Solana.",
+  title: "Magpie — Collateral that can still sell itself.",
   description:
-    "Borrow SOL against memecoins and tokenized stocks. Permissionless pools, on-chain credit scores, and a keeper network — all in a Telegram chat.",
+    "Borrow SOL against your tokens — and set auto-sells on the same collateral. Liquidity, without giving up the upside.",
   applicationName: "Magpie",
   keywords: [
     "Solana lending",
@@ -69,9 +69,9 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: "Magpie — Permissionless lending protocol on Solana.",
+    title: "Magpie — Collateral that can still sell itself.",
     description:
-      "Borrow SOL against memecoins and tokenized stocks. Permissionless pools, on-chain credit scores, and a keeper network.",
+      "Borrow SOL against your tokens — and set auto-sells on the same collateral. Liquidity, without giving up the upside.",
     url: SITE_URL,
     siteName: "Magpie",
     type: "website",
@@ -80,14 +80,14 @@ export const metadata: Metadata = {
         url: "/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Magpie — Borrow SOL against your bags.",
+        alt: "Magpie — Collateral that can still sell itself.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Magpie — Borrow SOL against your bags.",
-    description: "Permissionless lending protocol on Solana. Borrow SOL against memecoins and tokenized stocks.",
+    title: "Magpie — Collateral that can still sell itself.",
+    description: "Borrow SOL against your tokens — and set auto-sells on the same collateral. Liquidity, without giving up the upside.",
     site: "@MagpieLoans",
     creator: "@MagpieLoans",
     images: ["/opengraph-image"],
@@ -192,7 +192,7 @@ export default function RootLayout({
                   url: "https://magpie.capital",
                   name: "Magpie Capital",
                   description:
-                    "Borrow SOL. Keep your bag. Permissionless lending protocol on Solana.",
+                    "Collateral that can still sell itself. Borrow SOL against your tokens — and set auto-sells on the same collateral. Liquidity, without giving up the upside.",
                   publisher: { "@id": "https://magpie.capital/#organization" },
                   inLanguage: "en",
                 },

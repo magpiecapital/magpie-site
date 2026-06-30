@@ -256,6 +256,11 @@ export default async function DocsPage() {
           {/* ─── V4 In-Vault Auto-Sells ─── */}
           <Section id="v4-in-vault" title="V4 In-Vault Auto-Sells" chip="New">
             <P>
+              Take-profit, stop-loss, ladders, trailing stops &mdash; they fire
+              on-chain into your loan&apos;s vault, the loan stays open, and
+              proceeds reach your wallet only when you repay.
+            </P>
+            <P>
               V4 is a parallel lending program that changes how auto-sells
               (take-profit, stop-loss, bracket, ladder) settle. When a borrow
               has any auto-sell attached at borrow time, the loan
