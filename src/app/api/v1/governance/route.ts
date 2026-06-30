@@ -92,8 +92,8 @@ export async function GET() {
           "Retroactive changes to active loans",
           "On-chain safety configuration",
           "Founder identity / operational security disclosure",
-          "Treasury / lender-wallet allocation",
-          "Token supply changes",
+          "Treasury / lender-wallet allocation (operational SOL liquidity — distinct from the MGP-003 Growth Treasury, a one-time binding governance allocation of the existing locked $MAGPIE tranche)",
+          "Token supply changes (mint authority revoked; supply is fixed)",
           "Pricing or scope of the x402 paid agent API",
         ],
         tier_c_escalation: {
@@ -185,7 +185,10 @@ export async function GET() {
     },
     {
       headers: {
-        "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+        // s-maxage was 3600 (1h) which pinned a stale `status:"active"` copy in the
+        // CDN for up to an hour after a proposal closes — external readers saw a
+        // closed proposal as still open. 60s keeps the date-driven status fresh at close.
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
         "Access-Control-Allow-Origin": "*",
       },
     },

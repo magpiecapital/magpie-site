@@ -29,6 +29,16 @@ export interface ResultSummary {
   quorum_pct: number;
   threshold_pct: number;
   notes?: string;
+  /**
+   * Multi-choice (plurality) result — present for allocation votes like MGP-003.
+   * When `winner_choice` is set, surfaces render the per-option breakdown instead
+   * of the binary YES/NO. Binary proposals (e.g. MGP-001) leave these undefined,
+   * and the yes/no fields above are set to 0 on a multi-choice result (unused).
+   */
+  winner_choice?: string; // e.g. "C"
+  winner_label?: string; // e.g. "Build (24-month locked Growth Treasury)"
+  winner_share_pct?: number; // e.g. 56.06
+  per_choice?: { value: string; label: string; pct: number }[];
 }
 
 /**
