@@ -46,7 +46,7 @@ export default async function Image() {
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div
             style={{
-              fontSize: 108,
+              fontSize: 96,
               fontWeight: 500,
               letterSpacing: "-0.045em",
               lineHeight: 0.95,
