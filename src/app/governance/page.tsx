@@ -223,15 +223,44 @@ function ProposalCardView({ p, botApiUrl }: { p: ResolvedCard; botApiUrl: string
       {/* Inline live preview for active proposals */}
       {isActive && <MiniLiveResults proposalId={p.id} botApiUrl={botApiUrl} />}
 
-      {/* Result summary for closed proposals */}
-      {p.status.terminal && (p.status.terminal.kind === "passed" || p.status.terminal.kind === "failed") && (
-        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <ResultPill label="YES" value={`${p.status.terminal.outcome.yes_pct.toFixed(1)}%`} tone={p.status.terminal.kind === "passed" ? "emerald" : "neutral"} />
-          <ResultPill label="NO" value={`${p.status.terminal.outcome.no_pct.toFixed(1)}%`} tone="neutral" />
-          <ResultPill label="Participation" value={`${p.status.terminal.outcome.participation_pct.toFixed(1)}%`} tone="neutral" />
-          <ResultPill label="Quorum" value={`${p.status.terminal.outcome.quorum_pct}% req`} tone="neutral" />
-        </div>
-      )}
+      {/* Result summary for closed proposals — multi-choice (plurality) shows the
+          winner + per-option bars; binary (yes/no) falls back to YES/NO pills. */}
+      {(() => {
+        const t = p.status.terminal;
+        if (!t || (t.kind !== "passed" && t.kind !== "failed")) return null;
+        const o = t.outcome;
+        if (o.winner_choice) {
+          return (
+            <div className="mt-4">
+              <div className="mb-2 text-xs font-medium text-emerald-200">
+                Winner — Option {o.winner_choice}
+                {o.winner_label ? `: ${o.winner_label}` : ""}
+                {o.winner_share_pct != null ? ` (${o.winner_share_pct.toFixed(2)}% of cast)` : ""}
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {(o.per_choice ?? []).map((c) => (
+                  <ResultPill
+                    key={c.value}
+                    label={`${c.value} — ${c.label}`}
+                    value={`${c.pct.toFixed(2)}%`}
+                    tone={c.value === o.winner_choice ? "emerald" : "neutral"}
+                  />
+                ))}
+                <ResultPill label="Participation" value={`${o.participation_pct.toFixed(1)}%`} tone="neutral" />
+                <ResultPill label="Quorum" value={`${o.quorum_pct}% req`} tone="neutral" />
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <ResultPill label="YES" value={`${o.yes_pct.toFixed(1)}%`} tone={t.kind === "passed" ? "emerald" : "neutral"} />
+            <ResultPill label="NO" value={`${o.no_pct.toFixed(1)}%`} tone="neutral" />
+            <ResultPill label="Participation" value={`${o.participation_pct.toFixed(1)}%`} tone="neutral" />
+            <ResultPill label="Quorum" value={`${o.quorum_pct}% req`} tone="neutral" />
+          </div>
+        );
+      })()}
 
       {p.status.terminal && p.status.terminal.kind === "withdrawn" && (
         <div className="mt-4 rounded-lg border border-white/10 bg-white/[0.025] p-3 text-xs text-white/55">
