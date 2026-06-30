@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { TOKEN_REGISTRY } from "@/lib/token-registry";
 
 export const runtime = "edge";
-export const alt = "Magpie — Collateral that can still sell itself.";
+export const alt = "Magpie — Solana lending protocol · Liquidity without selling your bag.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -43,10 +43,21 @@ export default async function Image() {
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <div
             style={{
-              fontSize: 96,
+              fontSize: 22,
+              fontWeight: 600,
+              letterSpacing: "0.18em",
+              textTransform: "uppercase",
+              color: "#c99a2c",
+            }}
+          >
+            Solana lending protocol
+          </div>
+          <div
+            style={{
+              fontSize: 100,
               fontWeight: 500,
               letterSpacing: "-0.045em",
               lineHeight: 0.95,
@@ -54,9 +65,9 @@ export default async function Image() {
               flexDirection: "column",
             }}
           >
-            <div>Collateral that can</div>
+            <div>Liquidity without</div>
             <div>
-              <span style={{ fontStyle: "italic", color: "#c99a2c" }}>still</span> sell itself.
+              <span style={{ fontStyle: "italic", color: "#c99a2c" }}>selling</span> your bag.
             </div>
           </div>
           <div
@@ -66,7 +77,7 @@ export default async function Image() {
               letterSpacing: "-0.01em",
             }}
           >
-            Borrow SOL against your tokens — and set auto-sells on the same collateral. Memecoins + tokenized stocks.
+            Borrow against memecoins, stocks &amp; RWAs — then set auto-sells on the same collateral. Collateral that can still sell itself.
           </div>
         </div>
 
