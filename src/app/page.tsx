@@ -215,21 +215,23 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
         <div className="mx-auto max-w-6xl px-5 pt-14 pb-16 sm:px-6 md:pt-28 md:pb-36">
-          <div className="fade-up mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
+          <div className="fade-up mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
             <span className="live-dot" />
-            <span className="text-[var(--ink)]">Live on Solana mainnet</span>
+            <span className="text-[var(--ink)]">Solana lending protocol · live on mainnet</span>
           </div>
 
-          {/* Hero headline — min font lowered to 2rem + the stylized line break is sm:+ only, so the
-              longer slogan wraps cleanly (word-by-word) on narrow phones instead of overflowing/clipping. */}
-          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-balance [text-wrap:balance] text-[clamp(2rem,9vw,8.5rem)] leading-[0.95] tracking-[-0.04em] font-medium sm:leading-[0.92]">
-            Collateral that can{" "}
+          {/* Hero headline — leads with the lending/benefit positioning so a first-time
+              visitor instantly knows this is a lending platform; the differentiator line
+              ("collateral that can still sell itself") lands in the elevator pitch below.
+              Mobile-safe clamp (min 2.25rem) + sm:-only line break = clean wrap on phones. */}
+          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-balance [text-wrap:balance] text-[clamp(2.25rem,8.5vw,8rem)] leading-[0.95] tracking-[-0.04em] font-medium sm:leading-[0.92]">
+            Liquidity without{" "}
             <br className="hidden sm:block" />
-            <span className="italic">still sell itself.</span>
+            <span className="italic">selling your bag.</span>
           </h1>
 
           <p className="fade-up fade-up-2 mt-5 max-w-xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-8 sm:text-xl">
-            Borrow SOL against your tokens — and set auto-sells on the same collateral. Liquidity, without giving up the upside. Pledge memecoins or tokenized stocks, get SOL in seconds, and build on-chain credit with every repay — all from the dashboard or Telegram.
+            Borrow SOL against your memecoins, tokenized stocks, and RWAs — and set take-profits and stops on that same collateral. Liquidity now, upside intact: get SOL in seconds and manage it all from the dashboard or Telegram, building on-chain credit with every repay.
           </p>
 
           <div className="fade-up fade-up-3 mt-8 flex flex-wrap items-center gap-3 sm:mt-10 sm:gap-4">
@@ -332,6 +334,9 @@ export default async function Home() {
             to earn 70% of every loan fee, distributed automatically. And anyone can
             {" "}<span className="italic text-[var(--accent-deep)]">run a keeper</span>{" "}
             to earn bounties on liquidations.
+          </p>
+          <p className="mt-7 font-display text-2xl font-medium italic tracking-[-0.02em] text-[var(--accent-deep)] sm:text-3xl md:text-4xl">
+            Collateral that can still sell itself.
           </p>
         </Reveal>
       </section>
