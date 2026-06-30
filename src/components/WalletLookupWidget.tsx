@@ -84,7 +84,7 @@ export function WalletLookupWidget() {
           onChange={(e) => setWallet(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && lookup()}
           placeholder="9UuLs…pump (or any Solana wallet)"
-          className="flex-1 px-4 py-3 rounded-lg bg-black/30 font-mono text-sm text-[var(--ink)] border border-[var(--ink)]/15 focus:border-[var(--ink)]/40 focus:outline-none"
+          className="flex-1 px-4 py-3 rounded-lg bg-black/30 font-mono text-base sm:text-sm text-[var(--ink)] border border-[var(--ink)]/15 focus:border-[var(--ink)]/40 focus:outline-none"
           spellCheck={false}
           autoComplete="off"
         />

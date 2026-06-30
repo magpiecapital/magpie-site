@@ -288,7 +288,7 @@ export default function CalculatorClient() {
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search tokens..."
-                        className="w-full rounded-xl bg-[var(--surface)] px-4 py-2.5 text-sm outline-none placeholder:text-[var(--ink-faint)]"
+                        className="w-full rounded-xl bg-[var(--surface)] px-4 py-2.5 text-base sm:text-sm outline-none placeholder:text-[var(--ink-faint)]"
                         autoFocus
                       />
                     </div>
@@ -379,7 +379,7 @@ export default function CalculatorClient() {
             )}
             <button
               onClick={() => fetchPrice(selectedMint)}
-              className="ml-auto text-xs font-medium text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
+              className="ml-auto -mr-2 inline-flex min-h-[44px] items-center px-2 text-xs font-medium text-[var(--accent-deep)] transition hover:text-[var(--accent)]"
               disabled={loading}
             >
               Refresh prices

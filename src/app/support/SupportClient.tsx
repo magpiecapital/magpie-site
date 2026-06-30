@@ -112,7 +112,7 @@ export default function SupportClient() {
               placeholder="What do you need help with? The more detail the better — token, loan ID, what you tried, what happened."
               rows={6}
               maxLength={MAX_LEN}
-              className="w-full rounded-md border border-[var(--hairline)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent-deep)]"
+              className="w-full rounded-md border border-[var(--hairline)] bg-[var(--bg)] px-3 py-2 text-base sm:text-sm text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent-deep)]"
             />
             <div className="mt-1 flex items-center justify-between text-[10px] text-[var(--ink-faint)]">
               <span>{message.length} / {MAX_LEN}</span>
