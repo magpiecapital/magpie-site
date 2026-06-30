@@ -9,6 +9,7 @@ interface TallyBody {
     no_weight: string;
     abstain_weight: string;
     cast_weight: string;
+    per_choice?: Record<string, string>;
   };
   percentages: { participation_pct: number; yes_share_of_cast_pct: number };
   quorum_pct: number;
@@ -78,48 +79,81 @@ export function MiniLiveResults({ proposalId, botApiUrl }: MiniLiveResultsProps)
   }
 
   const castWeight = BigInt(tally.weights.cast_weight);
-  const yesPct = castWeight > 0n
-    ? Number((BigInt(tally.weights.yes_weight) * 10000n) / castWeight) / 100
-    : 0;
-  const noPct = castWeight > 0n
-    ? Number((BigInt(tally.weights.no_weight) * 10000n) / castWeight) / 100
-    : 0;
+  const pctOf = (w: string) =>
+    castWeight > 0n ? Number((BigInt(w || "0") * 10000n) / castWeight) / 100 : 0;
+  const yesPct = pctOf(tally.weights.yes_weight);
+  const noPct = pctOf(tally.weights.no_weight);
   const absPct = Math.max(0, 100 - yesPct - noPct);
 
+  // Multi-choice ballots (e.g. MGP-003 A/B/C/D) carry per_choice weights and no
+  // yes/no — show the leading non-ABSTAIN option instead of an empty YES/NO bar.
+  const perChoice = tally.weights.per_choice;
+  let lead: { choice: string; pct: number } | null = null;
+  if (perChoice) {
+    for (const [choice, w] of Object.entries(perChoice)) {
+      if (choice === "ABSTAIN") continue;
+      const pct = pctOf(w);
+      if (!lead || pct > lead.pct) lead = { choice, pct };
+    }
+  }
+  const isMulti = !!lead && yesPct === 0 && noPct === 0;
+
   const quorumMet = tally.percentages.participation_pct >= tally.quorum_pct;
-  const thresholdMet = tally.percentages.yes_share_of_cast_pct >= tally.threshold_pct;
+  const thresholdMet = isMulti
+    ? !!lead && lead.pct >= tally.threshold_pct
+    : tally.percentages.yes_share_of_cast_pct >= tally.threshold_pct;
 
   return (
     <div className="mt-4">
       <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-        {yesPct > 0 && (
-          <div
-            className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
-            style={{ width: `${yesPct}%` }}
-          />
-        )}
-        {noPct > 0 && (
-          <div
-            className="h-full bg-gradient-to-r from-rose-500 to-rose-400 transition-all duration-500"
-            style={{ width: `${noPct}%` }}
-          />
-        )}
-        {absPct > 0 && castWeight > 0n && (
-          <div
-            className="h-full bg-white/20 transition-all duration-500"
-            style={{ width: `${absPct}%` }}
-          />
+        {isMulti ? (
+          lead && lead.pct > 0 ? (
+            <div
+              className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+              style={{ width: `${lead.pct}%` }}
+            />
+          ) : null
+        ) : (
+          <>
+            {yesPct > 0 && (
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+                style={{ width: `${yesPct}%` }}
+              />
+            )}
+            {noPct > 0 && (
+              <div
+                className="h-full bg-gradient-to-r from-rose-500 to-rose-400 transition-all duration-500"
+                style={{ width: `${noPct}%` }}
+              />
+            )}
+            {absPct > 0 && castWeight > 0n && (
+              <div
+                className="h-full bg-white/20 transition-all duration-500"
+                style={{ width: `${absPct}%` }}
+              />
+            )}
+          </>
         )}
       </div>
       <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[11px] tabular-nums text-white/55">
-        <span>
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 align-middle" />
-          <span className="ml-1.5">YES {fmtPct(yesPct)}</span>
-        </span>
-        <span>
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-400 align-middle" />
-          <span className="ml-1.5">NO {fmtPct(noPct)}</span>
-        </span>
+        {isMulti && lead ? (
+          <span>
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 align-middle" />
+            <span className="ml-1.5">Option {lead.choice} {fmtPct(lead.pct)} leading</span>
+          </span>
+        ) : (
+          <>
+            <span>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400 align-middle" />
+              <span className="ml-1.5">YES {fmtPct(yesPct)}</span>
+            </span>
+            <span>
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-rose-400 align-middle" />
+              <span className="ml-1.5">NO {fmtPct(noPct)}</span>
+            </span>
+          </>
+        )}
         <span className="text-white/40">
           {tally.counts.voters_cast} of {tally.counts.eligible_voters.toLocaleString()} voted
         </span>

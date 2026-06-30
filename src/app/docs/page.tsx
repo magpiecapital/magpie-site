@@ -940,7 +940,7 @@ Body (canonical JSON, no extra whitespace):
                 {
                   n: "3",
                   title: "Closed (tally + threshold check)",
-                  body: "After 3 days: tally is computed. Quorum requirement is 5% of eligible supply (excluding the excluded-address list) voting YES + NO. Pass threshold is 60% YES of (YES + NO). Abstain does not count toward either.",
+                  body: "At close, the tally is computed. Binary parameter votes use a 3-day window: quorum is 5% of eligible supply (excluding the excluded-address list) voting YES + NO, and the pass threshold is 60% YES of (YES + NO); abstain counts toward neither. Multi-choice allocation votes (e.g. MGP-003) use a 5-day window, a 7.5% quorum, and a winning option above 40% of votes cast (plurality).",
                 },
                 {
                   n: "4",
