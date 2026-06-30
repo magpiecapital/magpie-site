@@ -393,17 +393,17 @@ export default function SecurityPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-[var(--hairline)] bg-[var(--bg-elevated)]">
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">Severity</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">Count</th>
-                  <th className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">Status</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">Severity</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">Count</th>
+                  <th className="px-4 sm:px-6 py-4 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">Status</th>
                 </tr>
               </thead>
               <tbody>
                 {AUDIT_ROWS.map((row) => (
                   <tr key={row.severity} className="border-b border-[var(--hairline)] last:border-b-0">
-                    <td className="px-6 py-4 text-sm font-semibold">{row.severity}</td>
-                    <td className="px-6 py-4 text-sm tabular text-[var(--ink-soft)]">{row.count}</td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 sm:px-6 py-4 text-sm font-semibold">{row.severity}</td>
+                    <td className="px-4 sm:px-6 py-4 text-sm tabular text-[var(--ink-soft)]">{row.count}</td>
+                    <td className="px-4 sm:px-6 py-4">
                       {row.status === "Resolved" ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--accent)]/15 px-3 py-1 text-xs font-semibold text-[var(--accent)]">
                           <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
@@ -541,7 +541,7 @@ export default function SecurityPage() {
                   <div className="font-mono">
                     <a
                       href="/.well-known/security.txt"
-                      className="underline underline-offset-2 hover:text-[var(--ink)] transition"
+                      className="break-all underline underline-offset-2 hover:text-[var(--ink)] transition"
                     >
                       magpie.capital/.well-known/security.txt
                     </a>

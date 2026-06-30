@@ -194,12 +194,12 @@ export default async function TokenomicsPage() {
             Verify
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
-            <a href={`https://solscan.io/token/${MAGPIE_MINT_STR}#holders`} target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-deep)]">Solscan holders ↗</a>
-            <a href={`https://dexscreener.com/solana/${MAGPIE_MINT_STR}`} target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-deep)]">DexScreener ↗</a>
-            <a href={`https://birdeye.so/token/${MAGPIE_MINT_STR}?chain=solana`} target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-deep)]">Birdeye ↗</a>
-            <Link href="/magpie" className="underline text-[var(--accent-deep)]">Contract info →</Link>
-            <Link href="/stats" className="underline text-[var(--accent-deep)]">Protocol stats →</Link>
-            <Link href="/security" className="underline text-[var(--accent-deep)]">Security →</Link>
+            <a href={`https://solscan.io/token/${MAGPIE_MINT_STR}#holders`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-2 py-1.5 underline text-[var(--accent-deep)]">Solscan holders ↗</a>
+            <a href={`https://dexscreener.com/solana/${MAGPIE_MINT_STR}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-2 py-1.5 underline text-[var(--accent-deep)]">DexScreener ↗</a>
+            <a href={`https://birdeye.so/token/${MAGPIE_MINT_STR}?chain=solana`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center px-2 py-1.5 underline text-[var(--accent-deep)]">Birdeye ↗</a>
+            <Link href="/magpie" className="inline-flex items-center px-2 py-1.5 underline text-[var(--accent-deep)]">Contract info →</Link>
+            <Link href="/stats" className="inline-flex items-center px-2 py-1.5 underline text-[var(--accent-deep)]">Protocol stats →</Link>
+            <Link href="/security" className="inline-flex items-center px-2 py-1.5 underline text-[var(--accent-deep)]">Security →</Link>
           </div>
         </section>
 

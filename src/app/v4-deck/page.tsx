@@ -18,10 +18,10 @@ export const metadata = {
 export default function V4DeckPage() {
   return (
     <main
-      className="flex h-screen w-screen flex-col overflow-hidden font-sans antialiased"
+      className="flex min-h-screen w-screen flex-col overflow-y-auto md:h-screen md:overflow-hidden font-sans antialiased"
       style={{ background: "var(--bg)", color: "var(--ink)" }}
     >
-      <div className="mx-auto flex h-full w-full max-w-[1280px] flex-col px-10 py-8 md:px-20 md:py-10">
+      <div className="mx-auto flex h-full w-full max-w-[1280px] flex-col px-5 py-6 sm:px-10 sm:py-8 md:px-20 md:py-10">
         {/* ── Letterhead ── */}
         <header className="flex flex-shrink-0 items-center justify-between">
           <div className="flex items-center gap-3">
@@ -90,7 +90,7 @@ export default function V4DeckPage() {
                 Magpie V4
               </div>
               <div
-                className="text-[128px] font-medium leading-[0.88] tracking-[-0.055em] md:text-[176px]"
+                className="text-[72px] sm:text-[96px] font-medium leading-[0.88] tracking-[-0.055em] md:text-[176px]"
                 style={{ color: "var(--accent-deep)" }}
               >
                 Yes.

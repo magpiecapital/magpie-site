@@ -359,7 +359,7 @@ export function LadderPanel(props: Props) {
                 onChange={(e) => updateLeg(leg.id, { strikeText: e.target.value })}
                 placeholder={props.isSl ? "$0.005 · 5M mc · 0.7x" : "$0.01 · 17M mc · 2x"}
                 disabled={busy}
-                className="flex-1 min-w-0 bg-transparent text-[12px] py-0.5 px-1 border-b border-[var(--d-border)] focus:outline-none focus:border-current"
+                className="flex-1 min-w-0 bg-transparent text-base sm:text-[12px] py-0.5 px-1 border-b border-[var(--d-border)] focus:outline-none focus:border-current"
                 style={{ borderColor: p.ok ? props.accentColor : undefined }}
               />
               <div className="flex items-center gap-1 shrink-0">
@@ -371,7 +371,7 @@ export function LadderPanel(props: Props) {
                   value={leg.slicePct}
                   onChange={(e) => updateLeg(leg.id, { slicePct: Math.max(0, Math.min(100, Number(e.target.value) || 0)) })}
                   disabled={busy}
-                  className="w-12 bg-transparent text-[12px] py-0.5 px-1 border-b border-[var(--d-border)] focus:outline-none focus:border-current tabular-nums text-right"
+                  className="w-12 bg-transparent text-base sm:text-[12px] py-0.5 px-1 border-b border-[var(--d-border)] focus:outline-none focus:border-current tabular-nums text-right"
                 />
                 <span className="text-[10px] opacity-60">%</span>
                 {legs.length > 2 && !busy && (

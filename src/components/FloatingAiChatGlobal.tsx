@@ -1637,7 +1637,7 @@ export default function FloatingAiChatGlobal() {
                 aria-label={`Message ${AGENT_NAME}`}
                 onFocus={() => setTextareaFocused(true)}
                 onBlur={() => setTextareaFocused(false)}
-                className="flex-1 resize-none rounded-xl border px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 disabled:opacity-50"
+                className="flex-1 resize-none rounded-xl border px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 disabled:opacity-50"
                 style={{
                   borderColor: "var(--hairline)",
                   background: "var(--bg)",

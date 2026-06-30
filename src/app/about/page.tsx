@@ -218,7 +218,7 @@ export default async function AboutPage() {
             {STATS.map((s, i) => (
               <Reveal key={s.label} delay={i * 60}>
                 <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 text-center md:p-8">
-                  <div className="font-display tabular text-4xl font-medium tracking-[-0.03em] md:text-5xl">
+                  <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] sm:text-4xl md:text-5xl">
                     {s.value}
                   </div>
                   <div className="mt-2 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">

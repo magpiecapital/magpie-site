@@ -286,13 +286,13 @@ export default async function TokenScorecardPage(
             Verify externally
           </div>
           <div className="flex flex-wrap gap-3 text-sm">
-            <a href={`https://solscan.io/token/${token.mint}`} target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-deep)]">
+            <a href={`https://solscan.io/token/${token.mint}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center rounded-lg border border-[var(--hairline-strong)] px-3 py-2 underline text-[var(--accent-deep)]">
               Solscan ↗
             </a>
-            <a href={`https://dexscreener.com/solana/${token.mint}`} target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-deep)]">
+            <a href={`https://dexscreener.com/solana/${token.mint}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center rounded-lg border border-[var(--hairline-strong)] px-3 py-2 underline text-[var(--accent-deep)]">
               DexScreener ↗
             </a>
-            <a href={`https://birdeye.so/token/${token.mint}?chain=solana`} target="_blank" rel="noopener noreferrer" className="underline text-[var(--accent-deep)]">
+            <a href={`https://birdeye.so/token/${token.mint}?chain=solana`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center rounded-lg border border-[var(--hairline-strong)] px-3 py-2 underline text-[var(--accent-deep)]">
               Birdeye ↗
             </a>
           </div>

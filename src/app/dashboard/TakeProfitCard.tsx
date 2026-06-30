@@ -707,7 +707,7 @@ function LimitSlot(props: SlotProps) {
                   setEditSlippagePct(armed.slippage_bps / 100);
                 }}
                 disabled={busy}
-                className="text-[10px] underline opacity-70 hover:opacity-100 disabled:opacity-40"
+                className="text-[11px] underline opacity-70 hover:opacity-100 disabled:opacity-40 px-1.5 py-1 -my-1"
               >
                 Edit
               </button>
@@ -715,7 +715,7 @@ function LimitSlot(props: SlotProps) {
             <button
               onClick={cancel}
               disabled={busy}
-              className="text-[10px] underline opacity-70 hover:opacity-100 disabled:opacity-40"
+              className="text-[11px] underline opacity-70 hover:opacity-100 disabled:opacity-40 px-1.5 py-1 -my-1"
             >
               {busy ? "Cancelling…" : "Cancel"}
             </button>
@@ -734,7 +734,7 @@ function LimitSlot(props: SlotProps) {
                   value={editPriceUsd}
                   onChange={(e) => setEditPriceUsd(e.target.value)}
                   disabled={busy}
-                  className="flex-1 max-w-[140px] bg-transparent border-b border-[var(--d-border)] text-[12px] py-0.5 focus:outline-none focus:border-current"
+                  className="flex-1 max-w-[140px] bg-transparent border-b border-[var(--d-border)] text-base sm:text-[12px] py-0.5 focus:outline-none focus:border-current"
                 />
                 <span className="text-[10px] opacity-60">/ token</span>
               </div>
@@ -791,7 +791,7 @@ function LimitSlot(props: SlotProps) {
               <button
                 onClick={modify}
                 disabled={busy}
-                className="px-2 py-0.5 rounded text-[10px] font-semibold border"
+                className="px-3 py-1.5 rounded text-[11px] font-semibold border"
                 style={{
                   background: armColor,
                   color: "var(--d-bg-panel, white)",
@@ -958,7 +958,7 @@ function LimitSlot(props: SlotProps) {
             value={customUsd}
             onChange={(e) => setCustomUsd(e.target.value)}
             disabled={busy}
-            className="flex-1 bg-transparent border-b border-[var(--d-border)] text-[12px] py-0.5 focus:outline-none focus:border-current"
+            className="flex-1 bg-transparent border-b border-[var(--d-border)] text-base sm:text-[12px] py-0.5 focus:outline-none focus:border-current"
             style={{ borderColor: customUsd ? armColor : undefined }}
           />
         </div>

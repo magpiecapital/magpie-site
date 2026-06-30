@@ -198,7 +198,7 @@ export default function VaultPage() {
             <span className="text-[var(--ink)]">Built for Solana</span>
           </div>
 
-          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-[clamp(2.8rem,8vw,7.5rem)] leading-[0.92] tracking-[-0.04em] font-medium">
+          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-[clamp(2.1rem,8vw,7.5rem)] leading-[0.92] tracking-[-0.04em] font-medium">
             Agent Vault
             <br />
             <span className="italic text-[var(--ink-soft)]">Protocol</span>
@@ -231,15 +231,15 @@ export default function VaultPage() {
               { v: "CPI", l: "Composable" },
             ].map((s) => (
               <div key={s.l} className="px-4 py-5 text-center md:px-8">
-                <div className="font-display tabular text-3xl font-medium tracking-[-0.03em] md:text-5xl">{s.v}</div>
+                <div className="font-display tabular text-2xl sm:text-3xl font-medium tracking-[-0.03em] md:text-5xl">{s.v}</div>
                 <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">{s.l}</div>
               </div>
             ))}
           </div>
 
-          <div className="fade-up mt-6 flex items-center gap-3">
+          <div className="fade-up mt-6 flex flex-wrap items-center gap-2">
             <span className="text-[10px] uppercase tracking-[0.2em] text-[var(--ink-faint)]">Program ID</span>
-            <code className="rounded-lg border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3 py-1.5 font-mono text-xs text-[var(--ink-soft)] select-all">
+            <code className="rounded-lg border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3 py-1.5 font-mono text-[10px] sm:text-xs text-[var(--ink-soft)] select-all break-all max-w-full">
               {PROGRAM_ID}
             </code>
           </div>
@@ -284,7 +284,7 @@ export default function VaultPage() {
                 <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">
                   Human or multisig. Calls <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">create_vault</code> with an agent pubkey, spending limits, and session duration.
                 </p>
-                <div className="mt-4 rounded-lg bg-[var(--surface)] px-3 py-2 font-mono text-xs text-[var(--accent-deep)]">
+                <div className="mt-4 rounded-lg bg-[var(--surface)] px-3 py-2 font-mono text-xs text-[var(--accent-deep)] break-all">
                   owner.sign(create_vault_ix)
                 </div>
                 {/* Arrow */}
@@ -300,7 +300,7 @@ export default function VaultPage() {
                 <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">
                   Program-derived account seeded by <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">[&quot;vault&quot;, owner, agent]</code>. Holds SOL or any SPL token, enforces policy, tracks spend history.
                 </p>
-                <div className="mt-4 rounded-lg bg-[var(--surface)] px-3 py-2 font-mono text-xs text-[var(--accent-deep)]">
+                <div className="mt-4 rounded-lg bg-[var(--surface)] px-3 py-2 font-mono text-xs text-[var(--accent-deep)] break-all">
                   138 bytes on-chain
                 </div>
                 <div className="absolute -bottom-5 left-1/2 z-10 flex h-10 w-10 -translate-x-1/2 items-center justify-center rounded-full border border-[var(--hairline)] bg-[var(--bg-elevated)] text-sm font-bold text-[var(--ink-soft)] md:-right-5 md:bottom-auto md:left-auto md:top-1/2 md:-translate-y-1/2 md:translate-x-0">
@@ -315,7 +315,7 @@ export default function VaultPage() {
                 <p className="mt-2 text-sm text-[var(--ink-soft)] leading-relaxed">
                   AI agent signs <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-xs">agent_spend</code> transactions. The program enforces 6 checks before transferring lamports. Any failure = revert.
                 </p>
-                <div className="mt-4 rounded-lg bg-[var(--surface)] px-3 py-2 font-mono text-xs text-[var(--accent-deep)]">
+                <div className="mt-4 rounded-lg bg-[var(--surface)] px-3 py-2 font-mono text-xs text-[var(--accent-deep)] break-all">
                   agent.spend(vault, dest, amt)
                 </div>
               </div>
@@ -568,8 +568,8 @@ await agent.spendToken(vaultAddress, apiProviderAta, 5_000_000);`}</code>
                   >
                     {ep.method}
                   </span>
-                  <div>
-                    <code className="text-sm font-medium text-[var(--ink)]">{ep.path}</code>
+                  <div className="min-w-0">
+                    <code className="text-xs sm:text-sm font-medium text-[var(--ink)] break-all">{ep.path}</code>
                     <p className="mt-1 text-xs text-[var(--ink-soft)]">{ep.desc}</p>
                   </div>
                 </div>

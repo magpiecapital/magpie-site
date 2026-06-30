@@ -494,7 +494,7 @@ export default function TokensClient() {
               placeholder="Search by name, ticker, or address\u2026"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full rounded-xl border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+              className="w-full rounded-xl border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] py-2.5 pl-10 pr-4 text-base sm:text-sm outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             />
           </div>
           {lastUpdated && (
@@ -670,7 +670,7 @@ export default function TokensClient() {
                           href={`https://dexscreener.com/solana/${t.mint}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--hairline-strong)] px-2.5 py-1.5 text-xs font-medium transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[var(--hairline-strong)] px-3 py-2.5 sm:py-1.5 text-xs font-medium transition hover:border-[var(--accent)] hover:text-[var(--accent)]"
                           title="View on DexScreener"
                         >
                           <svg
@@ -697,7 +697,7 @@ export default function TokensClient() {
                             to Telegram. */}
                         <Link
                           href={`/dashboard?borrow=${t.mint}`}
-                          className="inline-flex items-center rounded-lg bg-[var(--accent)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-ink)] transition hover:brightness-110"
+                          className="inline-flex items-center rounded-lg bg-[var(--accent)] px-3 py-2.5 sm:py-1.5 text-xs font-semibold text-[var(--accent-ink)] transition hover:brightness-110"
                         >
                           Borrow
                         </Link>
@@ -949,13 +949,13 @@ function SubmitForm({ onApproved }: { onApproved: () => Promise<void> }) {
 
   return (
     <div className="mt-8">
-      <form onSubmit={submit} className="flex gap-3">
+      <form onSubmit={submit} className="flex flex-col gap-3 sm:flex-row">
         <input
           type="text"
           placeholder="Mint address or symbol (e.g. BONK)"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className="flex-1 rounded-xl border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-4 py-3 text-sm font-mono outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
+          className="flex-1 rounded-xl border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-4 py-3 text-base sm:text-sm font-mono outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
         />
         <button
           type="submit"

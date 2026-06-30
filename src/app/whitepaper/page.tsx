@@ -339,7 +339,7 @@ Liquidation triggers when Health < 1.1`}</CodeBlock>
               </P>
 
               <H3>Scoring factors</H3>
-              <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--hairline)]">
+              <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)]">
                 <table className="w-full text-left text-sm">
                   <thead>
                     <tr className="border-b border-[var(--hairline)] bg-[var(--surface)]">
@@ -495,7 +495,7 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                   /stats page mirrors this list under Verify on-chain. */}
               <h4 className="mt-8 text-lg font-medium">On-chain lending programs</h4>
               <div className="mt-3 rounded-2xl border border-[var(--hairline)] overflow-hidden">
-                <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-[var(--ink)]/[0.03] text-xs uppercase tracking-widest text-[var(--ink-soft)]">
+                <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 bg-[var(--ink)]/[0.03] text-xs uppercase tracking-widest text-[var(--ink-soft)]">
                   <div className="col-span-2">Program</div>
                   <div className="col-span-6">Address</div>
                   <div className="col-span-4">Role</div>
@@ -505,12 +505,12 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                   { v: "v3 (dual-tier)", addr: "B8AwYzFmc3ZB5EWWVtJcJhJtEmKL78W5i3kZrL1uMCmP", role: "Live since 2026-06-13. Single program serves both memecoin (30/25/20% LTV) and RWA (50/60/70% LTV) borrows with on-chain TWAP oracle gating." },
                   { v: "v4 (in-vault auto-sells)", addr: "HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo", role: "Live since 2026-06-15 (patched). Routes any borrow that arms an exit (TP / SL / Trailing / Ladder / Bracket). Auto-sell proceeds accumulate inside the per-loan vault — loan stays Active until borrower repays." },
                 ].map(({ v, addr, role }) => (
-                  <div key={addr} className="grid grid-cols-12 gap-4 px-5 py-4 border-t border-[var(--hairline)] text-sm items-start">
-                    <div className="col-span-2 font-medium">{v}</div>
-                    <div className="col-span-6 font-mono text-xs break-all text-[var(--ink-soft)]">
+                  <div key={addr} className="grid grid-cols-1 gap-1 md:grid-cols-12 md:gap-4 px-5 py-4 border-t border-[var(--hairline)] text-sm md:items-start">
+                    <div className="md:col-span-2 font-medium">{v}</div>
+                    <div className="md:col-span-6 font-mono text-xs break-all text-[var(--ink-soft)]">
                       <a className="underline hover:text-[var(--ink)]" href={`https://solscan.io/account/${addr}`} target="_blank" rel="noopener">{addr}</a>
                     </div>
-                    <div className="col-span-4 text-[var(--ink-soft)]">{role}</div>
+                    <div className="md:col-span-4 text-[var(--ink-soft)]">{role}</div>
                   </div>
                 ))}
               </div>
@@ -520,7 +520,7 @@ First Loan      = 500 flat bonus`}</CodeBlock>
 
               <h4 className="mt-8 text-lg font-medium">Where every loan fee goes (current split)</h4>
               <div className="mt-3 rounded-2xl border border-[var(--hairline)] overflow-hidden">
-                <div className="grid grid-cols-12 gap-4 px-5 py-3 bg-[var(--ink)]/[0.03] text-xs uppercase tracking-widest text-[var(--ink-soft)]">
+                <div className="hidden md:grid grid-cols-12 gap-4 px-5 py-3 bg-[var(--ink)]/[0.03] text-xs uppercase tracking-widest text-[var(--ink-soft)]">
                   <div className="col-span-3">Recipient</div>
                   <div className="col-span-2">Share</div>
                   <div className="col-span-7">Mechanism</div>
@@ -531,10 +531,10 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                   ["Referrers", "10%", "Pro-rata fee share to whoever referred the borrower (lifetime, on every loan they take). Rolls back into the holder slice when there's no referrer."],
                   ["Protocol reserve", "10%", "Counter-cyclical buffer — covers bad-debt cover, emergency fixes, lender-wallet backstop. Spend is operator-discretion + governance-visible."],
                 ].map(([who, pct, how]) => (
-                  <div key={who} className="grid grid-cols-12 gap-4 px-5 py-4 border-t border-[var(--hairline)] text-sm items-start">
-                    <div className="col-span-3 font-medium">{who}</div>
-                    <div className="col-span-2 font-mono">{pct}</div>
-                    <div className="col-span-7 text-[var(--ink-soft)]">{how}</div>
+                  <div key={who} className="grid grid-cols-1 gap-1 md:grid-cols-12 md:gap-4 px-5 py-4 border-t border-[var(--hairline)] text-sm md:items-start">
+                    <div className="md:col-span-3 font-medium">{who}</div>
+                    <div className="md:col-span-2 font-mono">{pct}</div>
+                    <div className="md:col-span-7 text-[var(--ink-soft)]">{how}</div>
                   </div>
                 ))}
               </div>
@@ -574,7 +574,7 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 Everything in this section is verifiable on-chain. The contract address above is the
                 <em> only </em> legitimate $MAGPIE mint — anything else claiming to be Magpie is a scam.
                 Holder distribution flows can be inspected by searching the lender authority wallet
-                <span className="font-mono"> 4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx</span> on Solscan;
+                <span className="font-mono break-all"> 4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx</span> on Solscan;
                 outgoing SOL transfers labeled <span className="font-mono">magpie-holder-distribution</span> are
                 the holder payouts.
               </P>

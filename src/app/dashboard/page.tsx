@@ -3286,7 +3286,7 @@ function DashboardPageInner() {
         })();
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setRepayConfirmFor(null)}>
-            <div className="w-full max-w-md rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-semibold text-[var(--d-ink)]">Repay loan</h3>
 
               {/* Percentage selector */}
@@ -3411,7 +3411,7 @@ function DashboardPageInner() {
         const feeSol = owed * feePct;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setExtendConfirmFor(null)}>
-            <div className="w-full max-w-md rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-semibold text-[var(--d-ink)]">Extend loan</h3>
               <p className="mt-2 text-sm text-[var(--d-ink-soft)]">
                 Renews this loan for another full duration ({extendConfirmFor.loan.duration_days}d). If past-due, the clock resets from now.
@@ -3473,7 +3473,7 @@ function DashboardPageInner() {
         const maxUi = Number(maxRawAvailable) / Math.pow(10, decimals);
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={() => setTopupConfirmFor(null)}>
-            <div className="w-full max-w-md rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--d-bg-panel)] p-6 shadow-2xl" onClick={(e) => e.stopPropagation()}>
               <h3 className="text-lg font-semibold text-[var(--d-ink)]">Add collateral</h3>
               <p className="mt-2 text-sm text-[var(--d-ink-soft)]">
                 Add more {symbol} to this loan&apos;s collateral vault. Lowers your effective LTV. Free (just tx fees).
@@ -3496,10 +3496,11 @@ function DashboardPageInner() {
                   type="number"
                   step="any"
                   min="0"
+                  inputMode="decimal"
                   placeholder="0.0"
                   value={topupAmountStr}
                   onChange={(e) => { setTopupAmountStr(e.target.value); setTopupMaxRaw(null); }}
-                  className="w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 text-sm outline-none focus:border-[var(--d-accent)]"
+                  className="w-full rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 text-base outline-none focus:border-[var(--d-accent)]"
                 />
                 {maxRawAvailable === 0n && (
                   <p className="mt-1.5 text-[11px] text-[var(--d-bad)]">You don&apos;t hold any {symbol} in this wallet right now.</p>
@@ -3705,14 +3706,14 @@ function DashboardPageInner() {
                   <h2 className="font-display text-lg font-semibold tracking-tight">Connect your wallet to get started</h2>
                   <p className="mt-1 text-sm text-[var(--d-ink-soft)]">View your balances, credit score, and borrow against your memecoins.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                   {installedWallets.length > 0 ? (
                     installedWallets.map((wallet) => (
                       <button
                         key={wallet.adapter.name}
                         onClick={() => select(wallet.adapter.name)}
                         disabled={connecting}
-                        className="flex items-center gap-2 rounded-xl bg-[var(--d-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)]"
+                        className="flex items-center gap-2 rounded-xl bg-[var(--d-accent)] px-4 py-2.5 text-sm font-semibold text-[var(--d-accent-ink)] transition hover:bg-[var(--d-accent-hover)] w-full sm:w-auto justify-center"
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={wallet.adapter.icon} alt={wallet.adapter.name} width={20} height={20} className="rounded" />
@@ -3964,7 +3965,7 @@ function DashboardPageInner() {
                                 data-loan-id={String(l.loan_id ?? l.loan_pda)}
                                 className="px-4 py-3 transition-colors duration-500"
                               >
-                                <div className="flex items-center gap-3">
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
                                 <TokenIcon mint={l.collateral.mint} symbol={l.collateral.symbol || "?"} size={32} />
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 flex-wrap">
@@ -4017,7 +4018,7 @@ function DashboardPageInner() {
                                     )}
                                   </div>
                                 </div>
-                                <div className="text-right flex items-center gap-2">
+                                <div className="flex items-center justify-between gap-2 sm:text-right sm:justify-end">
                                   <div>
                                     <div className="text-[13px] font-semibold">{owedSol.toFixed(4)} SOL</div>
                                     <div className={`text-[10px] ${overdue ? "text-red-500" : "text-[var(--d-ink-faint)]"}`}>{dueLabel}</div>
@@ -4042,14 +4043,14 @@ function DashboardPageInner() {
                                           <button
                                             onClick={() => setExtendConfirmFor(l)}
                                             disabled={anyPending}
-                                            className="flex-1 rounded-md border border-[var(--d-border)] px-2 py-1 text-[10px] font-semibold text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="flex-1 rounded-md border border-[var(--d-border)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                                           >
                                             {extendPendingFor === l.loan_pda ? "…" : "Extend"}
                                           </button>
                                           <button
                                             onClick={() => { setTopupAmountStr(""); setTopupMaxRaw(null); setTopupConfirmFor(l); }}
                                             disabled={anyPending}
-                                            className="flex-1 rounded-md border border-[var(--d-border)] px-2 py-1 text-[10px] font-semibold text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="flex-1 rounded-md border border-[var(--d-border)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
                                           >
                                             {topupPendingFor === l.loan_pda ? "…" : "Top up"}
                                           </button>
@@ -4467,7 +4468,7 @@ function DashboardPageInner() {
                                           setCustomStrikeError(null);
                                         }}
                                         placeholder="e.g. 5x, $0.02, 30m mc, -30%"
-                                        className="flex-1 min-w-[120px] px-2 py-1 rounded-md text-[10px] border border-[var(--d-border)] bg-[var(--d-bg-card)] text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)]"
+                                        className="flex-1 min-w-[120px] px-2 py-1 rounded-md text-base sm:text-[10px] border border-[var(--d-border)] bg-[var(--d-bg-card)] text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)]"
                                       />
                                       <button
                                         type="button"
@@ -4537,7 +4538,7 @@ function DashboardPageInner() {
                                                 setCustomLadderRows((prev) => prev.map((r, j) => j === i ? { ...r, strikeText: e.target.value } : r));
                                               }}
                                               placeholder="MC (e.g. 17M)"
-                                              className="flex-1 min-w-[90px] px-2 py-1 rounded-md text-[10px] border border-[var(--d-border)] bg-[var(--d-bg-panel,var(--d-bg))] text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)]"
+                                              className="flex-1 min-w-[90px] px-2 py-1 rounded-md text-base sm:text-[10px] border border-[var(--d-border)] bg-[var(--d-bg-panel,var(--d-bg))] text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)]"
                                             />
                                             <div className="flex items-center gap-0.5">
                                               <input
@@ -4550,7 +4551,7 @@ function DashboardPageInner() {
                                                   setCustomLadderRows((prev) => prev.map((r, j) => j === i ? { ...r, slicePct: e.target.value.replace(/[^\d.]/g, "") } : r));
                                                 }}
                                                 placeholder="Sell %"
-                                                className="w-14 px-2 py-1 rounded-md text-[10px] border border-[var(--d-border)] bg-[var(--d-bg-panel,var(--d-bg))] text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)] text-right"
+                                                className="w-16 px-2 py-1 rounded-md text-base sm:text-[10px] border border-[var(--d-border)] bg-[var(--d-bg-panel,var(--d-bg))] text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)] text-right"
                                               />
                                               <span className="text-[10px] text-[var(--d-ink-faint)]">%</span>
                                             </div>

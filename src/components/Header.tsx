@@ -50,11 +50,11 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Center: desktop nav links. lg: breakpoint — with the tighter
-            7-item nav (was 10) we now fit comfortably from the medium-
-            desktop width up. Below lg, the hamburger drawer (MobileNav)
-            surfaces every link with full hierarchy. */}
-        <nav className="hidden items-center gap-5 lg:flex lg:ml-6">
+        {/* Center: desktop nav links. xl: breakpoint — toggles in lockstep
+            with MobileNav's xl:hidden hamburger so there's never a window
+            (1024–1279px) where both render at once. Below xl, the hamburger
+            drawer (MobileNav) surfaces every link with full hierarchy. */}
+        <nav className="hidden items-center gap-5 xl:flex xl:ml-6">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}

@@ -319,7 +319,7 @@ export default async function DocsPage() {
             <P>
               <strong>Existing V1/V3 loans are unaffected.</strong> V4
               is a parallel deploy at
-              <code> HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo</code>.
+              <code className="break-all"> HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo</code>.
               Legacy loans continue to repay, extend, partial-repay, top up,
               and liquidate against their original programs unchanged. Only
               NEW borrows with exits attached route to V4.
@@ -427,7 +427,7 @@ export default async function DocsPage() {
             <Callout>
               <strong>How to verify (with the wallet address):</strong>{" "}
               The distributor wallet is{" "}
-              <code className="font-mono text-xs">CHCAMWtnmgyjsJqHcq5MdeDdg4X3Ux1XAwA2rMCXj1Ac</code>.
+              <code className="font-mono text-xs break-all">CHCAMWtnmgyjsJqHcq5MdeDdg4X3Ux1XAwA2rMCXj1Ac</code>.
               Open it on{" "}
               <a
                 href="https://solscan.io/account/CHCAMWtnmgyjsJqHcq5MdeDdg4X3Ux1XAwA2rMCXj1Ac"
@@ -455,7 +455,7 @@ export default async function DocsPage() {
             </P>
 
             <H3>Scoring factors</H3>
-            <div className="mt-4 overflow-hidden rounded-2xl border border-[var(--hairline)]">
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-[var(--hairline)]">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-[var(--hairline)] bg-[var(--surface)]">
