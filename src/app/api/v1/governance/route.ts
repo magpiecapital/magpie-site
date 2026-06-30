@@ -35,7 +35,17 @@ export async function GET() {
 
   // Resolve MGP-003 from the single source of truth and place it in the right
   // bucket — never hand-label it. (MGP-001/002 are terminal: always past.)
-  const mgp003Kind = resolveProposalStatus("MGP-003")?.kind ?? "upcoming";
+  const mgp003Resolved = resolveProposalStatus("MGP-003");
+  const mgp003Kind = mgp003Resolved?.kind ?? "upcoming";
+  // The plurality RESULT (winner + per-option tally) lives in governance.ts —
+  // expose it here too so API consumers (agents/integrations) see the SAME
+  // Option C / 62.53% outcome as the site + proposal page (single source of
+  // truth; no drift). Present only once the vote is terminal.
+  const mgp003Terminal = mgp003Resolved?.terminal;
+  const mgp003Outcome =
+    mgp003Terminal && mgp003Terminal.kind !== "withdrawn" ? mgp003Terminal.outcome : undefined;
+  const mgp003ExecutedAt =
+    mgp003Terminal && mgp003Terminal.kind === "passed" ? mgp003Terminal.executed_at_iso : undefined;
   const mgp003 = {
     id: "MGP-003",
     title: "Allocation decision for the July 1, 2026 $MAGPIE Streamflow unlock (~5% of supply)",
@@ -51,6 +61,30 @@ export async function GET() {
       "https://github.com/magpiecapital/magpie-site/blob/main/proposals/MGP-003-streamflow-unlock-allocation.md",
     streamflow_contract: "GQztjhq4xA1NGwaKZTsTENUjxMaK5eoMD378sqczbhvc",
     unlock_date: "2026-07-01",
+    ...(mgp003Outcome
+      ? {
+          // Plurality result — sourced verbatim from governance.ts (single source).
+          result: {
+            type: "multi_choice_plurality" as const,
+            winner_choice: mgp003Outcome.winner_choice,
+            winner_label: mgp003Outcome.winner_label,
+            winner_share_pct: mgp003Outcome.winner_share_pct,
+            participation_pct: mgp003Outcome.participation_pct,
+            quorum_pct: mgp003Outcome.quorum_pct,
+            quorum_met: true,
+            plurality_threshold_pct: mgp003Outcome.threshold_pct,
+            threshold_met: true,
+            per_choice: mgp003Outcome.per_choice,
+            burn: false,
+            supply_change: "none — total $MAGPIE supply unchanged under Option C",
+            notes: mgp003Outcome.notes,
+          },
+          // Vote PASSED, but the on-chain treasury allocation is operator-signed
+          // at the July 1 unlock — passed != executed. Honest framing.
+          execution_status: mgp003ExecutedAt ? "executed" : "pending_operator_execution",
+          executed_at_iso: mgp003ExecutedAt ?? null,
+        }
+      : {}),
   };
   const activeProposals = mgp003Kind === "active" ? [mgp003] : [];
   const draftProposals = mgp003Kind === "upcoming" ? [mgp003] : [];
