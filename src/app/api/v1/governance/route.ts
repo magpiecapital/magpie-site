@@ -92,8 +92,8 @@ export async function GET() {
           "Retroactive changes to active loans",
           "On-chain safety configuration",
           "Founder identity / operational security disclosure",
-          "Treasury / lender-wallet allocation",
-          "Token supply changes",
+          "Treasury / lender-wallet allocation (operational SOL liquidity — distinct from the MGP-003 Growth Treasury, a one-time binding governance allocation of the existing locked $MAGPIE tranche)",
+          "Token supply changes (mint authority revoked; supply is fixed)",
           "Pricing or scope of the x402 paid agent API",
         ],
         tier_c_escalation: {
