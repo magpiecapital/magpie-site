@@ -308,7 +308,7 @@ export default async function ProposalPage({
                         <dt className="text-xs uppercase tracking-wider text-white/45">
                           {row.label}
                         </dt>
-                        <dd className="break-all text-sm text-white/85 sm:text-right">
+                        <dd className="break-words text-sm text-white/85 sm:text-right">
                           {row.value}
                         </dd>
                       </div>

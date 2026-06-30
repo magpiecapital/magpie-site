@@ -541,7 +541,7 @@ export default function ChangelogPage() {
       <section className="mx-auto max-w-3xl px-6 pt-24 pb-16 md:pt-32 md:pb-20">
         <Reveal>
           <div className="chip mb-5">Ship log</div>
-          <h1 className="font-display text-6xl font-medium tracking-[-0.04em] md:text-8xl">
+          <h1 className="font-display text-4xl sm:text-6xl font-medium tracking-[-0.04em] md:text-8xl">
             Changelog
           </h1>
           <p className="mt-5 text-xl text-[var(--ink-soft)] leading-relaxed md:text-2xl">

@@ -123,10 +123,10 @@ export default function StatusClient() {
                   key={name}
                   className="flex items-center justify-between gap-3 rounded-lg border border-[var(--hairline)]/10 bg-[var(--surface)]/5 px-4 py-3"
                 >
-                  <div>
+                  <div className="min-w-0">
                     <div className="text-sm font-medium text-[var(--ink)]">{name}</div>
                     {hb?.lastCycleAt && (
-                      <div className="mt-0.5 text-[11px] text-[var(--ink)]/40">
+                      <div className="mt-0.5 truncate text-[11px] text-[var(--ink)]/40">
                         Last cycle: {new Date(hb.lastCycleAt).toLocaleString()}
                         {hb.ageMs != null && <> · {fmtDuration(hb.ageMs)} ago</>}
                       </div>

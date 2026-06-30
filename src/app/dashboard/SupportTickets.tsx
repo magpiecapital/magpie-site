@@ -295,7 +295,7 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
             placeholder="What do you need help with? The AI agent will answer first, and the team will take over if it can't."
             rows={4}
             maxLength={3500}
-            className="w-full rounded-md border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 text-sm text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)]"
+            className="w-full rounded-md border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 text-base sm:text-sm text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)]"
           />
           <button
             onClick={handleOpen}
@@ -456,7 +456,7 @@ export default function SupportTickets({ botApiUrl }: { botApiUrl: string }) {
                         placeholder="Add to this ticket — the AI agent will take another look."
                         rows={3}
                         maxLength={3500}
-                        className="w-full rounded-md border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 text-xs text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)]"
+                        className="w-full rounded-md border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 text-base sm:text-xs text-[var(--d-ink)] placeholder:text-[var(--d-ink-faint)]"
                       />
                       <button
                         onClick={() => handleFollowUp(t.id)}

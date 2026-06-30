@@ -233,7 +233,7 @@ export default async function X402Page() {
             </div>
           </Reveal>
           <Reveal delay={80}>
-            <h1 className="font-display mx-auto max-w-5xl text-5xl font-medium tracking-[-0.04em] md:text-7xl lg:text-8xl leading-[0.95]">
+            <h1 className="font-display mx-auto max-w-5xl text-4xl sm:text-5xl font-medium tracking-[-0.04em] md:text-7xl lg:text-8xl leading-[0.95]">
               An autonomous agent takes a permissionless loan against its own assets<span className="italic">.</span>
             </h1>
           </Reveal>

@@ -194,18 +194,22 @@ function CreditGauge({ score }: { score: number }) {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       const dpr = window.devicePixelRatio || 1;
-      const size = 280;
+      // Responsive: take the size from the rendered element (CSS controls
+      // layout via w-full max-w-[280px] aspect-square) so the gauge never
+      // exceeds its column on narrow phones — the old fixed 280 clipped ~4px
+      // of the arc at <=320px. Every dimension scales from `s` so the arc is
+      // pixel-identical at 280 and shrinks cleanly below it.
+      const size = Math.round(canvas.clientWidth || 280);
+      const s = size / 280;
       canvas.width = size * dpr;
       canvas.height = size * dpr;
-      canvas.style.width = `${size}px`;
-      canvas.style.height = `${size}px`;
       ctx.scale(dpr, dpr);
       ctx.clearRect(0, 0, size, size);
 
       const cx = size / 2;
-      const cy = size / 2 + 10;
-      const r = 110;
-      const lineW = 14;
+      const cy = size / 2 + 10 * s;
+      const r = 110 * s;
+      const lineW = 14 * s;
       const startA = Math.PI * 0.8;
       const endA = Math.PI * 2.2;
       const range = endA - startA;
@@ -236,7 +240,7 @@ function CreditGauge({ score }: { score: number }) {
       ctx.beginPath();
       ctx.arc(cx, cy, r, startA, scoreAngle);
       ctx.strokeStyle = "rgba(247,201,72,0.25)";
-      ctx.lineWidth = lineW + 12;
+      ctx.lineWidth = lineW + 12 * s;
       ctx.lineCap = "round";
       ctx.stroke();
 
@@ -245,25 +249,25 @@ function CreditGauge({ score }: { score: number }) {
       ticks.forEach((t) => {
         const tp = (t - 300) / 550;
         const ta = startA + range * tp;
-        const inner = r - lineW / 2 - 6;
-        const outer = r - lineW / 2 - 14;
+        const inner = r - lineW / 2 - 6 * s;
+        const outer = r - lineW / 2 - 14 * s;
         ctx.beginPath();
         ctx.moveTo(cx + Math.cos(ta) * inner, cy + Math.sin(ta) * inner);
         ctx.lineTo(cx + Math.cos(ta) * outer, cy + Math.sin(ta) * outer);
         ctx.strokeStyle = "rgba(168,164,154,0.3)";
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 1.5 * s;
         ctx.lineCap = "round";
         ctx.stroke();
       });
 
       // Needle dot
-      const dotR = 6;
+      const dotR = 6 * s;
       ctx.beginPath();
       ctx.arc(cx + Math.cos(scoreAngle) * r, cy + Math.sin(scoreAngle) * r, dotR, 0, Math.PI * 2);
       ctx.fillStyle = "#f7c948";
       ctx.fill();
       ctx.beginPath();
-      ctx.arc(cx + Math.cos(scoreAngle) * r, cy + Math.sin(scoreAngle) * r, dotR + 4, 0, Math.PI * 2);
+      ctx.arc(cx + Math.cos(scoreAngle) * r, cy + Math.sin(scoreAngle) * r, dotR + 4 * s, 0, Math.PI * 2);
       ctx.fillStyle = "rgba(247,201,72,0.3)";
       ctx.fill();
     }
@@ -279,7 +283,7 @@ function CreditGauge({ score }: { score: number }) {
 
   return (
     <div className="relative flex flex-col items-center">
-      <canvas ref={canvasRef} className="w-[280px] h-[280px]" />
+      <canvas ref={canvasRef} className="w-full max-w-[280px] aspect-square" />
       <div className="absolute inset-0 flex flex-col items-center justify-center pt-5">
         <div className="font-display tabular text-7xl font-medium tracking-[-0.04em]">{displayed}</div>
         <div className="mt-1 text-sm font-semibold tracking-wide text-[var(--accent-deep)]">{tier}</div>
