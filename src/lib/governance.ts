@@ -100,10 +100,33 @@ export const PROPOSAL_LIFECYCLES: Record<string, ProposalLifecycle> = {
   },
   "MGP-003": {
     id: "MGP-003",
-    // Opens Jun 24 8:00 PM ET, closes Jun 29 8:00 PM ET. No terminal yet — its
-    // status is fully date-driven: upcoming → active → tallying, automatically.
     activates_at_iso: "2026-06-25T00:00:00Z",
     closes_at_iso: "2026-06-30T00:00:00Z",
+    // Closed 2026-06-30. Plurality winner: Option C — Build (24-month locked
+    // Growth Treasury). Quorum (7.5%) + plurality (>40%) both cleared. NO burn.
+    terminal: {
+      kind: "passed",
+      outcome: {
+        yes_pct: 0,
+        no_pct: 0,
+        abstain_pct: 0,
+        participation_pct: 19.55,
+        quorum_pct: 7.5,
+        threshold_pct: 40,
+        notes:
+          "Plurality winner: Option C — Build (24-month locked Growth Treasury). Quorum (7.5%) + plurality (>40%) both cleared. NO burn — total supply unchanged.",
+        winner_choice: "C",
+        winner_label: "Build (24-month locked Growth Treasury)",
+        winner_share_pct: 62.53,
+        per_choice: [
+          { value: "C", label: "Build (locked Growth Treasury)", pct: 62.53 },
+          { value: "D", label: "Discipline + Build (50% burn / 50% treasury)", pct: 33.48 },
+          { value: "A", label: "Patience (36-month re-lock)", pct: 3.55 },
+          { value: "B", label: "Loyalty (24-month holder vest)", pct: 0.42 },
+        ],
+      },
+      // executed_at_iso is set once the on-chain treasury allocation lands (within 14 days of the July 1 unlock).
+    },
   },
 };
 
