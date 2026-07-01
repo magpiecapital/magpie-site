@@ -143,7 +143,7 @@ Proposals to date — **live, authoritative status is always at [magpie.capital/
 
 - [`MGP-001`](./proposals/MGP-001-fee-split-70-10-10-10.md) — Restructure the loan-fee split to 70/10/10/10. (Tier A4 — **passed & in effect**.)
 - [`MGP-002`](./proposals/MGP-002-extended-duration-tier-signal-poll.md) — Signal poll on a Premium / extended-duration loan tier. (Tier A6 — **withdrawn**; shipped under Tier B discretion.)
-- [`MGP-003`](./proposals/MGP-003-streamflow-unlock-allocation.md) — Allocation of the July 1, 2026 Streamflow unlock (~5% of supply). (Tier A6 — live status at /governance.)
+- [`MGP-003`](./proposals/MGP-003-streamflow-unlock-allocation.md) — Allocation of the July 1, 2026 Streamflow unlock (~5% of supply). **Passed → Option C (Build, 62.53%); executed on-chain 2026-07-01** into the 2-of-3 multi-sig Growth Treasury (working tranche 15,494,117.598940 in the vault; ~35M reserve Streamflow-locked, non-cancelable, to 2028; no burn). (Tier A6 — live status at /governance.)
 
 Subsequent proposal numbers are reserved for follow-ups (LTV adjustments per tier, fee-rate adjustments per tier, Tier C scope amendments).
 

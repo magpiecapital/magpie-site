@@ -13,6 +13,7 @@ const KIND_LABELS: Record<string, string> = {
   lp_loyalty: "LP Loyalty",
   yield: "LP Yield",
   loan_remediation: "Remediation",
+  treasury_allocation: "Growth Treasury",
 };
 const KIND_BLURBS: Record<string, string> = {
   holder_reward:
@@ -22,6 +23,8 @@ const KIND_BLURBS: Record<string, string> = {
     "LP loyalty distribution to liquidity providers, weighted by share-seconds held.",
   yield: "LP yield distribution.",
   loan_remediation: "Refunds or remediation payments to affected wallets.",
+  treasury_allocation:
+    "Growth Treasury allocation per MGP-003 (Option C). Working tranche held in the 2-of-3 multi-sig treasury vault; reserve locked on-chain (Streamflow, non-cancelable) until 2028. No burn.",
 };
 
 type Event = {
