@@ -125,7 +125,10 @@ export const PROPOSAL_LIFECYCLES: Record<string, ProposalLifecycle> = {
           { value: "B", label: "Loyalty (24-month holder vest)", pct: 0.42 },
         ],
       },
-      // executed_at_iso is set once the on-chain treasury allocation lands (within 14 days of the July 1 unlock).
+      // Executed on-chain 2026-07-01 (the July 1 unlock). Timestamp = the reserve-lock creation.
+      executed_at_iso: "2026-07-01T05:07:36Z",
+      execution_notes:
+        "Option C executed 2026-07-01: 15,494,117.598940 $MAGPIE deposited to the treasury vault (EE12mvJR…Hnp7, working tranche, spendable only on the 5 pre-declared categories under the 2-of-3 multisig + 48h timelock). ~34.83M reserve locked via Streamflow Token-Lock (non-cancelable) until 2028-07-01, unlocking to the treasury wallet. No burn — total supply unchanged.",
     },
   },
 };
