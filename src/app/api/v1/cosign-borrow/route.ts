@@ -31,7 +31,12 @@ export async function POST(req: Request) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body,
-      signal: AbortSignal.timeout(30_000),
+      // >= the bot's JIT TWAP-warm budget (V4_TWAP_WARM_MAX_MS=90s) + margin, so
+      // a cold-feed V4 borrow through this proxy receives the bot's real
+      // oracle_warming JSON (with an accurate retry_after) instead of a premature
+      // 502 surfaced as a generic "network hiccup" for what is a clean, retryable
+      // "oracle warming" state.
+      signal: AbortSignal.timeout(95_000),
     });
     const text = await res.text();
     return new Response(text, {

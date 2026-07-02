@@ -12,6 +12,7 @@
  * Pip itself never signs anything. The borrower's wallet does.
  */
 import { useCallback, useState } from "react";
+import { translateTxError } from "@/lib/solana/tx-error";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import type { ProposedAction } from "@/lib/solana/site-ai-chat";
 
@@ -365,7 +366,12 @@ export function PipActionCard({
       // operator can paste it for debugging — the toast text-box can
       // visually truncate long messages depending on layout.
       console.error("[magpie] action card failed:", msg, e);
-      setError(msg);
+      // Defense-in-depth: run every surfaced error through translateTxError
+      // (same as the dashboard) so a raw on-chain string — e.g. a residual
+      // "custom program error: 0x1780" TWAP error — is shown as a friendly,
+      // retryable message and never leaks raw to a Pip/x402 borrower.
+      const friendly = translateTxError(e, { flow: "repay" });
+      setError(`${friendly.title}: ${friendly.body.split("\n")[0]}`);
     } finally {
       setBusy(false);
     }
