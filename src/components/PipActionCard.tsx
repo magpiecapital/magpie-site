@@ -370,7 +370,8 @@ export function PipActionCard({
       // (same as the dashboard) so a raw on-chain string — e.g. a residual
       // "custom program error: 0x1780" TWAP error — is shown as a friendly,
       // retryable message and never leaks raw to a Pip/x402 borrower.
-      setError(translateTxError(msg));
+      const friendly = translateTxError(e, { flow: "repay" });
+      setError(`${friendly.title}: ${friendly.body.split("\n")[0]}`);
     } finally {
       setBusy(false);
     }
