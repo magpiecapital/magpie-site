@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
       // /transparency is the canonical (and more shareable) URL for the
       // protocol transparency dashboard. /stats stays as alias for SEO.
       { source: "/transparency", destination: "/stats", permanent: false },
+      // The audit program lives on /security (audit results + engagement
+      // status) and in github.com/magpiecapital/audits. /audits is the
+      // natural path people type (and matches the public repo name), so
+      // redirect it to the canonical page instead of 404ing.
+      { source: "/audits", destination: "/security", permanent: true },
     ];
   },
   // Site-wide security & reviewer-friendly headers.
