@@ -23,7 +23,8 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import {
   buildWithdrawTransaction,
   computeMaxSafeWithdrawShares,
-  fetchDepositorPosition,
+  fetchAllDepositorPositions,
+  type LpVersion,
 } from "@/lib/solana/pool";
 
 const connection = new Connection(
@@ -67,39 +68,67 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "shares_must_be_positive" }, { status: 400 });
   }
 
-  // Look up the current position so we can refuse impossible withdrawals
-  // up-front (better error than the on-chain program would emit), AND
-  // compute max_safe_shares for the chunking guidance.
-  const position = await fetchDepositorPosition(connection, depositorPk).catch(() => null);
-  if (!position) {
+  // Resolve which pool version this wallet actually holds a position in.
+  // Sweeps V1/V2/V3/V4 so nobody is stranded when new deposits move to V4.
+  // Optional body.version pins a specific pool when a wallet holds more
+  // than one. max_safe_shares only caps V1/V2 (u64 overflow); V3/V4 have
+  // no cap (u128 → single-tx of any size).
+  const requestedVersion =
+    typeof b.version === "string" && ["v1", "v2", "v3", "v4"].includes(b.version)
+      ? (b.version as LpVersion)
+      : null;
+  const positions = await fetchAllDepositorPositions(connection, depositorPk).catch(() => []);
+  if (positions.length === 0) {
     return NextResponse.json(
       {
         error: "no_position",
         detail:
-          "This wallet has no LP position. Call /api/v1/lp/build-deposit first.",
+          "This wallet has no LP position in any pool (V1/V2/V3/V4). Call /api/v1/lp/build-deposit first.",
       },
       { status: 400 },
     );
   }
+  const target = requestedVersion
+    ? positions.find((p) => p.version === requestedVersion) ?? null
+    : positions.length === 1
+      ? positions[0]
+      : null;
+  if (!target) {
+    return NextResponse.json(
+      {
+        error: requestedVersion ? "no_position_in_version" : "multiple_positions",
+        positions: positions.map((p) => ({ version: p.version, shares: p.info.shares.toString() })),
+        detail: requestedVersion
+          ? `No position in ${requestedVersion}. This wallet holds positions in: ${positions.map((p) => p.version).join(", ")}.`
+          : `Wallet holds positions in multiple pools (${positions.map((p) => p.version).join(", ")}). Pass "version" to pick one.`,
+      },
+      { status: 400 },
+    );
+  }
+  const position = target.info;
+  const version = target.version;
+
   if (requestedShares > BigInt(position.shares)) {
     return NextResponse.json(
       {
         error: "insufficient_shares",
+        version,
         owned_shares: position.shares.toString(),
         requested_shares: sharesStr,
       },
       { status: 400 },
     );
   }
-  const maxSafe = computeMaxSafeWithdrawShares(position.depositedAmount);
+  const maxSafe = computeMaxSafeWithdrawShares(position.depositedAmount, version);
   if (requestedShares > maxSafe) {
     return NextResponse.json(
       {
         error: "shares_exceed_safe_chunk",
+        version,
         max_safe_shares: maxSafe.toString(),
         owned_shares: position.shares.toString(),
         detail:
-          "The current v1 program has a u64 overflow at large withdrawals. Cap a single withdraw at max_safe_shares; repeat the call for the remainder.",
+          "The V1/V2 program has a u64 overflow at large withdrawals. Cap a single withdraw at max_safe_shares; repeat the call for the remainder. (V3/V4 have no cap.)",
       },
       { status: 400 },
     );
@@ -107,7 +136,7 @@ export async function POST(req: Request) {
 
   let tx;
   try {
-    tx = await buildWithdrawTransaction(connection, depositorPk, Number(requestedShares));
+    tx = await buildWithdrawTransaction(connection, depositorPk, Number(requestedShares), version);
   } catch (err) {
     return NextResponse.json(
       {
@@ -128,8 +157,10 @@ export async function POST(req: Request) {
     partial_signed_tx_b64: serialized,
     summary: {
       depositor: depositorStr,
+      version,
       shares: sharesStr,
       max_safe_shares: maxSafe.toString(),
+      single_tx: !(version === "v1" || version === "v2"),
       projected_lamports: projectedLamports.toString(),
       projected_sol: Number(projectedLamports) / 1e9,
     },

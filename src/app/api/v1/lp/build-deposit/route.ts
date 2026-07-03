@@ -1,9 +1,10 @@
 /**
  * POST /api/v1/lp/build-deposit
  *
- * Build an unsigned LP-deposit transaction targeting the main Magpie
- * LendingPool. The caller (a wallet, or — via the x402 service — an
- * AI agent) signs the returned tx with their own wallet and submits.
+ * Build an unsigned LP-deposit transaction targeting the V4 flagship
+ * Magpie LendingPool (new liquidity flows to V4). The caller (a wallet,
+ * or — via the x402 service — an AI agent) signs the returned tx with
+ * their own wallet and submits.
  *
  * Body:
  *   { depositor: <pubkey>, lamports: "<u64-string>" }
@@ -21,7 +22,7 @@
  */
 import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
-import { buildDepositTransaction } from "@/lib/solana/pool";
+import { buildDepositTransaction, DEPOSIT_VERSION } from "@/lib/solana/pool";
 
 const connection = new Connection(
   process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
@@ -95,6 +96,7 @@ export async function POST(req: Request) {
     partial_signed_tx_b64: serialized,
     summary: {
       depositor: depositorStr,
+      pool_version: DEPOSIT_VERSION,
       lamports: lamportsStr,
       sol: Number(lamports) / 1e9,
     },

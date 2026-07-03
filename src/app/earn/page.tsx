@@ -12,14 +12,26 @@ import { Footer } from "@/components/Footer";
 import { TELEGRAM_COMMUNITY } from "@/lib/telegram-links";
 import {
   fetchPoolStats,
-  fetchDepositorPosition,
+  fetchDepositorPositionForVersion,
+  fetchAllDepositorPositions,
   buildDepositTransaction,
   buildWithdrawBundleTransaction,
   MAX_WITHDRAW_IXS_PER_TX,
   computeMaxSafeWithdrawShares,
+  DEPOSIT_VERSION,
   type PoolStats,
   type DepositorInfo,
+  type LpVersion,
+  type VersionedPosition,
 } from "@/lib/solana/pool";
+
+// Human label for a pool version. V4 is the flagship (new deposits).
+function versionLabel(v: LpVersion): string {
+  return v === "v4" ? "V4 (flagship)"
+    : v === "v3" ? "V3 (RWA)"
+    : v === "v2" ? "V2 (legacy RWA)"
+    : "V1 (memecoin)";
+}
 import { translateTxError, type FriendlyError } from "@/lib/solana/tx-error";
 
 /* ───────────────────────── HELPERS ───────────────────────── */
@@ -42,6 +54,16 @@ export default function EarnPage() {
 
   const [pool, setPool] = useState<PoolStats | null>(null);
   const [position, setPosition] = useState<DepositorInfo | null>(null);
+  // All the wallet's LP positions across V1/V2/V3/V4 (flagship-first). New
+  // deposits go to V4, but existing V1/V2/V3 LPs are NEVER stranded — this
+  // sweep finds their money wherever it lives. `activeVersion` is the pool
+  // the withdraw form acts on; `pool` + `position` mirror that active pool.
+  const [positions, setPositions] = useState<VersionedPosition[]>([]);
+  const [activeVersion, setActiveVersion] = useState<LpVersion>(DEPOSIT_VERSION);
+  // Always the V4 flagship pool — deposits ALWAYS go here, so the deposit
+  // tab's preview reflects V4 even when `pool` mirrors a legacy active
+  // position (e.g. the V1 whale). Keeps deposit UX accurate for everyone.
+  const [depositPool, setDepositPool] = useState<PoolStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -118,14 +140,33 @@ export default function EarnPage() {
     if (!POOL_LIVE) return; // zero RPC calls until pool exists
     try {
       setError(null);
-      const stats = await fetchPoolStats(connection);
-      setPool(stats);
+
+      // The V4 flagship pool — deposits always land here.
+      const dPool = await fetchPoolStats(connection, DEPOSIT_VERSION);
+      setDepositPool(dPool);
 
       if (publicKey) {
         const bal = await connection.getBalance(publicKey);
         setSolBalance(bal);
-        const pos = await fetchDepositorPosition(connection, publicKey);
-        setPosition(pos);
+        // Sweep every pool version so no LP (incl. the 110-SOL V1 whale) is
+        // stranded when new deposits move to V4.
+        const all = await fetchAllDepositorPositions(connection, publicKey);
+        setPositions(all);
+        // Keep the current selection if the wallet still holds it, else
+        // default to the first position (flagship-first order).
+        const active = all.find((p) => p.version === activeVersion) ?? all[0] ?? null;
+        const av = active?.version ?? DEPOSIT_VERSION;
+        setActiveVersion(av);
+        setPosition(active?.info ?? null);
+        // pool = the ACTIVE position's pool, so the withdraw math + share
+        // display are correct for whatever pool the LP actually holds (V4 for
+        // new depositors, V1 for the legacy whale). Reuse dPool when active
+        // is already V4 to avoid a redundant fetch.
+        setPool(av === DEPOSIT_VERSION ? dPool : await fetchPoolStats(connection, av));
+      } else {
+        setPositions([]);
+        setPosition(null);
+        setPool(dPool);
       }
 
       // Public pool stats from the bot API — fee periods + recent events.
@@ -143,7 +184,7 @@ export default function EarnPage() {
     } finally {
       setLoading(false);
     }
-  }, [connection, publicKey]);
+  }, [connection, publicKey, activeVersion]);
 
   useEffect(() => {
     if (!POOL_LIVE) {
@@ -273,6 +314,14 @@ export default function EarnPage() {
       });
       return;
     }
+    // Stale-pool guard: if `pool` isn't the active position's pool yet (e.g.
+    // just after switching the pool tab, before refresh() reloads), NEVER
+    // compute shares from the wrong pool's ratio. Refresh + ask to retry.
+    if (!pool || pool.version !== activeVersion) {
+      setTxError({ title: "One moment", body: "Loading this pool's live data — try again in a second." });
+      refresh();
+      return;
+    }
     if (!amount) return;
 
     // Source of truth: if Max was clicked, use the captured exact lamport
@@ -344,7 +393,7 @@ export default function EarnPage() {
       // may differ by ±1 because depositedAmount shrinks each iteration.
       let estimatedTotal = 1;
       {
-        const initialSafeMax = computeMaxSafeWithdrawShares(currentDepositedAmount);
+        const initialSafeMax = computeMaxSafeWithdrawShares(currentDepositedAmount, activeVersion);
         if (initialSafeMax > 0n && remainingShares > initialSafeMax) {
           const chunks = Math.ceil(Number(remainingShares) / Number(initialSafeMax));
           // Chunks are packed MAX_WITHDRAW_IXS_PER_TX at a time into ONE tx = one
@@ -356,7 +405,7 @@ export default function EarnPage() {
 
       while (remainingShares > 0n) {
         chunkStep++;
-        const safeMaxShares = computeMaxSafeWithdrawShares(currentDepositedAmount);
+        const safeMaxShares = computeMaxSafeWithdrawShares(currentDepositedAmount, activeVersion);
         // Pack up to MAX_WITHDRAW_IXS_PER_TX chunks into ONE transaction = ONE
         // wallet approval (instead of one approval per chunk — which ballooned to
         // hundreds for large positions). Each chunk stays under the per-tx overflow
@@ -375,7 +424,7 @@ export default function EarnPage() {
 
         setChunkProgress({ step: chunkStep, total: Math.max(estimatedTotal, chunkStep), lamportsDone });
 
-        const tx = await buildWithdrawBundleTransaction(connection, publicKey, bundle);
+        const tx = await buildWithdrawBundleTransaction(connection, publicKey, bundle, activeVersion);
         lastSig = await sendTransaction(tx, connection);
         const r = await confirmWithPoll(lastSig);
         if (!r.ok) {
@@ -400,7 +449,7 @@ export default function EarnPage() {
         // is we use a smaller chunk next round — still safe, never overflows).
         if (remainingShares > 0n) {
           try {
-            const fresh = await fetchDepositorPosition(connection, publicKey);
+            const fresh = await fetchDepositorPositionForVersion(connection, publicKey, activeVersion);
             if (fresh && fresh.depositedAmount > 0) {
               currentDepositedAmount = fresh.depositedAmount;
             } else {
@@ -829,16 +878,17 @@ export default function EarnPage() {
                 {amountInput}
 
                 {/* Info row */}
-                {tab === "deposit" && pool && amount && parseFloat(amount) > 0 && (
+                {tab === "deposit" && depositPool && amount && parseFloat(amount) > 0 && (
                   <div className="mb-4 rounded-xl border border-[var(--hairline)] p-3 text-xs space-y-1.5">
                     <InfoRow label="You deposit" value={`${parseFloat(amount).toFixed(4)} SOL`} />
                     <InfoRow
                       label="Pool share"
-                      value={pool.totalDeposits > 0
-                        ? pct(parseFloat(amount) * LAMPORTS_PER_SOL / (pool.totalDeposits + parseFloat(amount) * LAMPORTS_PER_SOL), 2)
+                      value={depositPool.totalDeposits > 0
+                        ? pct(parseFloat(amount) * LAMPORTS_PER_SOL / (depositPool.totalDeposits + parseFloat(amount) * LAMPORTS_PER_SOL), 2)
                         : "100%"}
                     />
                     <InfoRow label="Yield source" value="Borrower loan fees" />
+                    <InfoRow label="Pool" value="V4 flagship (in-vault)" />
                   </div>
                 )}
 
@@ -862,6 +912,46 @@ export default function EarnPage() {
           <div className="space-y-4">
             <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 shadow-sm sm:p-6">
               <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">Your Position</h3>
+              {connected && positions.length > 0 && (
+                <div className="mb-3">
+                  {positions.length > 1 ? (
+                    <div className="flex flex-wrap gap-1.5">
+                      {positions.map((p) => (
+                        <button
+                          key={p.version}
+                          type="button"
+                          onClick={() => {
+                            // Reset the form so a stale amount/maxLamports from
+                            // the previous pool can't be submitted against the
+                            // new one before refresh() reloads pool/position.
+                            setActiveVersion(p.version);
+                            setAmount("");
+                            setMaxLamports(null);
+                            setTxError(null);
+                            setTxResult(null);
+                          }}
+                          className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+                            p.version === activeVersion
+                              ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent-deep)]"
+                              : "border-[var(--hairline)] text-[var(--ink-soft)] hover:border-[var(--accent)]"
+                          }`}
+                        >
+                          {versionLabel(p.version)}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full border border-[var(--hairline)] px-2.5 py-1 text-xs font-medium text-[var(--ink-soft)]">
+                      Pool: {versionLabel(activeVersion)}
+                    </span>
+                  )}
+                  {(activeVersion === "v1" || activeVersion === "v2" || activeVersion === "v3") && (
+                    <p className="mt-2 text-xs text-[var(--ink-faint)]">
+                      Your {versionLabel(activeVersion)} deposit is safe and fully withdrawable anytime. New deposits now flow to the V4 flagship pool — your existing position is unaffected.
+                    </p>
+                  )}
+                </div>
+              )}
               {!connected ? (
                 <p className="text-sm text-[var(--ink-soft)]">Connect wallet to view.</p>
               ) : position ? (
