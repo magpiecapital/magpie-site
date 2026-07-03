@@ -414,8 +414,12 @@ export async function GET() {
             const mb = magpieBurnsResult.rows[0];
             if (!mb || mb.total_raw == null) return null;
             const rawDivisor = 1_000_000; // 10^6 for 6 decimals
+            // Preserve FRACTIONAL tokens — integer BigInt-division used to
+            // truncate the decimals (a 2,314,460.606327 default-burn showed
+            // as 2,314,460). Totals stay well under 2^53 raw, so Number() is
+            // exact here.
             const rawToTokens = (r: string | number | null) =>
-              r == null ? 0 : Number(BigInt(r) / BigInt(rawDivisor));
+              r == null ? 0 : Number(BigInt(r)) / rawDivisor;
             return {
               totalRaw: String(mb.total_raw),
               totalTokens: rawToTokens(mb.total_raw),
