@@ -120,6 +120,8 @@ interface DefaultedLoanProfitData {
   lifetimeSol: number;
   last24hSol: number;
   profitableDefaultsCount: number;
+  magpieBurnedCount?: number;
+  magpieBurnPendingCount?: number;
 }
 
 interface X402Data {
@@ -402,26 +404,39 @@ export default function StatsClient() {
           />
           <p className="mb-5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
             Defaulted loans don&apos;t leak value out of the system.
-            $MAGPIE collateral gets burned (operator-manual) — that
-            shrinks supply and grows every holder&apos;s slice of the
-            next payout. Any other collateral is sold and the net
-            profit flows back into the same four reward channels
-            above. Both figures here are running totals.
+            $MAGPIE collateral gets burned 1:1 (operator-conducted,
+            on-chain) — every $MAGPIE default is a burn, so the number
+            of $MAGPIE defaults always equals the number of burns, and
+            the burn shrinks supply to grow every holder&apos;s slice of
+            the next payout. Any other collateral is sold and the net
+            profit flows into the four reward channels above. All figures
+            here are running totals.
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Stat
               label="$MAGPIE burned"
               value={magpieBurned
-                ? magpieBurned.totalTokens.toLocaleString("en-US")
+                ? magpieBurned.totalTokens.toLocaleString("en-US", { maximumFractionDigits: 2 })
                 : "—"}
               sub={magpieBurned
-                ? `${magpieBurned.burnCount} burn${magpieBurned.burnCount === 1 ? "" : "s"} on-ledger`
+                ? `${magpieBurned.burnCount} burn${magpieBurned.burnCount === 1 ? "" : "s"} on-ledger · all sources`
                 : "Supply contraction"}
+            />
+            <Stat
+              label="$MAGPIE defaults"
+              value={defaultedProfit
+                ? fmtNum(defaultedProfit.magpieBurnedCount ?? 0)
+                : "—"}
+              sub={defaultedProfit
+                ? ((defaultedProfit.magpieBurnPendingCount ?? 0) === 0
+                    ? "all burned 1:1 ✓"
+                    : `${defaultedProfit.magpieBurnPendingCount} awaiting burn`)
+                : "Burned 1:1"}
             />
             <Stat
               label="  via defaults"
               value={magpieBurned
-                ? magpieBurned.bySource.liquidationDefaultTokens.toLocaleString("en-US")
+                ? magpieBurned.bySource.liquidationDefaultTokens.toLocaleString("en-US", { maximumFractionDigits: 2 })
                 : "—"}
               sub="$MAGPIE seized + burned"
             />
@@ -430,14 +445,7 @@ export default function StatsClient() {
               value={defaultedProfit
                 ? fmtSol(defaultedProfit.lifetimeSol)
                 : "—"}
-              sub="Lifetime · routes to rewards"
-            />
-            <Stat
-              label="Profitable defaults"
-              value={defaultedProfit
-                ? fmtNum(defaultedProfit.profitableDefaultsCount)
-                : "—"}
-              sub="Non-$MAGPIE defaults"
+              sub="Non-$MAGPIE · to rewards"
             />
           </div>
         </section>
