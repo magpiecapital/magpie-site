@@ -749,7 +749,7 @@ function LimitSlot(props: SlotProps) {
                 value={editSlippagePct ?? armed.slippage_bps / 100}
                 onChange={(e) => setEditSlippagePct(Number(e.target.value))}
                 disabled={busy}
-                className="flex-1"
+                className="flex-1 magpie-range h-2.5 rounded-full cursor-pointer"
                 style={{ accentColor: "var(--d-accent)" }}
               />
               <span className="text-[11px] tabular-nums w-10 text-right">
@@ -772,7 +772,7 @@ function LimitSlot(props: SlotProps) {
                   value={editTrailingPct ?? armed.trailing_distance_bps / 100}
                   onChange={(e) => setEditTrailingPct(Number(e.target.value))}
                   disabled={busy}
-                  className="flex-1"
+                  className="flex-1 magpie-range h-2.5 rounded-full cursor-pointer"
                   style={{ accentColor: "var(--d-accent)" }}
                 />
                 <span className="text-[11px] tabular-nums w-10 text-right">
@@ -992,7 +992,7 @@ function LimitSlot(props: SlotProps) {
             value={trailingPct}
             onChange={(e) => setTrailingPct(Number(e.target.value))}
             disabled={busy}
-            className="flex-1"
+            className="flex-1 magpie-range h-2.5 rounded-full cursor-pointer"
             style={{ accentColor: armColor }}
           />
           <span className="text-[11px] tabular-nums w-12 text-right" style={{ color: armColor }}>
@@ -1010,7 +1010,7 @@ function LimitSlot(props: SlotProps) {
           value={slippagePct}
           onChange={(e) => setSlippagePct(Number(e.target.value))}
           disabled={busy}
-          className="flex-1"
+          className="flex-1 magpie-range h-2.5 rounded-full cursor-pointer"
           style={{ accentColor: "var(--d-accent)" }}
         />
         <span className="text-[11px] tabular-nums w-10 text-right">{slippagePct.toFixed(1)}%</span>
