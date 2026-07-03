@@ -465,3 +465,49 @@ main, header, footer, section {
   80% { transform: translateX(2px); }
 }
 .vault-shake { animation: vault-shake 0.3s ease-out; }
+
+/* ── Brand range slider ──────────────────────────────────────────────
+ * Kills the default browser-blue slider thumb across the whole app. The
+ * track fill is set per-instance via an inline `background` gradient; this
+ * class owns the THUMB + native accent so it's ALWAYS brand-gold. The
+ * accent cascades var(--d-accent) [dashboard] → var(--accent) [site] →
+ * #f7c948 fallback, so it can never fall back to the OS blue. Fixes the
+ * fragile Tailwind arbitrary-variant approach that wasn't taking effect
+ * (missing -webkit-appearance:none on the thumb + no accent-color). */
+.magpie-range {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  accent-color: var(--d-accent, var(--accent, #f7c948));
+  background-color: transparent;
+}
+.magpie-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 1rem;
+  width: 1rem;
+  margin-top: -3px; /* center the 16px thumb on the 10px (h-2.5) track */
+  border-radius: 9999px;
+  background: var(--d-accent, var(--accent, #f7c948));
+  border: 2px solid var(--d-bg-card, var(--surface, #14110b));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.magpie-range::-moz-range-thumb {
+  height: 1rem;
+  width: 1rem;
+  border: 2px solid var(--d-bg-card, var(--surface, #14110b));
+  border-radius: 9999px;
+  background: var(--d-accent, var(--accent, #f7c948));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+.magpie-range::-webkit-slider-runnable-track,
+.magpie-range::-moz-range-track {
+  height: 0.625rem; /* consistent 10px track so the -3px thumb offset always centers */
+  border-radius: 9999px;
+}
+.magpie-range:focus-visible {
+  outline: 2px solid var(--d-accent, var(--accent, #f7c948));
+  outline-offset: 2px;
+}

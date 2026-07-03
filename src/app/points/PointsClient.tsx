@@ -309,7 +309,7 @@ function PointsCalculator() {
               step={0.1}
               value={loanAmount}
               onChange={(e) => setLoanAmount(parseFloat(e.target.value))}
-              className="w-full accent-[var(--accent)]"
+              className="magpie-range w-full h-2.5 rounded-full cursor-pointer"
             />
             <div className="tabular min-w-[60px] rounded-lg border border-[var(--hairline)] bg-[var(--surface)] px-3 py-2 text-center text-sm font-semibold">
               {loanAmount.toFixed(1)}
