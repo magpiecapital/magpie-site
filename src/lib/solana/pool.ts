@@ -291,6 +291,70 @@ export async function buildWithdrawTransaction(
   return tx;
 }
 
+/**
+ * Max withdraw instructions to pack into ONE transaction. Each `withdraw` ix
+ * is ~55k CU; at MAX_WITHDRAW_IXS_PER_TX × 55k we stay well under the 1.4M-CU
+ * tx ceiling with headroom for the ATA create/close + priority-fee ixs. Tx-size
+ * is not the binding limit here (all ixs share the same accounts). Conservative
+ * on purpose: a CU-exhausted bundle would revert (no funds lost, just a wasted
+ * approval), so we trade a few extra transactions for zero revert risk.
+ */
+export const MAX_WITHDRAW_IXS_PER_TX = 12;
+
+/**
+ * Build ONE transaction containing MULTIPLE `withdraw` instructions (one per
+ * entry in `chunkSharesList`). This is the fix for the V1 u64-overflow chunking
+ * blowing up into hundreds of separate wallet approvals: instead of 1 tx per
+ * chunk, the caller groups chunks (≤ MAX_WITHDRAW_IXS_PER_TX) into a single tx =
+ * a single approval. Safe because the ixs execute atomically and each chunk is
+ * still individually sized under the per-tx overflow ceiling (deposited_amount
+ * only shrinks as ixs execute, so if chunk[0] is safe every later chunk is too).
+ * Caller MUST guarantee sum(chunkSharesList) ≤ the position's remaining shares
+ * (so no ix withdraws more than exists / closes the position mid-bundle).
+ */
+export async function buildWithdrawBundleTransaction(
+  connection: Connection,
+  depositor: PublicKey,
+  chunkSharesList: number[],
+): Promise<Transaction> {
+  const [pool] = poolPda(LENDER_PUBKEY);
+  const [loanTokenVault] = loanTokenVaultPda(pool);
+  const provider = makeDummyProvider(connection, depositor);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const program = new Program(idl as any, provider);
+  const wsolAta = getAssociatedTokenAddressSync(NATIVE_MINT, depositor, false, TOKEN_PROGRAM_ID);
+  const [positionPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("position"), pool.toBuffer(), depositor.toBuffer()],
+    program.programId,
+  );
+
+  const tx = new Transaction();
+  tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }));
+  tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 1_400_000 }));
+  tx.add(createAssociatedTokenAccountIdempotentInstruction(depositor, wsolAta, depositor, NATIVE_MINT, TOKEN_PROGRAM_ID));
+  for (const shares of chunkSharesList) {
+    const ix = await program.methods
+      .withdraw(new BN(shares))
+      .accounts({
+        pool,
+        loanTokenVault,
+        position: positionPda,
+        depositorTokenAccount: wsolAta,
+        depositor,
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .instruction();
+    tx.add(ix);
+  }
+  tx.add(createCloseAccountInstruction(wsolAta, depositor, depositor, [], TOKEN_PROGRAM_ID));
+
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+  tx.recentBlockhash = blockhash;
+  tx.lastValidBlockHeight = lastValidBlockHeight;
+  tx.feePayer = depositor;
+  return tx;
+}
+
 export interface LiquidatableLoanInfo {
   loanPubkey: PublicKey;
   borrower: PublicKey;
