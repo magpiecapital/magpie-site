@@ -16,9 +16,76 @@ import {
   createCloseAccountInstruction,
 } from "@solana/spl-token";
 import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
-import { LENDER_PUBKEY } from "./constants";
+import {
+  PROGRAM_ID,
+  PROGRAM_ID_V2,
+  PROGRAM_ID_V3,
+  PROGRAM_ID_V4,
+  LENDER_PUBKEY,
+} from "./constants";
 import { poolPda, loanTokenVaultPda, collateralVaultPda } from "./pdas";
-import idl from "./magpie.json";
+import idlV1 from "./magpie.json";
+import idlV2 from "./magpie-v2.json";
+import idlV3 from "./magpie-v3.json";
+import idlV4 from "./magpie-v4.json";
+
+/* ────────────────────────── LP VERSION ROUTING ──────────────────────────
+ * V4 is the flagship: NEW LP deposits flow into the V4 in-vault pool.
+ * Existing LPs on V1/V2/V3 are NEVER stranded — position lookup + withdraw
+ * sweep every version and act on whichever pool the wallet actually holds.
+ *
+ * All four programs share identical deposit/withdraw account lists + PDA
+ * seeds (pool / position / loan-token-vault), so ONE version-parametrized
+ * builder covers them all. V1/V2 carry the u64-overflow `withdraw` bug and
+ * need chunking; V3/V4 use u128 → single-tx withdrawals of any size.
+ *
+ * SAFETY: every function below defaults to the version that preserves the
+ * pre-existing behavior (withdraw/position default to v1 — the 110-SOL
+ * whale + all legacy V1 LPs keep their exact chunked-bundle path). Only
+ * `buildDepositTransaction` changes its default (→ V4) — and that only
+ * affects NEW deposits, never an existing position.
+ */
+export type LpVersion = "v1" | "v2" | "v3" | "v4";
+
+interface LpVersionCfg {
+  version: LpVersion;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  idl: any;
+  programId: PublicKey;
+  /** true when the program's withdraw has the u64 overflow → must chunk. */
+  needsChunking: boolean;
+}
+
+function cfgFor(version: LpVersion): LpVersionCfg {
+  switch (version) {
+    case "v4":
+      if (!PROGRAM_ID_V4) {
+        throw new Error("V4_NOT_CONFIGURED: NEXT_PUBLIC_PROGRAM_ID_V4 is unset on the site.");
+      }
+      return { version, idl: idlV4, programId: PROGRAM_ID_V4, needsChunking: false };
+    case "v3":
+      return { version, idl: idlV3, programId: PROGRAM_ID_V3, needsChunking: false };
+    case "v2":
+      return { version, idl: idlV2, programId: PROGRAM_ID_V2, needsChunking: true };
+    case "v1":
+    default:
+      return { version: "v1", idl: idlV1, programId: PROGRAM_ID, needsChunking: true };
+  }
+}
+
+/**
+ * The pool NEW deposits flow into — V4 flagship when configured, else V1
+ * (graceful fallback so deposits never hard-break if the env is missing).
+ */
+export const DEPOSIT_VERSION: LpVersion = PROGRAM_ID_V4 ? "v4" : "v1";
+
+/** Versions to sweep for a wallet's existing positions — flagship first. */
+export function allLpVersions(): LpVersion[] {
+  const versions: LpVersion[] = [];
+  if (PROGRAM_ID_V4) versions.push("v4");
+  versions.push("v3", "v2", "v1");
+  return versions;
+}
 
 function makeDummyProvider(connection: Connection, publicKey: PublicKey) {
   return new AnchorProvider(
@@ -27,6 +94,25 @@ function makeDummyProvider(connection: Connection, publicKey: PublicKey) {
     { publicKey, signTransaction: async (tx: any) => tx, signAllTransactions: async (txs: any) => txs } as any,
     { commitment: "confirmed" },
   );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function programForVersion(connection: Connection, publicKey: PublicKey, cfg: LpVersionCfg): any {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return new Program(cfg.idl as any, makeDummyProvider(connection, publicKey));
+}
+
+function poolAccountsFor(cfg: LpVersionCfg): { pool: PublicKey; loanTokenVault: PublicKey } {
+  const [pool] = poolPda(LENDER_PUBKEY, cfg.programId);
+  const [loanTokenVault] = loanTokenVaultPda(pool, cfg.programId);
+  return { pool, loanTokenVault };
+}
+
+function positionPdaFor(pool: PublicKey, depositor: PublicKey, programId: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("position"), pool.toBuffer(), depositor.toBuffer()],
+    programId,
+  )[0];
 }
 
 export interface PoolStats {
@@ -41,16 +127,21 @@ export interface PoolStats {
   paused: boolean;
   availableLiquidity: number;
   utilizationRate: number;
+  /** Which pool version these stats are for — lets the UI detect a stale
+   *  pool/active-version mismatch and refuse to act on the wrong pool. */
+  version: LpVersion;
 }
 
-/** Fetch on-chain pool stats */
-export async function fetchPoolStats(connection: Connection): Promise<PoolStats> {
-  const [pool] = poolPda(LENDER_PUBKEY);
-  const provider = makeDummyProvider(connection, LENDER_PUBKEY);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const program = new Program(idl as any, provider);
+/** Fetch on-chain pool stats. Defaults to the V4 flagship pool (where new
+ *  deposits go); pass a version to read a specific pool. */
+export async function fetchPoolStats(
+  connection: Connection,
+  version: LpVersion = DEPOSIT_VERSION,
+): Promise<PoolStats> {
+  const cfg = cfgFor(version);
+  const { pool } = poolAccountsFor(cfg);
+  const program = programForVersion(connection, LENDER_PUBKEY, cfg);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const poolAccount = await (program.account as any).lendingPool.fetch(pool) as any;
 
@@ -69,6 +160,7 @@ export async function fetchPoolStats(connection: Connection): Promise<PoolStats>
     paused: poolAccount.paused,
     availableLiquidity: totalDeposits - totalBorrowed,
     utilizationRate: totalDeposits > 0 ? totalBorrowed / totalDeposits : 0,
+    version: cfg.version,
   };
 }
 
@@ -81,28 +173,22 @@ export interface DepositorInfo {
   yieldEarned: number;
 }
 
-/** Fetch a depositor's position */
-export async function fetchDepositorPosition(
+/** Fetch a depositor's position in a SPECIFIC pool version. */
+export async function fetchDepositorPositionForVersion(
   connection: Connection,
   depositor: PublicKey,
+  version: LpVersion,
 ): Promise<DepositorInfo | null> {
-  const [pool] = poolPda(LENDER_PUBKEY);
-  const provider = makeDummyProvider(connection, depositor);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const program = new Program(idl as any, provider);
-
-  const [positionPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("position"), pool.toBuffer(), depositor.toBuffer()],
-    program.programId,
-  );
+  const cfg = cfgFor(version);
+  const { pool } = poolAccountsFor(cfg);
+  const program = programForVersion(connection, depositor, cfg);
+  const positionPda = positionPdaFor(pool, depositor, cfg.programId);
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const position = await (program.account as any).depositorPosition.fetch(positionPda) as any;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const poolAccount = await (program.account as any).lendingPool.fetch(pool) as any;
+    const poolAccount = await (program.account as any).lendingPool.fetch(pool) as any;
 
     const shares = position.shares.toNumber();
     const depositedAmount = position.depositedAmount.toNumber();
@@ -120,21 +206,59 @@ export async function fetchDepositorPosition(
       yieldEarned: currentValue - depositedAmount,
     };
   } catch {
-    return null; // No position exists
+    return null; // No position exists in this version
   }
 }
 
-/** Build a deposit transaction (wraps SOL -> wSOL -> deposits into pool) */
+/**
+ * Fetch a depositor's position. Back-compat wrapper — defaults to V1 so
+ * existing callers see IDENTICAL behavior. Pass a version for a specific
+ * pool, or use fetchAllDepositorPositions to sweep every version.
+ */
+export async function fetchDepositorPosition(
+  connection: Connection,
+  depositor: PublicKey,
+  version: LpVersion = "v1",
+): Promise<DepositorInfo | null> {
+  return fetchDepositorPositionForVersion(connection, depositor, version);
+}
+
+export interface VersionedPosition {
+  version: LpVersion;
+  info: DepositorInfo;
+}
+
+/**
+ * Sweep EVERY pool version and return the wallet's non-empty positions
+ * (flagship V4 first). This is how the site finds an LP's money wherever
+ * it lives — so no V1/V2/V3 depositor (incl. the 110-SOL whale) is ever
+ * stranded when new deposits move to V4.
+ */
+export async function fetchAllDepositorPositions(
+  connection: Connection,
+  depositor: PublicKey,
+): Promise<VersionedPosition[]> {
+  const out: VersionedPosition[] = [];
+  for (const version of allLpVersions()) {
+    const info = await fetchDepositorPositionForVersion(connection, depositor, version).catch(() => null);
+    if (info && (info.shares > 0 || info.depositedAmount > 0)) {
+      out.push({ version, info });
+    }
+  }
+  return out;
+}
+
+/** Build a deposit transaction (wraps SOL -> wSOL -> deposits into pool).
+ *  Defaults to the V4 flagship pool — new LP liquidity flows to V4. */
 export async function buildDepositTransaction(
   connection: Connection,
   depositor: PublicKey,
   lamports: number,
+  version: LpVersion = DEPOSIT_VERSION,
 ): Promise<Transaction> {
-  const [pool] = poolPda(LENDER_PUBKEY);
-  const [loanTokenVault] = loanTokenVaultPda(pool);
-  const provider = makeDummyProvider(connection, depositor);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const program = new Program(idl as any, provider);
+  const cfg = cfgFor(version);
+  const { pool, loanTokenVault } = poolAccountsFor(cfg);
+  const program = programForVersion(connection, depositor, cfg);
 
   const wsolAta = getAssociatedTokenAddressSync(
     NATIVE_MINT,
@@ -143,10 +267,7 @@ export async function buildDepositTransaction(
     TOKEN_PROGRAM_ID,
   );
 
-  const [positionPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("position"), pool.toBuffer(), depositor.toBuffer()],
-    program.programId,
-  );
+  const positionPda = positionPdaFor(pool, depositor, cfg.programId);
 
   // Pre: create wSOL ATA + wrap SOL
   const preIxs = [
@@ -217,25 +338,35 @@ export async function buildDepositTransaction(
  * Returns the max shares safely withdrawable in one tx, given the
  * current on-chain depositedAmount. Uses u64::MAX / 2 as the safety
  * floor — half of theoretical max to absorb any rounding drift.
+ *
+ * ONLY V1/V2 need this cap (their withdraw math is u64). V3/V4 use u128
+ * and have no per-tx overflow ceiling → they return u64::MAX (effectively
+ * "no cap", so any position withdraws in a single transaction).
  */
-export function computeMaxSafeWithdrawShares(depositedAmount: number): bigint {
+export function computeMaxSafeWithdrawShares(
+  depositedAmount: number,
+  version: LpVersion = "v1",
+): bigint {
   if (depositedAmount <= 0) return 0n;
   const U64_MAX = 18_446_744_073_709_551_615n;
+  const needsChunking = version === "v1" || version === "v2";
+  if (!needsChunking) return U64_MAX; // V3/V4: u128 math, single-tx of any size
   // / 2 safety divisor: leaves us a comfortable 50% headroom under u64
   return U64_MAX / 2n / BigInt(depositedAmount);
 }
 
-/** Build a withdraw transaction (withdraws wSOL from pool -> unwraps to SOL) */
+/** Build a withdraw transaction (withdraws wSOL from pool -> unwraps to SOL).
+ *  Defaults to V1 (existing whale/legacy LPs); pass the version of the
+ *  pool the wallet actually holds a position in. */
 export async function buildWithdrawTransaction(
   connection: Connection,
   depositor: PublicKey,
   shares: number,
+  version: LpVersion = "v1",
 ): Promise<Transaction> {
-  const [pool] = poolPda(LENDER_PUBKEY);
-  const [loanTokenVault] = loanTokenVaultPda(pool);
-  const provider = makeDummyProvider(connection, depositor);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const program = new Program(idl as any, provider);
+  const cfg = cfgFor(version);
+  const { pool, loanTokenVault } = poolAccountsFor(cfg);
+  const program = programForVersion(connection, depositor, cfg);
 
   const wsolAta = getAssociatedTokenAddressSync(
     NATIVE_MINT,
@@ -244,10 +375,7 @@ export async function buildWithdrawTransaction(
     TOKEN_PROGRAM_ID,
   );
 
-  const [positionPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("position"), pool.toBuffer(), depositor.toBuffer()],
-    program.programId,
-  );
+  const positionPda = positionPdaFor(pool, depositor, cfg.programId);
 
   const preIxs = [
     // Priority fee — pays validators extra per compute unit so the tx
@@ -316,17 +444,13 @@ export async function buildWithdrawBundleTransaction(
   connection: Connection,
   depositor: PublicKey,
   chunkSharesList: number[],
+  version: LpVersion = "v1",
 ): Promise<Transaction> {
-  const [pool] = poolPda(LENDER_PUBKEY);
-  const [loanTokenVault] = loanTokenVaultPda(pool);
-  const provider = makeDummyProvider(connection, depositor);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const program = new Program(idl as any, provider);
+  const cfg = cfgFor(version);
+  const { pool, loanTokenVault } = poolAccountsFor(cfg);
+  const program = programForVersion(connection, depositor, cfg);
   const wsolAta = getAssociatedTokenAddressSync(NATIVE_MINT, depositor, false, TOKEN_PROGRAM_ID);
-  const [positionPda] = PublicKey.findProgramAddressSync(
-    [Buffer.from("position"), pool.toBuffer(), depositor.toBuffer()],
-    program.programId,
-  );
+  const positionPda = positionPdaFor(pool, depositor, cfg.programId);
 
   const tx = new Transaction();
   tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }));
@@ -378,7 +502,7 @@ export async function fetchLiquidatableLoan(
 ): Promise<LiquidatableLoanInfo | null> {
   const provider = makeDummyProvider(connection, LENDER_PUBKEY);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const program = new Program(idl as any, provider);
+  const program = new Program(idlV1 as any, provider);
   let acct;
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -449,7 +573,7 @@ export async function buildLiquidateTransaction(
 
   const provider = makeDummyProvider(connection, keeper);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const program = new Program(idl as any, provider);
+  const program = new Program(idlV1 as any, provider);
 
   // Priority fee + idempotent ATAs. Keeper pays the rent on their own
   // ATA (~0.002 SOL one-time), recouped via the bounty.
