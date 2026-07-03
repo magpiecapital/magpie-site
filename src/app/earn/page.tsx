@@ -14,7 +14,8 @@ import {
   fetchPoolStats,
   fetchDepositorPosition,
   buildDepositTransaction,
-  buildWithdrawTransaction,
+  buildWithdrawBundleTransaction,
+  MAX_WITHDRAW_IXS_PER_TX,
   computeMaxSafeWithdrawShares,
   type PoolStats,
   type DepositorInfo,
@@ -345,7 +346,10 @@ export default function EarnPage() {
       {
         const initialSafeMax = computeMaxSafeWithdrawShares(currentDepositedAmount);
         if (initialSafeMax > 0n && remainingShares > initialSafeMax) {
-          estimatedTotal = Math.ceil(Number(remainingShares) / Number(initialSafeMax));
+          const chunks = Math.ceil(Number(remainingShares) / Number(initialSafeMax));
+          // Chunks are packed MAX_WITHDRAW_IXS_PER_TX at a time into ONE tx = one
+          // approval, so the approval count is chunks / ixs-per-tx (rounded up).
+          estimatedTotal = Math.max(1, Math.ceil(chunks / MAX_WITHDRAW_IXS_PER_TX));
         }
       }
       let lamportsDone = 0;
@@ -353,16 +357,25 @@ export default function EarnPage() {
       while (remainingShares > 0n) {
         chunkStep++;
         const safeMaxShares = computeMaxSafeWithdrawShares(currentDepositedAmount);
-        const thisChunk = safeMaxShares > 0n && remainingShares > safeMaxShares
-          ? safeMaxShares
-          : remainingShares;
-        // Capping at Number.MAX_SAFE_INTEGER is fine — total shares in the pool
-        // is well under 2^53 in any realistic scenario.
-        const chunkShares = Number(thisChunk);
+        // Pack up to MAX_WITHDRAW_IXS_PER_TX chunks into ONE transaction = ONE
+        // wallet approval (instead of one approval per chunk — which ballooned to
+        // hundreds for large positions). Each chunk stays under the per-tx overflow
+        // ceiling; deposited_amount only shrinks as the bundled ixs execute, so if
+        // the first chunk is safe every later one is too. Total shares in the pool
+        // is well under 2^53, so Number() on each chunk is exact.
+        const bundle: number[] = [];
+        let bundleShares = 0n;
+        for (let i = 0; i < MAX_WITHDRAW_IXS_PER_TX; i++) {
+          const left = remainingShares - bundleShares;
+          if (left <= 0n) break;
+          const thisChunk = safeMaxShares > 0n && left > safeMaxShares ? safeMaxShares : left;
+          bundle.push(Number(thisChunk));
+          bundleShares += thisChunk;
+        }
 
         setChunkProgress({ step: chunkStep, total: Math.max(estimatedTotal, chunkStep), lamportsDone });
 
-        const tx = await buildWithdrawTransaction(connection, publicKey, chunkShares);
+        const tx = await buildWithdrawBundleTransaction(connection, publicKey, bundle);
         lastSig = await sendTransaction(tx, connection);
         const r = await confirmWithPoll(lastSig);
         if (!r.ok) {
@@ -371,7 +384,7 @@ export default function EarnPage() {
           } else {
             setTxError(translateTxError(r.err, { flow: "withdraw", sig: lastSig }));
           }
-          // If at least one chunk landed, surface that explicitly so the user
+          // If at least one bundle landed, surface that explicitly so the user
           // knows partial funds arrived before the failure.
           if (chunkStep > 1) {
             setTxResult({ sig: lastSig, type: "withdraw" });
@@ -379,8 +392,8 @@ export default function EarnPage() {
           return;
         }
 
-        remainingShares -= thisChunk;
-        lamportsDone += Math.floor((chunkShares * pool.totalDeposits) / pool.totalShares);
+        remainingShares -= bundleShares;
+        lamportsDone += Math.floor((Number(bundleShares) * pool.totalDeposits) / pool.totalShares);
 
         // Re-read position so the next iteration uses fresh depositedAmount.
         // If lookup fails, fall back to a proportional estimate (worst case
@@ -395,8 +408,8 @@ export default function EarnPage() {
               break;
             }
           } catch {
-            // Proportional estimate: deposit shrinks by chunk-fraction of shares
-            const fraction = Number(thisChunk) / sharesRequested;
+            // Proportional estimate: deposit shrinks by the bundle's share fraction
+            const fraction = Number(bundleShares) / sharesRequested;
             currentDepositedAmount = Math.floor(currentDepositedAmount * (1 - fraction));
           }
         }
