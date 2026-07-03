@@ -314,6 +314,14 @@ export default function EarnPage() {
       });
       return;
     }
+    // Stale-pool guard: if `pool` isn't the active position's pool yet (e.g.
+    // just after switching the pool tab, before refresh() reloads), NEVER
+    // compute shares from the wrong pool's ratio. Refresh + ask to retry.
+    if (!pool || pool.version !== activeVersion) {
+      setTxError({ title: "One moment", body: "Loading this pool's live data — try again in a second." });
+      refresh();
+      return;
+    }
     if (!amount) return;
 
     // Source of truth: if Max was clicked, use the captured exact lamport
@@ -912,7 +920,16 @@ export default function EarnPage() {
                         <button
                           key={p.version}
                           type="button"
-                          onClick={() => setActiveVersion(p.version)}
+                          onClick={() => {
+                            // Reset the form so a stale amount/maxLamports from
+                            // the previous pool can't be submitted against the
+                            // new one before refresh() reloads pool/position.
+                            setActiveVersion(p.version);
+                            setAmount("");
+                            setMaxLamports(null);
+                            setTxError(null);
+                            setTxResult(null);
+                          }}
                           className={`rounded-full border px-2.5 py-1 text-xs font-medium transition ${
                             p.version === activeVersion
                               ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent-deep)]"

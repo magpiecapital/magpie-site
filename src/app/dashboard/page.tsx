@@ -11,7 +11,7 @@ import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
 import { LOAN_TIERS, chooseProgramId, PROGRAM_ID_V4 } from "@/lib/solana/constants";
 import { isOnChainFeedBorrowable } from "@/lib/solana/feed-freshness";
-import { fetchDepositorPosition, type DepositorInfo } from "@/lib/solana/pool";
+import { fetchAllDepositorPositions, type DepositorInfo } from "@/lib/solana/pool";
 import { translateTxError } from "@/lib/solana/tx-error";
 import { PROPOSAL_LIFECYCLES, resolveProposalStatus } from "@/lib/governance";
 import dynamic from "next/dynamic";
@@ -2957,8 +2957,11 @@ function DashboardPageInner() {
   useEffect(() => {
     if (!connected || !publicKey) { setLpPosition(null); return; }
     let cancelled = false;
-    fetchDepositorPosition(connection, publicKey)
-      .then(pos => { if (!cancelled) setLpPosition(pos); })
+    // Sweep every pool version (V1/V2/V3/V4) so a V4 LP sees their position
+    // here too, not just on /earn. Show the flagship-first primary; the
+    // /earn page has the full per-pool breakdown.
+    fetchAllDepositorPositions(connection, publicKey)
+      .then(all => { if (!cancelled) setLpPosition(all[0]?.info ?? null); })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [connected, publicKey, connection]);

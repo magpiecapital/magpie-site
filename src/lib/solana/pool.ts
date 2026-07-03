@@ -127,6 +127,9 @@ export interface PoolStats {
   paused: boolean;
   availableLiquidity: number;
   utilizationRate: number;
+  /** Which pool version these stats are for — lets the UI detect a stale
+   *  pool/active-version mismatch and refuse to act on the wrong pool. */
+  version: LpVersion;
 }
 
 /** Fetch on-chain pool stats. Defaults to the V4 flagship pool (where new
@@ -157,6 +160,7 @@ export async function fetchPoolStats(
     paused: poolAccount.paused,
     availableLiquidity: totalDeposits - totalBorrowed,
     utilizationRate: totalDeposits > 0 ? totalBorrowed / totalDeposits : 0,
+    version: cfg.version,
   };
 }
 
