@@ -443,7 +443,7 @@ function LoanCalculator({ memeTiers, rwaTiers, hasRwa }: LoanCalculatorProps) {
           step={100}
           value={collateralValue}
           onChange={(e) => setCollateralValue(Number(e.target.value))}
-          className="mt-2 w-full accent-[var(--accent)]"
+          className="magpie-range mt-2 w-full h-2.5 rounded-full cursor-pointer"
         />
         <div className="flex justify-between text-[10px] text-[var(--ink-faint)]">
           <span>$100</span>
