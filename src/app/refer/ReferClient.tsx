@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { GiftIcon } from "@/components/icons";
 import { Header } from "@/components/Header";
+import { siteSetReferralCode } from "@/lib/solana/site-referral";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
+const BOT_API_URL =
+  process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
 // Post-MGP-001 split, ratified 2026-06-13: 70/10/10/10.
 // Referrer share is now 10% (up from pre-MGP-001 5%). When the borrower
 // has no referrer, the slice rolls back into the holder pool.
@@ -38,10 +41,43 @@ function fmtSol(lamports: string | number) {
 }
 
 export default function ReferClient() {
-  const { connected, publicKey } = useWallet();
+  const { connected, publicKey, signMessage } = useWallet();
   const [data, setData] = useState<ReferralData | null>(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [customInput, setCustomInput] = useState("");
+  const [settingCode, setSettingCode] = useState(false);
+  const [codeMsg, setCodeMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  async function handleSetCode() {
+    if (!publicKey || !signMessage) {
+      setCodeMsg({ ok: false, text: "Connect a wallet that supports message signing (e.g. Phantom)." });
+      return;
+    }
+    const code = customInput.trim();
+    if (code.length < 3) return;
+    setSettingCode(true);
+    setCodeMsg(null);
+    try {
+      const res = await siteSetReferralCode({
+        botApiUrl: BOT_API_URL,
+        signerPubkey: publicKey.toBase58(),
+        signMessage,
+        code,
+      });
+      setCodeMsg({ ok: true, text: `Done — your code is now “${res.code}”.` });
+      setCustomInput("");
+      // Refresh the displayed code + share links.
+      const j = await fetch(`/api/v1/referrals?wallet=${publicKey.toBase58()}`)
+        .then((r) => r.json())
+        .catch(() => null);
+      if (j?.data) setData(j.data);
+    } catch (e) {
+      setCodeMsg({ ok: false, text: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSettingCode(false);
+    }
+  }
 
   useEffect(() => {
     if (!connected || !publicKey) {
@@ -185,10 +221,38 @@ export default function ReferClient() {
                 <div className="mt-4 text-xs text-[var(--ink-faint)]">
                   Code: <span className="font-mono text-[var(--ink-soft)]">{data.code}</span>
                 </div>
-                <div className="mt-1.5 text-xs text-[var(--ink-faint)]">
-                  ✏️ Want a custom code (a nickname instead)? Open the{" "}
-                  <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-deep)]">Telegram bot</a>{" "}
-                  and run <span className="font-mono text-[var(--ink-soft)]">/refer set yourname</span>.
+                <div className="mt-3">
+                  <label className="mb-1.5 block text-xs text-[var(--ink-faint)]">
+                    ✏️ Set a custom code (use a nickname instead)
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customInput}
+                      onChange={(e) => { setCustomInput(e.target.value); setCodeMsg(null); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") handleSetCode(); }}
+                      placeholder="yourname"
+                      maxLength={20}
+                      spellCheck={false}
+                      className="min-w-0 flex-1 rounded-lg border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3 py-2 font-mono text-sm focus:border-[var(--accent)] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSetCode}
+                      disabled={settingCode || customInput.trim().length < 3}
+                      className="btn-accent whitespace-nowrap px-4 text-sm disabled:opacity-50"
+                    >
+                      {settingCode ? "Signing…" : "Set"}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[11px] text-[var(--ink-faint)]">
+                    3–20 chars · letters, numbers, <span className="font-mono">_</span> or <span className="font-mono">-</span> · you&apos;ll sign a free message (no SOL, no transaction). Changeable once a week. Prefer Telegram? Run <span className="font-mono text-[var(--ink-soft)]">/refer set yourname</span>.
+                  </p>
+                  {codeMsg && (
+                    <p className={`mt-1 text-xs ${codeMsg.ok ? "text-[var(--accent-deep)]" : "text-[var(--bad)]"}`}>
+                      {codeMsg.text}
+                    </p>
+                  )}
                 </div>
               </div>
 
