@@ -33,9 +33,10 @@ export function RefCapture() {
       const params = new URLSearchParams(window.location.search);
       const raw = params.get("ref");
       if (!raw) return;
-      // Same sanitization as the bot's auto-bootstrap regex.
+      // Same sanitization as the bot's regex. Widened for vanity codes:
+      // 3–20 chars, letters/numbers/_/- (Telegram-deep-link-safe charset).
       const clean = raw.trim().toUpperCase();
-      if (!/^[A-Z0-9]{4,16}$/.test(clean)) return;
+      if (!/^[A-Z0-9_-]{3,20}$/.test(clean)) return;
       window.localStorage.setItem(REF_STORAGE_KEY, clean);
       window.localStorage.setItem(REF_STORED_AT_KEY, String(Date.now()));
     } catch {
