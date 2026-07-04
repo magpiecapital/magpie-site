@@ -55,6 +55,16 @@ export const RWA_CATEGORIES = new Set<string>(["stock", "etf", "metal"]);
 const ROUTE_RWA_TO_V3 =
   process.env.NEXT_PUBLIC_ROUTE_RWA_TO_V3 === "true";
 
+// Plain (non-exit-armed) memecoins default to V1, which has NO on-chain TWAP
+// pump gate (V3/V4 do). Setting NEXT_PUBLIC_ROUTE_MEMECOINS_TO_V3=true routes
+// them to V3 for that on-chain protection instead. MUST be flipped in lock-step
+// with the bot's ROUTE_MEMECOINS_TO_V3 (routing + cosign guard) and the
+// attestor warming V3 memecoin feeds — otherwise the site/bot disagree or the
+// first V3 memecoin borrow hits TwapInsufficientHistory. Default off = V1,
+// identical to today. See security audit 2026-07-04 #4.
+const ROUTE_MEMECOINS_TO_V3 =
+  process.env.NEXT_PUBLIC_ROUTE_MEMECOINS_TO_V3 === "true";
+
 // V4 IS EXIT-ONLY routing (operator-mandated 2026-06-16 PM, PERMANENT).
 // Supersedes the 2026-06-15 "V4 unconditional default" direction.
 //
@@ -82,6 +92,9 @@ export function chooseProgramId(
   if (category && RWA_CATEGORIES.has(category)) {
     return ROUTE_RWA_TO_V3 ? PROGRAM_ID_V3 : PROGRAM_ID_V2;
   }
+  // Plain memecoin: V3 (on-chain TWAP) only when the operator opts in AND V3 is
+  // configured; otherwise V1, exactly as today.
+  if (ROUTE_MEMECOINS_TO_V3 && PROGRAM_ID_V3) return PROGRAM_ID_V3;
   return PROGRAM_ID;
 }
 
