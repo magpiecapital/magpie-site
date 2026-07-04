@@ -185,6 +185,11 @@ export default function ReferClient() {
                 <div className="mt-4 text-xs text-[var(--ink-faint)]">
                   Code: <span className="font-mono text-[var(--ink-soft)]">{data.code}</span>
                 </div>
+                <div className="mt-1.5 text-xs text-[var(--ink-faint)]">
+                  ✏️ Want a custom code (a nickname instead)? Open the{" "}
+                  <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--accent-deep)]">Telegram bot</a>{" "}
+                  and run <span className="font-mono text-[var(--ink-soft)]">/refer set yourname</span>.
+                </div>
               </div>
 
               <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 sm:p-8">
