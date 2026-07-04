@@ -1094,10 +1094,10 @@ export default function EarnPage() {
                 <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface)] p-3 font-mono text-[12px] text-[var(--ink)] sm:text-[13px]">
                   withdraw = your_shares × (current_vault_balance / total_shares)
                   <br/>
-                  loyalty_payout = (your_shares × seconds_held / total_share_seconds) × loyalty_pool
+                  loyalty_payout = (your_shares × seconds_held / community_share_seconds) × loyalty_pool
                 </div>
                 <p>
-                  Withdrawals are still instant and pro-rata — you can exit any time the vault has liquidity. The LP loyalty payout pays separately on the same random 5–10 day cadence as $MAGPIE holder distributions, weighted by <span className="font-mono text-[12px]">shares × time held</span> so long-tenured LPs earn proportionally more.
+                  Withdrawals are still instant and pro-rata — you can exit any time the vault has liquidity. The LP loyalty payout pays separately on the same random 5–10 day cadence as $MAGPIE holder distributions, weighted by <span className="font-mono text-[12px]">shares × time held</span> so long-tenured LPs earn proportionally more. The protocol&apos;s own seed liquidity is <span className="font-semibold text-[var(--ink)]">fully excluded</span> from the calculation — it earns no LP fees, so the entire 10% pool is split among community LP providers.
                 </p>
 
                 <h4 className="font-semibold pt-2 text-[var(--ink)]">Concrete example (post-MGP-001 model)</h4>
