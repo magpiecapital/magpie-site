@@ -29,21 +29,22 @@ conducted in line with this policy.
 
 ## Audits in progress
 
-Magpie's smart-contract audit process is **actively underway**. Independent
-security firms have been **engaged to review** the protocol's on-chain programs;
-**reports will be published when complete**. The protocol is **not yet audited** —
-please do not treat the absence of a published report as a completed review.
+Magpie's smart-contract audit process is **actively underway**. After
+evaluating multiple Solana-native and cross-chain security firms, **Sec3
+(formerly Soteria) has been selected to audit Magpie V4**, and that engagement
+is **now in progress**. Reports will be published when complete. The protocol
+is **not yet audited** — please do not treat the absence of a published report
+as a completed review.
 
 | Firm | Engagement status |
 | --- | --- |
-| **Sec3** | Repository access granted; review underway (formal scope being finalized). |
-| **Hashlock** | Accepted collaborator; formal proposal received — engagement being finalized. |
-| **QuillAudits** | Repository access accepted; review underway. |
-| **OtterSec** | Invited to audit; awaiting response. |
-| **Neodyme** | Invited to audit; awaiting response. |
+| **Sec3** | **Selected auditor — auditing V4. Engagement active; review in progress.** Scope: the V4 on-chain program (`magpiecapital/magpie-v4`). |
+
+Audits of the remaining on-chain programs (V3, then V1) will follow. Other
+Solana-native and cross-chain firms were evaluated during selection.
 
 The audit-target program, `magpiecapital/magpie-v4`, is kept **private** during
-pre-audit review, and every engaged firm is granted **read-only** access.
+review, and the engaged firm is granted **read-only** access.
 
 Completed reports will be published at:
 **https://github.com/magpiecapital/audits**
@@ -58,5 +59,5 @@ behavior; off-chain services defer to it.
 ---
 
 _This policy is maintained as a single source of truth and updated across all
-Magpie surfaces together. Status: audit process underway · firms engaged for
-review · report shared when complete._
+Magpie surfaces together. Status: V4 audit in progress with Sec3 · further
+programs to follow · report shared when complete._
