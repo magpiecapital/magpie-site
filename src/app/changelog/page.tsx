@@ -19,6 +19,19 @@ interface Entry {
 
 const ENTRIES: Entry[] = [
   {
+    date: "July 7, 2026",
+    tag: "Governance",
+    title: "Reward distribution #4 — 7.76 SOL paid to $MAGPIE holders and LP providers",
+    bullets: [
+      "The 4th protocol reward cycle is complete: 7.76 SOL distributed on-chain from the rewards distribution wallet (CHCAMWtnmgyjsJqHcq5MdeDdg4X3Ux1XAwA2rMCXj1Ac). Every payment is a verifiable Solana transfer",
+      "Holder pool: 7.2938 SOL split pro-rata across 1,324 $MAGPIE holders by each wallet's share of eligible supply at snapshot — held + collateralized $MAGPIE counts; LP-only wallets, pool PDAs, and known non-wallet accounts are excluded",
+      "LP loyalty pool: 0.4659 SOL paid to 13 SOL liquidity providers, weighted by shares × time supplied. Two rewards fell below Solana's rent-exempt minimum and couldn't be delivered to empty accounts — those slivers roll forward",
+      "Rewards follow the MGP-001-ratified 70 / 10 / 10 / 10 split — 70% $MAGPIE holders, 10% LP loyalty, 10% referrers, 10% protocol reserve — accrued from protocol fees and defaulted-loan profit over the cycle",
+      "Snapshot timing stays private and randomized by design: the exact moment is unpredictable, so no one can front-run it with a last-second buy. Only aggregate results are published",
+      "One ledger across every surface — /stats, per-wallet dashboards, and Pip all read the same pool figures, so 'rewards earned' and the pool totals reconcile within seconds of the cycle closing",
+    ],
+  },
+  {
     date: "June 18, 2026",
     tag: "Security",
     title: "Program upgrade authority moved to a hardware-key multisig with a 48h public timelock",
