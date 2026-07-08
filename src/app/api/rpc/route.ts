@@ -115,11 +115,23 @@ const ALLOWED_METHODS = new Set([
 
 const MAX_BODY_BYTES = 16 * 1024;
 const RATE_LIMIT_MAX = 60;
+// Mutating/broadcast methods (sendTransaction) and expensive relays
+// (simulateTransaction) get a much tighter per-IP ceiling than read calls —
+// nobody legitimately broadcasts/simulates 60x/min from a single client, and
+// keeping this low limits how much anyone can abuse the paid RPC as an
+// open broadcast/simulate relay (audit finding #15). Read methods keep the
+// generous RATE_LIMIT_MAX; mutating methods use RATE_LIMIT_MUTATING_MAX.
+const RATE_LIMIT_MUTATING_MAX = 12;
 const RATE_LIMIT_WINDOW_MS = 60_000;
+// Methods that should count against the tighter mutating/relay budget.
+const MUTATING_METHODS = new Set(["sendTransaction", "simulateTransaction"]);
 // In-edge-instance rate counter. Vercel edge spawns many instances, so this
 // is per-instance — a generous overall cap, but still bounds any single
 // attacker IP. Defense-in-depth alongside Helius's own limits.
+// Separate buckets keep the low mutating budget from being consumed (or
+// masked) by high-volume read traffic from the same IP.
 const ipBuckets = new Map<string, { count: number; resetAt: number }>();
+const ipMutatingBuckets = new Map<string, { count: number; resetAt: number }>();
 
 function allowOriginHeader(origin: string | null): string {
   if (!origin) return "https://magpie.capital";
@@ -155,20 +167,32 @@ function clientIp(req: Request): string {
   );
 }
 
-function checkRate(ip: string): boolean {
+function checkRateBucket(
+  buckets: Map<string, { count: number; resetAt: number }>,
+  ip: string,
+  max: number,
+): boolean {
   const now = Date.now();
-  const bucket = ipBuckets.get(ip);
+  const bucket = buckets.get(ip);
   if (!bucket || bucket.resetAt < now) {
-    ipBuckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    buckets.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
     // Periodic eviction so the map can't grow forever (audit finding API#6).
-    if (ipBuckets.size > 5000) {
-      for (const [k, v] of ipBuckets) if (v.resetAt < now) ipBuckets.delete(k);
+    if (buckets.size > 5000) {
+      for (const [k, v] of buckets) if (v.resetAt < now) buckets.delete(k);
     }
     return true;
   }
-  if (bucket.count >= RATE_LIMIT_MAX) return false;
+  if (bucket.count >= max) return false;
   bucket.count++;
   return true;
+}
+
+function checkRate(ip: string): boolean {
+  return checkRateBucket(ipBuckets, ip, RATE_LIMIT_MAX);
+}
+
+function checkMutatingRate(ip: string): boolean {
+  return checkRateBucket(ipMutatingBuckets, ip, RATE_LIMIT_MUTATING_MAX);
 }
 
 export async function OPTIONS(req: Request) {
@@ -203,6 +227,7 @@ export async function POST(req: Request) {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers });
   }
   const calls = Array.isArray(payload) ? payload : [payload];
+  let mutatingCalls = 0;
   for (const c of calls) {
     const method = (c as { method?: unknown })?.method;
     if (typeof method !== "string" || !ALLOWED_METHODS.has(method)) {
@@ -210,6 +235,16 @@ export async function POST(req: Request) {
         JSON.stringify({ error: "Method not allowed", method: typeof method === "string" ? method : null }),
         { status: 403, headers },
       );
+    }
+    if (MUTATING_METHODS.has(method)) mutatingCalls++;
+  }
+
+  // Tighter per-IP budget for broadcast/simulate relay abuse (audit #15).
+  // Charge one mutating-bucket token per mutating call in the (possibly
+  // batched) request so a single batch can't sidestep the limit.
+  for (let i = 0; i < mutatingCalls; i++) {
+    if (!checkMutatingRate(ip)) {
+      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), { status: 429, headers });
     }
   }
 
