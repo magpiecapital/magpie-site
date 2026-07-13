@@ -211,9 +211,9 @@ export default function StatsClient() {
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
         <div className="mx-auto max-w-6xl px-5 pt-12 pb-8 sm:px-6 md:pt-24 md:pb-16">
-          <div className="fade-up mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-[11px] font-medium shadow-sm sm:text-xs">
-            <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-            <span className="text-[var(--ink-faint)]">Live · auto-refreshes every 60s</span>
+          <div className="live-pill fade-up mb-5 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-medium sm:text-xs">
+            <span className="live-dot" />
+            <span className="text-[var(--ink-soft)]">Live · auto-refreshes every 60s</span>
           </div>
           <h1 className="fade-up fade-up-1 font-display text-[2.25rem] font-medium leading-[1.05] tracking-[-0.03em] sm:text-5xl md:text-7xl">
             Protocol Transparency
@@ -600,7 +600,7 @@ function SectionHead({
 }) {
   return (
     <div className="mb-6 flex flex-col gap-1.5 sm:mb-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-      <h2 className="font-display text-xl font-medium tracking-[-0.02em] sm:text-2xl md:text-3xl">
+      <h2 className="section-eyebrow font-display text-xl font-medium tracking-[-0.02em] sm:text-2xl md:text-3xl">
         {title}
       </h2>
       {tagNode ?? (tag ? (
@@ -626,11 +626,12 @@ function HeadlineStat({
   highlight?: boolean;
 }) {
   return (
-    <div className={`card card-hover p-4 sm:p-6 ${highlight ? "ring-2 ring-[var(--accent)]" : ""}`}>
-      <div className="text-[9px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-[10px] sm:tracking-[0.22em]">
+    <div className={`stat-card p-4 sm:p-6 ${highlight ? "stat-flagship" : ""}`}>
+      {highlight && <span className="stat-sheen" aria-hidden />}
+      <div className="stat-eyebrow text-[9px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-[10px] sm:tracking-[0.22em]">
         {label}
       </div>
-      <div className={`mt-2 font-display tabular text-2xl font-medium leading-[1.05] tracking-[-0.03em] sm:mt-3 sm:text-4xl md:text-5xl ${highlight ? "text-[var(--accent-deep)]" : ""}`}>
+      <div className={`num-in mt-2 font-display tabular text-2xl font-medium leading-[1.05] tracking-[-0.03em] sm:mt-3 sm:text-4xl md:text-5xl ${highlight ? "text-[var(--accent-deep)]" : ""}`}>
         {value}
       </div>
       {sub && (
@@ -642,9 +643,9 @@ function HeadlineStat({
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="card p-4 sm:p-5">
-      <div className="text-[9px] uppercase tracking-[0.14em] text-[var(--ink-faint)] sm:text-[10px] sm:tracking-[0.18em]">{label}</div>
-      <div className="mt-1.5 font-display tabular text-lg font-medium leading-[1.05] tracking-[-0.02em] sm:mt-2 sm:text-2xl md:text-3xl">{value}</div>
+    <div className="stat-card p-4 sm:p-5">
+      <div className="stat-eyebrow text-[9px] uppercase tracking-[0.14em] text-[var(--ink-faint)] sm:text-[10px] sm:tracking-[0.18em]">{label}</div>
+      <div className="num-in mt-1.5 font-display tabular text-lg font-medium leading-[1.05] tracking-[-0.02em] sm:mt-2 sm:text-2xl md:text-3xl">{value}</div>
       {sub && <div className="mt-1 text-[11px] leading-snug text-[var(--ink-soft)] sm:text-xs">{sub}</div>}
     </div>
   );
