@@ -511,3 +511,121 @@ main, header, footer, section {
   outline: 2px solid var(--d-accent, var(--accent, #f7c948));
   outline-offset: 2px;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Stats page — "billion-dollar" premium polish (COSMETIC ONLY).
+   New scoped classes; no changes to any data/number rendering.
+   Mode-adaptive via var(--accent) so light + dark both look right.
+   ───────────────────────────────────────────────────────────── */
+
+/* Premium stat tile: subtle top-of-card highlight, hairline accent
+   edge, and a refined hover lift with an amber-tinted shadow. Used
+   in place of the plain .card on every stat on the page. */
+.stat-card {
+  position: relative;
+  background:
+    linear-gradient(180deg, rgba(247, 201, 72, 0.045) 0%, transparent 46%),
+    var(--bg-elevated);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
+  transition: transform .3s cubic-bezier(.22, 1, .36, 1), box-shadow .3s ease, border-color .3s ease;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(247, 201, 72, 0.55), transparent);
+  opacity: .8;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--hairline-strong);
+}
+
+/* Small amber tick that precedes an eyebrow label — the "designed
+   system" cue that reads as high-touch. */
+.stat-eyebrow { display: inline-flex; align-items: center; gap: .55em; }
+.stat-eyebrow::before {
+  content: "";
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  flex: none;
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+}
+
+/* Flagship tile — the zero-liquidations hero stat. Amber ring, soft
+   glow, and a slow diagonal sheen so it reads as the marquee number. */
+.stat-flagship {
+  border-color: rgba(247, 201, 72, 0.5);
+  box-shadow: var(--shadow-amber);
+}
+.stat-flagship::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 90% 70% at 82% -10%, rgba(247, 201, 72, 0.16), transparent 68%);
+}
+.stat-sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.stat-sheen::before {
+  content: "";
+  position: absolute;
+  top: -60%;
+  left: -30%;
+  width: 40%;
+  height: 220%;
+  transform: rotate(18deg);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: sheen 6.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stat-sheen::before { animation: none; opacity: 0; }
+}
+@keyframes sheen {
+  0%   { transform: translateX(0) rotate(18deg); opacity: 0; }
+  8%   { opacity: 1; }
+  22%  { transform: translateX(650%) rotate(18deg); opacity: 0; }
+  100% { transform: translateX(650%) rotate(18deg); opacity: 0; }
+}
+
+/* Accent rule that leads a section title — cohesive section rhythm. */
+.section-eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 24px;
+  height: 3px;
+  border-radius: 3px;
+  margin-right: .75rem;
+  vertical-align: 0.28em;
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+}
+
+/* Number entrance — a soft de-blur/rise as values land. Purely an
+   entrance animation; the value itself is never altered. */
+.num-in { animation: numIn .7s cubic-bezier(.22, 1, .36, 1) both; }
+@media (prefers-reduced-motion: reduce) { .num-in { animation: none; } }
+@keyframes numIn {
+  from { opacity: 0; filter: blur(7px); transform: translateY(5px); }
+  to   { opacity: 1; filter: blur(0);   transform: translateY(0); }
+}
+
+/* Glassy live pill for the hero — layered ring + soft amber halo. */
+.live-pill {
+  position: relative;
+  background: linear-gradient(180deg, var(--bg-elevated), var(--surface));
+  border: 1px solid var(--hairline-strong);
+  box-shadow: 0 1px 2px rgba(30, 22, 0, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(6px);
+}
