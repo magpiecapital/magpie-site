@@ -113,3 +113,95 @@ export function RefreshIcon(props: IconProps = {}) {
     </svg>
   );
 }
+
+/** Shield with check — "zero liquidations / protected / safe" flagship stat. */
+export function ShieldCheckIcon(props: IconProps = {}) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3 L20 6 V11 C20 16 16.5 19.5 12 21 C7.5 19.5 4 16 4 11 V6 Z" />
+      <path d="M8.5 12 L11 14.5 L15.5 9.5" />
+    </svg>
+  );
+}
+
+/** Plain shield — "verify / security". */
+export function ShieldIcon(props: IconProps = {}) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3 L20 6 V11 C20 16 16.5 19.5 12 21 C7.5 19.5 4 16 4 11 V6 Z" />
+    </svg>
+  );
+}
+
+/** Gauge / meter — "rate" stats (default rate, health). */
+export function GaugeIcon(props: IconProps = {}) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 19 a8 8 0 1 1 16 0" />
+      <path d="M12 19 L15.5 10.5" />
+      <circle cx="12" cy="19" r="1.1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+/** Two people — "users / community". */
+export function UsersIcon(props: IconProps = {}) {
+  return (
+    <svg {...base(props)}>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3.5 20 a5.5 5.5 0 0 1 11 0" />
+      <path d="M16 5.5 a3 3 0 0 1 0 5" />
+      <path d="M17.5 14.5 a5.5 5.5 0 0 1 3 5" />
+    </svg>
+  );
+}
+
+/** Stacked layers — "loans / collateral in use". */
+export function LayersIcon(props: IconProps = {}) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3 L21 8 L12 13 L3 8 Z" />
+      <path d="M3 12 L12 17 L21 12" />
+      <path d="M3 16 L12 21 L21 16" />
+    </svg>
+  );
+}
+
+/** Stacked coins — "borrow volume / SOL". */
+export function CoinsIcon(props: IconProps = {}) {
+  return (
+    <svg {...base(props)}>
+      <ellipse cx="12" cy="6" rx="7" ry="3" />
+      <path d="M5 6 V12 C5 13.7 8.1 15 12 15 C15.9 15 19 13.7 19 12 V6" />
+      <path d="M5 12 V18 C5 19.7 8.1 21 12 21 C15.9 21 19 19.7 19 18 V12" />
+    </svg>
+  );
+}
+
+/** Lightning bolt — "auto-sell engine / agents / speed". */
+export function BoltIcon(props: IconProps = {}) {
+  return (
+    <svg {...base(props)}>
+      <path d="M13 3 L5 13 H11 L10 21 L19 10 H13 Z" />
+    </svg>
+  );
+}
+
+/** Flame — "burns / default economics". */
+export function FlameIcon(props: IconProps = {}) {
+  return (
+    <svg {...base(props)}>
+      <path d="M12 3 C15 7 17.5 9 17.5 13.5 A5.5 5.5 0 0 1 6.5 13.5 C6.5 11.5 7.5 10 8.5 9 C8.7 11 9.8 11.8 10.5 12 C10 9.5 11 5.5 12 3 Z" />
+    </svg>
+  );
+}
+
+/** Up-and-to-the-right trend — "growth". */
+export function TrendUpIcon(props: IconProps = {}) {
+  return (
+    <svg {...base(props)}>
+      <path d="M4 16 L10 10 L13 13 L20 6" />
+      <path d="M15 6 H20 V11" />
+    </svg>
+  );
+}
