@@ -6,6 +6,10 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { LiveActivityFeed } from "@/components/LiveActivityFeed";
 import { CollateralBreakdown } from "@/components/CollateralBreakdown";
+import {
+  ShieldCheckIcon, ShieldIcon, GaugeIcon, UsersIcon, LayersIcon, CoinsIcon,
+  BoltIcon, FlameIcon, TrendUpIcon, PulseIcon, GiftIcon,
+} from "@/components/icons";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -225,26 +229,33 @@ export default function StatsClient() {
         </div>
       </section>
 
-      {/* ── Headline numbers ── */}
+      {/* ── Headline scoreboard — unified framed board (matches the homepage
+            hero-stat pattern), icons per metric, zero-liquidations as the
+            amber flagship cell. Structure/visuals only; every value is the
+            same fmtNum/data path as before. ── */}
       <section className="mx-auto max-w-6xl px-5 pb-8 sm:px-6 sm:pb-12">
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-          <HeadlineStat
+        <div className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-md lg:grid-cols-4">
+          <ScoreCell
+            icon={<ShieldCheckIcon className="h-5 w-5" />}
             label="Liquidations · Lifetime"
             value={data ? fmtNum(data.headline.liquidations_lifetime) : "—"}
             sub={data && data.headline.liquidations_lifetime === 0 ? "Zero. Ever." : "Across protocol history"}
-            highlight={!!data && data.headline.liquidations_lifetime === 0}
+            flagship={!!data && data.headline.liquidations_lifetime === 0}
           />
-          <HeadlineStat
+          <ScoreCell
+            icon={<GaugeIcon className="h-5 w-5" />}
             label="Default Rate"
             value={data ? `${data.headline.default_rate_pct}%` : "—"}
             sub="Liquidated / finalized loans"
           />
-          <HeadlineStat
+          <ScoreCell
+            icon={<UsersIcon className="h-5 w-5" />}
             label="Total Users"
             value={data ? fmtNum(data.headline.users) : "—"}
             sub={data ? `+${data.users.new_24h} in 24h` : ""}
           />
-          <HeadlineStat
+          <ScoreCell
+            icon={<LayersIcon className="h-5 w-5" />}
             label="Loans Lifetime"
             value={data ? fmtNum(data.headline.loans_lifetime) : "—"}
             sub={data ? `+${data.loans.new_24h} in 24h` : ""}
@@ -256,6 +267,7 @@ export default function StatsClient() {
       <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
         <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
           <SectionHead
+            icon={<CoinsIcon className="h-5 w-5" />}
             title="Borrow activity"
             tag="SOL borrowed"
           />
@@ -270,7 +282,7 @@ export default function StatsClient() {
 
       {/* ── Collateral breakdown — every token currently in use ── */}
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
-        <SectionHead title="Collateral in use" tag="Most-used first" />
+        <SectionHead icon={<LayersIcon className="h-5 w-5" />} title="Collateral in use" tag="Most-used first" />
         <p className="mb-5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
           Every token with at least one loan against it. Active count, lifetime count, and SOL borrowed — all verifiable on-chain.
         </p>
@@ -280,6 +292,7 @@ export default function StatsClient() {
       {/* ── Live activity feed — the protocol breathing ── */}
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
         <SectionHead
+          icon={<PulseIcon className="h-5 w-5" />}
           title="Live activity"
           tagNode={
             <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-xs">
@@ -293,7 +306,7 @@ export default function StatsClient() {
 
       {/* ── x402 agent lending — autonomous AI agents borrowing via pay-per-call ── */}
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
-        <SectionHead title="x402 agent lending" tag="Autonomous agents · pay-per-call" />
+        <SectionHead icon={<BoltIcon className="h-5 w-5" />} title="x402 agent lending" tag="Autonomous agents · pay-per-call" />
         <p className="mb-5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
           Magpie is borrowable by autonomous AI agents over the{" "}
           <Link href="/x402" className="underline hover:text-[var(--ink)]">x402</Link>{" "}
@@ -343,6 +356,7 @@ export default function StatsClient() {
           5-10 day window kills timing arbitrage by itself. */}
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
         <SectionHead
+          icon={<GiftIcon className="h-5 w-5" />}
           title="Snapshot rewards"
           tag="Accruing toward next distribution"
         />
@@ -399,6 +413,7 @@ export default function StatsClient() {
       {(magpieBurned || defaultedProfit) && (
         <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
           <SectionHead
+            icon={<FlameIcon className="h-5 w-5" />}
             title="Default economics"
             tag="Burns + profit-to-rewards"
           />
@@ -454,7 +469,7 @@ export default function StatsClient() {
       {/* ── User-growth strip ── */}
       <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
         <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
-          <SectionHead title="User growth" tag="New users" />
+          <SectionHead icon={<TrendUpIcon className="h-5 w-5" />} title="User growth" tag="New users" />
           <div className="grid grid-cols-3 gap-3 sm:gap-5">
             <Stat label="Last 24h" value={data ? `+${fmtNum(data.users.new_24h)}` : "—"} sub="New signups" />
             <Stat label="Last 7d" value={data ? `+${fmtNum(data.users.new_7d)}` : "—"} sub="Weekly cohort" />
@@ -471,6 +486,7 @@ export default function StatsClient() {
           snapshot reward pools alongside borrow origination. */}
       <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
         <SectionHead
+          icon={<GaugeIcon className="h-5 w-5" />}
           title="Auto-sell engine"
           tag="Watching your auto-sells 24/7"
         />
@@ -593,16 +609,25 @@ function SectionHead({
   title,
   tag,
   tagNode,
+  icon,
 }: {
   title: string;
   tag?: string;
   tagNode?: ReactNode;
+  icon?: ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-1.5 sm:mb-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
-      <h2 className="section-eyebrow font-display text-xl font-medium tracking-[-0.02em] sm:text-2xl md:text-3xl">
-        {title}
-      </h2>
+    <div className="mb-6 flex flex-col gap-2 sm:mb-8 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+      <div className="flex items-center gap-3">
+        {icon && (
+          <span className="inline-flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-[var(--surface)] text-[var(--accent-deep)] ring-1 ring-[var(--hairline-strong)]">
+            {icon}
+          </span>
+        )}
+        <h2 className="font-display text-xl font-medium tracking-[-0.02em] sm:text-2xl md:text-3xl">
+          {title}
+        </h2>
+      </div>
       {tagNode ?? (tag ? (
         <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-xs">
           {tag}
@@ -614,29 +639,49 @@ function SectionHead({
 
 /* ─── Sub-components ─── */
 
-function HeadlineStat({
+/**
+ * ScoreCell — one cell of the headline scoreboard board. The parent uses
+ * gap-px on a hairline background so cells read as one framed instrument
+ * panel (the same language as the homepage hero stats). The flagship cell
+ * (zero liquidations) gets an amber wash, an amber icon badge, a glowing
+ * value and a slow sheen so it's unmistakably the marquee number.
+ */
+function ScoreCell({
+  icon,
   label,
   value,
   sub,
-  highlight = false,
+  flagship = false,
 }: {
+  icon: ReactNode;
   label: string;
   value: string;
   sub?: string;
-  highlight?: boolean;
+  flagship?: boolean;
 }) {
   return (
-    <div className={`stat-card p-4 sm:p-6 ${highlight ? "stat-flagship" : ""}`}>
-      {highlight && <span className="stat-sheen" aria-hidden />}
-      <div className="stat-eyebrow text-[9px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-[10px] sm:tracking-[0.22em]">
-        {label}
-      </div>
-      <div className={`num-in mt-2 font-display tabular text-2xl font-medium leading-[1.05] tracking-[-0.03em] sm:mt-3 sm:text-4xl md:text-5xl ${highlight ? "text-[var(--accent-deep)]" : ""}`}>
+    <div className={`relative overflow-hidden p-5 sm:p-6 md:p-7 ${flagship ? "score-flagship" : "bg-[var(--bg-elevated)]"}`}>
+      {flagship && <span className="stat-sheen" aria-hidden />}
+      <span
+        className={`inline-flex h-9 w-9 items-center justify-center rounded-xl ${
+          flagship
+            ? "bg-[var(--accent)] text-[var(--accent-ink)] shadow-sm"
+            : "bg-[var(--surface)] text-[var(--ink-soft)] ring-1 ring-[var(--hairline)]"
+        }`}
+      >
+        {icon}
+      </span>
+      <div
+        className={`num-in mt-4 font-display tabular text-3xl font-medium leading-[1.0] tracking-[-0.03em] sm:text-4xl md:text-5xl ${
+          flagship ? "text-[var(--accent-deep)]" : ""
+        }`}
+      >
         {value}
       </div>
-      {sub && (
-        <div className="mt-1.5 text-[11px] leading-snug text-[var(--ink-soft)] sm:mt-2 sm:text-xs">{sub}</div>
-      )}
+      <div className="mt-2 text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] sm:text-[11px] sm:tracking-[0.18em]">
+        {label}
+      </div>
+      {sub && <div className="mt-1 text-[11px] leading-snug text-[var(--ink-soft)] sm:text-xs">{sub}</div>}
     </div>
   );
 }
@@ -778,7 +823,7 @@ const ONCHAIN_ACCOUNTS: { label: string; address: string; note: string }[] = [
 function VerifyOnChain() {
   return (
     <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
-      <SectionHead title="Verify on-chain" tag="Trust nothing, check everything" />
+      <SectionHead icon={<ShieldIcon className="h-5 w-5" />} title="Verify on-chain" tag="Trust nothing, check everything" />
       <p className="mb-5 max-w-2xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
         Every number on this page is derived from on-chain state — the accounts below.
         Tap any address to inspect it on Solscan. The lending pools, the programs,
