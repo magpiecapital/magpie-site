@@ -393,10 +393,10 @@ export default async function Home() {
             >
               <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">Refer friends</div>
               <div className="mt-3 font-display text-2xl font-medium tracking-tight">
-                Earn 5% of their loan fees
+                Earn 10% of their loan fees
               </div>
               <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
-                Share your link. Every loan your referrals take pays you 5% of the fee, for
+                Share your link. Every loan your referrals take pays you 10% of the fee, for
                 life. Paid in SOL on demand.
               </p>
               <div className="mt-5 text-sm font-medium text-[var(--accent-deep)] underline-offset-4 group-hover:underline">
