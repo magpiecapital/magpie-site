@@ -42,7 +42,7 @@ export default function EmbedClient() {
           </h1>
           <p className="fade-up fade-up-1 mt-4 max-w-2xl text-lg text-[var(--ink-soft)] leading-relaxed">
             Drop a &quot;Borrow against $X&quot; button on your project&apos;s site or
-            community page. Two lines of code. You earn 5% of every fee from
+            community page. Two lines of code. You earn 10% of every fee from
             users who join through your widget — forever.
           </p>
         </div>
@@ -69,7 +69,7 @@ export default function EmbedClient() {
             </label>
 
             <label className="mt-5 block">
-              <span className="text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">Your referral code <span className="normal-case opacity-60">(optional — earn 5%)</span></span>
+              <span className="text-xs uppercase tracking-[0.18em] text-[var(--ink-faint)]">Your referral code <span className="normal-case opacity-60">(optional — earn 10%)</span></span>
               <input
                 type="text"
                 value={refCode}
@@ -151,7 +151,7 @@ export default function EmbedClient() {
               <div className="font-display text-4xl font-medium tracking-[-0.03em]">5%</div>
               <div className="mt-2 text-sm font-semibold">Lifetime referral fees</div>
               <p className="mt-2 text-sm text-[var(--ink-soft)]">
-                Every user who joins through your widget pays Magpie fees on every loan, forever. You get 5% of those fees flowing to your wallet.
+                Every user who joins through your widget pays Magpie fees on every loan, forever. You get 10% of those fees flowing to your wallet.
               </p>
             </div>
             <div>

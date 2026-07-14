@@ -89,7 +89,7 @@ const ROWS: Comparison[] = [
   },
   {
     feature: "Referral program",
-    magpie: "5% lifetime, on-chain",
+    magpie: "10% lifetime, on-chain",
     marginfi: "Points",
     kamino: "Points",
     mango: "—",

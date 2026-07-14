@@ -147,7 +147,7 @@ export default function EarningsCard({ botApiUrl }: { botApiUrl: string }) {
       label: "Referrals",
       href: "/refer",
       b: ref,
-      sub: "5% of referred users' loan fees",
+      sub: "10% of referred users' loan fees",
     },
   ];
 
