@@ -135,7 +135,7 @@ export default function ReferClient() {
             <br className="hidden sm:inline" /> loan fee from anyone you refer.
           </h1>
           <p className="mt-6 max-w-2xl text-base text-[var(--ink-soft)] sm:text-lg">
-            Share your link. Friend borrows. You earn 5% of their fee, forever — paid in
+            Share your link. Friend borrows. You earn 10% of their fee, forever — paid in
             SOL, sourced from real protocol revenue. No vesting, no points, no airdrop
             theater.
           </p>
@@ -309,7 +309,7 @@ export default function ReferClient() {
               They tap your link, the bot attributes them to you automatically. Every borrow
               or extend they do generates a fee.
             </Step>
-            <Step n={3} title="Earn 5% of every fee">
+            <Step n={3} title="Earn 10% of every fee">
               Your share accrues automatically in SOL. Tap{" "}
               <span className="font-mono">/refer</span> any time to see your balance — claim
               when you’re ready.

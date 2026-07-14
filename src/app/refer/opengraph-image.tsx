@@ -53,7 +53,7 @@ export default async function Image() {
             </div>
           </div>
           <div style={{ fontSize: 28, color: "#5c5a52", letterSpacing: "-0.01em" }}>
-            Share your link. Friend borrows. You earn 5% of their fee — for life, paid in SOL.
+            Share your link. Friend borrows. You earn 10% of their fee — for life, paid in SOL.
           </div>
         </div>
 
