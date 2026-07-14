@@ -363,7 +363,7 @@ export default function ReferClient() {
               to convert.
             </Faq>
             <Faq q="How long do I earn for?">
-              Lifetime. Every loan or extend your referred users take pays you 5% of the
+              Lifetime. Every loan or extend your referred users take pays you 10% of the
               fee — for as long as they keep using Magpie.
             </Faq>
             <Faq q="What's the minimum claim?">

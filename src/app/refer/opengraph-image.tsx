@@ -47,7 +47,7 @@ export default async function Image() {
               flexDirection: "column",
             }}
           >
-            <div>Earn 5% of</div>
+            <div>Earn 10% of</div>
             <div>
               <span style={{ fontStyle: "italic", color: "#c99a2c" }}>every</span> loan fee.
             </div>
