@@ -181,7 +181,7 @@ export default function HoldersClient() {
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             <Step n={1} title="Loans pay fees">
-              Every borrow + extend on Magpie charges a fee. Per MGP-001 (passed 2026-06-13), the split is 70% to $MAGPIE holders, 10% to LP loyalty, 10% to referrers, 10% to the protocol reserve.
+              Every borrow + extend on Magpie charges a fee. Per MGP-001 (passed 2026-06-13), the split is 70% to $MAGPIE holders, 10% to LP loyalty, 10% to referrers, 10% to the protocol reserve. When a loan has no referrer, that 10% rolls into the holder pool — so holders earn 80% on non-referral loans, and 100% of every fee is always distributed.
             </Step>
             <Step n={2} title="Periodic snapshots">
               The protocol snapshots every wallet holding $MAGPIE on-chain (excluding

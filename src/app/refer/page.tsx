@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Earn 10% of every loan fee — Magpie Referrals",
     description:
-      "Share your link. Friend borrows. You earn 5% of every fee they pay, forever. Paid in SOL.",
+      "Share your link. Friend borrows. You earn 10% of every fee they pay, forever. Paid in SOL.",
   },
 };
 

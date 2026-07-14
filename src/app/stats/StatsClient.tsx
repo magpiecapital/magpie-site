@@ -364,8 +364,11 @@ export default function StatsClient() {
           Every loan origination + extension fee splits across four
           channels per <Link href="/governance/proposal/MGP-001" className="underline hover:text-[var(--ink)]">MGP-001</Link>:
           70% to $MAGPIE holders, 10% to SOL LPs, 10% to referrers, 10% to the
-          protocol reserve. The numbers below are what&apos;s currently
-          accruing toward the next distribution snapshot.
+          protocol reserve. When a loan has no referrer, that 10% rolls into the
+          $MAGPIE holder pool — so holders earn 80% on non-referral loans, and
+          100% of every fee is always distributed (nothing is retained). The
+          numbers below are what&apos;s currently accruing toward the next
+          distribution snapshot.
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat
