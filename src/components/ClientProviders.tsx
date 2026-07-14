@@ -17,6 +17,13 @@ const FloatingAiChatGlobal = dynamic(
   { ssr: false },
 );
 
+// Re-engagement prompt for returning dormant borrowers (needs the wallet
+// adapter, so client-only). Renders nothing for new wallets or active borrowers.
+const ReconnectWelcome = dynamic(
+  () => import("./ReconnectWelcome").then((m) => m.ReconnectWelcome),
+  { ssr: false },
+);
+
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
     <WalletProvider>
@@ -25,6 +32,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
       <RefCapture />
       {children}
       <FloatingAiChatGlobal />
+      <ReconnectWelcome />
     </WalletProvider>
   );
 }
