@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, Suspense } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Mark, Wordmark } from "@/components/Logo";
@@ -915,6 +915,52 @@ function DashboardPageInner() {
     return () => clearInterval(id);
   }, [expandedMint]);
 
+  // ── Just-Ahead Warming: batch pre-warm ALL borrowable holdings ─────
+  // The row-expand beacon above only warms one token once the user picks
+  // it — too late if they expand and click Borrow within ~30s (cold feed
+  // → frozen "Signing…"). This fires the instant holdings load: it warms
+  // EVERY V4-eligible collateral token the user holds, so their TWAP
+  // windows fill during token-pick / amount-entry / LTV-review time and
+  // the borrow succeeds on the FIRST attempt with no perceived wait.
+  //
+  // Cost-bounded: only THIS user's held+supported tokens, only while the
+  // dashboard is open; the bot auto-expires warming intents (10-min TTL)
+  // so idle tokens cost nothing. Keyed on the borrowable-mint SET (not the
+  // holdings array) so it doesn't re-fire on every balance poll.
+  // See feedback_first_attempt_loan_success_cost_effective.
+  const borrowableMintsKey = useMemo(
+    () =>
+      holdings
+        .filter((h) => h.category && Number(h.amount) > 0)
+        .map((h) => h.mint)
+        .sort()
+        .join(","),
+    [holdings],
+  );
+  useEffect(() => {
+    if (!connected || holdingsLoading || !borrowableMintsKey) return;
+    const mints = borrowableMintsKey.split(",");
+    const BOT_API_URL =
+      process.env.NEXT_PUBLIC_BOT_API_URL ||
+      "https://magpie-bot-production.up.railway.app";
+    const prewarm = () =>
+      fetch(`${BOT_API_URL}/api/v1/v4/warm-mints`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mints, source: "holdings-load" }),
+      }).catch(() => {
+        // Silent — row-expand beacon + cosign-time JIT still cover us.
+      });
+    prewarm();
+    // Refresh before the 10-min intent TTL lapses while the user lingers;
+    // skip when the tab is hidden so a backgrounded dashboard costs nothing.
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      prewarm();
+    }, 4 * 60_000);
+    return () => clearInterval(id);
+  }, [connected, holdingsLoading, borrowableMintsKey]);
+
   // Marketplace tier-card click: ?category=memecoin|stock&tier=0|1|2
   // Behavior:
   //   1. Switch to the holdings nav
@@ -1187,6 +1233,11 @@ function DashboardPageInner() {
   // on-chain (cosign + broadcast). Distinguishing it from "signing" fixes the
   // "stuck on Signing…" confusion when the network is congested.
   const [borrowLanding, setBorrowLanding] = useState(false);
+  // "warming" phase — before signing, we're filling the token's on-chain
+  // TWAP window (cold-tier feeds). Showing an honest "Warming price feed…"
+  // instead of a frozen "Signing…" is the UX half of Just-Ahead Warming.
+  // See feedback_first_attempt_loan_success_cost_effective.
+  const [borrowWarming, setBorrowWarming] = useState(false);
   const [borrowTx, setBorrowTx] = useState<string | null>(null);
   // After a successful borrow, surface a 1-tap "lock in upside" prompt
   // so the user can arm an autonomous take-profit immediately while
@@ -1551,6 +1602,10 @@ function DashboardPageInner() {
             // surface the warming message if the feed is STILL cold after the budget.
             const warmDeadline = Date.now() + 45_000;
             let warmed = false;
+            // Honest button state while we fill the TWAP window — "Warming
+            // price feed…" instead of a frozen "Signing…". Cleared the
+            // instant the feed is ready (or the budget lapses) below.
+            setBorrowWarming(true);
             const nudge = () =>
               fetch(`${botApiForReadiness}/api/v1/v4/warm-mint`, {
                 method: "POST",
@@ -1580,6 +1635,8 @@ function DashboardPageInner() {
                 /* transient feed-ready blip — keep polling within budget */
               }
             }
+            // Warm phase over — back to the normal signing/landing labels.
+            setBorrowWarming(false);
             if (!warmed) {
               // DON'T block the user. Proceed to cosign, where the server's JIT
               // warmer (90s budget) fills the feed and the on-chain TWAP guard +
@@ -2515,6 +2572,7 @@ function DashboardPageInner() {
     } finally {
       setBorrowing(false);
       setBorrowLanding(false);
+      setBorrowWarming(false);
     }
   }, [publicKey, connected, connection, sendTransaction, signMessage, autoTakeProfitMultiplier, preBorrowExits, forceRefresh]);
 
@@ -4758,7 +4816,7 @@ function DashboardPageInner() {
                                             {borrowing ? (
                                               <>
                                                 <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
-                                                {borrowLanding ? "Landing your transaction…" : "Signing..."}
+                                                {borrowWarming ? "Warming price feed…" : borrowLanding ? "Landing your transaction…" : "Signing..."}
                                               </>
                                             ) : (
                                               <>
