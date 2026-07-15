@@ -651,19 +651,50 @@ function buildArmBatchMessage(args: {
   return lines.join("\n");
 }
 
-export async function armTakeProfitBatch(args: {
+/**
+ * A batch arm envelope that has already been SIGNED by the wallet but not
+ * yet submitted to the bot. Produced by {@link prepareArmBatch} and consumed
+ * by {@link submitArmBatch}. Splitting sign-from-submit lets the borrow flow
+ * collect the arm signature back-to-back with the borrow signature (both
+ * wallet prompts before the cosign/confirm pause), then POST the pre-signed
+ * envelope only after the loan has actually landed on-chain — so V4 users
+ * never hit a surprise "second approval" after a long confirmation wait.
+ *
+ * The server's freshness window is 5 min (FRESH_WINDOW_MS), and a borrow
+ * confirms in ~15-45s, so the pre-signed envelope is always well within the
+ * staleness wall by submit time.
+ */
+export interface SignedArmBatch {
+  botApiUrl: string;
+  signedMessageBase64: string;
+  signatureBase58: string;
+  signerPubkey: string;
+  intent_ids: (number | null)[];
+  loanIdChain: string;
+  legCount: number;
+  issuedAtMs: number;
+}
+
+/**
+ * Post intents, build the batch message, and ask the wallet to sign it —
+ * but do NOT submit to the bot. Returns a {@link SignedArmBatch} to hand to
+ * {@link submitArmBatch} once the borrow has confirmed. This is the "prompt"
+ * half; no on-chain loan is required to exist yet (the LoanId is derived
+ * pre-borrow), which is exactly what lets us collect both signatures up front.
+ */
+export async function prepareArmBatch(args: {
   botApiUrl: string;
   signerPubkey: string;
   signMessage: SignMessageFn;
   loanIdChain: string;
   legs: ArmBatchLegSpec[];
-}): Promise<ArmBatchResult> {
+}): Promise<SignedArmBatch> {
   if (!args.botApiUrl) throw new Error("Bot API URL not configured");
   if (args.legs.length === 0) {
-    throw new Error("armTakeProfitBatch requires at least one leg");
+    throw new Error("prepareArmBatch requires at least one leg");
   }
   if (args.legs.length > 8) {
-    throw new Error("armTakeProfitBatch max 8 legs per batch");
+    throw new Error("prepareArmBatch max 8 legs per batch");
   }
 
   // Beacon every leg as an intent BEFORE asking Phantom to sign. Best-
@@ -726,18 +757,35 @@ export async function armTakeProfitBatch(args: {
   // Surface any intent_ids the caller passed so the server can
   // reconcile each one atomically with the matching insert.
   const intent_ids = args.legs.map((l) => l.intent_id ?? null);
-  const allNullIntents = intent_ids.every((x) => x == null);
 
+  return {
+    botApiUrl: args.botApiUrl,
+    signedMessageBase64: bytesToBase64(messageBytes),
+    signatureBase58: bs58.encode(signature),
+    signerPubkey: args.signerPubkey,
+    intent_ids,
+    loanIdChain: args.loanIdChain,
+    legCount: args.legs.length,
+    issuedAtMs: Date.parse(issuedAt),
+  };
+}
+
+/**
+ * Submit a pre-signed {@link SignedArmBatch} to the bot. No wallet
+ * interaction — pure network. Call this after the borrow has confirmed.
+ */
+export async function submitArmBatch(signed: SignedArmBatch): Promise<ArmBatchResult> {
+  const allNullIntents = signed.intent_ids.every((x) => x == null);
   const res = await fetch(
-    `${args.botApiUrl.replace(/\/$/, "")}/api/v1/site/limit-close/arm-batch`,
+    `${signed.botApiUrl.replace(/\/$/, "")}/api/v1/site/limit-close/arm-batch`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        signedMessageBase64: bytesToBase64(messageBytes),
-        signatureBase58: bs58.encode(signature),
-        signerPubkey: args.signerPubkey,
-        ...(allNullIntents ? {} : { intent_ids }),
+        signedMessageBase64: signed.signedMessageBase64,
+        signatureBase58: signed.signatureBase58,
+        signerPubkey: signed.signerPubkey,
+        ...(allNullIntents ? {} : { intent_ids: signed.intent_ids }),
       }),
     },
   );
@@ -746,6 +794,17 @@ export async function armTakeProfitBatch(args: {
     throw new Error(translateArmError(body) + (body.failed_leg_index != null ? ` (leg ${body.failed_leg_index + 1})` : ""));
   }
   return body as ArmBatchResult;
+}
+
+export async function armTakeProfitBatch(args: {
+  botApiUrl: string;
+  signerPubkey: string;
+  signMessage: SignMessageFn;
+  loanIdChain: string;
+  legs: ArmBatchLegSpec[];
+}): Promise<ArmBatchResult> {
+  const signed = await prepareArmBatch(args);
+  return submitArmBatch(signed);
 }
 
 export function translateArmError(body: { error?: string; detail?: string; suggested_slippage_bps?: number }): string {

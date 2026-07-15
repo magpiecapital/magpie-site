@@ -21,7 +21,8 @@ import PrefsPanel from "./PrefsPanel";
 import SiteStatusBanner from "./SiteStatusBanner";
 import { ApiHealthBanner } from "@/components/ApiHealthBanner";
 import { TakeProfitCard, useTakeProfitState } from "./TakeProfitCard";
-import { armTakeProfit } from "@/lib/solana/site-take-profit";
+import { armTakeProfit, prepareArmBatch, submitArmBatch } from "@/lib/solana/site-take-profit";
+import type { SignedArmBatch, ArmBatchLegSpec } from "@/lib/solana/site-take-profit";
 import { parseStrike } from "@/lib/strike-price-parser";
 import { DashboardProvider } from "./DashboardContext";
 
@@ -2090,8 +2091,147 @@ function DashboardPageInner() {
       // only user-visible difference vs a successful first attempt.
       // [[feedback_loans_must_never_fail_no_regressions]]
       const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+
+      // ── V4 exit pre-arm plan (UX reorder, 2026-07-15) ────────────────
+      // Resolve the auto-sell legs the user picked in the exit picker into
+      // a single batch spec BEFORE touching the wallet. This lets us
+      // collect the arm signature back-to-back with the borrow signature
+      // (both wallet prompts fire before the long cosign/confirm pause),
+      // then submit the pre-signed envelope only after the loan lands.
+      // Kills the "sign → long wait → surprise second approval" that V4
+      // borrowers were missing. Every exit shape (default TP/SL, bracket,
+      // preset ladder, custom strike, custom ladder) becomes ONE signature
+      // over N legs — same one-signature-for-N-legs guarantee as before.
+      // The envelope binds to chainLoanId (derived pre-borrow) + a fresh
+      // 5-min window, so it stays valid through confirmation.
+      type ExitPlan =
+        | {
+            kind: "batch";
+            legs: ArmBatchLegSpec[];
+            labels: string[];
+            presetRetry?: {
+              direction: "above" | "below";
+              legs: Array<{ multiplier: number; sliceBps: number; label: string }>;
+            };
+          }
+        | { kind: "cannot"; progress: Array<{ label: string; ok: boolean | null; error?: string }> }
+        | null;
+      const computeExitPlan = (): ExitPlan => {
+        if (!preBorrowExits || !publicKey || !signMessage) return null;
+        const ex = preBorrowExits;
+        if (ex.kind === "tp_default") {
+          return {
+            kind: "batch",
+            legs: [{ direction: "above", kind: "multiplier", value: 2, sliceBps: 10000, slippageBps: 200 }],
+            labels: ["TP @ 2x"],
+          };
+        }
+        if (ex.kind === "sl_default") {
+          return {
+            kind: "batch",
+            legs: [{ direction: "below", kind: "multiplier", value: 0.7, sliceBps: 10000, slippageBps: 300 }],
+            labels: ["SL @ 0.7x"],
+          };
+        }
+        if (ex.kind === "custom_tp" || ex.kind === "custom_sl") {
+          const parsed = parseStrike(ex.strikeText, {});
+          const direction = ex.kind === "custom_tp" ? ("above" as const) : ("below" as const);
+          const sideLbl = direction === "above" ? "TP" : "SL";
+          if (!parsed.ok) {
+            return { kind: "cannot", progress: [{ label: `Custom ${sideLbl}`, ok: false, error: parsed.error || "parse failed" }] };
+          }
+          const slippageBps = direction === "below" ? 300 : 200;
+          let leg: ArmBatchLegSpec | null = null;
+          if (parsed.kind === "multiplier") {
+            leg = { direction, kind: "multiplier", value: parsed.multiplier as number, sliceBps: 10000, slippageBps };
+          } else if (parsed.kind === "price_usd") {
+            leg = { direction, kind: "price_usd", value: Number(parsed.valueMicro) / 1e6, sliceBps: 10000, slippageBps };
+          } else if (parsed.kind === "mc_usd") {
+            leg = { direction, kind: "mc_usd", value: Number(parsed.valueMicro) / 1e6, sliceBps: 10000, slippageBps };
+          } else {
+            // price_sol — the site arm envelope has no Price-SOL line yet.
+            // Preserve the historical fallback: don't pre-arm; the
+            // post-borrow prompt lets the user arm via the per-token card.
+            return { kind: "cannot", progress: [{ label: `Custom ${sideLbl}`, ok: false, error: "SOL-denominated strikes not supported pre-borrow yet" }] };
+          }
+          return { kind: "batch", legs: [leg], labels: [`Custom ${sideLbl} @ ${parsed.normalizedDisplay}`] };
+        }
+        if (ex.kind === "bracket") {
+          return {
+            kind: "batch",
+            legs: [
+              { direction: "above", kind: "multiplier", value: 2, sliceBps: 10000, slippageBps: 200 },
+              { direction: "below", kind: "multiplier", value: 0.7, sliceBps: 10000, slippageBps: 300 },
+            ],
+            labels: ["TP @ 2x", "SL @ 0.7x"],
+          };
+        }
+        if (ex.kind === "tp_ladder" || ex.kind === "sl_ladder") {
+          const direction = ex.kind === "tp_ladder" ? ("above" as const) : ("below" as const);
+          const sidePrefix = direction === "above" ? "TP" : "SL";
+          const preset = ex.kind === "tp_ladder" ? SITE_LADDER_PRESETS.tp[ex.preset] : SITE_LADDER_PRESETS.sl[ex.preset];
+          const legs: ArmBatchLegSpec[] = preset.legs.map((leg) => ({
+            direction,
+            kind: "multiplier" as const,
+            value: leg.multiplier,
+            sliceBps: leg.sliceBps,
+            slippageBps: direction === "below" ? 300 : 200,
+          }));
+          const labels = preset.legs.map((leg) => `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`);
+          return {
+            kind: "batch",
+            legs,
+            labels,
+            presetRetry: {
+              direction,
+              legs: preset.legs.map((leg) => ({
+                multiplier: leg.multiplier,
+                sliceBps: leg.sliceBps,
+                label: `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
+              })),
+            },
+          };
+        }
+        if (ex.kind === "custom_ladder") {
+          const parsedLegs = ex.legs.map((leg) => ({ leg, parsed: parseStrike(leg.strikeText, {}) }));
+          const directionsFiltered = parsedLegs
+            .map(({ parsed }) => (parsed.ok ? parsed.impliedDirection : null))
+            .filter((d): d is "above" | "below" => d != null);
+          const direction: "above" | "below" = directionsFiltered.length > 0 ? directionsFiltered[0] : "above";
+          if (directionsFiltered.some((d) => d !== direction)) {
+            return { kind: "cannot", progress: [{ label: "Custom ladder", ok: false, error: "legs disagree on direction (mix of profit + stop targets)" }] };
+          }
+          const sidePrefix = direction === "above" ? "Profit" : "Stop";
+          const allParseOk = parsedLegs.every(({ parsed }) => parsed.ok);
+          if (!allParseOk) {
+            const failures = parsedLegs
+              .map(({ parsed }, i) => (parsed.ok ? null : `Leg ${i + 1}: ${parsed.error || "parse failed"}`))
+              .filter((x): x is string => !!x);
+            return { kind: "cannot", progress: failures.map((f) => ({ label: f, ok: false, error: f })) };
+          }
+          const slippageBps = direction === "below" ? 300 : 200;
+          const legs: ArmBatchLegSpec[] = parsedLegs.map(({ leg, parsed }) => {
+            if (!parsed.ok) throw new Error("unreachable");
+            if (parsed.kind === "multiplier") {
+              return { direction, kind: "multiplier" as const, value: parsed.multiplier as number, sliceBps: leg.sliceBps, slippageBps };
+            }
+            const value = Number(parsed.valueMicro) / 1e6;
+            const kind: "price_usd" | "mc_usd" = parsed.kind === "mc_usd" ? "mc_usd" : "price_usd";
+            return { direction, kind, value, sliceBps: leg.sliceBps, slippageBps };
+          });
+          const labels = parsedLegs.map(({ leg, parsed }, i) => `${sidePrefix} leg ${i + 1} @ ${parsed.ok ? parsed.normalizedDisplay : "?"} (${(leg.sliceBps / 100).toFixed(0)}%)`);
+          return { kind: "batch", legs, labels };
+        }
+        return null;
+      };
+      const exitPlan = computeExitPlan();
+
       const MAX_BLOCKHASH_RETRIES = 2;
       let signature: string | null = null;
+      // Pre-signed V4 exit envelope (collected up-front, submitted post-confirm).
+      let signedArm: SignedArmBatch | null = null;
+      let armSignError: string | null = null;
+      let armPrompted = false;
       let cosignBody: {
         ok?: boolean;
         error?: string;
@@ -2102,6 +2242,31 @@ function DashboardPageInner() {
       let lastStatus = 0;
       for (let attempt = 1; attempt <= MAX_BLOCKHASH_RETRIES; attempt++) {
         const userSigned = await signTransaction(transaction);
+        // Collect the V4 exit-arm signature ONCE, immediately after the
+        // borrow signature — both wallet prompts fire consecutively BEFORE
+        // the cosign/confirm pause, so users no longer miss a surprise
+        // second approval after a long wait. Signed against chainLoanId
+        // (known pre-borrow) with a fresh 5-min window; submitted only
+        // after the loan lands. Independent of the blockhash, so a
+        // stale-blockhash re-sign of the borrow does NOT re-prompt the arm.
+        // Best-effort: if the user declines the arm, the borrow still
+        // proceeds and the post-borrow prompt offers a retry.
+        if (!armPrompted && exitPlan?.kind === "batch") {
+          armPrompted = true;
+          setAutoArmLegProgress([]);
+          try {
+            signedArm = await prepareArmBatch({
+              botApiUrl: botApi,
+              signerPubkey: publicKey!.toBase58(),
+              signMessage: signMessage!,
+              loanIdChain: chainLoanId.toString(),
+              legs: exitPlan.legs,
+            });
+          } catch (armErr) {
+            armSignError = (armErr as Error).message || "arm signature failed";
+            signedArm = null;
+          }
+        }
         setBorrowLanding(true);
         const partialBase64 = userSigned.serialize({ requireAllSignatures: false }).toString("base64");
 
@@ -2139,340 +2304,73 @@ function DashboardPageInner() {
 
       setBorrowTx(signature);
 
-      // Pre-borrow exit auto-arm path. The user pre-selected an exit
-      // strategy in the picker before clicking the tier — arm the legs
-      // now without a second navigation step. Each leg requires its
-      // own signed envelope, so multi-leg ladders prompt the wallet
-      // adapter once per leg. We surface per-leg progress so users can
-      // see each leg landing in real time.
+      // Submit the pre-signed V4 exit envelope now that the loan has
+      // landed. The signature was already collected up-front (back-to-back
+      // with the borrow prompt), so there is NO surprise second approval
+      // here — this is a pure network submit. Retries the transient
+      // loan-not-found race while cosign-borrow's recordLoan propagates.
       let autoArmedOk = false;
-      const armSingle = async (
-        label: string,
-        direction: "above" | "below",
-        multiplier: number,
-        sliceBps?: number,
-      ): Promise<{ ok: boolean; error?: string }> => {
-        const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-        // 2026-06-15: race-tolerant retry. cosign-borrow records the loan
-        // inline before returning, but if the wallet wasn't linked yet
-        // (or hits an RPC blip), the row arrives via sync-loan which is
-        // fire-and-forget below. Auto-arm fires immediately and trips
-        // `loan_not_found_for_user`. Retry the arm a few times with
-        // small backoff before giving up — the loan reliably lands in
-        // the DB within 1-3 seconds.
-        const MAX_ATTEMPTS = 4;
-        const RETRY_ERRORS = /loan_not_found_for_user|loan.*not.*found|404/i;
-        let lastErr = "";
-        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-          try {
-            await armTakeProfit({
-              botApiUrl: botApi2,
-              signerPubkey: publicKey!.toBase58(),
-              signMessage: signMessage!,
-              request: {
-                from: publicKey!.toBase58(),
-                loanIdChain: chainLoanId.toString(),
-                direction,
-                target: { kind: "multiplier", multiplier },
-                slippageBps: direction === "below" ? 300 : 200,
-                sellDestination: "sol",
-                slicePctBps: sliceBps && sliceBps < 10000 ? sliceBps : undefined,
-              },
-            });
-            setAutoArmLegProgress((prev) => [...prev, { label, ok: true }]);
-            return { ok: true };
-          } catch (err) {
-            lastErr = (err as Error).message || "arm failed";
-            if (attempt < MAX_ATTEMPTS && RETRY_ERRORS.test(lastErr)) {
-              await new Promise((r) => setTimeout(r, 1200 * attempt));
-              continue;
-            }
-            break;
-          }
-        }
-        console.warn(`[borrow] auto-arm leg "${label}" failed after retries:`, lastErr);
-        setAutoArmLegProgress((prev) => [...prev, { label, ok: false, error: lastErr }]);
-        return { ok: false, error: lastErr };
-      };
-
-      if (preBorrowExits && publicKey && signMessage) {
-        setAutoArmLegProgress([]);
-        const ex = preBorrowExits;
-        if (ex.kind === "tp_default") {
-          const r = await armSingle("TP @ 2x", "above", 2);
-          autoArmedOk = r.ok;
-        } else if (ex.kind === "sl_default") {
-          const r = await armSingle("SL @ 0.7x", "below", 0.7);
-          autoArmedOk = r.ok;
-        } else if (ex.kind === "custom_tp" || ex.kind === "custom_sl") {
-          // Re-parse the strike at arm time. We store strikeText (not the
-          // parsed object) so localStorage can round-trip without BigInt
-          // serialization juggling. If the parse fails here it'll be the
-          // same failure the user would have seen at picker-time.
-          const parsed = parseStrike(ex.strikeText, {});
-          const direction = ex.kind === "custom_tp" ? "above" as const : "below" as const;
-          if (!parsed.ok) {
-            setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"}`, ok: false, error: parsed.error || "parse failed" }]);
-          } else {
-            // Map parser kinds to armTakeProfit target shape.
-            let target: import("@/lib/solana/site-take-profit").ArmTakeProfitRequest["target"];
-            if (parsed.kind === "multiplier") {
-              target = { kind: "multiplier", multiplier: parsed.multiplier as number };
-            } else if (parsed.kind === "price_usd") {
-              target = { kind: "price_usd", usd: Number(parsed.valueMicro) / 1e6 };
-            } else if (parsed.kind === "mc_usd") {
-              target = { kind: "mc_usd", mcDollars: Number(parsed.valueMicro) / 1e6 };
-            } else {
-              // price_sol — not currently in ArmTakeProfitRequest target
-              // shape (the bot armOrder accepts it but the site envelope
-              // doesn't have a Price-SOL line). Fall back to per-token
-              // arming via TakeProfitCard.
-              setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"}`, ok: false, error: "SOL-denominated strikes not supported pre-borrow yet" }]);
-              target = null as never;
-            }
-            if (target) {
-              // Same race-tolerant retry as armSingle. Custom strikes
-              // hit the same loan_not_found_for_user race when the
-              // borrow's recordLoan hasn't propagated yet.
-              const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-              const RETRY_ERRORS = /loan_not_found_for_user|loan.*not.*found|404/i;
-              const MAX_ATTEMPTS = 4;
-              let lastErr = "";
-              let armedOk = false;
-              for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-                try {
-                  await armTakeProfit({
-                    botApiUrl: botApi2,
-                    signerPubkey: publicKey!.toBase58(),
-                    signMessage: signMessage!,
-                    request: {
-                      from: publicKey!.toBase58(),
-                      loanIdChain: chainLoanId.toString(),
-                      direction,
-                      target,
-                      slippageBps: direction === "below" ? 300 : 200,
-                      sellDestination: "sol",
-                    },
-                  });
-                  armedOk = true;
-                  break;
-                } catch (err) {
-                  lastErr = (err as Error).message || "arm failed";
-                  if (attempt < MAX_ATTEMPTS && RETRY_ERRORS.test(lastErr)) {
-                    await new Promise((r) => setTimeout(r, 1200 * attempt));
-                    continue;
-                  }
-                  break;
-                }
+      if (exitPlan?.kind === "batch") {
+        if (signedArm) {
+          const RETRY_ERRORS = /loan_not_found_for_user|loan.*not.*found|404/i;
+          const MAX_ATTEMPTS = 4;
+          let lastErr = "";
+          for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+              await submitArmBatch(signedArm);
+              autoArmedOk = true;
+              break;
+            } catch (err) {
+              lastErr = (err as Error).message || "arm failed";
+              if (attempt < MAX_ATTEMPTS && RETRY_ERRORS.test(lastErr)) {
+                await new Promise((r) => setTimeout(r, 1200 * attempt));
+                continue;
               }
-              if (armedOk) {
-                setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"} @ ${parsed.normalizedDisplay}`, ok: true }]);
-                autoArmedOk = true;
-              } else {
-                setAutoArmLegProgress([{ label: `Custom ${direction === "above" ? "TP" : "SL"} @ ${parsed.normalizedDisplay}`, ok: false, error: lastErr }]);
-              }
+              break;
             }
           }
-        } else if (ex.kind === "bracket") {
-          // Operator-mandated 2026-06-16 PM
-          // (feedback_one_signature_for_n_legs_always.md): bracket
-          // is just a 2-leg batch (TP @ 2x + SL @ 0.7x). ONE Phantom
-          // signature arms both atomically — no more half-bracket
-          // state if Phantom drops the session between sequential
-          // signs.
-          const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-          try {
-            const { armTakeProfitBatch } = await import("@/lib/solana/site-take-profit");
-            const result = await armTakeProfitBatch({
-              botApiUrl: botApi2,
-              signerPubkey: publicKey!.toBase58(),
-              signMessage: signMessage!,
-              loanIdChain: chainLoanId.toString(),
-              legs: [
-                { direction: "above", kind: "multiplier", value: 2, sliceBps: 10000, slippageBps: 200 },
-                { direction: "below", kind: "multiplier", value: 0.7, sliceBps: 10000, slippageBps: 300 },
-              ],
-            });
-            setAutoArmLegProgress([
-              { label: "TP @ 2x", ok: true },
-              { label: "SL @ 0.7x", ok: true },
-            ]);
-            autoArmedOk = true;
-            void result;
-          } catch (err) {
-            const msg = (err as Error).message || "bracket arm failed";
-            setAutoArmLegProgress([
-              { label: "TP @ 2x", ok: false, error: msg },
-              { label: "SL @ 0.7x", ok: false, error: msg },
-            ]);
-            autoArmedOk = false;
-          }
-        } else if (ex.kind === "tp_ladder" || ex.kind === "sl_ladder") {
-          const direction = ex.kind === "tp_ladder" ? "above" : "below";
-          const sidePrefix = direction === "above" ? "TP" : "SL";
-          const preset = ex.kind === "tp_ladder"
-            ? SITE_LADDER_PRESETS.tp[ex.preset]
-            : SITE_LADDER_PRESETS.sl[ex.preset];
-          // Operator-mandated 2026-06-16 PM
-          // (feedback_one_signature_for_n_legs_always.md): preset
-          // ladders arm via batch endpoint — ONE Phantom signature
-          // covers all N legs. Bot resolves multipliers through the
-          // cross-source oracle at batch time so each preset leg
-          // (e.g. 1.5x/2x/3x) becomes a concrete price_usd before
-          // insert.
-          const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-          try {
-            const { armTakeProfitBatch } = await import("@/lib/solana/site-take-profit");
-            const result = await armTakeProfitBatch({
-              botApiUrl: botApi2,
-              signerPubkey: publicKey!.toBase58(),
-              signMessage: signMessage!,
-              loanIdChain: chainLoanId.toString(),
-              legs: preset.legs.map((leg) => ({
-                direction,
-                kind: "multiplier" as const,
-                value: leg.multiplier,
-                sliceBps: leg.sliceBps,
-                slippageBps: direction === "below" ? 300 : 200,
-              })),
-            });
-            setAutoArmLegProgress(
-              preset.legs.map((leg) => ({
-                label: `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
-                ok: true,
-              })),
-            );
-            autoArmedOk = true;
-            void result;
-          } catch (err) {
-            const msg = (err as Error).message || "batch arm failed";
-            setAutoArmLegProgress(
-              preset.legs.map((leg) => ({
-                label: `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
-                ok: false,
-                error: msg,
-              })),
-            );
-            autoArmedOk = false;
-            // Surface a retry CTA — still useful in case user wants to
-            // re-attempt the same preset after fixing whatever blocked
-            // the batch (e.g. Phantom session, oracle blip).
+          setAutoArmLegProgress(
+            exitPlan.labels.map((label) => ({
+              label,
+              ok: autoArmedOk,
+              error: autoArmedOk ? undefined : lastErr,
+            })),
+          );
+          // Preset ladders keep the retry CTA so the user can re-attempt
+          // the same preset if the submit failed (e.g. oracle blip). The
+          // batch is atomic server-side, so a failure means NO legs armed.
+          if (!autoArmedOk && exitPlan.presetRetry) {
             setRetryRemainingLegs({
               loanIdChain: chainLoanId.toString(),
-              direction,
-              legs: preset.legs.map((leg) => ({
+              direction: exitPlan.presetRetry.direction,
+              legs: exitPlan.presetRetry.legs.map((leg) => ({
                 target: { kind: "multiplier" as const, multiplier: leg.multiplier },
                 sliceBps: leg.sliceBps,
-                label: `${sidePrefix} ${leg.multiplier}x (${(leg.sliceBps / 100).toFixed(0)}%)`,
+                label: leg.label,
               })),
             });
           }
-        } else if (ex.kind === "custom_ladder") {
-          // User-built ladder. Parse each leg's strikeText to derive
-          // direction + target shape. All legs must agree on direction
-          // (we already validated this at picker-commit time, but
-          // re-validate here defensively).
-          const parsedLegs = ex.legs.map((leg) => {
-            const parsed = parseStrike(leg.strikeText, {});
-            return { leg, parsed };
-          });
-          const directions = parsedLegs.map(
-            ({ parsed }) => (parsed.ok ? parsed.impliedDirection : null),
+        } else {
+          // Arm signature was declined/failed up-front. The borrow still
+          // succeeded; surface the reason and let the post-borrow prompt
+          // offer a one-tap retry.
+          setAutoArmLegProgress(
+            exitPlan.labels.map((label) => ({
+              label,
+              ok: false,
+              error: armSignError || "arm signature not collected",
+            })),
           );
-          const directionsFiltered = directions.filter((d): d is "above" | "below" => d != null);
-          const direction: "above" | "below" =
-            directionsFiltered.length > 0 ? directionsFiltered[0] : "above";
-          if (directionsFiltered.some((d) => d !== direction)) {
-            setAutoArmLegProgress([{ label: "Custom ladder", ok: false, error: "legs disagree on direction (mix of profit + stop targets)" }]);
-          } else {
-            const sidePrefix = direction === "above" ? "Profit" : "Stop";
-            // Operator-mandated 2026-06-16 PM
-            // (feedback_one_signature_for_n_legs_always.md): ALL legs
-            // arm via a SINGLE batch envelope and ONE Phantom signature.
-            // This replaces the N-popups-for-N-legs loop that caused
-            // silent leg-drops on loans 798 and 802. The batch endpoint
-            // either inserts all N rows atomically or rejects without
-            // inserting any — no more partial-arm state.
-            // armTakeProfitBatch accepts multiplier legs directly (the
-            // bot resolves each multiplier against the cross-source
-            // oracle at batch time), exactly like the preset tp/sl
-            // ladders above. So custom ladders mixing 2x / 3x / -30%
-            // legs batch-arm in one signature alongside literal
-            // price_usd / mc_usd strikes — no single-leg fallback.
-            const allParseOk = parsedLegs.every(({ parsed }) => parsed.ok);
-            if (!allParseOk) {
-              const failures = parsedLegs
-                .map(({ parsed }, i) => (parsed.ok ? null : `Leg ${i + 1}: ${parsed.error || "parse failed"}`))
-                .filter((x): x is string => !!x);
-              setAutoArmLegProgress(
-                failures.map((f) => ({ label: f, ok: false, error: f })),
-              );
-              autoArmedOk = false;
-            } else {
-              const legSpecs = parsedLegs.map(({ leg, parsed }) => {
-                // parsed.ok is true here by virtue of allParseOk check.
-                if (!parsed.ok) throw new Error("unreachable");
-                if (parsed.kind === "multiplier") {
-                  return {
-                    direction,
-                    kind: "multiplier" as const,
-                    value: parsed.multiplier as number,
-                    sliceBps: leg.sliceBps,
-                    slippageBps: direction === "below" ? 300 : 200,
-                  };
-                }
-                const value = Number(parsed.valueMicro) / 1e6;
-                const kind: "price_usd" | "mc_usd" =
-                  parsed.kind === "mc_usd" ? "mc_usd" : "price_usd";
-                return {
-                  direction,
-                  kind,
-                  value,
-                  sliceBps: leg.sliceBps,
-                  slippageBps: direction === "below" ? 300 : 200,
-                };
-              });
-              const botApi2 = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
-              try {
-                const { armTakeProfitBatch } = await import("@/lib/solana/site-take-profit");
-                const result = await armTakeProfitBatch({
-                  botApiUrl: botApi2,
-                  signerPubkey: publicKey!.toBase58(),
-                  signMessage: signMessage!,
-                  loanIdChain: chainLoanId.toString(),
-                  legs: legSpecs,
-                });
-                setAutoArmLegProgress(
-                  parsedLegs.map(({ leg, parsed }, i) => ({
-                    label: `${sidePrefix} leg ${i + 1} @ ${parsed.ok ? parsed.normalizedDisplay : "?"} (${(leg.sliceBps / 100).toFixed(0)}%)`,
-                    ok: true,
-                  })),
-                );
-                autoArmedOk = true;
-                void result;
-              } catch (err) {
-                const msg = (err as Error).message || "batch arm failed";
-                // Atomic failure — no legs armed. Surface a single
-                // banner. Recovery via LadderRollup's incomplete-ladder
-                // banner is unnecessary here (no legs landed), so we
-                // also DON'T populate retry-remaining (would imply
-                // partial state).
-                setAutoArmLegProgress(
-                  parsedLegs.map(({ leg, parsed }, i) => ({
-                    label: `${sidePrefix} leg ${i + 1} @ ${parsed.ok ? parsed.normalizedDisplay : "?"} (${(leg.sliceBps / 100).toFixed(0)}%)`,
-                    ok: false,
-                    error: msg,
-                  })),
-                );
-                autoArmedOk = false;
-              }
-            }
-          }
         }
         if (autoArmedOk) {
           setAutoArmedAfterBorrow({ multiplier: 0 });
           setPreBorrowExits(null);
         }
+      } else if (exitPlan?.kind === "cannot") {
+        // Strike couldn't be pre-armed (parse failure, direction mismatch,
+        // or SOL-denominated strike). Show the reason; the post-borrow
+        // prompt below lets the user arm manually.
+        setAutoArmLegProgress(exitPlan.progress);
       } else if (autoTakeProfitMultiplier != null && publicKey && signMessage) {
         // Legacy single-TP path retained for callers that still write
         // to autoTakeProfitMultiplier directly.
