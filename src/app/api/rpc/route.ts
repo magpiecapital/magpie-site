@@ -109,6 +109,10 @@ const ALLOWED_METHODS = new Set([
   "getSlot",
   "getBlockHeight",
   "getRecentPrioritizationFees",
+  // Helius fee-estimate for the client-side dynamic priority fee (read-only;
+  // native getRecentPrioritizationFees above is the fallback when the primary
+  // RPC isn't Helius). See src/lib/solana/priority-fee.ts.
+  "getPriorityFeeEstimate",
   "getVersion",
   "getHealth",
 ]);

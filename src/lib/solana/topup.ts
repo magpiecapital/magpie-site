@@ -9,9 +9,9 @@
 import {
   PublicKey,
   Transaction,
-  ComputeBudgetProgram,
   Connection,
 } from "@solana/web3.js";
+import { priorityFeeInstructions } from "./priority-fee";
 import {
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
@@ -86,8 +86,7 @@ export async function buildTopupTransaction({
       tokenProgram: collateralTokenProgram,
     })
     .preInstructions([
-      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }),
-      ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
+      ...(await priorityFeeInstructions(connection, 200_000, { label: "site-topup" })),
     ])
     .transaction();
 
