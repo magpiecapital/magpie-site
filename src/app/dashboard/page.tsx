@@ -1183,6 +1183,10 @@ function DashboardPageInner() {
 
   // ── Borrow state ──
   const [borrowing, setBorrowing] = useState(false);
+  // "landing" phase — the user has signed and we're waiting for the tx to land
+  // on-chain (cosign + broadcast). Distinguishing it from "signing" fixes the
+  // "stuck on Signing…" confusion when the network is congested.
+  const [borrowLanding, setBorrowLanding] = useState(false);
   const [borrowTx, setBorrowTx] = useState<string | null>(null);
   // After a successful borrow, surface a 1-tap "lock in upside" prompt
   // so the user can arm an autonomous take-profit immediately while
@@ -2041,6 +2045,7 @@ function DashboardPageInner() {
       let lastStatus = 0;
       for (let attempt = 1; attempt <= MAX_BLOCKHASH_RETRIES; attempt++) {
         const userSigned = await signTransaction(transaction);
+        setBorrowLanding(true);
         const partialBase64 = userSigned.serialize({ requireAllSignatures: false }).toString("base64");
 
         const cosignRes = await fetch(`${botApi}/api/v1/cosign-borrow`, {
@@ -2509,6 +2514,7 @@ function DashboardPageInner() {
       }
     } finally {
       setBorrowing(false);
+      setBorrowLanding(false);
     }
   }, [publicKey, connected, connection, sendTransaction, signMessage, autoTakeProfitMultiplier, preBorrowExits, forceRefresh]);
 
@@ -4752,7 +4758,7 @@ function DashboardPageInner() {
                                             {borrowing ? (
                                               <>
                                                 <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
-                                                Signing...
+                                                {borrowLanding ? "Landing your transaction…" : "Signing..."}
                                               </>
                                             ) : (
                                               <>

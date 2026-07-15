@@ -20,9 +20,9 @@ import {
   PublicKey,
   SystemProgram,
   Transaction,
-  ComputeBudgetProgram,
   Connection,
 } from "@solana/web3.js";
+import { priorityFeeInstructions } from "./priority-fee";
 import {
   TOKEN_PROGRAM_ID,
   NATIVE_MINT,
@@ -93,8 +93,7 @@ export async function buildExtendTransaction({
   }
 
   const preIxs = [
-    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }),
-    ComputeBudgetProgram.setComputeUnitLimit({ units: 300_000 }),
+    ...(await priorityFeeInstructions(connection, 300_000, { label: "site-extend" })),
     createAssociatedTokenAccountIdempotentInstruction(
       borrower, borrowerWsolAta, borrower, loanTokenMintPk, loanTokenProgram,
     ),
