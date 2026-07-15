@@ -3,7 +3,6 @@ import {
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
   Transaction,
-  ComputeBudgetProgram,
   Connection,
 } from "@solana/web3.js";
 import {
@@ -33,6 +32,7 @@ import {
   priceFeedPda,
 } from "./pdas";
 import { getOnChainAttestedRef } from "./feed-freshness";
+import { priorityFeeInstructions } from "./priority-fee";
 import idl from "./magpie.json";
 import idlV2 from "./magpie-v2.json";
 import idlV3 from "./magpie-v3.json";
@@ -260,11 +260,16 @@ export async function buildBorrowTransaction({
   // initialize the canonical ATA up front). Idempotent-create is cheap
   // when the account exists and fixes the missing-ATA case when it
   // doesn't — borrower pays ~0.002 SOL of rent one-time per ATA.
+  // Dynamic priority fee so the borrow lands during congestion instead of
+  // hanging on "signing" (matches magpie-bot #596). User-paid: the fee comes
+  // from the borrower's wallet, and in calm markets it's usually BELOW the old
+  // flat 100k. Capped + logged inside priorityFeeInstructions.
+  const feeIxs = await priorityFeeInstructions(connection, 400_000, {
+    accountKeys: [pool.toBase58()],
+    label: "site-borrow",
+  });
   const preIxs = [
-    // Priority fee for fast confirmation during congestion.
-    // 100k microLamports × 400k CU = 40k lamports = 0.00004 SOL extra.
-    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }),
-    ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
+    ...feeIxs,
     createAssociatedTokenAccountIdempotentInstruction(
       borrower,
       borrowerWsolAta,

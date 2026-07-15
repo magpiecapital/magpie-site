@@ -18,9 +18,9 @@ import {
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
   Transaction,
-  ComputeBudgetProgram,
   Connection,
 } from "@solana/web3.js";
+import { priorityFeeInstructions } from "./priority-fee";
 import {
   TOKEN_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
@@ -127,8 +127,7 @@ export async function buildRepayTransaction({
   //      on success; user may have closed the ATA in their wallet UI)
   //   2. Idempotent borrower wSOL ATA + transfer the repay lamports + sync
   const preIxs = [
-    ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }),
-    ComputeBudgetProgram.setComputeUnitLimit({ units: 400_000 }),
+    ...(await priorityFeeInstructions(connection, 400_000, { label: "site-repay" })),
     createAssociatedTokenAccountIdempotentInstruction(
       borrower, borrowerCollateralAta, borrower, collateralMintPk, collateralTokenProgram,
     ),

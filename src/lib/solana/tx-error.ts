@@ -87,11 +87,11 @@ export function translateTxError(
     };
   }
 
-  // 3) Blockhash expired
+  // 3) Blockhash expired — usually network congestion, not the user being slow.
   if (/blockhash not found|BlockhashNotFound|block height exceeded/i.test(blob)) {
     return {
-      title: "Transaction expired",
-      body: "You took longer than ~90 seconds to confirm. Solana invalidated the transaction. No funds moved — just click " + (flow === "deposit" ? "Deposit" : "Withdraw") + " again.",
+      title: "Solana was congested — transaction expired",
+      body: "The network was busy and your transaction didn't land before it expired (~90s). No funds moved — just try again; we automatically raise the network fee under congestion so the retry is more likely to go through.",
       action: { label: "Try again" },
     };
   }
@@ -161,13 +161,13 @@ export function translateTxError(
     };
   }
 
-  // 7) Confirmation timeout (already pre-formatted by the page in some cases)
+  // 7) Confirmation timeout — Solana busy; the tx often still lands.
   if (/not confirmed in/i.test(blob)) {
     return {
-      title: "Transaction submitted but slow to confirm",
+      title: "Solana is congested — still landing your transaction",
       body: ctx.sig
-        ? `It usually still lands. Check the transaction on Solscan in a minute — if it shows Success, your ${flow} is in.`
-        : "It usually still lands. Refresh in a minute — if your balance updated, you're good.",
+        ? `The network is busy, so confirmation is slow — but it usually still lands. Check the transaction on Solscan in a minute; if it shows Success, your ${flow} is in.`
+        : "The network is busy, so confirmation is slow — but it usually still lands. Refresh in a minute; if your balance updated, you're good.",
       action: ctx.sig ? { label: "View on Solscan", href: `https://solscan.io/tx/${ctx.sig}` } : undefined,
     };
   }
