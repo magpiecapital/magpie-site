@@ -276,7 +276,7 @@ export function LiveResults({
       <p className="text-[11px] text-white/40">
         {isClosed
           ? "Final tally — voting closed."
-          : "Live tally, refreshes every 2 seconds (and instantly on your own vote)."}{" "}
+          : "Live tally — updates in real time (and instantly on your own vote)."}{" "}
         Aggregate weights only — per-wallet choices stay private. Whale-cap 2%
         applied. Updated {formatEst(tally.computed_at)}.
       </p>
