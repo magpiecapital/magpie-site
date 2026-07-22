@@ -215,11 +215,6 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
         <div className="mx-auto max-w-6xl px-5 pt-14 pb-16 sm:px-6 md:pt-28 md:pb-36">
-          <div className="fade-up mb-6 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-xs font-medium shadow-sm">
-            <span className="live-dot" />
-            <span className="text-[var(--ink)]">Solana lending protocol · live on mainnet</span>
-          </div>
-
           {/* Hero headline — leads with the lending/benefit positioning so a first-time
               visitor instantly knows this is a lending platform; the differentiator line
               ("collateral that can still sell itself") lands in the elevator pitch below.
