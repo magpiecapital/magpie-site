@@ -150,6 +150,13 @@ export default function StatsClient() {
   const [x402, setX402] = useState<X402Data | null>(null);
   const [error, setError] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
+  // Light tick (every 20s) so the subtle "updated Xs ago" freshness label stays current
+  // between the 60s data refreshes — no data fetching, just a re-render.
+  const [nowTs, setNowTs] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowTs(Date.now()), 20_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -207,6 +214,15 @@ export default function StatsClient() {
     };
   }, []);
 
+  const freshness = (() => {
+    if (!refreshedAt) return null;
+    const s = Math.max(0, Math.round((nowTs - refreshedAt.getTime()) / 1000));
+    if (s < 15) return "updated just now";
+    if (s < 60) return `updated ${s}s ago`;
+    const m = Math.round(s / 60);
+    return `updated ${m}m ago`;
+  })();
+
   return (
     <div className="min-h-screen">
       <Header />
@@ -215,9 +231,9 @@ export default function StatsClient() {
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
         <div className="mx-auto max-w-6xl px-5 pt-12 pb-8 sm:px-6 md:pt-24 md:pb-16">
-          <div className="live-pill fade-up mb-5 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-medium sm:text-xs">
+          <div className="fade-up mb-5 inline-flex items-center gap-2 text-[11px] text-[var(--ink-faint)] sm:text-xs">
             <span className="live-dot" />
-            <span className="text-[var(--ink-soft)]">Live · auto-refreshes every 60s</span>
+            <span>Live{freshness ? ` · ${freshness}` : ""}</span>
           </div>
           <h1 className="fade-up fade-up-1 font-display text-[2.25rem] font-medium leading-[1.05] tracking-[-0.03em] sm:text-5xl md:text-7xl">
             Protocol Transparency
