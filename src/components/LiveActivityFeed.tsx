@@ -166,7 +166,7 @@ export function LiveActivityFeed() {
           {[0, 1, 2, 3, 4].map((i) => <SkeletonRow key={i} />)}
         </div>
         <div className="border-t border-[var(--hairline)] px-5 py-2.5 text-center text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-          Anonymized · auto-refresh every 15s
+          Anonymized · live
         </div>
       </div>
     );

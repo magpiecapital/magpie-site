@@ -264,7 +264,7 @@ export function CollateralBreakdown() {
       </div>
 
       <div className="border-t border-[var(--hairline)] px-5 py-2 text-center text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">
-        {tokens.length} {tokens.length === 1 ? "token" : "tokens"} · refreshes every 60s
+        {tokens.length} {tokens.length === 1 ? "token" : "tokens"} · live
       </div>
     </div>
   );
