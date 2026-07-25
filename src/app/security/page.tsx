@@ -386,13 +386,51 @@ export default function SecurityPage() {
           </h2>
           <p className="mt-4 text-lg text-[var(--ink-soft)]">April 17, 2026</p>
           <p className="mt-4 max-w-3xl text-base text-[var(--ink-soft)]">
-            In addition to this internal review, an independent external audit of
-            the V4 on-chain program is underway with{" "}
+            In addition to this internal review, an independent external assessment
+            of the V4 on-chain program was conducted by{" "}
             <span className="font-semibold">Sec3</span> (formerly Soteria), a
-            Solana-native security firm — audit activities commenced Wednesday,
-            July 8, 2026. The protocol is not yet audited; the report will be
-            published on completion.
+            Solana-native security firm. Sec3&apos;s initial assessment (commenced
+            Wednesday, July 8, 2026) is complete, and{" "}
+            <span className="font-semibold">every finding they raised has been
+            addressed</span> in code — the remediated V4 program has been
+            resubmitted to Sec3 for final re-review, which is expected to conclude
+            shortly. The protocol will be marked audited only once Sec3 publishes
+            its final report.
           </p>
+        </Reveal>
+
+        {/* Sec3 independent assessment emblem */}
+        <Reveal delay={40}>
+          <div className="mt-12 flex flex-col items-center gap-8 rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-8 py-10 sm:flex-row sm:gap-10 sm:px-12">
+            {/* Emblem: Sec3 wordmark within a security seal (assessment, not approval) */}
+            <div className="relative flex h-32 w-32 shrink-0 items-center justify-center rounded-full border border-[var(--accent)]/25 bg-gradient-to-b from-[var(--accent)]/10 to-transparent">
+              <div className="absolute inset-[6px] rounded-full border border-[var(--hairline)]" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="absolute top-[26px] h-6 w-6 text-[var(--accent)]" aria-hidden="true">
+                <path d="M12 2.5l7.5 3.2v5.6c0 4.7-3.2 8.3-7.5 9.2-4.3-.9-7.5-4.5-7.5-9.2V5.7L12 2.5z" strokeLinejoin="round" />
+              </svg>
+              <div className="absolute bottom-[30px] flex flex-col items-center leading-none">
+                <span className="font-display text-[26px] font-semibold tracking-[-0.03em]">Sec3</span>
+                <span className="mt-1 text-[9px] font-semibold uppercase tracking-[0.22em] text-[var(--ink-faint)]">Assessed</span>
+              </div>
+            </div>
+            {/* Copy */}
+            <div className="text-center sm:text-left">
+              <div className="chip mb-3">Independent assessment</div>
+              <h3 className="font-display text-2xl font-medium tracking-[-0.02em] md:text-3xl">
+                Assessed by Sec3{" "}
+                <span className="text-[var(--ink-faint)]">(formerly Soteria)</span>
+              </h3>
+              <p className="mt-3 max-w-xl text-base text-[var(--ink-soft)]">
+                A Solana-native security firm conducted a full independent assessment of the
+                V4 on-chain program. Every finding has been remediated in code, and the
+                protocol is now in Sec3&apos;s final re-review.
+              </p>
+              <div className="mt-5 inline-flex items-center gap-2.5 rounded-full border border-[var(--hairline)] bg-[var(--bg)] px-4 py-2 text-sm font-semibold text-[var(--ink-soft)]">
+                <span className="h-2 w-2 rounded-full bg-amber-400" />
+                All findings remediated · final re-review in progress
+              </div>
+            </div>
+          </div>
         </Reveal>
 
         {/* Findings Table */}
