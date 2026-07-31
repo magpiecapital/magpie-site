@@ -51,6 +51,7 @@ const ROADMAP = [
   { q: "Q2 2026", status: "done", items: "Credit system, points, public API, open source, $MAGPIE token launch + holder rewards" },
   { q: "Q3 2026", status: "upcoming", items: "magpie-x402 agent borrow API, on-chain TWAP program (v3), mobile app" },
   { q: "Q4 2026", status: "upcoming", items: "Institutional pools, multi-chain expansion, cross-chain lending" },
+  { q: "2027", status: "upcoming", items: "Collectibles vertical (in design): fixed-term loans against tokenized graded trading cards, priced on real sold comps with a buyback-backed exit — the same screen + oracle + exit core, a new asset class" },
 ];
 
 export default async function WhitepaperPage() {
