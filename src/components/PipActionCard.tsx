@@ -13,6 +13,7 @@
  */
 import { useCallback, useState } from "react";
 import { translateTxError } from "@/lib/solana/tx-error";
+import { sendAndConfirmWithRebroadcast } from "@/lib/solana/send-confirm";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import type { ProposedAction } from "@/lib/solana/site-ai-chat";
 
@@ -131,8 +132,15 @@ export function PipActionCard({
           programId,
         });
         await preflightSimulate(connection, transaction);
-        const sig = await sendTransaction(transaction, connection);
-        await waitConfirmed(connection, sig);
+        const _r = await sendAndConfirmWithRebroadcast(connection, transaction, {
+          sendTransaction,
+          signTransaction,
+        });
+        if (!_r.ok)
+          throw new Error(
+            _r.err ? JSON.stringify(_r.err) : "Tx not confirmed in 90s — check Solscan",
+          );
+        const sig = _r.sig;
         await syncLoanWithBot(action.loan_pda, sig);
         setDoneSig(sig);
         onResult(
@@ -154,8 +162,15 @@ export function PipActionCard({
           connection,
           programId,
         });
-        const sig = await sendTransaction(transaction, connection);
-        await waitConfirmed(connection, sig);
+        const _r = await sendAndConfirmWithRebroadcast(connection, transaction, {
+          sendTransaction,
+          signTransaction,
+        });
+        if (!_r.ok)
+          throw new Error(
+            _r.err ? JSON.stringify(_r.err) : "Tx not confirmed in 90s — check Solscan",
+          );
+        const sig = _r.sig;
         await syncLoanWithBot(action.loan_pda, sig);
         setDoneSig(sig);
         onResult(
@@ -175,8 +190,15 @@ export function PipActionCard({
           connection,
           programId,
         });
-        const sig = await sendTransaction(transaction, connection);
-        await waitConfirmed(connection, sig);
+        const _r = await sendAndConfirmWithRebroadcast(connection, transaction, {
+          sendTransaction,
+          signTransaction,
+        });
+        if (!_r.ok)
+          throw new Error(
+            _r.err ? JSON.stringify(_r.err) : "Tx not confirmed in 90s — check Solscan",
+          );
+        const sig = _r.sig;
         await syncLoanWithBot(action.loan_pda, sig);
         setDoneSig(sig);
         onResult(
@@ -302,8 +324,15 @@ export function PipActionCard({
           programId,
         });
         await preflightSimulate(connection, transaction);
-        const sig = await sendTransaction(transaction, connection);
-        await waitConfirmed(connection, sig);
+        const _r = await sendAndConfirmWithRebroadcast(connection, transaction, {
+          sendTransaction,
+          signTransaction,
+        });
+        if (!_r.ok)
+          throw new Error(
+            _r.err ? JSON.stringify(_r.err) : "Tx not confirmed in 90s — check Solscan",
+          );
+        const sig = _r.sig;
         await syncLoanWithBot(action.loan_pda, sig);
         setDoneSig(sig);
         onResult(
@@ -855,11 +884,15 @@ function Footer({
   );
 }
 
+// Poll for confirmation of a tx the BOT broadcast (the Pip cosign-borrow
+// path). The bot rebroadcasts server-side, so the client only needs a
+// robust status poll — searchTransactionHistory so a slow/older
+// confirmation is never missed.
 async function waitConfirmed(connection: import("@solana/web3.js").Connection, sig: string) {
   const start = Date.now();
   while (Date.now() - start < 90_000) {
-    const status = await connection.getSignatureStatus(sig);
-    const s = status?.value;
+    const res = await connection.getSignatureStatuses([sig], { searchTransactionHistory: true });
+    const s = res?.value?.[0];
     if (s?.err) throw new Error(JSON.stringify(s.err));
     if (s?.confirmationStatus === "confirmed" || s?.confirmationStatus === "finalized") {
       return;
