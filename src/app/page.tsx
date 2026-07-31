@@ -45,10 +45,18 @@ const PROTOCOL_FEATURES = [
     icon: "◬",
   },
   {
+    title: "Collectibles collateral (in design)",
+    desc: "The third collateral class, in design: fixed-term loans against tokenized graded trading cards, valued on real sold comps — not listings — with a buyback-backed exit. The full threat model and parameters are public.",
+    icon: "◆",
+    href: "/collectibles",
+    cta: "Read the design",
+  },
+  {
     title: "Agent-native via x402",
     desc: "AI agents borrow SOL against their own tokens, arm automatic exits, and repay — paying per call over the open x402 standard. No API keys, no accounts, no custody. The first permissionless lending protocol built for autonomous AI agents.",
     icon: "⌬",
     href: "/x402",
+    cta: "Explore the agent API",
   },
 ];
 
@@ -502,13 +510,22 @@ export default async function Home() {
                   </div>
                   {href && (
                     <div className="mt-auto pt-1 text-sm font-medium text-[var(--accent-deep)]">
-                      Explore the agent API →
+                      {(f as { cta?: string }).cta ?? "Explore"} →
                     </div>
                   )}
                 </div>
               );
               return (
-                <Reveal key={f.title} delay={i * 80}>
+                <Reveal
+                  key={f.title}
+                  delay={i * 80}
+                  className={
+                    PROTOCOL_FEATURES.length % 2 === 1 &&
+                    i === PROTOCOL_FEATURES.length - 1
+                      ? "md:col-span-2"
+                      : ""
+                  }
+                >
                   {href ? (
                     <Link href={href} className="block h-full transition-colors hover:bg-[var(--accent-dim)]/40">
                       {body}
