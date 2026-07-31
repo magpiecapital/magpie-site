@@ -59,9 +59,9 @@ const INTENTS: Intent[] = [
   },
   {
     id: "collateral",
-    keywords: [["collateral", "what can i use", "supported tokens", "what tokens"]],
+    keywords: [["collateral", "what can i use", "supported tokens", "what tokens", "trading card", "pokemon", "collectible"]],
     answer:
-      "Approved memecoins on Solana, plus Backed Finance xStocks (stocks, ETFs, metals) routed through a separate RWA pool. The full list is in /supported on the Telegram bot.",
+      "Approved memecoins on Solana, plus Backed Finance xStocks (stocks, ETFs, metals) routed through a separate RWA pool. The full list is in /supported on the Telegram bot. Collectibles (tokenized graded trading cards) are a third collateral class still in design — not live yet, so you can't borrow against a card today; see magpie.capital/collectibles.",
   },
   {
     id: "magpie_token",
