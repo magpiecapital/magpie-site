@@ -23,6 +23,8 @@ export function Footer() {
             <FooterLink href="/earn">Earn</FooterLink>
             <FooterLink href="/marketplace">Borrow</FooterLink>
             <FooterLink href="/tokens">Approved Tokens</FooterLink>
+            <FooterLink href="/xstocks">Tokenized Stocks</FooterLink>
+            <FooterLink href="/collectibles">Collectibles</FooterLink>
             <FooterLink href="/x402">x402 · Agent API</FooterLink>
             <FooterLink href="/dashboard">Dashboard</FooterLink>
             <FooterLink href="/stats">Protocol Stats</FooterLink>
