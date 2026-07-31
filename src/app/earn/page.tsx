@@ -24,6 +24,7 @@ import {
   type LpVersion,
   type VersionedPosition,
 } from "@/lib/solana/pool";
+import { sendAndConfirmWithRebroadcast } from "@/lib/solana/send-confirm";
 
 // Human label for a pool version. V4 is the flagship (new deposits).
 function versionLabel(v: LpVersion): string {
@@ -49,7 +50,7 @@ const MODE_KEY = "magpie-earn-mode";
 /* ───────────────────────── PAGE ───────────────────────── */
 
 export default function EarnPage() {
-  const { publicKey, sendTransaction, connected } = useWallet();
+  const { publicKey, sendTransaction, signTransaction, connected } = useWallet();
   const { connection } = useConnection();
 
   const [pool, setPool] = useState<PoolStats | null>(null);
@@ -199,44 +200,6 @@ export default function EarnPage() {
     return () => clearInterval(interval);
   }, [refresh]);
 
-  /**
-   * Confirm a transaction by POLLING signature status instead of relying
-   * on the default 30s blockhash-expiration strategy. Solana's default
-   * confirmTransaction throws "not confirmed in 30 seconds" even when
-   * the tx is actually confirming on-chain — just slowly during
-   * congestion. This polls every 1.5s up to 90s and returns success
-   * the moment the tx is in.
-   *
-   * Returns:
-   *   { ok: true } on success
-   *   { ok: false, err } on on-chain failure
-   *   { ok: false, pending: true } if 90s passed with no resolution
-   *     (caller can still treat as ambiguous and direct user to explorer)
-   */
-  const confirmWithPoll = useCallback(
-    async (sig: string, timeoutMs = 90_000): Promise<{ ok: boolean; pending?: boolean; err?: unknown }> => {
-      const start = Date.now();
-      const POLL_INTERVAL_MS = 1_500;
-      while (Date.now() - start < timeoutMs) {
-        try {
-          const res = await connection.getSignatureStatuses([sig], { searchTransactionHistory: true });
-          const s = res?.value?.[0];
-          if (s) {
-            if (s.err) return { ok: false, err: s.err };
-            if (s.confirmationStatus === "confirmed" || s.confirmationStatus === "finalized") {
-              return { ok: true };
-            }
-          }
-        } catch {
-          /* transient RPC error — keep polling */
-        }
-        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
-      }
-      return { ok: false, pending: true };
-    },
-    [connection],
-  );
-
   // Handle deposit
   const handleDeposit = async () => {
     if (!publicKey || !amount) return;
@@ -283,8 +246,11 @@ export default function EarnPage() {
     let sig = "";
     try {
       const tx = await buildDepositTransaction(connection, publicKey, lamports);
-      sig = await sendTransaction(tx, connection);
-      const r = await confirmWithPoll(sig);
+      const r = await sendAndConfirmWithRebroadcast(connection, tx, {
+        sendTransaction,
+        signTransaction,
+      });
+      sig = r.sig;
       if (r.ok) {
         setTxResult({ sig, type: "deposit" });
         setAmount("");
@@ -425,8 +391,11 @@ export default function EarnPage() {
         setChunkProgress({ step: chunkStep, total: Math.max(estimatedTotal, chunkStep), lamportsDone });
 
         const tx = await buildWithdrawBundleTransaction(connection, publicKey, bundle, activeVersion);
-        lastSig = await sendTransaction(tx, connection);
-        const r = await confirmWithPoll(lastSig);
+        const r = await sendAndConfirmWithRebroadcast(connection, tx, {
+          sendTransaction,
+          signTransaction,
+        });
+        lastSig = r.sig;
         if (!r.ok) {
           if (r.pending) {
             setTxError(translateTxError("not confirmed in 90s", { flow: "withdraw", sig: lastSig }));

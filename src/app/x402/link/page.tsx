@@ -30,10 +30,11 @@ import {
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getBorrowableHoldings, type BorrowableHolding } from "@/lib/solana/borrowable-holdings";
+import { sendAndConfirmWithRebroadcast } from "@/lib/solana/send-confirm";
 
 export default function X402LinkPage() {
   const { connection } = useConnection();
-  const { publicKey, connected, sendTransaction } = useWallet();
+  const { publicKey, connected, sendTransaction, signTransaction } = useWallet();
   const { setVisible } = useWalletModal();
 
   const [holdings, setHoldings] = useState<BorrowableHolding[] | null>(null);
@@ -115,9 +116,18 @@ export default function X402LinkPage() {
       }
       tx.feePayer = publicKey;
       tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-      const sig = await sendTransaction(tx, connection);
-      await connection.confirmTransaction(sig, "confirmed");
-      setFundSig(sig);
+      const r = await sendAndConfirmWithRebroadcast(connection, tx, {
+        sendTransaction,
+        signTransaction,
+      });
+      if (!r.ok) {
+        throw new Error(
+          r.err
+            ? JSON.stringify(r.err)
+            : "Transaction didn't confirm — Solana may be congested. Please try again.",
+        );
+      }
+      setFundSig(r.sig);
     } catch (e) {
       setFundErr((e as Error).message);
     } finally {

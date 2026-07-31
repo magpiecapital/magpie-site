@@ -98,6 +98,11 @@ const ALLOWED_METHODS = new Set([
   "getTokenAccountBalance",
   "getTokenSupply",
   "getLatestBlockhash",
+  // Read-only: lets the client-side rebroadcast helper
+  // (src/lib/solana/send-confirm.ts) stop resending the instant a
+  // transaction's blockhash provably expires, instead of blindly polling
+  // to the timeout.
+  "isBlockhashValid",
   "getFeeForMessage",
   "sendTransaction",
   "simulateTransaction",
