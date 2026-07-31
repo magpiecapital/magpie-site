@@ -12,6 +12,7 @@ import { buildBorrowTransaction } from "@/lib/solana/borrow";
 import { LOAN_TIERS, chooseProgramId, PROGRAM_ID_V4 } from "@/lib/solana/constants";
 import { isOnChainFeedBorrowable } from "@/lib/solana/feed-freshness";
 import { fetchAllDepositorPositions, type DepositorInfo } from "@/lib/solana/pool";
+import { sendAndConfirmWithRebroadcast } from "@/lib/solana/send-confirm";
 import { translateTxError } from "@/lib/solana/tx-error";
 import { PROPOSAL_LIFECYCLES, resolveProposalStatus } from "@/lib/governance";
 import dynamic from "next/dynamic";
@@ -2703,21 +2704,18 @@ function DashboardPageInner() {
         if ((simErr as Error).message?.startsWith("Pre-flight failed:")) throw simErr;
         // else continue
       }
-      const sig = await sendTransaction(transaction, connection);
-      // Poll for confirmation
-      const start = Date.now();
-      let confirmed = false;
-      while (Date.now() - start < 90_000) {
-        const status = await connection.getSignatureStatus(sig);
-        const s = status?.value;
-        if (s?.err) throw new Error(JSON.stringify(s.err));
-        if (s?.confirmationStatus === "confirmed" || s?.confirmationStatus === "finalized") {
-          confirmed = true;
-          break;
-        }
-        await new Promise((r) => setTimeout(r, 2000));
+      // Robust submit: sign locally, then rebroadcast the signed tx until
+      // it lands or its blockhash provably expires — so a repay/extend/topup
+      // can't get stuck on "Landing your transaction…" during congestion.
+      const r = await sendAndConfirmWithRebroadcast(connection, transaction, {
+        sendTransaction,
+        signTransaction,
+      });
+      const sig = r.sig;
+      if (!r.ok) {
+        if (r.err) throw new Error(JSON.stringify(r.err));
+        throw new Error("Tx not confirmed in 90s — check Solscan");
       }
-      if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
       // Tell the bot the tx landed so the activity feed, /stats, credit
       // score, and streak pick up the state change immediately instead
       // of waiting for the every-5-min reconciler. Fail-soft.
@@ -2741,7 +2739,7 @@ function DashboardPageInner() {
     } finally {
       setRepayPendingFor(null);
     }
-  }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
+  }, [publicKey, connected, connection, sendTransaction, signTransaction, forceRefresh]);
 
   // Extend handler: pay tier-dependent fee, get a fresh duration.
   // Borrower-only signature, no lender co-sign needed.
@@ -2762,21 +2760,18 @@ function DashboardPageInner() {
         connection,
         programId,
       });
-      const sig = await sendTransaction(transaction, connection);
-      // Confirm polling — same pattern as repay
-      const start = Date.now();
-      let confirmed = false;
-      while (Date.now() - start < 90_000) {
-        const status = await connection.getSignatureStatus(sig);
-        const s = status?.value;
-        if (s?.err) throw new Error(JSON.stringify(s.err));
-        if (s?.confirmationStatus === "confirmed" || s?.confirmationStatus === "finalized") {
-          confirmed = true;
-          break;
-        }
-        await new Promise((r) => setTimeout(r, 2000));
+      // Robust submit: sign locally, then rebroadcast the signed tx until
+      // it lands or its blockhash provably expires — so a repay/extend/topup
+      // can't get stuck on "Landing your transaction…" during congestion.
+      const r = await sendAndConfirmWithRebroadcast(connection, transaction, {
+        sendTransaction,
+        signTransaction,
+      });
+      const sig = r.sig;
+      if (!r.ok) {
+        if (r.err) throw new Error(JSON.stringify(r.err));
+        throw new Error("Tx not confirmed in 90s — check Solscan");
       }
-      if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
       const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
       fetch(`${botApi}/api/v1/sync-loan`, {
         method: "POST",
@@ -2790,7 +2785,7 @@ function DashboardPageInner() {
     } finally {
       setExtendPendingFor(null);
     }
-  }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
+  }, [publicKey, connected, connection, sendTransaction, signTransaction, forceRefresh]);
 
   // Topup handler: add more collateral to an existing loan.
   // Borrower-only signature. Uses same Max-captures-exact-raw pattern as /earn
@@ -2847,20 +2842,18 @@ function DashboardPageInner() {
         connection,
         programId,
       });
-      const sig = await sendTransaction(transaction, connection);
-      const start = Date.now();
-      let confirmed = false;
-      while (Date.now() - start < 90_000) {
-        const status = await connection.getSignatureStatus(sig);
-        const s = status?.value;
-        if (s?.err) throw new Error(JSON.stringify(s.err));
-        if (s?.confirmationStatus === "confirmed" || s?.confirmationStatus === "finalized") {
-          confirmed = true;
-          break;
-        }
-        await new Promise((r) => setTimeout(r, 2000));
+      // Robust submit: sign locally, then rebroadcast the signed tx until
+      // it lands or its blockhash provably expires — so a repay/extend/topup
+      // can't get stuck on "Landing your transaction…" during congestion.
+      const r = await sendAndConfirmWithRebroadcast(connection, transaction, {
+        sendTransaction,
+        signTransaction,
+      });
+      const sig = r.sig;
+      if (!r.ok) {
+        if (r.err) throw new Error(JSON.stringify(r.err));
+        throw new Error("Tx not confirmed in 90s — check Solscan");
       }
-      if (!confirmed) throw new Error("Tx not confirmed in 90s — check Solscan");
       const botApi = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
       fetch(`${botApi}/api/v1/sync-loan`, {
         method: "POST",
@@ -2874,7 +2867,7 @@ function DashboardPageInner() {
     } finally {
       setTopupPendingFor(null);
     }
-  }, [publicKey, connected, connection, sendTransaction, forceRefresh]);
+  }, [publicKey, connected, connection, sendTransaction, signTransaction, forceRefresh]);
 
   // Fetch live credit score — refetches on wallet change AND refreshTrigger
   // bumps (every 2 min OR after any user action that mutates state).
