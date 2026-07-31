@@ -84,6 +84,12 @@ const ROADMAP = [
     done: false,
     items: "Mobile app, institutional lending pools, DAO launch",
   },
+  {
+    quarter: "2027",
+    done: false,
+    items:
+      "Real-world collateral: tokenized-collectible lending — fixed-term loans against graded trading cards (e.g. Collector Crypt), valued on real sold comps, not listings. In design.",
+  },
 ];
 
 const VALUES = [
