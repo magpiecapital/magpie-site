@@ -175,6 +175,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
     {
+      // Collectibles landing page — the design-phase vertical (fixed-term
+      // loans against tokenized graded trading cards, real-comp valuation,
+      // buyback exit). Marketing surface for the third collateral class;
+      // marked in-design until the data/legal/audit gates close.
+      url: `${SITE_URL}/collectibles`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${SITE_URL}/status`,
       lastModified: now,
       changeFrequency: "daily",
