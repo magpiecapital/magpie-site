@@ -386,12 +386,14 @@ export default function SecurityPage() {
           </h2>
           <p className="mt-4 text-lg text-[var(--ink-soft)]">April 17, 2026</p>
           <p className="mt-4 max-w-3xl text-base text-[var(--ink-soft)]">
-            In addition to this internal review, an independent external audit of
-            the V4 on-chain program is underway with{" "}
+            In addition to this internal review, the V4 on-chain program has
+            undergone an independent security assessment by{" "}
             <span className="font-semibold">Sec3</span> (formerly Soteria), a
-            Solana-native security firm — audit activities commenced Wednesday,
-            July 8, 2026. The protocol is not yet audited; the report will be
-            published on completion.
+            Solana-native security firm. Sec3&apos;s assessment is complete;
+            every finding has been remediated on a dedicated, fully open-source
+            fix branch, and the fixes are back with Sec3 for re-review. The
+            protocol is not yet &ldquo;audited&rdquo; &mdash; we will not claim
+            that until Sec3 publishes the final, re-checked report.
           </p>
         </Reveal>
 
