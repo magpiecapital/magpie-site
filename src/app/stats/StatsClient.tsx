@@ -39,12 +39,14 @@ interface TransparencyData {
     // amount itself.
     current_pool_sol: number;
     lifetime_distributions: number;
+    lifetime_distributed_sol: number;
     last_distribution_sol: number | null;
     last_distribution_at: string | null;
   };
   lp_loyalty: {
     current_pool_sol: number;
     lifetime_distributions: number;
+    lifetime_distributed_sol: number;
     last_distribution_sol: number | null;
     last_distribution_at: string | null;
   };
@@ -386,6 +388,65 @@ export default function StatsClient() {
           numbers below are what&apos;s currently accruing toward the next
           distribution snapshot.
         </p>
+        {/* ── Total rewards headline: all-time paid across every snapshot,
+            PLUS what's currently accruing toward the next one (operator
+            request 2026-08-03: show the cumulative total and include the
+            future/accruing rewards in the same figure). All values live
+            from the transparency API. ── */}
+        {data && (() => {
+          const distributedToDate =
+            data.holder_rewards.lifetime_distributed_sol +
+            data.lp_loyalty.lifetime_distributed_sol +
+            data.referrals.lifetime_paid_sol;
+          const accruingNow =
+            data.holder_rewards.current_pool_sol +
+            data.lp_loyalty.current_pool_sol +
+            data.referrals.current_pool_sol +
+            data.protocol_reserve.current_pool_sol;
+          return (
+            <div className="mb-6 rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 shadow-sm sm:p-6">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0">
+                  <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-[11px]">
+                    Total rewards · paid out + accruing
+                  </div>
+                  <div className="mt-1.5 text-3xl font-semibold tabular-nums text-[var(--ink)] sm:text-[2.5rem] sm:leading-none">
+                    {fmtSol(distributedToDate + accruingNow)}
+                  </div>
+                  <p className="mt-2 max-w-xl text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
+                    Everything Magpie has returned to $MAGPIE holders, SOL LPs &amp; referrers
+                    across every snapshot to date, plus what&apos;s already accruing toward the
+                    next distribution.
+                  </p>
+                </div>
+                <div className="flex flex-none gap-8 sm:gap-10">
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] sm:text-[11px]">
+                      Distributed to date
+                    </div>
+                    <div className="mt-1 text-xl font-semibold tabular-nums text-[var(--ink)] sm:text-2xl">
+                      {fmtSol(distributedToDate)}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-[var(--ink-faint)]">
+                      {data.holder_rewards.lifetime_distributions} $MAGPIE snapshots
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)] sm:text-[11px]">
+                      Accruing now
+                    </div>
+                    <div className="mt-1 text-xl font-semibold tabular-nums text-[var(--accent-deep)] sm:text-2xl">
+                      +{fmtSol(accruingNow)}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-[var(--ink-faint)]">
+                      toward next snapshot
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat
             label="$MAGPIE holders"
