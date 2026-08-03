@@ -76,6 +76,20 @@ interface ReserveRow {
   lifetime_accrued_lamports: string | null;
 }
 
+// ── GENESIS holder distribution (immutable history) ──
+// The first-ever $MAGPIE holder reward distribution: MGP-001, executed
+// 2026-06-10 (~23:12 UTC) from CHCAM, 21.49 SOL to ~1,562 holders. It
+// pre-dates BOTH the magpie_holder_distributions table (which starts at
+// #2 / Jun 19) AND the MGP-001 70/10/10/10 split, so it isn't in the live
+// tables. It's real, on-chain (tx sigs in the distribution execution log),
+// and publicly announced (x.com/MagpieLoans). Because it's fixed history
+// that can never change, it's tracked here as a constant and added to the
+// holder lifetime count + distributed total so /stats reflects all 7
+// distributions and the full SOL paid to date. The voided #6 (0 SOL) is
+// NOT counted.
+const GENESIS_HOLDER_DISTRIBUTIONS = 1;
+const GENESIS_HOLDER_DISTRIBUTED_LAMPORTS = 21_490_000_000; // 21.49 SOL
+
 export async function GET() {
   const [loans, users, holders, lpLoy, refs, reserveRow] = await Promise.all([
     tryQuery<LoansRow>(
@@ -118,6 +132,9 @@ export async function GET() {
       // missing column.
       `SELECT
          (SELECT accrued_lamports::text FROM magpie_holder_pool WHERE id = 1) AS current_pool_lamports,
+         -- Post-#2 distributions live in this table. The GENESIS distribution
+         -- (June 10, MGP-001) predates it and is added as a constant below
+         -- (see GENESIS_HOLDER_*). #6 was voided (0 SOL) and is not a row here.
          (SELECT COUNT(*)::text FROM magpie_holder_distributions) AS lifetime_distributions,
          -- All-time SOL actually paid out to $MAGPIE holders across every
          -- snapshot (sum of every 'paid' reward row). This is the true
@@ -244,10 +261,11 @@ export async function GET() {
         // so callers see the size but not WHEN, which kills the timing arb.
         current_pool_sol: holders.current_pool_lamports
           ? Number(holders.current_pool_lamports) / 1e9 : 0,
-        lifetime_distributions: Number(holders.lifetime_distributions),
-        // Cumulative SOL paid to holders across ALL snapshots.
-        lifetime_distributed_sol: holders.lifetime_distributed_lamports
-          ? Number(holders.lifetime_distributed_lamports) / 1e9 : 0,
+        // Includes the genesis June-10 distribution (see GENESIS_HOLDER_*).
+        lifetime_distributions: Number(holders.lifetime_distributions) + GENESIS_HOLDER_DISTRIBUTIONS,
+        // Cumulative SOL paid to holders across ALL distributions, incl. genesis.
+        lifetime_distributed_sol:
+          (Number(holders.lifetime_distributed_lamports ?? 0) + GENESIS_HOLDER_DISTRIBUTED_LAMPORTS) / 1e9,
         last_distribution_sol: holders.last_distribution_lamports
           ? Number(holders.last_distribution_lamports) / 1e9 : null,
         last_distribution_at: holders.last_distribution_at,
