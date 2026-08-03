@@ -51,6 +51,7 @@ interface UsersRow {
 interface HoldersRow {
   current_pool_lamports: string | null;
   lifetime_distributions: string;
+  lifetime_distributed_lamports: string | null;
   last_distribution_lamports: string | null;
   last_distribution_at: Date | string | null;
 }
@@ -59,6 +60,7 @@ interface LpLoyRow {
   current_pool_lamports: string | null;
   gross_pool_lamports: string | null;
   lifetime_distributions: string;
+  lifetime_distributed_lamports: string | null;
   last_distribution_lamports: string | null;
   last_distribution_at: Date | string | null;
 }
@@ -117,12 +119,19 @@ export async function GET() {
       `SELECT
          (SELECT accrued_lamports::text FROM magpie_holder_pool WHERE id = 1) AS current_pool_lamports,
          (SELECT COUNT(*)::text FROM magpie_holder_distributions) AS lifetime_distributions,
+         -- All-time SOL actually paid out to $MAGPIE holders across every
+         -- snapshot (sum of every 'paid' reward row). This is the true
+         -- cumulative "given out in rewards" figure, independent of the
+         -- distributions COUNT above.
+         (SELECT COALESCE(SUM(reward_lamports), 0)::text
+            FROM magpie_holder_rewards WHERE status = 'paid') AS lifetime_distributed_lamports,
          (SELECT pool_lamports::text FROM magpie_holder_distributions
             ORDER BY id DESC LIMIT 1) AS last_distribution_lamports,
          (SELECT created_at FROM magpie_holder_distributions ORDER BY id DESC LIMIT 1)
            AS last_distribution_at`,
       {
         current_pool_lamports: null, lifetime_distributions: "0",
+        lifetime_distributed_lamports: "0",
         last_distribution_lamports: null, last_distribution_at: null,
       },
     ),
@@ -154,12 +163,17 @@ export async function GET() {
          )::bigint::text AS current_pool_lamports,
          (SELECT accrued_lamports::text FROM lp_loyalty_pool WHERE id = 1) AS gross_pool_lamports,
          (SELECT COUNT(*)::text FROM lp_loyalty_distributions) AS lifetime_distributions,
+         -- All-time SOL actually paid out to LPs across every LP loyalty
+         -- distribution (sum of every 'paid' reward row).
+         (SELECT COALESCE(SUM(reward_lamports), 0)::text
+            FROM lp_loyalty_rewards WHERE status = 'paid') AS lifetime_distributed_lamports,
          (SELECT pool_lamports::text FROM lp_loyalty_distributions
             ORDER BY id DESC LIMIT 1) AS last_distribution_lamports,
          (SELECT created_at FROM lp_loyalty_distributions
             ORDER BY id DESC LIMIT 1) AS last_distribution_at`,
       {
         current_pool_lamports: null, gross_pool_lamports: null, lifetime_distributions: "0",
+        lifetime_distributed_lamports: "0",
         last_distribution_lamports: null, last_distribution_at: null,
       },
     ),
@@ -231,6 +245,9 @@ export async function GET() {
         current_pool_sol: holders.current_pool_lamports
           ? Number(holders.current_pool_lamports) / 1e9 : 0,
         lifetime_distributions: Number(holders.lifetime_distributions),
+        // Cumulative SOL paid to holders across ALL snapshots.
+        lifetime_distributed_sol: holders.lifetime_distributed_lamports
+          ? Number(holders.lifetime_distributed_lamports) / 1e9 : 0,
         last_distribution_sol: holders.last_distribution_lamports
           ? Number(holders.last_distribution_lamports) / 1e9 : null,
         last_distribution_at: holders.last_distribution_at,
@@ -243,6 +260,9 @@ export async function GET() {
         gross_pool_sol: lpLoy.gross_pool_lamports
           ? Number(lpLoy.gross_pool_lamports) / 1e9 : 0,
         lifetime_distributions: Number(lpLoy.lifetime_distributions),
+        // Cumulative SOL paid to LPs across ALL loyalty distributions.
+        lifetime_distributed_sol: lpLoy.lifetime_distributed_lamports
+          ? Number(lpLoy.lifetime_distributed_lamports) / 1e9 : 0,
         last_distribution_sol: lpLoy.last_distribution_lamports
           ? Number(lpLoy.last_distribution_lamports) / 1e9 : null,
         last_distribution_at: lpLoy.last_distribution_at,
