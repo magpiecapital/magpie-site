@@ -10,7 +10,7 @@ const DESIGN_REPO = "https://github.com/magpiecapital/magpie-collectibles-lendin
 export const metadata: Metadata = {
   title: "Borrow against graded trading cards | Magpie",
   description:
-    "A design-phase vertical: fixed-term loans against tokenized graded trading cards (e.g. Collector Crypt), valued on real sold comps — not listings — with a buyback-backed exit. Not live yet; the full design is public.",
+    "A design-phase vertical: fixed-term loans against tokenized, vault-held graded trading cards, valued on real sold comps — not listings. Recovery is by resale of proven-liquid cards, not a vendor buyback. Not live yet; the full design is public.",
   openGraph: {
     title: "Borrow against graded trading cards | Magpie",
     description:
@@ -58,8 +58,8 @@ const VALUATION = [
     body: "A single marketplace can be gamed. Every valuation is confirmed against PSA Auction Prices Realized — multi-house, structurally independent sold data — so no one source can inflate borrowing power. If sources diverge past a threshold, we don't lend.",
   },
   {
-    title: "Buyback as a soft floor, not the oracle",
-    body: "A vault buyback (e.g. Collector Crypt's standing quote) is treated as a conservative floor for the exit — never as the price we lend against. We stay independent of any single counterparty's index.",
+    title: "Recovery by resale, sized for a bear market",
+    body: "Because we only lend against cards with a real, recent sales record — at conservative LTV — default recovery is a straightforward resale into that proven market, plus physical redemption. We never depend on a single vendor's buyback, and the book is sized with a reserve to survive a downturn.",
   },
 ];
 
@@ -165,11 +165,12 @@ export default function CollectiblesPage() {
                 Collateral that can sell itself
               </div>
               <h3 className="mt-2 font-display text-lg font-medium leading-tight tracking-[-0.02em] sm:text-xl">
-                A buyback-backed exit
+                Proven-liquid, so it can be sold
               </h3>
               <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
-                On default, the card resolves through a vault buyback and physical resale
-                — a conservative floor we underwrite beneath, not a number we depend on.
+                We only lend against cards with a real, recent, multi-venue sales record.
+                On default, recovery is a straightforward resale into that proven market,
+                plus physical redemption — never a reliance on any single buyer.
               </p>
             </div>
           </Reveal>
@@ -344,7 +345,7 @@ export default function CollectiblesPage() {
                 <li><strong className="text-[var(--ink)]">Fixed term</strong> — no price-triggered liquidation of card collateral.</li>
                 <li><strong className="text-[var(--ink)]">Conservative LTV</strong> — sized to survive a 40–70% drawdown plus fees.</li>
                 <li><strong className="text-[var(--ink)]">Cross-sourced value</strong> — real sold comps + an independent anchor.</li>
-                <li><strong className="text-[var(--ink)]">Buyback floor</strong> — a resolution path we underwrite beneath.</li>
+                <li><strong className="text-[var(--ink)]">Proven-liquid only</strong> — recovery by resale into a real market, plus a reserve.</li>
               </ul>
             </div>
           </Reveal>
