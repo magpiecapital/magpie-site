@@ -25,23 +25,23 @@ const TIERS = [
   {
     tag: "Tier A",
     tone: "emerald",
-    ltv: "≤ 40%",
-    label: "Blue-chip vintage",
-    body: "Iconic, deeply-liquid graded cards — WOTC-era holos like Base Set Charizard — where dozens of recent sold comps exist every month across multiple auction houses.",
-    examples: ["Base Set Charizard", "1st-ed holos", "Iconic promos"],
+    ltv: "≤ 50%",
+    label: "Blue-chip, deeply liquid",
+    body: "Iconic graded cards that sell almost every week across multiple houses — WOTC-era holos like Base Set Charizard, and blue-chip graded sports like a PSA-9 Jordan rookie. Dense, independent sold comps in every recent window.",
+    examples: ["Base Set Charizard", "1986 Fleer Jordan", "1st-ed holos"],
   },
   {
     tag: "Tier B",
     tone: "amber",
-    ltv: "≤ 35%",
+    ltv: "≤ 40%",
     label: "Liquid chase cards",
-    body: "Graded modern & vintage chase cards with a steady sold-comp history but thinner per-card volume. Real market, wider spreads — so a lower cap and a stricter comp-count floor.",
+    body: "Graded modern & vintage chase cards with a steady monthly sold-comp history but thinner per-card volume. Real market, wider spreads — so a lower cap and a stricter comp-count floor.",
     examples: ["Graded modern chase", "Key set holos", "Popular alt-arts"],
   },
   {
     tag: "Tier C",
     tone: "slate",
-    ltv: "≤ 20%",
+    ltv: "≤ 25%",
     label: "Long-tail",
     body: "Sparse-comp, low-liquidity cards. Most are ineligible; the few that qualify take the lowest cap. We would rather decline than underwrite a card we can't honestly value or exit.",
     examples: ["Sparse comps", "Low pop + low demand", "Unverifiable variants"],
@@ -81,6 +81,32 @@ const EXCLUDED = [
   "Cards with sparse or wash-traded comp history",
   "Unverifiable variants or suspected altered/counterfeit slabs",
   "Anything we can't independently cross-source a value for",
+];
+
+// Collateral is sourced across every vetted tokenization platform — each an
+// independent, capped lane, all held to the same proof-of-sale bar. We tokenize
+// nothing ourselves; we lend against what's already vaulted + graded on these.
+const PLATFORMS = [
+  { name: "Collector Crypt", chain: "Solana", role: "Anchor lane" },
+  { name: "Phygitals", chain: "Solana", role: "Deep card lane" },
+  { name: "Courtyard", chain: "Polygon", role: "Cross-chain lane" },
+  { name: "Beezie", chain: "Solana", role: "Watch-list" },
+  { name: "BAXUS", chain: "Solana", role: "Whiskey lane" },
+];
+
+const AGG_POINTS = [
+  {
+    title: "The widest safe book",
+    body: "Your card is accepted no matter which platform vaulted it — the union of every vetted marketplace's tokenized inventory, not one silo. Every incumbent lends only against its own vault; we lend against all of them.",
+  },
+  {
+    title: "One honest price everywhere",
+    body: "A card is valued the same wherever it lives, off sold comps aggregated across every platform's marketplace plus independent auction houses. More sources make the price harder to game, not easier.",
+  },
+  {
+    title: "Capped lanes, no single point of failure",
+    body: "Each platform is its own risk lane with its own exposure cap and custody checks. If one source has a bad day, it can be paused on its own — the rest of the book keeps running.",
+  },
 ];
 
 const toneClass: Record<string, string> = {
@@ -195,9 +221,65 @@ export default function CollectiblesPage() {
         </div>
       </section>
 
-      {/* ── How we'll value a card ── */}
+      {/* ── Aggregation: one place for every platform ── */}
       <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
         <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+          <Reveal>
+            <div className="mb-5 flex flex-col gap-1.5 sm:mb-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+              <h2 className="max-w-2xl font-display text-xl font-medium tracking-[-0.02em] sm:text-2xl md:text-3xl">
+                One place to borrow against every tokenized card
+              </h2>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-xs">
+                Aggregated · capped lanes
+              </span>
+            </div>
+            <p className="mb-6 max-w-3xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+              Your card is already tokenized and vault-held on a platform like Collector
+              Crypt, Courtyard, or Phygitals. Magpie is the single liquidity layer designed
+              to lend against <em>all</em> of them — each an independent, capped lane,
+              every item held to the same proof-of-sale bar and priced by the same oracle.
+              We don't tokenize anything; we lend against what's already vaulted and graded.
+            </p>
+          </Reveal>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3 md:grid-cols-5">
+            {PLATFORMS.map((p, i) => (
+              <Reveal key={p.name} delay={i * 50}>
+                <div className="flex h-full flex-col justify-between rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-3.5 sm:p-4">
+                  <div className="font-display text-[13px] font-medium leading-tight tracking-[-0.01em] sm:text-sm">
+                    {p.name}
+                  </div>
+                  <div className="mt-3">
+                    <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--accent-deep)]">
+                      {p.role}
+                    </div>
+                    <div className="mt-0.5 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                      {p.chain}
+                    </div>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:mt-5 sm:gap-5 md:grid-cols-3">
+            {AGG_POINTS.map((a, i) => (
+              <Reveal key={a.title} delay={i * 60}>
+                <div className="card h-full p-4 sm:p-6">
+                  <div className="font-display text-base font-medium tracking-[-0.02em] sm:text-lg">
+                    {a.title}
+                  </div>
+                  <p className="mt-2 text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-[13px]">
+                    {a.body}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── How we'll value a card ── */}
+      <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+        <div>
           <Reveal>
             <div className="mb-5 flex flex-col gap-1.5 sm:mb-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
               <h2 className="font-display text-xl font-medium tracking-[-0.02em] sm:text-2xl md:text-3xl">
