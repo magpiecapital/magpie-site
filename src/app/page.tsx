@@ -46,7 +46,7 @@ const PROTOCOL_FEATURES = [
   },
   {
     title: "Collectibles collateral (in design)",
-    desc: "The third collateral class, in design: fixed-term loans against tokenized graded trading cards, valued on real sold comps — not listings — with a buyback-backed exit. The full threat model and parameters are public.",
+    desc: "The third collateral class, in design: fixed-term loans against tokenized, vault-held graded collectibles — valued on real sold comps, never listings — starting with vintage blue-chips. Full threat model, vetting standard, and parameters are public.",
     icon: "◆",
     href: "/collectibles",
     cta: "Read the design",
@@ -57,6 +57,41 @@ const PROTOCOL_FEATURES = [
     icon: "⌬",
     href: "/x402",
     cta: "Explore the agent API",
+  },
+];
+
+// The three collateral classes — Magpie's "three-headed monster": memecoins and
+// tokenized stocks are LIVE; collectibles is IN DESIGN (honest, pre-launch framing).
+const COLLATERAL_CLASSES = [
+  {
+    key: "memecoins",
+    glyph: "✦",
+    status: "Live",
+    title: "Memecoins",
+    desc: "Pledge the memecoins you already hold and borrow SOL against them in seconds — every token screened for liquidity and capped for safety.",
+    examples: "WIF · BONK · POPCAT · Fartcoin",
+    href: "/tokens",
+    cta: "Browse tokens",
+  },
+  {
+    key: "stocks",
+    glyph: "◈",
+    status: "Live",
+    title: "Tokenized stocks",
+    desc: "Borrow against real equities on Solana without selling — no margin calls, no taxable event, your upside intact.",
+    examples: "xTSLA · xNVDA · xAAPL · xSPY",
+    href: "/xstocks",
+    cta: "See tokenized stocks",
+  },
+  {
+    key: "collectibles",
+    glyph: "◆",
+    status: "In design",
+    title: "Collectibles",
+    desc: "Fixed-term loans against tokenized, vault-held graded collectibles — valued on real sold comps, never listings. Vintage blue-chips first, whisky next.",
+    examples: "Graded cards · fine whisky",
+    href: "/collectibles",
+    cta: "Read the design",
   },
 ];
 
@@ -341,6 +376,51 @@ export default async function Home() {
           <p className="mt-7 font-display text-2xl font-medium italic tracking-[-0.02em] text-[var(--accent-deep)] sm:text-3xl md:text-4xl">
             Collateral that can still sell itself.
           </p>
+        </Reveal>
+      </section>
+
+      {/* Three collateral classes — memecoins + tokenized stocks (live) + collectibles (in design) */}
+      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-28">
+        <Reveal>
+          <div className="chip mb-4 md:mb-5">Three collateral classes</div>
+          <h2 className="font-display max-w-3xl text-3xl font-medium leading-[1.05] tracking-[-0.02em] sm:text-4xl md:text-5xl">
+            One protocol. Three kinds of collateral.
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--ink-soft)] sm:text-lg">
+            Borrow SOL against what you already hold — each class screened for safety and priced off honest, verifiable data. Non-custodial, on-chain, and expanding deliberately.
+          </p>
+          <div className="mt-10 grid gap-4 sm:grid-cols-3 md:mt-12">
+            {COLLATERAL_CLASSES.map((c) => (
+              <Link
+                key={c.key}
+                href={c.href}
+                className="group flex flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 transition hover:border-[var(--accent)]/50 hover:shadow-md md:p-7"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl text-[var(--accent-deep)]" aria-hidden>{c.glyph}</span>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] ${
+                      c.status === "Live"
+                        ? "bg-[var(--accent-dim)] text-[var(--accent-deep)]"
+                        : "border border-[var(--hairline)] text-[var(--ink-faint)]"
+                    }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${c.status === "Live" ? "bg-green-500" : "bg-[var(--ink-faint)]"}`}
+                    />
+                    {c.status}
+                  </span>
+                </div>
+                <h3 className="mt-5 font-display text-xl font-medium tracking-[-0.01em]">{c.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">{c.desc}</p>
+                <div className="mt-4 text-[11px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">{c.examples}</div>
+                <div className="mt-auto pt-6 text-sm font-medium text-[var(--accent-deep)]">
+                  {c.cta}{" "}
+                  <span className="inline-block transition group-hover:translate-x-0.5" aria-hidden>→</span>
+                </div>
+              </Link>
+            ))}
+          </div>
         </Reveal>
       </section>
 
