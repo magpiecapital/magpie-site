@@ -1,254 +1,125 @@
 import Link from "next/link";
 import { Mark } from "@/components/Logo";
-import { DiamondIcon } from "@/components/DiamondIcon";
-import { ArrowDownRightIcon, CheckIcon, TriangleAlertIcon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
-import { PhoneMock } from "@/components/PhoneMock";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
-import { TokenMarquee } from "@/components/TokenMarquee";
 import { LiveProtocolTicker } from "@/components/LiveProtocolTicker";
-import { getTokenStats, getPoolOverview } from "@/lib/db";
+import { getTokenStats } from "@/lib/db";
+import { TELEGRAM_URL } from "@/lib/telegram-links";
 
 export const revalidate = 60;
 
 const X_URL = "https://x.com/MagpieLoans";
-import { TELEGRAM_BOT, TELEGRAM_COMMUNITY, TELEGRAM_URL } from "@/lib/telegram-links";
 
 /* ─── Data ─── */
 
-const PROTOCOL_FEATURES = [
-  {
-    title: "Permissionless pools",
-    desc: "Anyone can supply SOL to the lending pool and earn yield from loan origination fees. Share-based accounting — deposit, withdraw, compound.",
-    icon: "◉",
-  },
-  {
-    title: "On-chain credit oracle",
-    desc: "The first DeFi credit system. Every repayment builds a 300–850 score, stored on-chain. Better score unlocks better LTV and lower fees over time.",
-    icon: "★",
-  },
-  {
-    title: "Keeper network",
-    desc: "Liquidations are permissionless. Any wallet can execute an overdue liquidation and earn a bounty — no staking required, no gatekeepers.",
-    icon: "⚡",
-  },
-  {
-    title: "Tokenized stock collateral",
-    desc: "Borrow against real equities on Solana. xTSLA, xNVDA, xAAPL, and more via tokens.xyz — the first lending protocol to accept both memecoins and stocks.",
-    icon: "◈",
-  },
-  {
-    title: "Auto-sell built in",
-    desc: "Set your exit price when you borrow — take profit, stop loss, both, or a multi-step ladder. Engine watches the chart 24/7 and executes the moment your target hits.",
-    icon: "◬",
-  },
-  {
-    title: "Collectibles collateral (in design)",
-    desc: "The third collateral class, in design: fixed-term loans against tokenized, vault-held graded collectibles — valued on real sold comps, never listings — starting with vintage blue-chips. Full threat model, vetting standard, and parameters are public.",
-    icon: "◆",
-    href: "/collectibles",
-    cta: "Read the design",
-  },
-  {
-    title: "Agent-native via x402",
-    desc: "AI agents borrow SOL against their own tokens, arm automatic exits, and repay — paying per call over the open x402 standard. No API keys, no accounts, no custody. The first permissionless lending protocol built for autonomous AI agents.",
-    icon: "⌬",
-    href: "/x402",
-    cta: "Explore the agent API",
-  },
-];
-
-// The three collateral classes — Magpie's "three-headed monster": memecoins and
-// tokenized stocks are LIVE; collectibles is IN DESIGN (honest, pre-launch framing).
-const COLLATERAL_CLASSES = [
+// The three collateral classes — the "pick your collateral" chooser. Memecoins
+// and tokenized stocks are LIVE (borrow now); collectibles is IN DESIGN.
+const CHOOSER = [
   {
     key: "memecoins",
     glyph: "✦",
     status: "Live",
     title: "Memecoins",
-    desc: "Pledge the memecoins you already hold and borrow SOL against them in seconds — every token screened for liquidity and capped for safety.",
+    desc: "Borrow SOL against the memecoins you already hold — every token screened for liquidity and capped for safety.",
     examples: "WIF · BONK · POPCAT · Fartcoin",
-    href: "/tokens",
-    cta: "Browse tokens",
+    href: "/marketplace",
+    cta: "Borrow now",
   },
   {
     key: "stocks",
     glyph: "◈",
     status: "Live",
     title: "Tokenized stocks",
-    desc: "Borrow against real equities on Solana without selling — no margin calls, no taxable event, your upside intact.",
+    desc: "Borrow against real equities on Solana — without selling. No margin calls, no taxable event, upside intact.",
     examples: "xTSLA · xNVDA · xAAPL · xSPY",
-    href: "/xstocks",
-    cta: "See tokenized stocks",
+    href: "/marketplace",
+    cta: "Borrow now",
   },
   {
     key: "collectibles",
     glyph: "◆",
     status: "In design",
     title: "Collectibles",
-    desc: "Fixed-term loans against tokenized, vault-held graded collectibles — valued on real sold comps, never listings. Vintage blue-chips first, whisky next.",
-    examples: "Graded cards · fine whisky",
+    desc: "Borrow against graded trading cards — priced on real sales, fixed-term, and you keep the card.",
+    examples: "Graded cards · Pokémon · sports",
     href: "/collectibles",
-    cta: "Read the design",
-  },
-];
-
-const THREE_SIDES = (tokenCount: number) => [
-  {
-    chip: "Borrow",
-    title: `${tokenCount} tokens accepted`,
-    desc: "Pledge memecoins or tokenized stocks, pick a tier, get SOL in seconds. Non-custodial, on-chain, available from the dashboard or your Telegram chat.",
-    href: "/tokens",
-    cta: "Browse tokens",
-  },
-  {
-    chip: "Earn",
-    title: "Supply & earn yield",
-    desc: "Deposit SOL into the permissionless lending pool. Earn a share of every loan fee, proportional to your deposit. Withdraw anytime.",
-    href: "/earn",
-    cta: "Start earning",
-  },
-  {
-    chip: "Reputation",
-    title: "On-chain credit scores",
-    desc: "Every repayment builds your score (300–850). Higher scores unlock better rates. First portable DeFi credit system — your history, on-chain.",
-    href: "/credit",
-    cta: "Credit system",
+    cta: "See how it works",
   },
 ];
 
 const STEPS = [
   {
     n: "01",
-    t: "Connect on magpie.capital",
-    d: "Open the dashboard, connect your wallet. No seed phrase. No signup. (Telegram @magpie_capital_bot works too if you prefer.)",
+    t: "Pick your collateral",
+    d: "Choose memecoins, tokenized stocks, or collectibles — connect your wallet on the dashboard, or use the Telegram bot.",
   },
   {
     n: "02",
     t: "Get an instant quote",
-    d: "Pick a tier and a bag. Live oracle pricing shows your payout and liquidation price before you sign.",
+    d: "Live pricing shows your SOL payout and terms before you sign. No signup, no seed phrase.",
   },
   {
     n: "03",
-    t: "Deposit your bag",
-    d: "Send to a loan-scoped address. SOL hits your wallet when the deposit confirms — usually under ten seconds.",
-  },
-  {
-    n: "04",
-    t: "Manage or repay",
-    d: "Top-up, partial-repay, or extend anytime. Repay fully to reclaim your bag. Alerts fire at 90% health.",
+    t: "Borrow & repay",
+    d: "SOL hits your wallet in seconds. Repay anytime to reclaim your collateral — and build on-chain credit with every repay.",
   },
 ];
 
-const TIERS = [
+const EARN = [
   {
-    name: "Express",
-    days: "2 days",
-    ltv: "30%",
-    fee: "3%",
-    best: "Fast cash, premium rate",
-    points: ["Highest LTV — borrow more", "2-day turnaround", "Higher fee offsets higher risk"],
-    highlight: false,
+    chip: "Supply liquidity",
+    title: "Deposit SOL, earn loan fees",
+    desc: "Fund loans and keep the lion's share of every fee they pay. Withdraw anytime.",
+    href: "/earn",
+    cta: "Open the LP",
   },
   {
-    name: "Quick",
-    days: "3 days",
-    ltv: "25%",
-    fee: "2%",
-    best: "Balanced speed & value",
-    points: ["Mid-range LTV", "3-day runway", "Most popular tier"],
-    highlight: true,
+    chip: "Hold $MAGPIE",
+    title: "Earn 70% of every fee",
+    desc: "Hold the token and receive 70% of all loan fees, distributed automatically to holders.",
+    href: "/holders",
+    cta: "See holder rewards",
   },
   {
-    name: "Standard",
-    days: "7 days",
-    ltv: "20%",
-    fee: "1.5%",
-    best: "Best rate, more time to repay",
-    points: ["Lowest fee available", "Full week to repay", "Most headroom to liquidation"],
-    highlight: false,
-  },
-];
-
-const PILLARS = [
-  {
-    title: "Non-custodial",
-    body: "Loan-scoped deposit addresses. Your other holdings are untouchable. Collateral held in on-chain vaults, not our wallets.",
-  },
-  {
-    title: "Transparent pricing",
-    body: "Tiered fees. Memecoin: 3% Express, 2% Quick, 1.5% Standard (v1 pool). RWA: 2.5% Express (7d), 3.5% Quick (15d), 5% Standard (30d) on the v3 pool for tokenized stocks/ETFs/metals. No hidden rate curves, no dynamic APR, no liquidation penalties beyond what you pledged.",
-  },
-  {
-    title: "Permissionless",
-    body: "Anyone can supply liquidity. Anyone can run a keeper. Anyone can build on top. No gatekeepers, no whitelists, open protocol.",
-  },
-  {
-    title: "Two front doors",
-    body: "Use the dashboard for the full-featured web experience, or the Telegram bot for one-tap loans on your phone. Same on-chain program, same wallet — pick whichever fits the moment.",
+    chip: "Run a keeper",
+    title: "Earn liquidation bounties",
+    desc: "Liquidations are permissionless — any wallet can execute an overdue loan and earn a bounty.",
+    href: "/credit",
+    cta: "How it works",
   },
 ];
 
 const FAQ = [
+  { q: "What can I borrow against?", a: "" }, // filled dynamically
   {
-    q: "What is LTV and how does it work?",
-    a: "LTV stands for Loan-to-Value — the percentage of your collateral's dollar value you receive as SOL. $1,000 of WIF at 30% LTV = $300 in SOL. Lower LTV = less SOL but more safety margin.",
-  },
-  {
-    q: "What tokens can I pledge?",
-    a: "", // filled dynamically
+    q: "What is LTV?",
+    a: "Loan-to-Value — the percentage of your collateral's value you receive as SOL. $1,000 of collateral at 30% LTV = $300 in SOL. Lower LTV = more safety margin.",
   },
   {
     q: "What happens if the price drops?",
-    a: "Nothing automatic — a price drop does NOT liquidate you. Magpie liquidation is time-based: you keep your collateral through any volatility as long as you repay before your loan's fixed term ends. There's no margin call and no health-factor liquidation; your LTV just sets how much you can borrow, it isn't a liquidation line. You'll get repay-deadline reminders, and you can repay, partial-repay, or extend the term anytime before it's due.",
+    a: "Nothing automatic — a price drop does NOT liquidate you. Magpie loans are fixed-term: keep your collateral through any volatility as long as you repay before the term ends. No margin calls, no health-factor liquidation. Repay, partial-repay, or extend anytime.",
+  },
+  {
+    q: "Is it custodial?",
+    a: "No. Collateral sits in on-chain vaults governed by the Anchor program, not anyone's wallet. The contract is publicly auditable and deterministic.",
   },
   {
     q: "How do I earn yield?",
-    a: "Deposit SOL into the lending pool on the Earn page. You receive pool shares. When borrowers pay fees, the pool grows and your shares are worth more. Withdraw anytime — no lockups.",
+    a: "Deposit SOL into the lending pool on the Earn page and receive pool shares. As borrowers pay fees, the pool grows and your shares are worth more. Withdraw anytime — no lockups.",
   },
   {
-    q: "What is the credit oracle?",
-    a: "An on-chain program (BBYtty9...) that tracks a 300–850 credit score per wallet. Every on-time repayment increases your score. Higher scores will unlock better LTV ratios and lower fees.",
+    q: "Are collectibles live yet?",
+    a: "Not yet — collectibles are the third collateral class, in design. Memecoins and tokenized stocks are live today. The full collectibles design is public at magpie.capital/collectibles.",
   },
-  {
-    q: "What is the keeper network?",
-    a: "Liquidations are permissionless. When a loan becomes overdue, any wallet can execute the liquidation and earn a bounty (configurable, up to 20% of seized collateral). No staking required.",
-  },
-  {
-    q: "Is this custodial?",
-    a: "No. Collateral sits in on-chain vaults governed by the Anchor program, not in anyone's wallet. The smart contract is publicly auditable and deterministic.",
-  },
-  {
-    q: "What's the smart contract?",
-    a: "magpie-lending — an Anchor program on Solana, deployed in three versions running in parallel: v1 for memecoin loans (4FEFPe...), v2 for legacy RWA loans (6wSpKA...), and v3 for new RWA loans (B8AwYz...) with hardened TWAP defenses and u128 LP withdraw math. Permissionless lending pools with share-based accounting, configurable keeper rewards, and tiered fee structure.",
-  },
-];
-
-const MARQUEE = (tokenCount: number) => [
-  "Permissionless pools",
-  "Non-custodial",
-  "On-chain credit scores",
-  `${tokenCount} approved tokens`,
-  "Keeper network",
-  "Tokenized stocks",
-  "1.5–5% tiered fee",
-  "Repay anytime",
-  "Live health alerts",
-  "Solana mainnet",
 ];
 
 /* ─── Page ─── */
 
 export default async function Home() {
-  const [{ count: TOKEN_COUNT, memeCount, stockCount }, poolOverview] = await Promise.all([
-    getTokenStats(),
-    getPoolOverview(),
-  ]);
-  const threeSides = THREE_SIDES(TOKEN_COUNT);
-  const marquee = MARQUEE(TOKEN_COUNT);
-  const faqTokenAnswer = `${TOKEN_COUNT} tokens — ${memeCount} memecoins (WIF, BONK, Fartcoin, POPCAT, and more) plus ${stockCount} tokenized stocks (xTSLA, xNVDA, xAAPL, and more). Check the Approved Tokens page for the full list.`;
+  const { count: TOKEN_COUNT, memeCount, stockCount } = await getTokenStats();
+  const faqTokenAnswer = `Memecoins and tokenized stocks today — ${TOKEN_COUNT} approved tokens (${memeCount} memecoins like WIF, BONK and Fartcoin; ${stockCount} tokenized stocks like xTSLA, xNVDA and xAAPL). Collectibles (graded cards) are in design. See the Approved Tokens page for the full list.`;
 
   return (
     <div className="min-h-screen">
@@ -257,84 +128,58 @@ export default async function Home() {
       {/* ══════════ HERO ══════════ */}
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
-        <div className="mx-auto max-w-6xl px-5 pt-14 pb-16 sm:px-6 md:pt-28 md:pb-36">
-          {/* Hero headline — leads with the lending/benefit positioning so a first-time
-              visitor instantly knows this is a lending platform; the differentiator line
-              ("collateral that can still sell itself") lands in the elevator pitch below.
-              Mobile-safe clamp (min 2.25rem) + sm:-only line break = clean wrap on phones. */}
-          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-balance [text-wrap:balance] text-[clamp(2.25rem,8.5vw,8rem)] leading-[0.95] tracking-[-0.04em] font-medium sm:leading-[0.92]">
+        <div className="mx-auto max-w-6xl px-5 pt-14 pb-14 sm:px-6 md:pt-24 md:pb-24">
+          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-balance [text-wrap:balance] text-[clamp(2.25rem,8vw,7rem)] leading-[0.95] tracking-[-0.04em] font-medium sm:leading-[0.92]">
             Liquidity without{" "}
             <br className="hidden sm:block" />
             <span className="italic">selling your bag.</span>
           </h1>
 
-          <p className="fade-up fade-up-2 mt-5 max-w-xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-8 sm:text-xl">
-            Borrow SOL against your memecoins, tokenized stocks, and RWAs — and set take-profits and stops on that same collateral. Liquidity now, upside intact: get SOL in seconds and manage it all from the dashboard or Telegram, building on-chain credit with every repay.
+          <p className="fade-up fade-up-2 mt-5 max-w-xl text-base leading-relaxed text-[var(--ink-soft)] sm:mt-7 sm:text-xl">
+            Borrow SOL against your memecoins, tokenized stocks, and collectibles —
+            in seconds, without selling. Keep your upside; get liquidity now.
           </p>
 
-          <div className="fade-up fade-up-3 mt-8 flex flex-wrap items-center gap-3 sm:mt-10 sm:gap-4">
-            <Link href="/dashboard" className="btn-accent shimmer text-sm sm:text-base">
+          <div className="fade-up fade-up-3 mt-8 flex flex-wrap items-center gap-3 sm:mt-9 sm:gap-4">
+            <Link href="/marketplace" className="btn-accent shimmer text-sm sm:text-base">
               Start borrowing
               <span aria-hidden>→</span>
             </Link>
             <Link href="/earn" className="btn-ghost text-sm sm:text-base">
               Earn yield
             </Link>
-            <Link href="/holders" className="btn-ghost inline-flex items-center gap-1.5 text-sm sm:text-base">
-              <DiamondIcon className="h-3.5 w-3.5" />
-              <span>Hold $MAGPIE · earn 70%</span>
-            </Link>
-            <Link href="/credit" className="btn-ghost text-sm sm:text-base">
-              ★ Build on-chain credit
-            </Link>
-            <Link href="/tokens" className="btn-ghost text-sm sm:text-base">
-              {TOKEN_COUNT} approved tokens
-            </Link>
-          </div>
-
-          <p className="fade-up fade-up-3 mt-4 text-[12px]" style={{ color: "var(--ink-faint)" }}>
-            Prefer Telegram?{" "}
             <a
               href={TELEGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="underline underline-offset-2 hover:text-[var(--ink-soft)]"
+              className="btn-ghost text-sm sm:text-base"
             >
-              Use the bot →
+              Use the Telegram bot →
             </a>
-          </p>
-
-          {/* Hero value-prop strip. Qualitative claims that hold up regardless
-              of protocol scale — speed, cost, safety, selection. The detailed
-              live metrics (TVL, loans issued, fees) live in the "Protocol in
-              numbers" section deeper on the page where engaged visitors
-              naturally find them. */}
-          <div className="fade-up fade-up-4 mt-12 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-16">
-            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">&lt;10s</div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">SOL in your wallet</div>
-            </div>
-            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">1.5–3%</div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Flat fee · no surprises</div>
-            </div>
-            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl"><CountUp value={TOKEN_COUNT} /></div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Tokens you can borrow against</div>
-            </div>
-            <div className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
-              <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">100%</div>
-              <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">Non-custodial & on-chain</div>
-            </div>
           </div>
 
-          {/* Live protocol ticker — auto-loads from /api/v1/transparency.
-              Renders nothing if data unavailable, so the layout always
-              feels intentional even on a cold cache. */}
+          {/* Value-prop stat strip */}
+          <div className="fade-up fade-up-4 mt-12 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-14">
+            {[
+              { v: "<10s", l: "SOL in your wallet" },
+              { v: "1.5–3%", l: "Flat fee · no surprises" },
+              { v: null, l: "Tokens you can borrow against" },
+              { v: "100%", l: "Non-custodial & on-chain" },
+            ].map((s, i) => (
+              <div key={i} className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
+                <div className="font-display tabular text-2xl font-medium tracking-[-0.03em] sm:text-3xl md:text-4xl">
+                  {s.v === null ? <CountUp value={TOKEN_COUNT} /> : s.v}
+                </div>
+                <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-[var(--ink-soft)] md:text-xs">
+                  {s.l}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Live protocol ticker — auto-loads; renders nothing if unavailable. */}
           <LiveProtocolTicker />
 
-          {/* Floating mark — large hero placement. Stays as the
-              original black silhouette in both themes per design. */}
           <div className="pointer-events-none absolute right-8 top-32 hidden opacity-90 lg:block">
             <div className="hop">
               <Mark size={240} variant="static" />
@@ -343,58 +188,25 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Trust bar */}
+      {/* ══════════ PICK YOUR COLLATERAL ══════════ */}
       <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-6 py-10 md:flex-row md:justify-between">
-          <div className="text-xs uppercase tracking-[0.22em] text-[var(--ink-soft)]">
-            Built with
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-10 md:gap-14">
-            <EcoLogo label="Solana" />
-            <EcoLogo label="Anchor" />
-            <EcoLogo label="Jupiter" />
-            <EcoLogo label="tokens.xyz" />
-            <EcoLogo label="Telegram" />
-          </div>
-        </div>
-      </section>
-
-      {/* Elevator pitch */}
-      <section className="mx-auto max-w-5xl px-5 py-16 sm:px-6 md:py-32">
-        <Reveal>
-          <p className="font-display text-xl font-medium leading-relaxed tracking-[-0.02em] text-[var(--ink)] sm:text-2xl md:text-4xl md:leading-[1.4]">
-            Magpie is a permissionless lending protocol on Solana. Anyone can
-            {" "}<span className="italic text-[var(--accent-deep)]">supply liquidity</span>{" "}
-            to earn yield. Anyone can
-            {" "}<span className="italic text-[var(--accent-deep)]">borrow SOL</span>{" "}
-            against memecoins and tokenized stocks. Anyone can
-            {" "}<span className="italic text-[var(--accent-deep)]">hold $MAGPIE</span>{" "}
-            to earn 70% of every loan fee, distributed automatically. And anyone can
-            {" "}<span className="italic text-[var(--accent-deep)]">run a keeper</span>{" "}
-            to earn bounties on liquidations.
-          </p>
-          <p className="mt-7 font-display text-2xl font-medium italic tracking-[-0.02em] text-[var(--accent-deep)] sm:text-3xl md:text-4xl">
-            Collateral that can still sell itself.
-          </p>
-        </Reveal>
-      </section>
-
-      {/* Three collateral classes — memecoins + tokenized stocks (live) + collectibles (in design) */}
-      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-28">
-        <Reveal>
-          <div className="chip mb-4 md:mb-5">Three collateral classes</div>
-          <h2 className="font-display max-w-3xl text-3xl font-medium leading-[1.05] tracking-[-0.02em] sm:text-4xl md:text-5xl">
-            One protocol. Three kinds of collateral.
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--ink-soft)] sm:text-lg">
-            Borrow SOL against what you already hold — each class screened for safety and priced off honest, verifiable data. Non-custodial, on-chain, and expanding deliberately.
-          </p>
-          <div className="mt-10 grid gap-4 sm:grid-cols-3 md:mt-12">
-            {COLLATERAL_CLASSES.map((c) => (
+        <div className="mx-auto max-w-6xl px-5 py-14 sm:px-6 md:py-20">
+          <Reveal>
+            <div className="chip mb-4">Pick your collateral</div>
+            <h2 className="font-display max-w-3xl text-3xl font-medium leading-[1.05] tracking-[-0.02em] sm:text-4xl md:text-5xl">
+              What do you want to borrow against?
+            </h2>
+            <p className="mt-3 max-w-2xl text-base text-[var(--ink-soft)] sm:text-lg">
+              Three collateral classes, one protocol. Pick what you hold and get SOL —
+              non-custodial, on Solana.
+            </p>
+          </Reveal>
+          <div className="mt-8 grid gap-4 sm:grid-cols-3 md:mt-10">
+            {CHOOSER.map((c) => (
               <Link
                 key={c.key}
                 href={c.href}
-                className="group flex flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 transition hover:border-[var(--accent)]/50 hover:shadow-md md:p-7"
+                className="group flex flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 transition hover:-translate-y-0.5 hover:border-[var(--accent)]/50 hover:shadow-md md:p-7"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-2xl text-[var(--accent-deep)]" aria-hidden>{c.glyph}</span>
@@ -405,790 +217,151 @@ export default async function Home() {
                         : "border border-[var(--hairline)] text-[var(--ink-faint)]"
                     }`}
                   >
-                    <span
-                      className={`h-1.5 w-1.5 rounded-full ${c.status === "Live" ? "bg-green-500" : "bg-[var(--ink-faint)]"}`}
-                    />
+                    <span className={`h-1.5 w-1.5 rounded-full ${c.status === "Live" ? "bg-green-500" : "bg-[var(--ink-faint)]"}`} />
                     {c.status}
                   </span>
                 </div>
                 <h3 className="mt-5 font-display text-xl font-medium tracking-[-0.01em]">{c.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">{c.desc}</p>
                 <div className="mt-4 text-[11px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">{c.examples}</div>
-                <div className="mt-auto pt-6 text-sm font-medium text-[var(--accent-deep)]">
+                <div className="mt-auto pt-6 text-sm font-semibold text-[var(--accent-deep)]">
                   {c.cta}{" "}
                   <span className="inline-block transition group-hover:translate-x-0.5" aria-hidden>→</span>
                 </div>
               </Link>
             ))}
           </div>
-        </Reveal>
-      </section>
-
-      {/* Three ways to earn */}
-      <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
-        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24">
-          <Reveal>
-            <div className="chip mb-4 md:mb-5">Three ways to earn</div>
-            <h2 className="font-display max-w-4xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
-              Every loan pays.<br />
-              <span className="italic">Pick your side of the trade.</span>
-            </h2>
-          </Reveal>
-          <div className="mt-10 grid gap-5 md:mt-16 md:grid-cols-3">
-            <Link
-              href="/earn"
-              className="group rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 transition hover:border-[var(--accent)]/40 hover:bg-[var(--surface)]"
-            >
-              <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">Supply liquidity</div>
-              <div className="mt-3 font-display text-2xl font-medium tracking-tight">
-                Deposit SOL · earn the 10% LP loyalty cut
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
-                Be the lender. Your SOL funds loans across hundreds of memecoins, and you keep
-                the lion&apos;s share of every fee they pay.
-              </p>
-              <div className="mt-5 text-sm font-medium text-[var(--accent-deep)] underline-offset-4 group-hover:underline">
-                Open the LP →
-              </div>
-            </Link>
-            <Link
-              href="/holders"
-              className="group rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent)]/5 p-6 transition hover:border-[var(--accent)] hover:bg-[var(--accent)]/10"
-            >
-              <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.22em] text-[var(--accent)]">
-                <DiamondIcon className="h-3 w-3" />
-                <span>Hold $MAGPIE · NEW</span>
-              </div>
-              <div className="mt-3 font-display text-2xl font-medium tracking-tight">
-                Earn 70% of every loan fee
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
-                Every $MAGPIE in your wallet is a passive stream. Snapshots happen periodically;
-                SOL hits your wallet automatically. No staking, no claim, no signing.
-              </p>
-              <div className="mt-5 text-sm font-medium text-[var(--accent-deep)] underline-offset-4 group-hover:underline">
-                See your share →
-              </div>
-            </Link>
-            <Link
-              href="/refer"
-              className="group rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 transition hover:border-[var(--accent)]/40 hover:bg-[var(--surface)]"
-            >
-              <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">Refer friends</div>
-              <div className="mt-3 font-display text-2xl font-medium tracking-tight">
-                Earn 10% of their loan fees
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
-                Share your link. Every loan your referrals take pays you 10% of the fee, for
-                life. Paid in SOL on demand.
-              </p>
-              <div className="mt-5 text-sm font-medium text-[var(--accent-deep)] underline-offset-4 group-hover:underline">
-                Grab your link →
-              </div>
-            </Link>
-          </div>
         </div>
       </section>
 
-      {/* ══════════ ON-CHAIN CREDIT ══════════ */}
-      <section className="border-b border-[var(--hairline)] bg-[var(--bg)]">
-        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24">
-          <Reveal>
-            <div className="chip mb-4 md:mb-5">★ On-chain credit</div>
-            <h2 className="font-display max-w-4xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
-              Every repayment builds your reputation.
-              <br />
-              <span className="italic text-[var(--ink-soft)]">Portable. Verifiable. Yours.</span>
-            </h2>
-            <p className="mt-4 max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-6 sm:text-lg">
-              Magpie writes a 300–850 credit score to an on-chain oracle for every active
-              borrower. Repay on time, your score climbs. Get liquidated, it drops. Future
-              protocols that read this oracle can offer better terms to reliable borrowers
-              — your reputation goes wherever your wallet goes.
-            </p>
-          </Reveal>
-
-          <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-4 md:mt-12 md:gap-4">
-            {[
-              { tier: "Bronze", range: "300–499", color: "#cd7f32" },
-              { tier: "Silver", range: "500–649", color: "#a8acb4" },
-              { tier: "Gold", range: "650–749", color: "var(--accent)" },
-              { tier: "Platinum", range: "750–850", color: "#e8e6e0" },
-            ].map((t) => (
-              <div
-                key={t.tier}
-                className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5"
-              >
-                <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">{t.tier}</div>
-                <div className="mt-2 font-display text-2xl font-medium tracking-tight" style={{ color: t.color }}>
-                  {t.range}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-10 flex flex-wrap items-center gap-3">
-            <Link href="/credit" className="btn-accent text-sm sm:text-base">
-              See how the score moves
-            </Link>
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost text-sm sm:text-base">
-              Check your score in TG
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Token logo marquee */}
-      <section className="overflow-hidden border-b border-[var(--hairline)] bg-[var(--surface)] py-5">
-        <div className="mb-3 text-center text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">
-          Accepted collateral
-        </div>
-        <TokenMarquee />
-      </section>
-
-      {/* Feature marquee */}
-      <section className="overflow-hidden border-b border-[var(--hairline)] bg-[var(--accent)]">
-        <div className="flex marquee whitespace-nowrap py-4 text-[var(--ink)] font-semibold tracking-tight">
-          {[...marquee, ...marquee].map((item, i) => (
-            <span key={i} className="flex items-center gap-6 px-6 text-base">
-              {item}
-              <span aria-hidden className="opacity-30">✦</span>
-            </span>
-          ))}
-        </div>
-      </section>
-
-      {/* ══════════ THE PROTOCOL ══════════ */}
-      <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
-        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-36">
-          <Reveal>
-            <div className="chip mb-4 md:mb-5">The protocol</div>
-            <h2 className="font-display max-w-4xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-7xl">
-              Open infrastructure.
-              <br />
-              <span className="italic text-[var(--ink-soft)]">No gatekeepers.</span>
-            </h2>
-            <p className="mt-4 max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-6 sm:text-lg">
-              An Anchor program on Solana that powers permissionless lending pools, an on-chain credit oracle, and a keeper network for liquidations.
-              Every constraint is enforced by the smart contract — not by us.
-            </p>
-          </Reveal>
-
-          <div className="mt-16 grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-[var(--hairline)] bg-[var(--hairline)] md:grid-cols-2">
-            {PROTOCOL_FEATURES.map((f, i) => {
-              const href = (f as { href?: string }).href;
-              const body = (
-                <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-6 sm:p-8 md:p-10">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-base text-[var(--accent-deep)] sm:h-10 sm:w-10 sm:text-lg">
-                      {f.icon}
-                    </div>
-                    <div className="text-lg font-semibold tracking-tight sm:text-xl">{f.title}</div>
-                  </div>
-                  <div className="text-sm leading-relaxed text-[var(--ink-soft)] sm:text-base">
-                    {f.desc}
-                  </div>
-                  {href && (
-                    <div className="mt-auto pt-1 text-sm font-medium text-[var(--accent-deep)]">
-                      {(f as { cta?: string }).cta ?? "Explore"} →
-                    </div>
-                  )}
-                </div>
-              );
-              return (
-                <Reveal
-                  key={f.title}
-                  delay={i * 80}
-                  className={
-                    PROTOCOL_FEATURES.length % 2 === 1 &&
-                    i === PROTOCOL_FEATURES.length - 1
-                      ? "md:col-span-2"
-                      : ""
-                  }
-                >
-                  {href ? (
-                    <Link href={href} className="block h-full transition-colors hover:bg-[var(--accent-dim)]/40">
-                      {body}
-                    </Link>
-                  ) : (
-                    body
-                  )}
-                </Reveal>
-              );
-            })}
-          </div>
-
-          {/* Protocol code snippet */}
-          <Reveal delay={200}>
-            <div className="mt-12 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[#0e1621]">
-              <div className="flex items-center justify-between border-b border-[var(--bg-elevated)]/5 bg-[#17212b] px-5 py-3">
-                <span className="font-mono text-[11px] font-semibold text-[var(--bg-elevated)]/80">magpie-lending</span>
-                <span className="text-[10px] text-[var(--bg-elevated)]/40">Anchor program on Solana</span>
-              </div>
-              <pre className="overflow-x-auto p-4 font-mono text-[11px] leading-relaxed text-[var(--bg-elevated)]/70 sm:p-5 sm:text-[12px]">
-{`// Permissionless liquidation — any wallet can be a keeper
-pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
-    let pool = &ctx.accounts.pool;
-    let loan = &mut ctx.accounts.loan;
-
-    // Verify loan is overdue
-    require!(Clock::get()?.unix_timestamp > loan.due_timestamp,
-        LendingError::LoanNotDue);
-
-    // Split collateral: keeper bounty + authority remainder
-    let keeper_reward = collateral_balance
-        .checked_mul(pool.keeper_reward_bps as u64)
-        .unwrap() / 10_000;
-    // Transfer reward to keeper, remainder to pool authority
-    ...
-}`}
-              </pre>
-            </div>
-          </Reveal>
-
-          {/* On-chain proof */}
-          <Reveal delay={220}>
-            <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-12 md:grid-cols-2">
-              <a
-                href="https://solscan.io/account/4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-5 transition hover:border-[var(--accent)] hover:shadow-sm"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-lg text-[var(--accent-deep)]">
-                  ◉
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold">magpie-lending</div>
-                  <div className="mt-0.5 truncate font-mono text-[11px] text-[var(--ink-faint)]">4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh</div>
-                </div>
-                <span className="text-xs font-medium text-[var(--accent-deep)] opacity-0 transition group-hover:opacity-100">Solscan →</span>
-              </a>
-              <a
-                href="https://solscan.io/account/BBYtty9sqWjHzTuoXSNfDCpNtLn6ZjfSfhYEoY6MFP2E"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-center gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-5 transition hover:border-[var(--accent)] hover:shadow-sm"
-              >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--accent-dim)] text-lg text-[var(--accent-deep)]">
-                  ★
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold">magpie-credit-oracle</div>
-                  <div className="mt-0.5 truncate font-mono text-[11px] text-[var(--ink-faint)]">BBYtty9sqWjHzTuoXSNfDCpNtLn6ZjfSfhYEoY6MFP2E</div>
-                </div>
-                <span className="text-xs font-medium text-[var(--accent-deep)] opacity-0 transition group-hover:opacity-100">Solscan →</span>
-              </a>
-            </div>
-          </Reveal>
-
-          <Reveal delay={280}>
-            <div className="mt-10 flex flex-wrap items-center gap-4">
-              <Link href="/docs" className="btn-accent text-base">
-                Read the docs
-                <span aria-hidden>→</span>
-              </Link>
-              <Link href="/earn" className="btn-ghost text-base">
-                Supply liquidity
-              </Link>
-              <Link href="/stats" className="btn-ghost text-base">
-                Protocol stats
-              </Link>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ══════════ THREE SIDES ══════════ */}
-      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-36">
+      {/* ══════════ COLLECTIBLES SPOTLIGHT ══════════ */}
+      <section className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-16">
         <Reveal>
-          <div className="chip mb-4 md:mb-5">The marketplace</div>
-          <h2 className="font-display max-w-4xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-7xl">
-            Borrow. Earn.
-            <br />
-            <span className="italic text-[var(--ink-soft)]">Build your score.</span>
-          </h2>
-          <p className="mt-4 max-w-2xl text-base text-[var(--ink-soft)] leading-relaxed sm:mt-6 sm:text-lg">
-            Three sides of a permissionless lending marketplace — all governed on-chain, all accessible from day one.
-          </p>
-        </Reveal>
-
-        <div className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
-          {threeSides.map((s, i) => (
-            <Reveal key={s.chip} delay={i * 80}>
-              <Link
-                href={s.href}
-                className="group flex h-full flex-col rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 transition hover:border-[var(--accent)] hover:shadow-lg sm:rounded-3xl sm:p-8"
-              >
-                <div className="chip mb-3">{s.chip}</div>
-                <h3 className="font-display text-2xl font-medium tracking-[-0.02em]">{s.title}</h3>
-                <p className="mt-2 flex-1 text-sm text-[var(--ink-soft)] leading-relaxed">
-                  {s.desc}
+          <div className="overflow-hidden rounded-[2rem] border border-[var(--hairline)] bg-gradient-to-br from-[var(--surface)] to-[var(--bg-elevated)] p-6 sm:p-10 md:p-14">
+            <div className="grid items-center gap-8 md:grid-cols-[0.85fr_1.15fr] md:gap-14">
+              <div className="mx-auto w-full max-w-[260px] md:justify-self-start">
+                <figure className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] shadow-xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/collectibles/charizard-base-set-psa10.jpg"
+                    alt="1999 Base Set Charizard Holo #4, graded PSA GEM-MT 10"
+                    width={614}
+                    height={1000}
+                    className="block h-auto w-full"
+                  />
+                </figure>
+              </div>
+              <div>
+                <div className="chip mb-4">New collateral class · in design</div>
+                <h2 className="font-display text-3xl font-medium leading-[1.04] tracking-[-0.02em] sm:text-4xl md:text-5xl">
+                  Your collectibles,
+                  <br />
+                  <span className="italic">finally liquid.</span>
+                </h2>
+                <p className="mt-4 max-w-xl text-base leading-relaxed text-[var(--ink-soft)] sm:text-lg">
+                  Borrow SOL against your graded trading cards — Pokémon, sports and top
+                  TCG — without selling them. Priced on what they actually sold for, and
+                  only the proven-liquid ones.
                 </p>
-                <div className="mt-4 flex items-center gap-1 text-sm font-semibold text-[var(--accent-deep)] group-hover:text-[var(--accent)]">
-                  {s.cta} <span aria-hidden className="transition group-hover:translate-x-1">→</span>
+                <ul className="mt-6 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                  {[
+                    ["Real sold-comp pricing", "Valued on real sales across marketplaces — never listings."],
+                    ["Only proven-liquid cards", "We vet each one closely. If it doesn't reliably sell, we don't lend."],
+                    ["Never force-liquidated", "Fixed-term — your card is never dumped on a price dip."],
+                    ["Every platform, one place", "Cards vaulted on Collector Crypt, Courtyard, Phygitals & more."],
+                  ].map(([t, d]) => (
+                    <li key={t} className="flex gap-2.5 text-sm leading-snug">
+                      <span aria-hidden className="mt-0.5 flex-none text-emerald-500">✓</span>
+                      <span>
+                        <span className="font-semibold text-[var(--ink)]">{t}.</span>{" "}
+                        <span className="text-[var(--ink-soft)]">{d}</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <Link href="/collectibles" className="btn-accent">
+                    See how it works <span aria-hidden>→</span>
+                  </Link>
+                  <Link
+                    href="/marketplace"
+                    className="inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] px-5 py-3 text-sm font-semibold text-[var(--ink)] transition hover:border-[var(--accent)] hover:bg-[var(--surface)]"
+                  >
+                    Explore all collateral
+                  </Link>
                 </div>
-              </Link>
+              </div>
+            </div>
+          </div>
+        </Reveal>
+      </section>
+
+      {/* ══════════ HOW IT WORKS ══════════ */}
+      <section id="how" className="mx-auto max-w-6xl px-5 py-14 sm:px-6 md:py-20">
+        <Reveal>
+          <div className="chip mb-4">How it works</div>
+          <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.02em] sm:text-4xl md:text-5xl">
+            Borrow in three steps.
+          </h2>
+        </Reveal>
+        <div className="mt-8 grid gap-4 sm:gap-5 md:mt-10 md:grid-cols-3">
+          {STEPS.map((s, i) => (
+            <Reveal key={s.n} delay={i * 80}>
+              <div className="card h-full p-6 sm:p-7">
+                <div className="font-mono text-sm text-[var(--accent-deep)]">{s.n}</div>
+                <h3 className="mt-3 font-display text-lg font-medium tracking-[-0.01em] sm:text-xl">{s.t}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">{s.d}</p>
+              </div>
             </Reveal>
           ))}
         </div>
       </section>
 
-      {/* ══════════ HOW IT WORKS ══════════ */}
-      <section id="how" className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-40">
-        <Reveal>
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
-            <div>
-              <div className="chip mb-4 md:mb-5">How it works</div>
-              <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-7xl">
-                Four taps.
-                <br />
-                <span className="italic text-[var(--ink-soft)]">You&apos;re funded.</span>
-              </h2>
-            </div>
-            <p className="max-w-md text-base text-[var(--ink-soft)] leading-relaxed sm:text-lg">
-              Pledge collateral, receive SOL, repay on your schedule. Walk through the flow in either the Telegram bot or the dashboard — same on-chain program, same outcome.
-            </p>
-          </div>
-        </Reveal>
-
-        <div className="mt-12 grid grid-cols-1 gap-10 sm:mt-20 md:grid-cols-2 md:items-center md:gap-20">
-          <Reveal className="order-2 md:order-1">
-            <div className="flex flex-col gap-4">
-              {STEPS.map((s, i) => (
-                <div
-                  key={s.n}
-                  className="group flex gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-4 transition hover:border-[var(--ink)] hover:shadow-sm sm:gap-5 sm:p-5 md:p-6"
-                  style={{ animationDelay: `${i * 0.08}s` }}
-                >
-                  <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-[var(--surface)] font-mono text-sm font-semibold text-[var(--ink-soft)] group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-ink)] transition">
-                    {s.n}
-                  </div>
-                  <div>
-                    <div className="text-base font-semibold tracking-tight sm:text-lg">{s.t}</div>
-                    <div className="mt-1.5 text-sm leading-relaxed text-[var(--ink-soft)]">
-                      {s.d}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-          <Reveal className="order-1 md:order-2" delay={150}>
-            <PhoneMock />
-            <div className="mt-6 text-center flex flex-col gap-2 sm:flex-row sm:justify-center sm:gap-5">
-              <Link href="/dashboard" className="text-sm font-medium text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline">
-                Try it on the dashboard →
-              </Link>
-              <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink)] hover:underline">
-                Or try it on Telegram →
-              </a>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ══════════ AUTO-SELL — pre-borrow exit automation ══════════
-          New feature shipped 2026-06-14. The pitch lives here because
-          users arriving from "how it works" have just absorbed the
-          borrow flow and are primed to think about what happens AFTER.
-          Sales angle: zero babysitting, conditional execution, your
-          rules. Honesty angle: best-effort fill subject to liquidity,
-          1% protocol fee on proceeds, slippage cap is yours not ours. */}
-      <section id="auto-sell" className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-32">
-        <Reveal>
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
-            <div>
-              <div className="chip mb-4 md:mb-5">Auto-sell, built in</div>
-              <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-7xl">
-                Borrow now.
-                <br />
-                <span className="italic text-[var(--ink-soft)]">Set the exit too.</span>
-              </h2>
-            </div>
-            <p className="max-w-md text-base text-[var(--ink-soft)] leading-relaxed sm:text-lg">
-              Pick the price you want to sell at — when you take the loan, not after. We watch the chart for you and execute the moment your target hits.
-            </p>
-          </div>
-        </Reveal>
-
-        <div className="mt-12 grid grid-cols-1 gap-5 sm:mt-16 md:grid-cols-3 md:gap-6">
-          <Reveal>
-            <div className="h-full rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-7">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">Lock in profit</div>
-              <div className="font-display text-2xl tracking-tight mb-2">Sell when price doubles</div>
-              <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
-                Set a target like <span className="font-mono text-[var(--ink)]">2x</span>, <span className="font-mono text-[var(--ink)]">$0.02</span>, or <span className="font-mono text-[var(--ink)]">30M market cap</span>. When the price gets there, we repay your loan and send you the net SOL automatically.
-              </p>
-            </div>
-          </Reveal>
-          <Reveal delay={100}>
-            <div className="h-full rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-7">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">Protect downside</div>
-              <div className="font-display text-2xl tracking-tight mb-2">Stop the bleed</div>
-              <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
-                Set a floor — <span className="font-mono text-[var(--ink)]">0.7x</span>, <span className="font-mono text-[var(--ink)]">-30%</span>, or any dollar price. If your token drops to it, we close the position before the loss gets worse. You don't have to be online.
-              </p>
-            </div>
-          </Reveal>
-          <Reveal delay={200}>
-            <div className="h-full rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-7">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">Sell in stages</div>
-              <div className="font-display text-2xl tracking-tight mb-2">Multi-step ladders</div>
-              <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
-                Sell 70% at 1.5x, 20% at 2x, 10% at 3x. Or any custom mix. We split the position into legs and fire each one independently as the price climbs (or falls).
-              </p>
-            </div>
-          </Reveal>
-        </div>
-
-        <Reveal delay={250}>
-          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-6">
-            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-7">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">How it actually executes</div>
-              <ul className="space-y-2.5 text-sm leading-relaxed text-[var(--ink-soft)]">
-                <li>• Our engine polls live DEX prices every ~30 seconds and only fires when your target is confirmed across multiple sources.</li>
-                <li>• When the target hits, we repay your loan on-chain, swap your collateral via Jupiter, and send the net SOL to your wallet — usually in a few seconds.</li>
-                <li>• You'll get a DM the moment it fires, with the repay tx, the sale tx, and the net you received.</li>
-              </ul>
-            </div>
-            <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-7">
-              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">What we don't promise</div>
-              <ul className="space-y-2.5 text-sm leading-relaxed text-[var(--ink-soft)]">
-                <li>• Fill price equals your target *if liquidity allows*. Thin liquidity means slippage — we auto-retry with widening slippage up to a cap you pick, then stop.</li>
-                <li>• A 1% protocol fee comes off the proceeds. Ladders pay a small re-borrow fee on each remaining leg.</li>
-                <li>• If your token's price wicks past your trigger and reverses before our engine confirms, the order stays armed and waits for the next move.</li>
-              </ul>
-            </div>
-          </div>
-        </Reveal>
-
-        <Reveal delay={300}>
-          <div className="mt-10 flex flex-col items-center gap-4 text-center sm:flex-row sm:justify-center sm:gap-6">
-            <Link href="/dashboard" className="btn-accent text-sm">
-              Set it up on the dashboard
-            </Link>
-            <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer" className="btn-ghost text-sm">
-              Or set it on Telegram
-            </a>
-            <span className="text-xs text-[var(--ink-faint)]">
-              Available on every supported memecoin and tokenized stock — same flow.
-            </span>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* ══════════ TWO TELEGRAM SURFACES — clarity, not confusion ══════════
-          Magpie has two Telegram accounts that serve different purposes.
-          Confusing them is the single most common source of "I got scammed
-          by a fake support DM" stories in crypto. Spelling it out here
-          eliminates the ambiguity before someone googles "magpie telegram"
-          and lands in a scammer's group. */}
-      <section className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-20">
-        <Reveal>
-          <div className="text-center mb-10 md:mb-12">
-            <div className="chip mb-4">Two Telegram surfaces</div>
-            <h2 className="font-display text-3xl font-medium tracking-[-0.03em] sm:text-4xl md:text-5xl">
-              Don&apos;t mix them up.
-            </h2>
-            <p className="mt-3 max-w-2xl mx-auto text-base text-[var(--ink-soft)] sm:text-lg">
-              Magpie has exactly two Telegram accounts. Anyone else claiming to be Magpie is a scammer.
-            </p>
-          </div>
-        </Reveal>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
-          {/* Wallet bot */}
-          <Reveal>
-            <a
-              href={TELEGRAM_BOT.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-2xl border border-[var(--accent)]/30 bg-[var(--accent-dim)]/40 p-6 sm:p-7 transition hover:border-[var(--accent)] hover:bg-[var(--accent-dim)]/60"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-[var(--accent)]/15">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--accent-deep)]">
-                      <rect x="3" y="11" width="18" height="11" rx="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                  </span>
-                  <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-[var(--accent-deep)]">Private</span>
-                </div>
-                <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">1:1 with bot</span>
-              </div>
-              <h3 className="font-display text-xl sm:text-2xl font-semibold tracking-tight break-all">
-                {TELEGRAM_BOT.handle}
-              </h3>
-              <div className="text-sm font-semibold mt-1 text-[var(--accent-deep)]">
-                Your wallet bot
-              </div>
-              <p className="mt-3 text-sm text-[var(--ink-soft)] leading-relaxed">
-                Optional backup surface. Borrow / repay / extend / manage loans from here OR from the dashboard at magpie.capital — both flow into the same on-chain protocol. Private 1:1 with the bot; nobody else sees your messages or wallet.
-              </p>
-              <div className="mt-5 flex items-center gap-2 text-sm font-medium text-[var(--accent-deep)]">
-                Open the bot
-                <span aria-hidden>→</span>
-              </div>
-            </a>
-          </Reveal>
-
-          {/* Community group */}
-          <Reveal delay={80}>
-            <a
-              href={TELEGRAM_COMMUNITY.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 sm:p-7 transition hover:border-[var(--ink-faint)] hover:bg-[var(--surface)]"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-[var(--surface)]">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--ink-soft)]">
-                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                      <circle cx="9" cy="7" r="4" />
-                      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                    </svg>
-                  </span>
-                  <span className="text-[10px] uppercase tracking-[0.18em] font-semibold text-[var(--ink-soft)]">Public</span>
-                </div>
-                <span className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Group chat</span>
-              </div>
-              <h3 className="font-display text-xl sm:text-2xl font-semibold tracking-tight break-all">
-                {TELEGRAM_COMMUNITY.handle}
-              </h3>
-              <div className="text-sm font-semibold mt-1 text-[var(--ink)]">
-                Community group
-              </div>
-              <p className="mt-3 text-sm text-[var(--ink-soft)] leading-relaxed">
-                Public chat with other Magpie users. Discussion, questions, protocol news. Moderated — no scam links, CAPTCHA for joiners. Completely optional; you can use the protocol without ever joining.
-              </p>
-              <div className="mt-5 flex items-center gap-2 text-sm font-medium text-[var(--ink-soft)]">
-                Join the community
-                <span aria-hidden>→</span>
-              </div>
-            </a>
-          </Reveal>
-        </div>
-
-        {/* Trust signal — what no Magpie account ever does */}
-        <Reveal delay={160}>
-          <div className="max-w-2xl mx-auto mt-8 rounded-xl bg-[var(--surface)] border border-[var(--hairline)] p-5 text-center">
-            <div className="text-[11px] uppercase tracking-[0.16em] font-semibold text-[var(--bad)] mb-2">
-              ⚠️ Anyone else is a scammer
-            </div>
-            <p className="text-sm text-[var(--ink-soft)] leading-relaxed">
-              No Magpie account will ever DM you first, ask for your seed phrase, promise to recover lost funds, or hand out free airdrops. There&apos;s no &quot;Magpie Support&quot; account — official help only happens inside <span className="font-semibold text-[var(--ink)]">{TELEGRAM_BOT.handle}</span> or in the community group above.
-            </p>
-          </div>
-        </Reveal>
-      </section>
-
-      {/* ══════════ LIVE PROTOCOL DATA ══════════ */}
-      {/* Placed AFTER 'How it works' so visitors arrive here with full
-          context — by the time they see the numbers, they've already
-          internalized the value prop. Surfacing this too early risks
-          framing the protocol by its current scale rather than its design. */}
-      <section className="border-y border-[var(--hairline)] bg-[var(--bg)]">
-        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-24">
-          <Reveal>
-            <div className="chip mb-4 md:mb-5">
-              <span className="live-dot" />
-              <span>Live on Solana mainnet</span>
-            </div>
-            <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
-              The protocol in numbers.
-              <br />
-              <span className="italic text-[var(--ink-soft)]">Live, on-chain, no fudging.</span>
-            </h2>
-          </Reveal>
-
-          <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 md:mt-14 md:grid-cols-4">
-            <LiveStat label="Pool TVL" value={`${poolOverview.tvl_sol.toFixed(2)} SOL`} sub={`${(poolOverview.utilization * 100).toFixed(1)}% utilized`} />
-            <LiveStat label="Loans issued" value={poolOverview.total_loans_issued.toString()} sub={`${poolOverview.loans_repaid} repaid`} />
-            <LiveStat label="Liquidations" value={poolOverview.total_liquidations.toString()} sub="ever" accent={poolOverview.total_liquidations === 0} />
-            <LiveStat label="Fees · 24h" value={`${poolOverview.fees_24h_sol.toFixed(4)} SOL`} sub={`${poolOverview.lifetime_fees_sol.toFixed(4)} lifetime`} />
-          </div>
-
-          {poolOverview.recent_loans.length > 0 && (
-            <div className="mt-12 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 sm:p-7">
-              <div className="mb-5 flex items-center justify-between">
-                <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)]">Recent loan activity</div>
-                <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">live feed</div>
-              </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
-                {poolOverview.recent_loans.slice(0, 6).map((e, i) => {
-                  const sol = (Number(e.loan_amount_lamports || "0") / 1e9).toFixed(4);
-                  const when = new Date(e.timestamp);
-                  const msAgo = Date.now() - when.getTime();
-                  const rel =
-                    msAgo < 60_000 ? "just now"
-                    : msAgo < 3_600_000 ? `${Math.floor(msAgo / 60_000)}m ago`
-                    : msAgo < 86_400_000 ? `${Math.floor(msAgo / 3_600_000)}h ago`
-                    : `${Math.floor(msAgo / 86_400_000)}d ago`;
-                  const EventIcon =
-                    e.event === "repay" ? CheckIcon
-                    : e.event === "liquidation" ? TriangleAlertIcon
-                    : ArrowDownRightIcon;
-                  const eventColor =
-                    e.event === "repay" ? "text-emerald-600"
-                    : e.event === "liquidation" ? "text-red-600"
-                    : "text-[var(--accent-deep)]";
-                  const eventLabel =
-                    e.event === "repay" ? "Repaid"
-                    : e.event === "liquidation" ? "Liquidated"
-                    : "Borrowed";
-                  return (
-                    <div key={i} className="flex items-center justify-between rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-4 py-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <EventIcon className={`h-4 w-4 shrink-0 ${eventColor}`} />
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium">{eventLabel} · {e.symbol ?? "?"}</div>
-                          <div className="text-[10px] text-[var(--ink-faint)]">{rel}</div>
-                        </div>
-                      </div>
-                      <div className="font-mono text-xs text-[var(--ink-soft)]">{sol} SOL</div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ══════════ WHY MAGPIE ══════════ */}
+      {/* ══════════ EARN ══════════ */}
       <section className="border-y border-[var(--hairline)] bg-[var(--bg-elevated)]">
-        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-36">
+        <div className="mx-auto max-w-6xl px-5 py-14 sm:px-6 md:py-20">
           <Reveal>
-            <div className="chip mb-4 md:mb-5">Why Magpie</div>
-            <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
-              The <span className="italic">quiet</span> lender for loud bags.
+            <div className="chip mb-4">Earn</div>
+            <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.02em] sm:text-4xl md:text-5xl">
+              Every loan pays. Pick your side.
             </h2>
           </Reveal>
-
-          <div className="mt-10 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] sm:mt-16 sm:rounded-3xl md:grid-cols-2">
-            {PILLARS.map((p, i) => (
-              <Reveal key={p.title} delay={i * 80}>
-                <div className="flex h-full flex-col gap-3 bg-[var(--bg-elevated)] p-6 sm:p-8 md:p-10">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-sm font-bold text-[var(--accent-ink)]">
-                      {String(i + 1).padStart(2, "0")}
-                    </div>
-                    <div className="text-lg font-semibold tracking-tight sm:text-xl">{p.title}</div>
-                  </div>
-                  <div className="text-sm leading-relaxed text-[var(--ink-soft)] sm:text-base">
-                    {p.body}
-                  </div>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════ LENDING TIERS ══════════ */}
-      <section id="tiers" className="bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-40">
-          <Reveal>
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between md:gap-6">
-              <div>
-                <div className="chip mb-4 md:mb-5">Lending tiers</div>
-                <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-7xl">
-                  Pick your risk.
-                  <br />
-                  <span className="italic text-[var(--ink-soft)]">Pick your payout.</span>
-                </h2>
-              </div>
-              <div className="max-w-md text-base leading-relaxed text-[var(--ink-soft)] sm:text-lg">
-                <p>LTV (Loan-to-Value) is the percentage of your collateral&apos;s value you receive as SOL. Higher LTV = more SOL borrowed against the same collateral, and a larger amount to repay by your term&apos;s end. LTV sets how much you can borrow — it is not a liquidation line (Magpie liquidation is time-based, not price-based).</p>
-                <p className="mt-3 rounded-xl border border-[var(--hairline)] bg-[var(--bg)] px-3 py-2.5 text-sm sm:px-4 sm:py-3">
-                  <span className="font-semibold text-[var(--ink)]">Example:</span> $1,000 of WIF at 20% LTV = <span className="font-semibold text-[var(--ink)]">$200 in SOL</span>, minus 1.5% fee. Choose Express (30% LTV) to borrow $300, at a 3% fee.
-                </p>
-              </div>
-            </div>
-          </Reveal>
-
-          <div className="mt-10 grid grid-cols-1 gap-5 sm:mt-16 sm:gap-6 md:grid-cols-3">
-            {TIERS.map((tier, i) => (
-              <Reveal key={tier.name} delay={i * 100}>
-                <div
-                  className={`relative flex h-full flex-col rounded-2xl border p-6 transition sm:rounded-3xl sm:p-8 ${
-                    tier.highlight
-                      ? "border-[var(--ink)] bg-[var(--bg-elevated)] shadow-[0_30px_80px_-30px_rgba(30,22,0,0.3)]"
-                      : "border-[var(--hairline)] bg-[var(--bg-elevated)] hover:border-[var(--ink)] hover:shadow-md"
-                  }`}
+          <div className="mt-8 grid gap-4 sm:gap-5 md:mt-10 md:grid-cols-3">
+            {EARN.map((e, i) => (
+              <Reveal key={e.chip} delay={i * 80}>
+                <Link
+                  href={e.href}
+                  className="group flex h-full flex-col rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 transition hover:border-[var(--accent)]/40 hover:bg-[var(--surface)]"
                 >
-                  {tier.highlight && (
-                    <span className="absolute -top-3 left-8 rounded-full bg-[var(--accent)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--accent-ink)] shadow-sm">
-                      Most popular
-                    </span>
-                  )}
-                  <div className="flex items-center justify-between">
-                    <div className="font-display text-2xl font-medium tracking-[-0.02em] sm:text-3xl">{tier.name}</div>
-                  </div>
-                  <div className="mt-6 flex items-baseline gap-2 sm:mt-8">
-                    <div className="font-display tabular text-5xl font-medium tracking-[-0.04em] sm:text-7xl">{tier.ltv}</div>
-                    <div className="text-sm text-[var(--ink-soft)]">LTV</div>
-                  </div>
-                  <div className="mt-2 text-sm text-[var(--ink-soft)]">
-                    {tier.days} · {tier.fee} fee
-                  </div>
-                  <div className="mt-8 border-t border-[var(--hairline)] pt-6">
-                    <div className="text-[10px] uppercase tracking-[0.22em] text-[var(--ink-soft)]">
-                      Best for
-                    </div>
-                    <div className="mt-1.5 text-base font-medium">{tier.best}</div>
-                  </div>
-                  <ul className="mt-6 space-y-2.5">
-                    {tier.points.map((p) => (
-                      <li key={p} className="flex items-start gap-2.5 text-sm text-[var(--ink-soft)]">
-                        <span aria-hidden className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-[var(--ink)]" />
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                  <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--ink-faint)]">{e.chip}</div>
+                  <div className="mt-3 font-display text-xl font-medium tracking-tight sm:text-2xl">{e.title}</div>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">{e.desc}</p>
+                  <div className="mt-auto pt-5 text-sm font-semibold text-[var(--accent-deep)]">{e.cta} →</div>
+                </Link>
               </Reveal>
             ))}
           </div>
-
-          <Reveal>
-            <div className="mt-10 flex flex-col items-start gap-4 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:flex-row md:items-center md:justify-between md:p-8">
-              <div className="text-sm leading-relaxed text-[var(--ink-soft)]">
-                <span className="font-semibold text-[var(--ink)]">Every tier includes</span> non-custodial deposit, partial-repay anytime, extend at your tier&apos;s fee rate, live health alerts, and credit score accrual. Works with <Link href="/tokens" className="font-semibold text-[var(--accent-deep)] underline underline-offset-2 hover:text-[var(--accent)]">{TOKEN_COUNT} approved tokens</Link>.
-              </div>
-              <Link href="/dashboard" className="btn-dark shrink-0 text-sm">
-                Get a quote →
-              </Link>
-            </div>
-          </Reveal>
         </div>
       </section>
 
       {/* ══════════ FAQ ══════════ */}
-      <section id="faq" className="mx-auto max-w-6xl px-5 py-16 sm:px-6 md:py-40">
+      <section id="faq" className="mx-auto max-w-6xl px-5 py-14 sm:px-6 md:py-24">
         <Reveal>
-          <div className="chip mb-4 md:mb-5">Questions</div>
-          <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] sm:text-5xl md:text-6xl">
+          <div className="chip mb-4">Questions</div>
+          <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.02em] sm:text-4xl md:text-5xl">
             What you&apos;ll want to know.
           </h2>
         </Reveal>
-
-        <div className="mt-10 grid grid-cols-1 gap-x-16 gap-y-8 sm:mt-16 sm:gap-y-10 md:grid-cols-2">
+        <div className="mt-8 grid grid-cols-1 gap-x-16 gap-y-7 sm:mt-12 md:grid-cols-2">
           {FAQ.map((item, i) => (
             <Reveal key={item.q} delay={(i % 2) * 80}>
               <div>
                 <div className="flex items-start gap-3">
-                  <span className="font-mono text-sm text-[var(--accent-deep)]">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <div className="text-base font-semibold tracking-tight sm:text-xl">{item.q}</div>
+                  <span className="font-mono text-sm text-[var(--accent-deep)]">{String(i + 1).padStart(2, "0")}</span>
+                  <div className="text-base font-semibold tracking-tight sm:text-lg">{item.q}</div>
                 </div>
-                <div className="mt-2 pl-9 text-sm leading-relaxed text-[var(--ink-soft)] sm:mt-3 sm:text-base">
-                  {item.q === "What tokens can I pledge?" ? faqTokenAnswer : item.a}
+                <div className="mt-2 pl-9 text-sm leading-relaxed text-[var(--ink-soft)]">
+                  {item.q === "What can I borrow against?" ? faqTokenAnswer : item.a}
                 </div>
               </div>
             </Reveal>
@@ -1202,18 +375,18 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
           <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[var(--accent)]/20 blur-3xl drift" />
           <div className="absolute -left-24 -bottom-24 h-80 w-80 rounded-full bg-[var(--accent-deep)]/15 blur-3xl drift" />
         </div>
-        <div className="relative mx-auto max-w-6xl px-5 py-16 text-center sm:px-6 md:py-40">
-          <Mark size={64} className="mx-auto mb-8 hop sm:mb-10" />
-          <h2 className="font-display mx-auto max-w-4xl text-4xl font-medium tracking-[-0.04em] text-[var(--bg-elevated)] sm:text-6xl md:text-8xl">
+        <div className="relative mx-auto max-w-6xl px-5 py-16 text-center sm:px-6 md:py-28">
+          <Mark size={64} className="mx-auto mb-8 hop" />
+          <h2 className="font-display mx-auto max-w-4xl text-4xl font-medium tracking-[-0.04em] text-[var(--bg-elevated)] sm:text-6xl md:text-7xl">
             Your bags.
             <br />
             <span className="italic text-[var(--accent)]">Your liquidity.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-lg text-base text-[var(--bg-elevated)]/70 sm:mt-6 sm:text-lg">
-            Borrow SOL. Earn yield. Build your credit score. All permissionless, all on Solana.
+          <p className="mx-auto mt-4 max-w-lg text-base text-[var(--bg-elevated)]/70 sm:text-lg">
+            Borrow SOL, earn yield, build on-chain credit — all permissionless, all on Solana.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-12 sm:gap-4 md:flex-row">
-            <Link href="/dashboard" className="btn-accent text-base sm:text-lg">
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
+            <Link href="/marketplace" className="btn-accent text-base sm:text-lg">
               Start borrowing
               <span aria-hidden>→</span>
             </Link>
@@ -1222,12 +395,6 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
               className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
             >
               Earn yield
-            </Link>
-            <Link
-              href="/tokens"
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
-            >
-              Browse tokens
             </Link>
             <a
               href={X_URL}
@@ -1242,46 +409,6 @@ pub fn liquidate_loan(ctx: Context<LiquidateLoan>) -> Result<()> {
       </section>
 
       <Footer />
-    </div>
-  );
-}
-
-function EcoLogo({ label }: { label: string }) {
-  return (
-    <div className="font-display text-lg font-medium tracking-[-0.01em] text-[var(--ink-soft)] opacity-70 transition hover:opacity-100">
-      {label}
-    </div>
-  );
-}
-
-function LiveStat({
-  label,
-  value,
-  sub,
-  accent,
-}: {
-  label: string;
-  value: string;
-  sub?: string;
-  accent?: boolean;
-}) {
-  return (
-    <div
-      className={`rounded-2xl border p-5 sm:p-6 ${
-        accent
-          ? "border-[var(--accent)]/30 bg-[var(--accent)]/5"
-          : "border-[var(--hairline)] bg-[var(--bg-elevated)]"
-      }`}
-    >
-      <div className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)]">{label}</div>
-      <div
-        className={`mt-2 font-display text-2xl font-medium tracking-tight sm:text-3xl ${
-          accent ? "text-[var(--accent-deep)]" : ""
-        }`}
-      >
-        {value}
-      </div>
-      {sub && <div className="mt-0.5 text-[11px] text-[var(--ink-faint)]">{sub}</div>}
     </div>
   );
 }
