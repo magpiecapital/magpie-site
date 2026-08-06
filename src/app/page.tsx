@@ -162,8 +162,8 @@ export default async function Home() {
           <div className="fade-up fade-up-4 mt-12 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-14">
             {[
               { v: "<10s", l: "SOL in your wallet" },
-              { v: "1.5–3%", l: "Flat fee · no surprises" },
-              { v: null, l: "Tokens you can borrow against" },
+              { v: "1.5–3%", l: "Flat fee, no surprises" },
+              { v: null, l: "Approved tokens" },
               { v: "100%", l: "Non-custodial & on-chain" },
             ].map((s, i) => (
               <div key={i} className="bg-[var(--bg-elevated)] px-4 py-4 text-center md:px-6 md:py-5">
