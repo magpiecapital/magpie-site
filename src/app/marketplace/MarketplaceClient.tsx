@@ -117,143 +117,188 @@ function ChipMarquee({ chips, accent }: { chips: TokenChip[]; accent: "amber" | 
 /* ───────────────────────── DUAL-CLASS HERO PANELS ───────────────────────── */
 
 interface ClassPanelProps {
-  variant: "memecoin" | "rwa";
-  tokenCountInClass: number;
-  topLtv: number;
-  topDays: number;
-  feeRange: string;
-  samples: TokenChip[];
+  variant: "memecoin" | "rwa" | "collectible";
+  tokenCountInClass?: number;
+  topLtv?: number;
+  topDays?: number;
+  feeRange?: string;
+  samples?: TokenChip[];
 }
 
-function ClassPanel({ variant, tokenCountInClass, topLtv, topDays, feeRange, samples }: ClassPanelProps) {
-  const isMeme = variant === "memecoin";
-  const styles = isMeme
-    ? {
-        // Memecoin: warm, energetic, brand-amber treatment
-        bg: "linear-gradient(155deg, var(--accent-dim) 0%, var(--bg-elevated) 70%)",
-        ring: "var(--accent)",
-        ringSoft: "color-mix(in srgb, var(--accent) 35%, transparent)",
-        eyebrow: "var(--accent-deep)",
-        headline: "var(--ink)",
-        ctaBg: "var(--accent)",
-        ctaFg: "var(--accent-ink, #0a0a0a)",
-        ctaHover: "var(--accent-hover)",
-        badgeBg: "var(--accent)",
-        badgeFg: "var(--accent-ink, #0a0a0a)",
-      }
-    : {
-        // Tokenized stocks: cooler, professional, accent-deep treatment
-        bg: "linear-gradient(155deg, var(--surface-strong) 0%, var(--bg-elevated) 70%)",
-        ring: "var(--accent-deep)",
-        ringSoft: "color-mix(in srgb, var(--accent-deep) 35%, transparent)",
-        eyebrow: "var(--accent-deep)",
-        headline: "var(--ink)",
-        ctaBg: "var(--ink)",
-        ctaFg: "var(--bg-elevated)",
-        ctaHover: "var(--ink-soft)",
-        badgeBg: "var(--accent-deep)",
-        badgeFg: "#fff",
-      };
-  const heading = isMeme ? "MEMECOINS" : "TOKENIZED STOCKS";
-  const subheading = isMeme
-    ? "Borrow SOL against your bags — without selling."
-    : "Borrow SOL against AAPL, NVDA, TSLA, COIN, MSTR and more.";
-  const dashboardLink = isMeme ? "/dashboard?category=memecoin" : "/dashboard?category=stock";
-  const explorerLink = isMeme ? "/tokens?category=memecoin" : "/tokens?category=stock";
-  const eyebrow = isMeme ? "Crypto-native lending" : "Real-world assets · V3 live";
-  const supportingLine = isMeme
-    ? `${tokenCountInClass}+ approved memecoins. Live USD price, instant SOL payout, on-chain credit score.`
-    : `${tokenCountInClass} tokenized equities, ETFs and metals (xStocks). New V3 program — highest LTVs in the protocol.`;
+// One uniform card system for all three collateral classes. Every card shares
+// the same structure, sizing, and equal height (h-full + CTA pinned to the
+// bottom via mt-auto) so a 3-up row stays balanced on desktop and stacks cleanly
+// on mobile. Each class gets its own accent; collectibles reads first-class with
+// an honest "in design" status instead of a live borrow CTA.
+function ClassPanel({ variant, tokenCountInClass = 0, topLtv = 0, topDays = 0, feeRange = "", samples = [] }: ClassPanelProps) {
+  const cfg = {
+    memecoin: {
+      accent: "var(--accent)",
+      accentSoft: "color-mix(in srgb, var(--accent) 32%, transparent)",
+      accentDim: "var(--accent-dim)",
+      grad: "linear-gradient(160deg, var(--accent-dim) 0%, var(--bg-elevated) 62%)",
+      eyebrow: "Crypto-native",
+      eyebrowFg: "var(--accent-ink, #0a0a0a)",
+      status: null as string | null,
+      heading: "Memecoins",
+      sub: "Borrow SOL against your bags — without selling.",
+      chipAccent: "amber" as "amber" | "slate",
+      staticChips: null as string[] | null,
+      stats: [
+        { k: "Max LTV", v: `${Math.round(topLtv * 100)}%` },
+        { k: "Longest term", v: `${topDays}d` },
+      ],
+      meta: `${tokenCountInClass}+ approved coins${feeRange ? ` · ${feeRange} fee` : ""}`,
+      primary: { href: "/dashboard?category=memecoin", label: "Borrow against memecoins" },
+      secondaryHref: "/tokens?category=memecoin",
+      secondaryLabel: `See all ${tokenCountInClass}`,
+      ctaBg: "var(--accent)",
+      ctaFg: "var(--accent-ink, #0a0a0a)",
+    },
+    rwa: {
+      accent: "var(--accent-deep)",
+      accentSoft: "color-mix(in srgb, var(--accent-deep) 32%, transparent)",
+      accentDim: "color-mix(in srgb, var(--accent-deep) 14%, transparent)",
+      grad: "linear-gradient(160deg, var(--surface-strong) 0%, var(--bg-elevated) 62%)",
+      eyebrow: "Real-world · V3",
+      eyebrowFg: "#fff",
+      status: null,
+      heading: "Tokenized stocks",
+      sub: "Borrow against AAPL, NVDA, TSLA, COIN, MSTR & more.",
+      chipAccent: "slate" as "amber" | "slate",
+      staticChips: null,
+      stats: [
+        { k: "Max LTV", v: `${Math.round(topLtv * 100)}%` },
+        { k: "Longest term", v: `${topDays}d` },
+      ],
+      meta: `${tokenCountInClass} equities, ETFs & metals${feeRange ? ` · ${feeRange} fee` : ""}`,
+      primary: { href: "/dashboard?category=stock", label: "Borrow against stocks" },
+      secondaryHref: "/tokens?category=stock",
+      secondaryLabel: `See all ${tokenCountInClass}`,
+      ctaBg: "var(--ink)",
+      ctaFg: "var(--bg-elevated)",
+    },
+    collectible: {
+      accent: "#0f9d63",
+      accentSoft: "color-mix(in srgb, #0f9d63 32%, transparent)",
+      accentDim: "color-mix(in srgb, #0f9d63 13%, transparent)",
+      grad: "linear-gradient(160deg, color-mix(in srgb, #0f9d63 9%, var(--bg-elevated)) 0%, var(--bg-elevated) 62%)",
+      eyebrow: "Graded cards",
+      eyebrowFg: "#05271b",
+      status: "In design",
+      heading: "Collectibles",
+      sub: "Borrow against graded trading cards — without selling.",
+      chipAccent: "amber" as "amber" | "slate",
+      staticChips: ["Pokémon", "Sports", "Top TCG"],
+      stats: [
+        { k: "Max LTV", v: "≤50%" },
+        { k: "Term", v: "Fixed" },
+      ],
+      meta: "Priced on real sales · fixed-term",
+      primary: { href: "/collectibles", label: "See how it works" },
+      secondaryHref: "/collectibles",
+      secondaryLabel: "Read the design",
+      ctaBg: "#0f9d63",
+      ctaFg: "#04231a",
+    },
+  }[variant];
+
   return (
     <div
-      className="group relative overflow-hidden rounded-3xl p-7 sm:p-8 transition-all duration-300 hover:-translate-y-0.5"
+      className="group relative flex h-full flex-col overflow-hidden rounded-3xl p-6 transition-all duration-300 hover:-translate-y-0.5 sm:p-7"
       style={{
-        background: styles.bg,
-        border: `1px solid ${styles.ringSoft}`,
+        background: cfg.grad,
+        border: `1px solid ${cfg.accentSoft}`,
         boxShadow: "0 1px 0 rgba(255,255,255,0.05) inset, 0 14px 40px -22px rgba(0,0,0,0.25)",
       }}
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-24 -right-16 h-56 w-56 rounded-full blur-3xl"
-        style={{ background: styles.ringSoft, opacity: 0.5 }}
+        className="pointer-events-none absolute -top-20 -right-14 h-48 w-48 rounded-full blur-3xl"
+        style={{ background: cfg.accentSoft, opacity: 0.5 }}
       />
-      <div className="relative">
-        <div className="flex items-center justify-between">
+      <div className="relative flex h-full flex-col">
+        {/* Top row: class eyebrow + LTV / status */}
+        <div className="flex items-center justify-between gap-2">
           <span
-            className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em]"
-            style={{ background: styles.badgeBg, color: styles.badgeFg }}
+            className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]"
+            style={{ background: cfg.accent, color: cfg.eyebrowFg }}
           >
-            {eyebrow}
+            {cfg.eyebrow}
           </span>
-          <span className="text-[11px] font-medium uppercase tracking-[0.12em]" style={{ color: styles.eyebrow }}>
-            up to <span className="font-bold">{Math.round(topLtv * 100)}% LTV</span>
-          </span>
+          {cfg.status ? (
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: cfg.accent }}>
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: cfg.accent }} />
+              {cfg.status}
+            </span>
+          ) : (
+            <span className="text-[11px] font-medium uppercase tracking-[0.1em]" style={{ color: "var(--ink-faint)" }}>
+              up to <span className="font-bold" style={{ color: "var(--ink)" }}>{cfg.stats[0].v} LTV</span>
+            </span>
+          )}
         </div>
 
+        {/* Heading + one-line subheading */}
         <h2
           className="mt-5 font-display font-bold tracking-tight"
-          style={{
-            color: styles.headline,
-            fontSize: "clamp(2.25rem, 5vw, 3.5rem)",
-            lineHeight: 1.02,
-            letterSpacing: "-0.02em",
-          }}
+          style={{ color: "var(--ink)", fontSize: "clamp(1.6rem, 2.1vw, 2rem)", lineHeight: 1.05, letterSpacing: "-0.02em" }}
         >
-          {heading}
+          {cfg.heading}
         </h2>
-        <p className="mt-3 text-lg font-medium" style={{ color: "var(--ink-soft)" }}>
-          {subheading}
+        <p className="mt-2 min-h-[42px] text-[14px] font-medium leading-snug" style={{ color: "var(--ink-soft)" }}>
+          {cfg.sub}
         </p>
 
-        {/* Marquee row of real ticker chips — the at-a-glance proof
-            that the class has the names users actually hold. */}
-        <div className="mt-5">
-          <ChipMarquee chips={samples} accent={isMeme ? "amber" : "slate"} />
+        {/* Ticker / category chips */}
+        <div className="mt-5 min-h-[34px]">
+          {cfg.staticChips ? (
+            <div className="flex flex-wrap gap-2">
+              {cfg.staticChips.map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center rounded-full px-3 py-1.5 text-[13px] font-semibold"
+                  style={{ background: cfg.accentDim, border: `1px solid ${cfg.accentSoft}`, color: "var(--ink)" }}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <ChipMarquee chips={samples} accent={cfg.chipAccent} />
+          )}
         </div>
 
-        {/* Stat highlights — what the user gets at the top end of the ladder. */}
-        <dl className="mt-6 grid grid-cols-3 gap-3">
-          {[
-            { k: "Max LTV", v: `${Math.round(topLtv * 100)}%` },
-            { k: "Longest term", v: `${topDays}d` },
-            { k: "Fee range", v: feeRange },
-          ].map((s) => (
+        {/* Two stat highlights */}
+        <dl className="mt-5 grid grid-cols-2 gap-3">
+          {cfg.stats.map((s) => (
             <div
               key={s.k}
               className="rounded-xl px-3 py-2.5"
               style={{ background: "color-mix(in srgb, var(--bg) 80%, transparent)", border: "1px solid var(--hairline)" }}
             >
-              <div className="font-display text-xl font-bold" style={{ color: styles.headline }}>
-                {s.v}
-              </div>
-              <div className="text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--ink-faint)" }}>
-                {s.k}
-              </div>
+              <div className="font-display text-xl font-bold" style={{ color: "var(--ink)" }}>{s.v}</div>
+              <div className="text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--ink-faint)" }}>{s.k}</div>
             </div>
           ))}
         </dl>
 
-        <p className="mt-5 text-sm" style={{ color: "var(--ink-soft)" }}>{supportingLine}</p>
+        <p className="mt-4 text-[13px]" style={{ color: "var(--ink-soft)" }}>{cfg.meta}</p>
 
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center">
+        {/* CTA — pinned to the bottom so all cards align */}
+        <div className="mt-auto pt-6">
           <Link
-            href={dashboardLink}
-            className="inline-flex flex-1 items-center justify-between gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold transition"
-            style={{ background: styles.ctaBg, color: styles.ctaFg }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = styles.ctaHover)}
-            onMouseLeave={(e) => (e.currentTarget.style.background = styles.ctaBg)}
+            href={cfg.primary.href}
+            className="inline-flex w-full items-center justify-between gap-2 rounded-2xl px-5 py-3.5 text-sm font-bold transition hover:opacity-90"
+            style={{ background: cfg.ctaBg, color: cfg.ctaFg }}
           >
-            <span>{isMeme ? "Borrow against memecoins" : "Borrow against stocks"}</span>
+            <span>{cfg.primary.label}</span>
             <span aria-hidden className="text-base transition-transform group-hover:translate-x-1">→</span>
           </Link>
-          <Link
-            href={explorerLink}
-            className="inline-flex items-center justify-center rounded-2xl px-4 py-3 text-sm font-medium transition"
-            style={{ border: `1px solid ${styles.ringSoft}`, color: "var(--ink-soft)" }}
-          >
-            See all {tokenCountInClass}
-          </Link>
+          <div className="mt-2.5 text-center">
+            <Link href={cfg.secondaryHref} className="text-[12px] font-medium transition hover:opacity-80" style={{ color: "var(--ink-soft)" }}>
+              {cfg.secondaryLabel}
+            </Link>
+          </div>
         </div>
       </div>
     </div>
@@ -722,10 +767,10 @@ export function MarketplaceClient({
           </p>
         </div>
 
-        {/* ── THE BIG DECISION: dual-class panels ── */}
+        {/* ── THE BIG DECISION: three collateral-class panels ── */}
         <section
           aria-label="Choose your collateral class"
-          className="mt-12 grid gap-6 lg:grid-cols-3"
+          className="mt-10 grid grid-cols-1 gap-5 sm:mt-12 lg:grid-cols-3 lg:gap-6"
         >
           <ClassPanel
             variant="memecoin"
@@ -745,8 +790,14 @@ export function MarketplaceClient({
               samples={rwaSamples}
             />
           ) : (
-            <div className="rounded-3xl border border-dashed border-[var(--hairline-strong)] bg-[var(--surface)] p-8 text-center">
-              <span className="rounded-full bg-[var(--accent-dim)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent-deep)]">
+            <div
+              className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed p-8 text-center"
+              style={{
+                borderColor: "color-mix(in srgb, var(--accent-deep) 32%, transparent)",
+                background: "linear-gradient(160deg, var(--surface-strong) 0%, var(--bg-elevated) 62%)",
+              }}
+            >
+              <span className="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em]" style={{ background: "var(--accent-deep)", color: "#fff" }}>
                 Tokenized stocks · coming live
               </span>
               <p className="mt-4 text-sm text-[var(--ink-soft)]">
@@ -754,26 +805,7 @@ export function MarketplaceClient({
               </p>
             </div>
           )}
-          <Link
-            href="/collectibles"
-            aria-label="Collectibles — in design"
-            className="group flex flex-col rounded-3xl border border-dashed border-[var(--hairline-strong)] bg-[var(--surface)] p-8 transition hover:border-[var(--accent)]"
-          >
-            <span className="self-start rounded-full bg-[var(--accent-dim)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent-deep)]">
-              Collectibles · in design
-            </span>
-            <h3 className="mt-4 font-display text-2xl font-bold tracking-tight text-[var(--ink)]">
-              Graded trading cards
-            </h3>
-            <p className="mt-2 text-sm text-[var(--ink-soft)]">
-              Borrow against your vaulted, graded cards — Pokémon, sports &amp; top TCG —
-              priced on real sales. Up to 50% LTV, fixed-term, keep your card.
-            </p>
-            <span className="mt-auto inline-flex items-center gap-1.5 pt-6 text-sm font-semibold text-[var(--accent-deep)]">
-              See how it works
-              <span aria-hidden className="transition group-hover:translate-x-0.5">→</span>
-            </span>
-          </Link>
+          <ClassPanel variant="collectible" />
         </section>
 
         {/* ── Telegram-handoff strip ── */}
