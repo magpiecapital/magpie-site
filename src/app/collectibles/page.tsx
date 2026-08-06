@@ -60,6 +60,25 @@ const SAFETY = [
   { t: "Only liquid cards", d: "If it doesn't reliably sell, we don't lend on it." },
 ];
 
+const APPROVAL = [
+  {
+    t: "Authenticated",
+    d: "Graded by PSA, CGC, BGS or SGC — with a cert we verify against the grader's records, plus tamper and counterfeit checks.",
+  },
+  {
+    t: "Proven to sell",
+    d: "We confirm the exact card has actually sold — recently and repeatedly — across multiple marketplaces. No real sales record, no loan.",
+  },
+  {
+    t: "Independently priced",
+    d: "Its value is cross-checked against sold data from independent sources, so no single market can inflate it.",
+  },
+  {
+    t: "Approved & sized",
+    d: "Only cards that clear every check are approved — at a conservative LTV, with room to spare.",
+  },
+];
+
 export default function CollectiblesPage() {
   return (
     <div className="min-h-screen">
@@ -172,9 +191,49 @@ export default function CollectiblesPage() {
         </div>
       </section>
 
-      {/* ── Why it's safe ── */}
+      {/* ── How a card gets approved ── */}
       <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
+        <div className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-20">
+          <Reveal>
+            <div className="mx-auto max-w-lg text-center">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-500">
+                Vetted closely
+              </div>
+              <h2 className="mt-2 font-display text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
+                How a card gets approved
+              </h2>
+              <p className="mt-3 text-[14px] text-[var(--ink-soft)] sm:text-base">
+                We&apos;re picky on purpose. Every card clears the same four checks before
+                it can back a loan — and we&apos;d rather decline than lend on something we
+                can&apos;t value or exit.
+              </p>
+            </div>
+          </Reveal>
+          <div className="mx-auto mt-8 grid max-w-3xl grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-5">
+            {APPROVAL.map((a, i) => (
+              <Reveal key={a.t} delay={i * 70}>
+                <div className="card h-full p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-emerald-500/15 text-sm font-bold text-emerald-500">
+                      ✓
+                    </span>
+                    <h3 className="font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
+                      {a.t}
+                    </h3>
+                  </div>
+                  <p className="mt-2.5 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+                    {a.d}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Why it's safe ── */}
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
+        <div>
           <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-3">
             {SAFETY.map((s, i) => (
               <Reveal key={s.t} delay={i * 70}>
