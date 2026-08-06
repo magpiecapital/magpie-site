@@ -98,21 +98,39 @@ export default function CollectiblesPage() {
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
         <div className="mx-auto max-w-6xl px-5 pt-12 pb-8 sm:px-6 md:pt-24 md:pb-16">
-          <Reveal>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-[11px] font-medium shadow-sm sm:text-xs">
-              <span className="h-2 w-2 rounded-full bg-amber-400" />
-              <span className="text-[var(--ink-faint)]">In design · fixed-term · real-comp valued</span>
-            </div>
-            <h1 className="font-display text-[2.25rem] font-medium leading-[1.05] tracking-[-0.03em] sm:text-5xl md:text-7xl">
-              Borrow SOL against your graded trading cards.
-            </h1>
-            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-[var(--ink-soft)] sm:text-lg">
-              A new collateral class for Magpie: fixed-term loans against tokenized
-              graded cards, valued on what cards actually <em>sold</em> for — not what
-              they&apos;re listed at. This vertical is <strong>in design</strong>, and the
-              full threat model and parameters are public.
-            </p>
-          </Reveal>
+          <div className="grid items-center gap-8 md:grid-cols-[1.1fr_auto] md:gap-14">
+            <Reveal>
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3 py-1.5 text-[11px] font-medium shadow-sm sm:text-xs">
+                <span className="h-2 w-2 rounded-full bg-amber-400" />
+                <span className="text-[var(--ink-faint)]">Liquid collectibles · fixed-term · real-comp valued</span>
+              </div>
+              <h1 className="font-display text-[2.25rem] font-medium leading-[1.05] tracking-[-0.03em] sm:text-5xl md:text-6xl">
+                Borrow SOL against <span className="italic">liquid</span> graded collectibles.
+              </h1>
+              <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--ink-soft)] sm:text-lg">
+                A new collateral class for Magpie: fixed-term loans against tokenized,
+                vault-held graded cards — priced on what they actually <em>sold</em> for,
+                never listings. We only lend against the proven-liquid ones. This vertical is{" "}
+                <strong>in design</strong>, and the full threat model and parameters are public.
+              </p>
+            </Reveal>
+            <Reveal delay={120}>
+              <figure className="mx-auto w-full max-w-[270px] overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] shadow-xl sm:max-w-[320px]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/collectibles/charizard-base-set-psa10.jpg"
+                  alt="1999 Base Set Charizard Holo #4, graded PSA GEM-MT 10"
+                  width={614}
+                  height={1000}
+                  className="block h-auto w-full"
+                />
+                <figcaption className="flex items-center justify-between gap-2 border-t border-[var(--hairline)] px-4 py-3 text-[11px] uppercase tracking-[0.12em] text-[var(--ink-soft)]">
+                  <span>Base Set Charizard · PSA 10</span>
+                  <span className="font-medium text-[var(--accent-deep)]">≤50% LTV</span>
+                </figcaption>
+              </figure>
+            </Reveal>
+          </div>
         </div>
       </section>
 
