@@ -710,7 +710,7 @@ export function MarketplaceClient({
         {/* ── Hero (compact) ── */}
         <div className="text-center">
           <div className="inline-block rounded-full bg-[var(--accent-dim)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--accent-deep)]">
-            Two asset classes · one click to borrow
+            Three collateral classes · one protocol
           </div>
           <h1 className="mt-4 font-display font-bold tracking-tight text-[var(--ink)]"
               style={{ fontSize: "clamp(2.5rem, 6vw, 4.25rem)", lineHeight: 1.02, letterSpacing: "-0.025em" }}>
@@ -725,7 +725,7 @@ export function MarketplaceClient({
         {/* ── THE BIG DECISION: dual-class panels ── */}
         <section
           aria-label="Choose your collateral class"
-          className="mt-12 grid gap-6 lg:grid-cols-2"
+          className="mt-12 grid gap-6 lg:grid-cols-3"
         >
           <ClassPanel
             variant="memecoin"
@@ -754,6 +754,26 @@ export function MarketplaceClient({
               </p>
             </div>
           )}
+          <Link
+            href="/collectibles"
+            aria-label="Collectibles — in design"
+            className="group flex flex-col rounded-3xl border border-dashed border-[var(--hairline-strong)] bg-[var(--surface)] p-8 transition hover:border-[var(--accent)]"
+          >
+            <span className="self-start rounded-full bg-[var(--accent-dim)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--accent-deep)]">
+              Collectibles · in design
+            </span>
+            <h3 className="mt-4 font-display text-2xl font-bold tracking-tight text-[var(--ink)]">
+              Graded trading cards
+            </h3>
+            <p className="mt-2 text-sm text-[var(--ink-soft)]">
+              Borrow against your vaulted, graded cards — Pokémon, sports &amp; top TCG —
+              priced on real sales. Up to 50% LTV, fixed-term, keep your card.
+            </p>
+            <span className="mt-auto inline-flex items-center gap-1.5 pt-6 text-sm font-semibold text-[var(--accent-deep)]">
+              See how it works
+              <span aria-hidden className="transition group-hover:translate-x-0.5">→</span>
+            </span>
+          </Link>
         </section>
 
         {/* ── Telegram-handoff strip ── */}
