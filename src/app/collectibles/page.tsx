@@ -109,6 +109,26 @@ const AGG_POINTS = [
   },
 ];
 
+// Real graded slabs (operator-owned photos) shown for illustration. Captions state
+// the EXACT grade/variant off the slab — a signed card is a distinct market from an
+// unsigned one, so liquidity language stays honest to what's pictured (no borrowed stats).
+const REAL_SLABS = [
+  {
+    img: "/collectibles/charizard-base-set-psa10.jpg",
+    alt: "1999 Pokémon Base Set Charizard Holo #4, graded PSA GEM-MT 10",
+    title: "Base Set Charizard · #4",
+    meta: "1999 Pokémon · PSA GEM-MT 10",
+    why: "The definitive vintage TCG holo — trades frequently across multiple independent auction houses, with a dense, recent sold record.",
+  },
+  {
+    img: "/collectibles/jordan-fleer-1986-psa9.jpg",
+    alt: "1986 Fleer Michael Jordan rookie #57, graded PSA MINT 9 with PSA/DNA Auto 10",
+    title: "Fleer Jordan Rookie · #57",
+    meta: "1986 Fleer · PSA 9 · Auto 10",
+    why: "A blue-chip vintage sports rookie — the Fleer Jordan is among the most iconic cards in the hobby, here graded on both the card and the autograph.",
+  },
+];
+
 const toneClass: Record<string, string> = {
   emerald: "bg-emerald-500/20 text-emerald-200",
   amber: "bg-amber-500/25 text-amber-100",
@@ -375,9 +395,66 @@ export default function CollectiblesPage() {
         </div>
       </section>
 
-      {/* ── What's collateral-grade ── */}
+      {/* ── The collateral we're built for (real slabs) ── */}
       <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
         <div className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+          <Reveal>
+            <div className="mb-5 flex flex-col gap-1.5 sm:mb-8 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3">
+              <h2 className="max-w-2xl font-display text-xl font-medium tracking-[-0.02em] sm:text-2xl md:text-3xl">
+                The collateral we&apos;re built for
+              </h2>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-[var(--ink-faint)] sm:text-xs">
+                Real vaulted slabs · proven liquidity
+              </span>
+            </div>
+            <p className="mb-6 max-w-3xl text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+              We only lend against cards with a real, recent, multi-venue <em>sold</em>{" "}
+              record. Two of the most iconic — a vintage Pokémon holo and a blue-chip
+              sports rookie — the kind of proven-liquid collateral this vertical is built for.
+            </p>
+          </Reveal>
+          <div className="grid grid-cols-1 gap-4 sm:gap-5 md:grid-cols-2">
+            {REAL_SLABS.map((s, i) => (
+              <Reveal key={s.title} delay={i * 90}>
+                <figure className="card h-full overflow-hidden p-0">
+                  <div className="flex items-center justify-center bg-[var(--bg-elevated)] p-5 sm:p-6">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={s.img}
+                      alt={s.alt}
+                      className="block h-[300px] w-auto max-w-full rounded-lg object-contain shadow-lg sm:h-[380px]"
+                    />
+                  </div>
+                  <figcaption className="border-t border-[var(--hairline)] p-4 sm:p-5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="rounded-md bg-emerald-500/20 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-emerald-200">
+                        Tier A · ≤50% LTV
+                      </span>
+                      <span className="text-right text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                        {s.meta}
+                      </span>
+                    </div>
+                    <div className="mt-2.5 font-display text-base font-medium tracking-[-0.02em] sm:text-lg">
+                      {s.title}
+                    </div>
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-[13px]">
+                      {s.why}
+                    </p>
+                  </figcaption>
+                </figure>
+              </Reveal>
+            ))}
+          </div>
+          <p className="mt-4 text-[11px] leading-relaxed text-[var(--ink-faint)] sm:text-xs">
+            Real graded slabs, shown for illustration — design-phase, not an offer to lend.
+            Final eligibility and value are set per item by the sold-comp gate.
+          </p>
+        </div>
+      </section>
+
+      {/* ── What's collateral-grade ── */}
+      <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+        <div>
           <Reveal>
             <h2 className="font-display mb-5 text-xl font-medium tracking-[-0.02em] sm:mb-8 sm:text-2xl md:text-3xl">
               What&apos;s collateral-grade
