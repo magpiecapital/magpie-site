@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
 import { LiveProtocolTicker } from "@/components/LiveProtocolTicker";
+import { CollateralChooser } from "@/components/CollateralChooser";
 import { getTokenStats } from "@/lib/db";
 import { TELEGRAM_URL } from "@/lib/telegram-links";
 
@@ -14,40 +15,9 @@ const X_URL = "https://x.com/MagpieLoans";
 
 /* ─── Data ─── */
 
-// The three collateral classes — the "pick your collateral" chooser. Memecoins
-// and tokenized stocks are LIVE (borrow now); collectibles is IN DESIGN.
-const CHOOSER = [
-  {
-    key: "memecoins",
-    glyph: "✦",
-    status: "Live",
-    title: "Memecoins",
-    desc: "Borrow SOL against the memecoins you already hold — every token screened for liquidity and capped for safety.",
-    examples: "WIF · BONK · POPCAT · Fartcoin",
-    href: "/marketplace",
-    cta: "Borrow now",
-  },
-  {
-    key: "stocks",
-    glyph: "◈",
-    status: "Live",
-    title: "Tokenized stocks",
-    desc: "Borrow against real equities on Solana — without selling. No margin calls, no taxable event, upside intact.",
-    examples: "xTSLA · xNVDA · xAAPL · xSPY",
-    href: "/marketplace",
-    cta: "Borrow now",
-  },
-  {
-    key: "collectibles",
-    glyph: "◆",
-    status: "In design",
-    title: "Collectibles",
-    desc: "Borrow against graded trading cards — priced on real sales, fixed-term, and you keep the card.",
-    examples: "Graded cards · Pokémon · sports",
-    href: "/collectibles",
-    cta: "See how it works",
-  },
-];
+// The three collateral classes live in <CollateralChooser /> — it carries the
+// real collateral imagery (coin logos, ticker tiles, graded slabs) and needs
+// client-side image fallbacks, so it can't stay inline in this server page.
 
 const STEPS = [
   {
@@ -128,8 +98,10 @@ export default async function Home() {
       {/* ══════════ HERO ══════════ */}
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
-        <div className="mx-auto max-w-6xl px-5 pt-14 pb-14 sm:px-6 md:pt-24 md:pb-24">
-          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-balance [text-wrap:balance] text-[clamp(2.25rem,8vw,7rem)] leading-[0.95] tracking-[-0.04em] font-medium sm:leading-[0.92]">
+        <div className="mx-auto max-w-6xl px-5 pt-10 pb-9 sm:px-6 md:pt-14 md:pb-10">
+          {/* Headline is capped below its old 7rem: the three collateral cards
+              are the conversion moment and need to be near the fold. */}
+          <h1 className="fade-up fade-up-1 font-display max-w-5xl text-balance [text-wrap:balance] text-[clamp(2.25rem,7vw,5.25rem)] leading-[0.95] tracking-[-0.04em] font-medium sm:leading-[0.92]">
             Liquidity without{" "}
             <br className="hidden sm:block" />
             <span className="italic">selling your bag.</span>
@@ -158,8 +130,38 @@ export default async function Home() {
             </a>
           </div>
 
-          {/* Value-prop stat strip */}
-          <div className="fade-up fade-up-4 mt-12 grid max-w-4xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-14">
+          <div className="pointer-events-none absolute right-8 top-32 hidden opacity-90 lg:block">
+            <div className="hop">
+              <Mark size={240} variant="static" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════ PICK YOUR COLLATERAL ══════════
+          Sits directly under the hero on purpose: the first thing a visitor
+          should learn is WHAT they can borrow against, shown with the real
+          collateral rather than described in prose. Proof stats follow the
+          cards so the answer comes before the credentials. */}
+      <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
+        <div className="mx-auto max-w-6xl px-5 py-10 sm:px-6 md:py-14">
+          <Reveal>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+              <h2 className="font-display max-w-2xl text-2xl font-medium leading-[1.1] tracking-[-0.02em] sm:text-3xl md:text-4xl">
+                What do you want to borrow against?
+              </h2>
+              <p className="text-sm text-[var(--ink-soft)] sm:max-w-xs sm:text-right sm:text-base">
+                Three collateral classes, one protocol.
+              </p>
+            </div>
+          </Reveal>
+
+          <div className="mt-6 md:mt-8">
+            <CollateralChooser />
+          </div>
+
+          {/* Value-prop stat strip — the proof under the choice. */}
+          <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--hairline)] shadow-sm sm:grid-cols-4 md:mt-12">
             {[
               { v: "<10s", l: "SOL in your wallet" },
               { v: "1.5–3%", l: "Flat fee, no surprises" },
@@ -179,58 +181,6 @@ export default async function Home() {
 
           {/* Live protocol ticker — auto-loads; renders nothing if unavailable. */}
           <LiveProtocolTicker />
-
-          <div className="pointer-events-none absolute right-8 top-32 hidden opacity-90 lg:block">
-            <div className="hop">
-              <Mark size={240} variant="static" />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ══════════ PICK YOUR COLLATERAL ══════════ */}
-      <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-5 py-14 sm:px-6 md:py-20">
-          <Reveal>
-            <div className="chip mb-4">Pick your collateral</div>
-            <h2 className="font-display max-w-3xl text-3xl font-medium leading-[1.05] tracking-[-0.02em] sm:text-4xl md:text-5xl">
-              What do you want to borrow against?
-            </h2>
-            <p className="mt-3 max-w-2xl text-base text-[var(--ink-soft)] sm:text-lg">
-              Three collateral classes, one protocol. Pick what you hold and get SOL —
-              non-custodial, on Solana.
-            </p>
-          </Reveal>
-          <div className="mt-8 grid gap-4 sm:grid-cols-3 md:mt-10">
-            {CHOOSER.map((c) => (
-              <Link
-                key={c.key}
-                href={c.href}
-                className="group flex flex-col rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 transition hover:-translate-y-0.5 hover:border-[var(--accent)]/50 hover:shadow-md md:p-7"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl text-[var(--accent-deep)]" aria-hidden>{c.glyph}</span>
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] ${
-                      c.status === "Live"
-                        ? "bg-[var(--accent-dim)] text-[var(--accent-deep)]"
-                        : "border border-[var(--hairline)] text-[var(--ink-faint)]"
-                    }`}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${c.status === "Live" ? "bg-green-500" : "bg-[var(--ink-faint)]"}`} />
-                    {c.status}
-                  </span>
-                </div>
-                <h3 className="mt-5 font-display text-xl font-medium tracking-[-0.01em]">{c.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">{c.desc}</p>
-                <div className="mt-4 text-[11px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">{c.examples}</div>
-                <div className="mt-auto pt-6 text-sm font-semibold text-[var(--accent-deep)]">
-                  {c.cta}{" "}
-                  <span className="inline-block transition group-hover:translate-x-0.5" aria-hidden>→</span>
-                </div>
-              </Link>
-            ))}
-          </div>
         </div>
       </section>
 
