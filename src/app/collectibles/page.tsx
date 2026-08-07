@@ -207,9 +207,12 @@ export default function CollectiblesPage() {
                 Get SOL against your graded trading cards — priced on what they really
                 sell for. Repay when you&apos;re ready and keep the card.
               </p>
-              <div className="mt-6">
-                <a href="#how" className="btn-accent text-sm">
-                  See how it works<span aria-hidden>↓</span>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <a href="#submit" className="btn-accent text-sm">
+                  Check your card<span aria-hidden>↓</span>
+                </a>
+                <a href="#how" className="btn-ghost text-sm">
+                  See how it works
                 </a>
               </div>
             </Reveal>
@@ -233,108 +236,6 @@ export default function CollectiblesPage() {
             </Reveal>
           </div>
         </div>
-      </section>
-
-      {/* ── Why borrow instead of selling ── */}
-      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
-        <Reveal>
-          <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
-            Why borrow instead of selling?
-          </h2>
-        </Reveal>
-        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:mt-10 md:grid-cols-4">
-          {WHY.map((w, i) => (
-            <Reveal key={w.t} delay={i * 70}>
-              <div className="card h-full p-5 sm:p-6">
-                <h3 className="font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
-                  {w.t}
-                </h3>
-                <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
-                  {w.d}
-                </p>
-              </div>
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      {/* ── How it works ── */}
-      <section id="how" className="border-y border-[var(--hairline)] bg-[var(--surface)]">
-        <div className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-20">
-          <Reveal>
-            <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
-              How it works
-            </h2>
-            <p className="mx-auto mt-3 max-w-md text-center text-[14px] text-[var(--ink-soft)] sm:text-base">
-              Three steps. Your card stays safe in the vault the whole time.
-            </p>
-          </Reveal>
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-12 sm:gap-5 md:grid-cols-3">
-            {STEPS.map((s, i) => (
-              <Reveal key={s.n} delay={i * 80}>
-                <div className="card h-full p-6 sm:p-8">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)]/15 font-display text-lg font-semibold text-[var(--accent-deep)]">
-                    {s.n}
-                  </div>
-                  <h3 className="mt-4 font-display text-lg font-medium tracking-[-0.02em] sm:text-xl">
-                    {s.t}
-                  </h3>
-                  <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
-                    {s.d}
-                  </p>
-                </div>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Where cards are already vaulted ── */}
-      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
-        <Reveal>
-          <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
-            Already vaulted? You&apos;re ready.
-          </h2>
-          <p className="mx-auto mt-3 max-w-lg text-center text-[14px] text-[var(--ink-soft)] sm:text-base">
-            If your card is vaulted and tokenized on one of these, it can back a loan —
-            whichever one you use.
-          </p>
-        </Reveal>
-        <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
-          {PLATFORMS.map((p, i) => (
-            <Reveal key={p.name} delay={i * 60} className="h-full">
-              <a
-                href={p.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex h-full flex-col items-center justify-center gap-3 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 text-center shadow-[var(--shadow-sm)] transition hover:-translate-y-0.5 hover:border-[var(--accent)]/60 hover:shadow-[var(--shadow-md)] sm:p-6"
-              >
-                {p.logo ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={p.logo}
-                    alt={`${p.name} logo`}
-                    className="h-10 w-10 rounded-xl object-contain sm:h-12 sm:w-12"
-                  />
-                ) : (
-                  <span
-                    aria-hidden
-                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface-strong)] font-display text-lg font-semibold text-[var(--ink-soft)] sm:h-12 sm:w-12"
-                  >
-                    {p.name[0]}
-                  </span>
-                )}
-                <span className="text-[13px] font-semibold sm:text-sm">{p.name}</span>
-                <span className="text-[11px] text-[var(--ink-faint)] transition group-hover:text-[var(--accent-deep)]">
-                  Visit ↗
-                </span>
-              </a>
-            </Reveal>
-          ))}
-        </div>
-        <p className="mx-auto mt-5 max-w-xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
-          The platforms collectors already use to vault and tokenize graded cards.
-        </p>
       </section>
 
       {/* ── What you can borrow against ── */}
@@ -515,6 +416,11 @@ export default function CollectiblesPage() {
           The launch list — it grows as more cards prove they sell. Every individual
           card is still checked against live sold data when the loan is made.
         </p>
+        <div className="mt-6 text-center">
+          <a href="#submit" className="btn-accent text-sm">
+            Don&apos;t see your card? Check it<span aria-hidden>↓</span>
+          </a>
+        </div>
       </section>
 
       {/* ── Submit a card ── */}
@@ -536,6 +442,108 @@ export default function CollectiblesPage() {
         <div className="mt-8 md:mt-10">
           <CollectibleSubmitForm />
         </div>
+      </section>
+
+      {/* ── Why borrow instead of selling ── */}
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
+        <Reveal>
+          <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
+            Why borrow instead of selling?
+          </h2>
+        </Reveal>
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:mt-10 md:grid-cols-4">
+          {WHY.map((w, i) => (
+            <Reveal key={w.t} delay={i * 70}>
+              <div className="card h-full p-5 sm:p-6">
+                <h3 className="font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
+                  {w.t}
+                </h3>
+                <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+                  {w.d}
+                </p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* ── How it works ── */}
+      <section id="how" className="border-y border-[var(--hairline)] bg-[var(--surface)]">
+        <div className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-20">
+          <Reveal>
+            <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
+              How it works
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-center text-[14px] text-[var(--ink-soft)] sm:text-base">
+              Three steps. Your card stays safe in the vault the whole time.
+            </p>
+          </Reveal>
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:mt-12 sm:gap-5 md:grid-cols-3">
+            {STEPS.map((s, i) => (
+              <Reveal key={s.n} delay={i * 80}>
+                <div className="card h-full p-6 sm:p-8">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)]/15 font-display text-lg font-semibold text-[var(--accent-deep)]">
+                    {s.n}
+                  </div>
+                  <h3 className="mt-4 font-display text-lg font-medium tracking-[-0.02em] sm:text-xl">
+                    {s.t}
+                  </h3>
+                  <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+                    {s.d}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Where cards are already vaulted ── */}
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
+        <Reveal>
+          <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
+            Already vaulted? You&apos;re ready.
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-center text-[14px] text-[var(--ink-soft)] sm:text-base">
+            If your card is vaulted and tokenized on one of these, it can back a loan —
+            whichever one you use.
+          </p>
+        </Reveal>
+        <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+          {PLATFORMS.map((p, i) => (
+            <Reveal key={p.name} delay={i * 60} className="h-full">
+              <a
+                href={p.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex h-full flex-col items-center justify-center gap-3 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 text-center shadow-[var(--shadow-sm)] transition hover:-translate-y-0.5 hover:border-[var(--accent)]/60 hover:shadow-[var(--shadow-md)] sm:p-6"
+              >
+                {p.logo ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={p.logo}
+                    alt={`${p.name} logo`}
+                    className="h-10 w-10 rounded-xl object-contain sm:h-12 sm:w-12"
+                  />
+                ) : (
+                  <span
+                    aria-hidden
+                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface-strong)] font-display text-lg font-semibold text-[var(--ink-soft)] sm:h-12 sm:w-12"
+                  >
+                    {p.name[0]}
+                  </span>
+                )}
+                <span className="text-[13px] font-semibold sm:text-sm">{p.name}</span>
+                <span className="text-[11px] text-[var(--ink-faint)] transition group-hover:text-[var(--accent-deep)]">
+                  Visit ↗
+                </span>
+              </a>
+            </Reveal>
+          ))}
+        </div>
+        <p className="mx-auto mt-5 max-w-xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
+          The platforms collectors already use to vault and tokenize graded cards.
+        </p>
       </section>
 
       {/* ── How a card gets approved ── */}

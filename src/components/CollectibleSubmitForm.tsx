@@ -67,6 +67,7 @@ export function CollectibleSubmitForm() {
     grade: "",
     autoGrade: "",
     platform: "",
+    mint: "",
     contact: "",
   });
   const [busy, setBusy] = useState(false);
@@ -192,6 +193,19 @@ export function CollectibleSubmitForm() {
             </select>
           </Field>
 
+          <Field
+            label="Token mint address"
+            hint="If it's tokenized. We check on-chain that you hold it."
+          >
+            <input
+              className={inputCls}
+              value={form.mint}
+              onChange={set("mint")}
+              placeholder="Token mint of the vaulted card"
+              maxLength={64}
+            />
+          </Field>
+
           <Field label="How do we reach you?" hint="Telegram handle or email. Optional.">
             <input
               className={inputCls}
@@ -221,6 +235,12 @@ export function CollectibleSubmitForm() {
             </span>
           )}
         </div>
+
+        <p className="mt-4 text-[12px] leading-relaxed text-[var(--ink-faint)]">
+          Everything here is checked. We verify the cert against the grader&apos;s own
+          records and confirm on-chain that you hold the card before any loan — so
+          details that don&apos;t match the slab simply won&apos;t clear.
+        </p>
 
         {error && (
           <p className="mt-4 text-sm text-[var(--bad)]" role="alert">
