@@ -57,19 +57,6 @@ const HERO_FAN = [
   },
 ];
 
-const SLABS = [
-  {
-    img: "/collectibles/charizard-base-set-psa10.jpg",
-    alt: "1999 Base Set Charizard Holo #4, graded PSA GEM-MT 10",
-    cap: "Base Set Charizard · PSA 10",
-  },
-  {
-    img: "/collectibles/jordan-fleer-1986-psa9.jpg",
-    alt: "1986 Fleer Michael Jordan rookie #57, graded PSA 9",
-    cap: "1986 Fleer Jordan · PSA 9",
-  },
-];
-
 const ACCEPT = [
   "Graded by PSA, CGC, BGS or SGC",
   "Cards that actually sell — Pokémon, sports & top TCG",
@@ -248,29 +235,7 @@ export default function CollectiblesPage() {
             Liquid, graded cards — the ones that actually sell. Pokémon, sports &amp; top TCG.
           </p>
         </Reveal>
-        <div className="mx-auto mt-8 grid max-w-2xl grid-cols-2 gap-4 sm:gap-6">
-          {SLABS.map((s, i) => (
-            <Reveal key={s.cap} delay={i * 80} className="h-full">
-              {/* The two slabs have different native aspect ratios, so the
-                  image sits in a fixed-ratio box — otherwise the taller card
-                  drags its caption out of line with its neighbour. */}
-              <figure className="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] shadow-lg">
-                <div className="flex aspect-[3/4] items-center justify-center p-3 sm:p-4">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={s.img}
-                    alt={s.alt}
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
-                <figcaption className="mt-auto border-t border-[var(--hairline)] px-3 py-2.5 text-center text-[11px] uppercase tracking-[0.1em] text-[var(--ink-soft)] sm:text-xs">
-                  {s.cap}
-                </figcaption>
-              </figure>
-            </Reveal>
-          ))}
-        </div>
-        <div className="mx-auto mt-6 flex max-w-md flex-col gap-2.5 sm:mt-8">
+        <div className="mx-auto mt-8 flex max-w-md flex-col gap-2.5">
           {ACCEPT.map((a, i) => (
             <Reveal key={a} delay={i * 50}>
               <div className="flex items-center gap-2.5 text-[13px] text-[var(--ink-soft)] sm:text-sm">
