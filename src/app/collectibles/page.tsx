@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
+import { CollectibleSubmitForm } from "@/components/CollectibleSubmitForm";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const DESIGN_REPO = "https://github.com/magpiecapital/magpie-collectibles-lending";
@@ -123,7 +124,7 @@ const ALLOWLIST = [
     lead: false,
     blurb: "Liquid, a notch thinner — same standard, wider safety margin.",
     ltv: "40",
-    grades: "Grades 8–10",
+    grades: "Grades 8–10 · authenticated autos",
     term: "30–90 days",
     rate: "~12–14% APR",
     items: [
@@ -131,7 +132,7 @@ const ALLOWLIST = [
       { card: "Jungle & Fossil holos", meta: "1st Edition · 1999" },
       { card: "Grade 8 of any Tier A card", meta: "Same cards, lower grade" },
       { card: "LeBron James #111", meta: "Topps Chrome · 2003-04" },
-      { card: "Other iconic rookies", meta: "On proven liquidity" },
+      { card: "Autographed rookies", meta: "PSA/DNA · auto 9–10" },
     ],
   },
 ];
@@ -140,12 +141,10 @@ const ALLOWLIST = [
 // businesses. We link out and use each mark nominatively, to
 // identify where a collector's card already lives. Marks are mirrored locally
 // from each platform's own public site assets rather than hotlinked.
-// Phygitals blocks automated requests, so we have no logo file for it yet and
-// it renders the same tile with a monogram until we're given one.
 const PLATFORMS = [
   { name: "Collector Crypt", href: "https://collectorcrypt.com", logo: "/collectibles/platforms/collector-crypt.svg" },
   { name: "Courtyard", href: "https://courtyard.io", logo: "/collectibles/platforms/courtyard.png" },
-  { name: "Phygitals", href: "https://www.phygitals.com", logo: null },
+  { name: "Phygitals", href: "https://www.phygitals.com", logo: "/collectibles/platforms/phygitals.png" },
   { name: "Beezie", href: "https://beezie.com", logo: "/collectibles/platforms/beezie.png" },
 ];
 
@@ -516,6 +515,27 @@ export default function CollectiblesPage() {
           The launch list — it grows as more cards prove they sell. Every individual
           card is still checked against live sold data when the loan is made.
         </p>
+      </section>
+
+      {/* ── Submit a card ── */}
+      <section id="submit" className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
+        <Reveal>
+          <div className="mx-auto max-w-lg text-center">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-deep)]">
+              Not on the list?
+            </div>
+            <h2 className="mt-2 font-display text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
+              Submit your card
+            </h2>
+            <p className="mt-3 text-[14px] text-[var(--ink-soft)] sm:text-base">
+              We run it through the same checks the list was built from and tell you
+              exactly where it stands — including why, if the answer is no.
+            </p>
+          </div>
+        </Reveal>
+        <div className="mt-8 md:mt-10">
+          <CollectibleSubmitForm />
+        </div>
       </section>
 
       {/* ── How a card gets approved ── */}
