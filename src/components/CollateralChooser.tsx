@@ -11,10 +11,12 @@ import { useState } from "react";
  * a ticker list. Image sources, deliberately chosen for rights safety:
  *   - Memecoins ...... DexScreener token CDN (the same source /marketplace and
  *                      the token marquee already use for coin logos).
- *   - Tokenized stocks branded TICKER TILES from /public/tokens (a coloured
- *                      disc + the ticker text). We never render Apple/Tesla/
- *                      NVIDIA corporate logos — the ticker is factual, the
- *                      logo would be a trademark we have no licence for.
+ *   - Tokenized stocks each xStock's OFFICIAL token logo as published by the
+ *                      issuer (Backed) at xstocks-metadata.backed.fi, mirrored
+ *                      into /public/tokens so we don't hotlink a third party.
+ *                      These are the identity images of the very tokens we
+ *                      accept as collateral — we render the asset's own logo,
+ *                      we don't redraw a company's brand assets ourselves.
  *   - Collectibles ... photographs of slabs the operator personally owns
  *                      (copyright-cleared). We never reproduce Pokémon art,
  *                      grader marks, or marketplace product photos.
@@ -35,11 +37,11 @@ const MEMECOINS = [
 ];
 
 const STOCKS = [
-  { symbol: "xTSLA", src: "/tokens/xTSLA.svg" },
-  { symbol: "xAAPL", src: "/tokens/xAAPL.svg" },
-  { symbol: "xNVDA", src: "/tokens/xNVDA.svg" },
-  { symbol: "xMSTR", src: "/tokens/xMSTR.svg" },
-  { symbol: "xCOIN", src: "/tokens/xCOIN.svg" },
+  { symbol: "xTSLA", src: "/tokens/xTSLA.png" },
+  { symbol: "xAAPL", src: "/tokens/xAAPL.png" },
+  { symbol: "xNVDA", src: "/tokens/xNVDA.png" },
+  { symbol: "xMSTR", src: "/tokens/xMSTR.png" },
+  { symbol: "xCOIN", src: "/tokens/xCOIN.png" },
 ];
 
 const SLABS = [

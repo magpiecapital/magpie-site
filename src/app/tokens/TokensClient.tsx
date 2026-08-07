@@ -20,7 +20,7 @@ interface TokenData {
   name: string;
   mint: string;
   category: TokenCategory;
-  /** Local image from registry (e.g. "/tokens/xTSLA.svg") */
+  /** Local image from registry (e.g. "/tokens/xTSLA.png") */
   registryImage: string | null;
   price: number | null;
   change1h: number | null;
