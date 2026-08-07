@@ -10,7 +10,7 @@
  * abstractly.
  *
  * Logo resolution (mirrors the rest of the site):
- *   1. Local registry image (for xStocks — /tokens/xTSLA.svg etc.)
+ *   1. Local registry image (for xStocks — /tokens/xTSLA.png etc.)
  *   2. DB image_url (whatever the screener captured at submission)
  *   3. DexScreener cached image by mint
  *   4. Initial badge (symbol's first letter on accent bg)
