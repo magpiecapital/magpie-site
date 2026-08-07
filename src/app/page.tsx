@@ -99,6 +99,13 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div className="hero-glow" />
         <div className="mx-auto max-w-6xl px-5 pt-10 pb-9 sm:px-6 md:pt-14 md:pb-10">
+          {/* The positioning line, first thing on the page. It also opens the
+              chooser section, the marketplace, and the footer — one line the
+              whole site repeats. */}
+          <div className="fade-up fade-up-1 mb-5 inline-flex items-center gap-2 rounded-full border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-deep)] shadow-sm sm:text-xs">
+            Three collateral classes · One protocol
+          </div>
+
           {/* Headline is capped below its old 7rem: the three collateral cards
               are the conversion moment and need to be near the fold. */}
           <h1 className="fade-up fade-up-1 font-display max-w-5xl text-balance [text-wrap:balance] text-[clamp(2.25rem,7vw,5.25rem)] leading-[0.95] tracking-[-0.04em] font-medium sm:leading-[0.92]">

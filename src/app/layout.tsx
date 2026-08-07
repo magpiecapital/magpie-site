@@ -38,7 +38,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Magpie — Solana lending. Liquidity without selling your bag.",
   description:
-    "Magpie is a Solana lending protocol: borrow SOL against your memecoins, tokenized stocks, and RWAs — and set take-profits and stops on the same collateral. Collateral that can still sell itself.",
+    "Three collateral classes, one protocol. Magpie is a Solana lending protocol: borrow SOL against your memecoins, tokenized stocks, and collectibles — and set take-profits and stops on the same collateral. Collateral that can still sell itself.",
   applicationName: "Magpie",
   keywords: [
     "Solana lending",
@@ -71,7 +71,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Magpie — Solana lending. Liquidity without selling your bag.",
     description:
-      "Magpie is a Solana lending protocol: borrow SOL against your memecoins, tokenized stocks, and RWAs — and set take-profits and stops on the same collateral. Collateral that can still sell itself.",
+      "Three collateral classes, one protocol. Magpie is a Solana lending protocol: borrow SOL against your memecoins, tokenized stocks, and collectibles — and set take-profits and stops on the same collateral. Collateral that can still sell itself.",
     url: SITE_URL,
     siteName: "Magpie",
     type: "website",
@@ -87,7 +87,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Magpie — Solana lending. Liquidity without selling your bag.",
-    description: "Borrow SOL against your memecoins, tokenized stocks, and RWAs on Solana — and set take-profits and stops on the same collateral. Collateral that can still sell itself.",
+    description: "Three collateral classes, one protocol. Borrow SOL against your memecoins, tokenized stocks, and collectibles on Solana — and set take-profits and stops on the same collateral. Collateral that can still sell itself.",
     site: "@MagpieLoans",
     creator: "@MagpieLoans",
     images: ["/opengraph-image"],
