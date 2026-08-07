@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:gate": "node --experimental-strip-types scripts/check-collectible-gate.mjs"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
