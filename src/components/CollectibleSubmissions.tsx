@@ -198,7 +198,8 @@ export function CollectibleSubmissions({ wallet }: { wallet: string | null }) {
 
       <p className="mt-4 text-[11px] leading-relaxed text-[var(--d-ink-faint,#6e6a60)]">
         Collectibles lending is in design — nothing here is a loan offer, and
-        eligibility is confirmed against live sold data at loan time.
+        eligibility is confirmed against live sold data at loan time. These are
+        eligibility checks, not authentications or valuations.
       </p>
     </section>
   );
