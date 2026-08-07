@@ -15,7 +15,10 @@ export function Footer() {
             <Link href="/">
               <Wordmark size={24} />
             </Link>
-            <p className="mt-3 max-w-[280px] text-sm leading-relaxed text-[var(--ink-soft)] sm:mt-4">
+            <p className="mt-3 max-w-[280px] text-sm font-semibold leading-relaxed text-[var(--ink)] sm:mt-4">
+              Three collateral classes. One protocol.
+            </p>
+            <p className="mt-2 max-w-[280px] text-sm leading-relaxed text-[var(--ink-soft)]">
               Collateral that can still sell itself. Borrow SOL against memecoins and tokenized stocks on Solana — with collectibles next — and set auto-sells on the same collateral.
             </p>
           </div>

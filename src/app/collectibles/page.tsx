@@ -54,6 +54,65 @@ const ACCEPT = [
   "Already vaulted & tokenized on a platform we support",
 ];
 
+// Why a collector would borrow rather than sell. Each line is a real property
+// of a permissionless, fixed-term, over-collateralised loan — no tax advice,
+// no claims about what any other venue charges.
+const WHY = [
+  {
+    t: "You keep the card",
+    d: "Sell it and it's gone. Borrow against it and it comes back to you when you repay.",
+  },
+  {
+    t: "You keep the upside",
+    d: "If your card climbs while the loan is open, that gain is still yours — not the buyer's.",
+  },
+  {
+    t: "No bank, no credit check",
+    d: "Permissionless. No application, no income docs, no approval queue — your card is the whole story.",
+  },
+  {
+    t: "No consignment wait",
+    d: "No auction calendar and no months-long consignment cycle before you see money.",
+  },
+];
+
+// The launch allowlist, mirrored from the design repo (doc 26). Types only —
+// every individual cert is still re-checked against live sold data at loan
+// time, and we quote no dollar values because real values come from the
+// licensed feeds at onboarding, not from a hardcoded table.
+const ALLOWLIST = [
+  {
+    tier: "Tier A",
+    ltv: "up to 50%",
+    grades: "PSA / CGC / BGS 9–10",
+    items: [
+      "Base Set Charizard #4",
+      "Base Set Blastoise #2",
+      "Base Set Venusaur #15",
+      "Neo Genesis Lugia #9",
+      "1986 Fleer Jordan #57",
+    ],
+  },
+  {
+    tier: "Tier B",
+    ltv: "up to 40%",
+    grades: "Grades 8–10",
+    items: [
+      "Base Set holo rares — Zapdos, Chansey, Mewtwo, Alakazam",
+      "Jungle & Fossil 1st Edition holos",
+      "Grade 8 of any Tier A card",
+      "LeBron James 2003-04 Topps Chrome #111",
+    ],
+  },
+];
+
+const EXCLUDED = [
+  "One-of-a-kind trophies and Pikachu Illustrator — priceless isn't the same as sellable",
+  "Ungraded or raw cards",
+  "Anything below grade 8",
+  "Modern hype chases and sealed boxes",
+];
+
 const SAFETY = [
   { t: "Real prices", d: "Valued on real sales, never listings." },
   { t: "No surprise sell-offs", d: "Fixed-term — your card is never dumped on a price dip." },
@@ -125,6 +184,29 @@ export default function CollectiblesPage() {
         </div>
       </section>
 
+      {/* ── Why borrow instead of selling ── */}
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
+        <Reveal>
+          <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
+            Why borrow instead of selling?
+          </h2>
+        </Reveal>
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 md:mt-10 md:grid-cols-4">
+          {WHY.map((w, i) => (
+            <Reveal key={w.t} delay={i * 70}>
+              <div className="card h-full p-5 sm:p-6">
+                <h3 className="font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
+                  {w.t}
+                </h3>
+                <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+                  {w.d}
+                </p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
       {/* ── How it works ── */}
       <section id="how" className="border-y border-[var(--hairline)] bg-[var(--surface)]">
         <div className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-20">
@@ -160,7 +242,7 @@ export default function CollectiblesPage() {
       <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-20">
         <Reveal>
           <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
-            What you can borrow against
+            Approved collateral
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-center text-[14px] text-[var(--ink-soft)] sm:text-base">
             Liquid, graded cards — the ones that actually sell. Pokémon, sports &amp; top TCG.
@@ -168,11 +250,20 @@ export default function CollectiblesPage() {
         </Reveal>
         <div className="mx-auto mt-8 grid max-w-2xl grid-cols-2 gap-4 sm:gap-6">
           {SLABS.map((s, i) => (
-            <Reveal key={s.cap} delay={i * 80}>
-              <figure className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] shadow-lg">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={s.img} alt={s.alt} className="block h-auto w-full" />
-                <figcaption className="border-t border-[var(--hairline)] px-3 py-2.5 text-center text-[11px] uppercase tracking-[0.1em] text-[var(--ink-soft)] sm:text-xs">
+            <Reveal key={s.cap} delay={i * 80} className="h-full">
+              {/* The two slabs have different native aspect ratios, so the
+                  image sits in a fixed-ratio box — otherwise the taller card
+                  drags its caption out of line with its neighbour. */}
+              <figure className="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] shadow-lg">
+                <div className="flex aspect-[3/4] items-center justify-center p-3 sm:p-4">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={s.img}
+                    alt={s.alt}
+                    className="max-h-full max-w-full object-contain"
+                  />
+                </div>
+                <figcaption className="mt-auto border-t border-[var(--hairline)] px-3 py-2.5 text-center text-[11px] uppercase tracking-[0.1em] text-[var(--ink-soft)] sm:text-xs">
                   {s.cap}
                 </figcaption>
               </figure>
@@ -189,6 +280,66 @@ export default function CollectiblesPage() {
             </Reveal>
           ))}
         </div>
+
+        {/* The actual launch allowlist — types, not individual certs. */}
+        <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-4 sm:mt-14 sm:gap-5 md:grid-cols-2">
+          {ALLOWLIST.map((t, i) => (
+            <Reveal key={t.tier} delay={i * 80}>
+              <div className="card flex h-full flex-col p-5 sm:p-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-display text-lg font-medium tracking-[-0.01em]">
+                    {t.tier}
+                  </span>
+                  <span className="rounded-full bg-[var(--accent-dim)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--accent-deep)]">
+                    {t.ltv}
+                  </span>
+                  <span className="text-[11px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
+                    {t.grades}
+                  </span>
+                </div>
+                <ul className="mt-4 flex flex-col gap-2">
+                  {t.items.map((it) => (
+                    <li
+                      key={it}
+                      className="flex items-start gap-2.5 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm"
+                    >
+                      <span aria-hidden className="mt-[2px] text-emerald-400">
+                        ✓
+                      </span>
+                      <span>{it}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+
+        <Reveal>
+          <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-5 sm:mt-8 sm:p-6">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+              Not accepted
+            </div>
+            <ul className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
+              {EXCLUDED.map((e) => (
+                <li
+                  key={e}
+                  className="flex items-start gap-2.5 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm"
+                >
+                  <span aria-hidden className="mt-[1px] text-[var(--ink-faint)]">
+                    ✕
+                  </span>
+                  <span>{e}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Reveal>
+
+        <p className="mx-auto mt-5 max-w-2xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
+          The launch list — it grows as more cards prove they sell. Every individual
+          card is still checked against live sold data when the loan is made.
+        </p>
       </section>
 
       {/* ── How a card gets approved ── */}
