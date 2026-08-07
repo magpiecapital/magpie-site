@@ -106,6 +106,19 @@ const ALLOWLIST = [
   },
 ];
 
+// Platforms that already vault + tokenize graded cards. These are INDEPENDENT
+// businesses, not partners — we link out and use each mark nominatively, to
+// identify where a collector's card already lives. Marks are mirrored locally
+// from each platform's own public site assets rather than hotlinked.
+// Phygitals blocks automated requests, so we have no logo file for it yet and
+// it renders the same tile with a monogram until we're given one.
+const PLATFORMS = [
+  { name: "Collector Crypt", href: "https://collectorcrypt.com", logo: "/collectibles/platforms/collector-crypt.svg" },
+  { name: "Courtyard", href: "https://courtyard.io", logo: "/collectibles/platforms/courtyard.png" },
+  { name: "Phygitals", href: "https://www.phygitals.com", logo: null },
+  { name: "Beezie", href: "https://beezie.com", logo: "/collectibles/platforms/beezie.png" },
+];
+
 const EXCLUDED = [
   "One-of-a-kind trophies and Pikachu Illustrator — priceless isn't the same as sellable",
   "Ungraded or raw cards",
@@ -236,6 +249,55 @@ export default function CollectiblesPage() {
             ))}
           </div>
         </div>
+      </section>
+
+      {/* ── Where cards are already vaulted ── */}
+      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
+        <Reveal>
+          <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
+            Already vaulted? You&apos;re ready.
+          </h2>
+          <p className="mx-auto mt-3 max-w-lg text-center text-[14px] text-[var(--ink-soft)] sm:text-base">
+            If your card is vaulted and tokenized on one of these, it can back a loan —
+            whichever one you use.
+          </p>
+        </Reveal>
+        <div className="mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+          {PLATFORMS.map((p, i) => (
+            <Reveal key={p.name} delay={i * 60} className="h-full">
+              <a
+                href={p.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex h-full flex-col items-center justify-center gap-3 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-5 text-center shadow-[var(--shadow-sm)] transition hover:-translate-y-0.5 hover:border-[var(--accent)]/60 hover:shadow-[var(--shadow-md)] sm:p-6"
+              >
+                {p.logo ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={p.logo}
+                    alt={`${p.name} logo`}
+                    className="h-10 w-10 rounded-xl object-contain sm:h-12 sm:w-12"
+                  />
+                ) : (
+                  <span
+                    aria-hidden
+                    className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--surface-strong)] font-display text-lg font-semibold text-[var(--ink-soft)] sm:h-12 sm:w-12"
+                  >
+                    {p.name[0]}
+                  </span>
+                )}
+                <span className="text-[13px] font-semibold sm:text-sm">{p.name}</span>
+                <span className="text-[11px] text-[var(--ink-faint)] transition group-hover:text-[var(--accent-deep)]">
+                  Visit ↗
+                </span>
+              </a>
+            </Reveal>
+          ))}
+        </div>
+        <p className="mx-auto mt-5 max-w-xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
+          Independent platforms, listed because they vault and tokenize graded cards.
+          Not partnerships or endorsements — Magpie tokenizes nothing itself.
+        </p>
       </section>
 
       {/* ── What you can borrow against ── */}
