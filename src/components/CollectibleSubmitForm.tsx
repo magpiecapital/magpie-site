@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { GRADERS, SUPPORTED_PLATFORMS } from "@/lib/collectible-vetting";
 
 /**
@@ -52,6 +53,11 @@ const inputCls =
   "w-full rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3.5 py-2.5 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20";
 
 export function CollectibleSubmitForm() {
+  // Attaching the connected wallet is what turns a one-off check into
+  // something the collector can come back to on their dashboard.
+  const { publicKey } = useWallet();
+  const wallet = publicKey?.toBase58() ?? "";
+
   const [form, setForm] = useState({
     grader: "PSA",
     cert: "",
@@ -79,7 +85,7 @@ export function CollectibleSubmitForm() {
       const res = await fetch("/api/submit-collectible", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, wallet }),
       });
       const data = await res.json();
       if (!res.ok) setError(data.error || "Something went wrong. Try again.");
@@ -205,6 +211,15 @@ export function CollectibleSubmitForm() {
           <span className="text-[12px] text-[var(--ink-faint)]">
             Runs the real vetting gate. Nothing here is a loan offer.
           </span>
+          {wallet ? (
+            <span className="text-[12px] text-[var(--accent-deep)]">
+              Saving to your dashboard.
+            </span>
+          ) : (
+            <span className="text-[12px] text-[var(--ink-faint)]">
+              Connect a wallet to keep this in your dashboard.
+            </span>
+          )}
         </div>
 
         {error && (
