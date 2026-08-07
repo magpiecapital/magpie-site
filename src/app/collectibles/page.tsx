@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
+import { CollectibleSubmitForm } from "@/components/CollectibleSubmitForm";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 const DESIGN_REPO = "https://github.com/magpiecapital/magpie-collectibles-lending";
@@ -514,6 +515,27 @@ export default function CollectiblesPage() {
           The launch list — it grows as more cards prove they sell. Every individual
           card is still checked against live sold data when the loan is made.
         </p>
+      </section>
+
+      {/* ── Submit a card ── */}
+      <section id="submit" className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
+        <Reveal>
+          <div className="mx-auto max-w-lg text-center">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-deep)]">
+              Not on the list?
+            </div>
+            <h2 className="mt-2 font-display text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
+              Submit your card
+            </h2>
+            <p className="mt-3 text-[14px] text-[var(--ink-soft)] sm:text-base">
+              We run it through the same checks the list was built from and tell you
+              exactly where it stands — including why, if the answer is no.
+            </p>
+          </div>
+        </Reveal>
+        <div className="mt-8 md:mt-10">
+          <CollectibleSubmitForm />
+        </div>
       </section>
 
       {/* ── How a card gets approved ── */}
