@@ -50,6 +50,7 @@ export interface Submission {
 }
 
 export interface VettingResult {
+  /** Mutable: the route can downgrade this when on-chain ownership fails. */
   verdict: Verdict;
   /** Plain-English reason a collector can act on. */
   headline: string;
@@ -155,10 +156,10 @@ export function vetSubmission(sub: Submission): VettingResult {
 
   const certOk = /^[0-9]{6,12}$/.test((sub.cert || "").replace(/\D/g, ""));
   checks.push({
-    name: "Cert verifiable",
+    name: "Cert supplied",
     pass: certOk,
     detail: certOk
-      ? "Cert number is in a format we can check against the grader's records."
+      ? "Cert number is in a usable format. This is a FORMAT check only — see below."
       : "We need the cert number from the slab so we can verify it against the grader's records.",
   });
   if (!certOk) {
@@ -242,6 +243,15 @@ export function vetSubmission(sub: Submission): VettingResult {
       : isAuto
         ? "Autographed slabs only join the list for rookies with a deep, densely-comped sales record. A signature doesn't create a market on its own."
         : "Not on the current launch list. That isn't a no — it means the sold record has to be proven before it can be added.",
+  });
+
+  // Nothing typed into a form is evidence. Stated plainly so nobody — user
+  // or future maintainer — mistakes a provisional pass for a verified card.
+  checks.push({
+    name: "Cert verified with the grader",
+    pass: null,
+    detail:
+      "Pending. Everything on this form is self-reported. Before any loan we check the cert against the grader's own records and confirm the card, set, year and grade match what was entered.",
   });
 
   // V-2 — proven liquidity. This is the one a form can never answer.
