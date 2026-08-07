@@ -389,11 +389,29 @@ export default function SecurityPage() {
             In addition to this internal review, the V4 on-chain program has
             undergone an independent security assessment by{" "}
             <span className="font-semibold">Sec3</span> (formerly Soteria), a
-            Solana-native security firm. Sec3&apos;s assessment is complete;
-            every finding has been remediated on a dedicated, fully open-source
-            fix branch, and the fixes are back with Sec3 for re-review. The
-            protocol is not yet &ldquo;audited&rdquo; &mdash; we will not claim
-            that until Sec3 publishes the final, re-checked report.
+            Solana-native security firm. Sec3&apos;s assessment is complete, and
+            their second review of our fixes has come back.
+          </p>
+          <p className="mt-4 max-w-3xl text-base text-[var(--ink-soft)]">
+            Across the engagement there are{" "}
+            <span className="font-semibold">24 findings</span>. That second
+            review confirmed{" "}
+            <span className="font-semibold">18 resolved</span> and{" "}
+            <span className="font-semibold">4 acknowledged</span> (accepted with
+            documented rationale). Two came back for further work &mdash; one of
+            them an issue introduced by our own earlier fix, which Sec3&apos;s
+            re-review caught. Both have since been addressed and resubmitted for
+            the final round.
+          </p>
+          <p className="mt-4 max-w-3xl text-base text-[var(--ink-soft)]">
+            The fixes live on a dedicated fix branch and will deploy at a new
+            program ID once signed off &mdash; they are not on the live program
+            yet. The audited program repositories stay private during
+            pre-audit review, with Sec3 holding read-only access; reports are
+            published at github.com/magpiecapital/audits once cleared. The protocol is not
+            &ldquo;audited&rdquo; &mdash; we will not claim that until Sec3
+            publishes the final, re-checked report, and an audit reduces risk
+            rather than eliminating it.
           </p>
         </Reveal>
 
