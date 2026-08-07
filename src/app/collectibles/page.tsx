@@ -123,7 +123,7 @@ const ALLOWLIST = [
     lead: false,
     blurb: "Liquid, a notch thinner — same standard, wider safety margin.",
     ltv: "40",
-    grades: "Grades 8–10",
+    grades: "Grades 8–10 · authenticated autos",
     term: "30–90 days",
     rate: "~12–14% APR",
     items: [
@@ -131,7 +131,7 @@ const ALLOWLIST = [
       { card: "Jungle & Fossil holos", meta: "1st Edition · 1999" },
       { card: "Grade 8 of any Tier A card", meta: "Same cards, lower grade" },
       { card: "LeBron James #111", meta: "Topps Chrome · 2003-04" },
-      { card: "Other iconic rookies", meta: "On proven liquidity" },
+      { card: "Autographed rookies", meta: "PSA/DNA · auto 9–10" },
     ],
   },
 ];
@@ -140,12 +140,10 @@ const ALLOWLIST = [
 // businesses. We link out and use each mark nominatively, to
 // identify where a collector's card already lives. Marks are mirrored locally
 // from each platform's own public site assets rather than hotlinked.
-// Phygitals blocks automated requests, so we have no logo file for it yet and
-// it renders the same tile with a monogram until we're given one.
 const PLATFORMS = [
   { name: "Collector Crypt", href: "https://collectorcrypt.com", logo: "/collectibles/platforms/collector-crypt.svg" },
   { name: "Courtyard", href: "https://courtyard.io", logo: "/collectibles/platforms/courtyard.png" },
-  { name: "Phygitals", href: "https://www.phygitals.com", logo: null },
+  { name: "Phygitals", href: "https://www.phygitals.com", logo: "/collectibles/platforms/phygitals.png" },
   { name: "Beezie", href: "https://beezie.com", logo: "/collectibles/platforms/beezie.png" },
 ];
 
