@@ -13,6 +13,12 @@
  * reasoned about. No network calls, no model calls, no invented prices.
  */
 
+/**
+ * Bumped whenever a gate rule changes. Stored alongside every verdict so an
+ * old decision stays interpretable after the rules move on.
+ */
+export const GATE_VERSION = "v1";
+
 export const GRADERS = ["PSA", "CGC", "BGS", "SGC"] as const;
 export const SUPPORTED_PLATFORMS = [
   "Collector Crypt",

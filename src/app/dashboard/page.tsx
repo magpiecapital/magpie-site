@@ -31,6 +31,12 @@ import { DashboardProvider } from "./DashboardContext";
 // dashboard payload stays small. Each shows null while loading
 // (their natural empty-state). Mobile networks gain the most here.
 const SupportTickets = dynamic(() => import("./SupportTickets"), { ssr: false });
+// Renders only when this wallet has actually submitted a card, so it never
+// adds noise for borrowers who don't hold collectibles.
+const CollectibleSubmissions = dynamic(
+  () => import("@/components/CollectibleSubmissions").then((m) => m.CollectibleSubmissions),
+  { ssr: false },
+);
 const ActivityFeed = dynamic(() => import("./ActivityFeed"), { ssr: false });
 const EarningsCard = dynamic(() => import("./EarningsCard"), { ssr: false });
 const GovernanceCard = dynamic(() => import("./GovernanceCard"), { ssr: false });
@@ -3827,6 +3833,13 @@ function DashboardPageInner() {
                   <SupportTickets
                     botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
                   />
+                )}
+
+                {/* Your collectibles — cards this wallet has put through the
+                    vetting gate, with where each one stands. Self-hiding when
+                    there are none. */}
+                {connected && publicKey && (
+                  <CollectibleSubmissions wallet={publicKey.toBase58()} />
                 )}
 
                 {/* ACTIVE LOANS */}
