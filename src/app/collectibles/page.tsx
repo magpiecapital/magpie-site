@@ -35,6 +35,27 @@ const STEPS = [
   },
 ];
 
+// The hero fan. All three are photographs of slabs the operator personally
+// owns (copyright-cleared) — we never use marketplace product photos.
+// Charizard leads: biggest, centred, in front.
+const HERO_FAN = [
+  {
+    src: "/collectibles/blastoise-base-set-shadowless-psa9.jpg",
+    alt: "1999 Base Set Shadowless Blastoise Holo #2, graded PSA MINT 9",
+    wrap: "w-[34%] -mr-[9%] -rotate-[11deg] translate-y-[6%]",
+  },
+  {
+    src: "/collectibles/charizard-base-set-psa10.jpg",
+    alt: "1999 Base Set Charizard Holo #4, graded PSA GEM-MT 10",
+    wrap: "relative z-10 w-[42%]",
+  },
+  {
+    src: "/collectibles/curry-2009-topps-rc-auto.jpg",
+    alt: "2009 Topps Stephen Curry rookie #321, PSA/DNA authenticated with a 10 autograph",
+    wrap: "w-[34%] -ml-[9%] rotate-[11deg] translate-y-[6%]",
+  },
+];
+
 const SLABS = [
   {
     img: "/collectibles/charizard-base-set-psa10.jpg",
@@ -83,31 +104,40 @@ const WHY = [
 const ALLOWLIST = [
   {
     tier: "Tier A",
-    ltv: "up to 50%",
+    lead: true,
+    blurb: "Blue-chip vintage — the deepest, most consistent sales records.",
+    ltv: "50",
     grades: "PSA / CGC / BGS 9–10",
+    term: "30–60 days",
+    rate: "~10–12% APR",
     items: [
-      "Base Set Charizard #4",
-      "Base Set Blastoise #2",
-      "Base Set Venusaur #15",
-      "Neo Genesis Lugia #9",
-      "1986 Fleer Jordan #57",
+      { card: "Charizard #4", meta: "Base Set · 1999" },
+      { card: "Blastoise #2", meta: "Base Set · 1999" },
+      { card: "Venusaur #15", meta: "Base Set · 1999" },
+      { card: "Lugia #9", meta: "Neo Genesis · 2000" },
+      { card: "Michael Jordan #57", meta: "Fleer · 1986" },
     ],
   },
   {
     tier: "Tier B",
-    ltv: "up to 40%",
+    lead: false,
+    blurb: "Liquid, a notch thinner — same standard, wider safety margin.",
+    ltv: "40",
     grades: "Grades 8–10",
+    term: "30–90 days",
+    rate: "~12–14% APR",
     items: [
-      "Base Set holo rares — Zapdos, Chansey, Mewtwo, Alakazam",
-      "Jungle & Fossil 1st Edition holos",
-      "Grade 8 of any Tier A card",
-      "LeBron James 2003-04 Topps Chrome #111",
+      { card: "Base Set holo rares", meta: "Zapdos · Chansey · Mewtwo · Alakazam" },
+      { card: "Jungle & Fossil holos", meta: "1st Edition · 1999" },
+      { card: "Grade 8 of any Tier A card", meta: "Same cards, lower grade" },
+      { card: "LeBron James #111", meta: "Topps Chrome · 2003-04" },
+      { card: "Other iconic rookies", meta: "On proven liquidity" },
     ],
   },
 ];
 
 // Platforms that already vault + tokenize graded cards. These are INDEPENDENT
-// businesses, not partners — we link out and use each mark nominatively, to
+// businesses. We link out and use each mark nominatively, to
 // identify where a collector's card already lives. Marks are mirrored locally
 // from each platform's own public site assets rather than hotlinked.
 // Phygitals blocks automated requests, so we have no logo file for it yet and
@@ -120,10 +150,13 @@ const PLATFORMS = [
 ];
 
 const EXCLUDED = [
-  "One-of-a-kind trophies and Pikachu Illustrator — priceless isn't the same as sellable",
-  "Ungraded or raw cards",
-  "Anything below grade 8",
-  "Modern hype chases and sealed boxes",
+  {
+    t: "One-of-a-kind trophies",
+    d: "Pikachu Illustrator and the like. No population means no comps — priceless isn't the same as sellable.",
+  },
+  { t: "Ungraded or raw", d: "No authentication anchor we can verify against a grader's records." },
+  { t: "Below grade 8", d: "Sales get sparse and the spread gets wide — too thin to underwrite." },
+  { t: "Modern hype & sealed", d: "Exposed to reprints and hype cycles. Staged for later, not launch." },
 ];
 
 const SAFETY = [
@@ -182,16 +215,22 @@ export default function CollectiblesPage() {
               </div>
             </Reveal>
             <Reveal delay={120}>
-              <figure className="mx-auto w-full max-w-[230px] overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] shadow-xl sm:max-w-[290px]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/collectibles/charizard-base-set-psa10.jpg"
-                  alt="1999 Base Set Charizard Holo #4, graded PSA GEM-MT 10"
-                  width={614}
-                  height={1000}
-                  className="block h-auto w-full"
-                />
-              </figure>
+              {/* Three real slabs fanned like cards in a hand — Charizard
+                  leads at full size and in front, the other two sit back and
+                  tilt away. Percentage widths so the whole fan scales with
+                  the container instead of breaking at small widths. */}
+              <div className="mx-auto flex w-full max-w-[320px] items-center justify-center sm:max-w-[420px]">
+                {HERO_FAN.map((s) => (
+                  <figure key={s.src} className={s.wrap}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={s.src}
+                      alt={s.alt}
+                      className="block h-auto w-full rounded-xl border border-[var(--hairline)] bg-[var(--surface)] shadow-[0_18px_40px_-12px_rgba(0,0,0,0.55)]"
+                    />
+                  </figure>
+                ))}
+              </div>
             </Reveal>
           </div>
         </div>
@@ -295,8 +334,7 @@ export default function CollectiblesPage() {
           ))}
         </div>
         <p className="mx-auto mt-5 max-w-xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
-          Independent platforms, listed because they vault and tokenize graded cards.
-          Not partnerships or endorsements — Magpie tokenizes nothing itself.
+          The platforms collectors already use to vault and tokenize graded cards.
         </p>
       </section>
 
@@ -343,55 +381,131 @@ export default function CollectiblesPage() {
           ))}
         </div>
 
-        {/* The actual launch allowlist — types, not individual certs. */}
-        <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 gap-4 sm:mt-14 sm:gap-5 md:grid-cols-2">
+        {/* The launch allowlist as a pair of rating cards: a header band
+            carrying the tier, its character and the max LTV as a display
+            figure, then one ruled row per accepted card with its set and
+            year. Both cards share every dimension so the pair reads level. */}
+        <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 items-stretch gap-4 sm:mt-14 sm:gap-5 md:grid-cols-2">
           {ALLOWLIST.map((t, i) => (
-            <Reveal key={t.tier} delay={i * 80}>
-              <div className="card flex h-full flex-col p-5 sm:p-6">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-display text-lg font-medium tracking-[-0.01em]">
-                    {t.tier}
-                  </span>
-                  <span className="rounded-full bg-[var(--accent-dim)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--accent-deep)]">
-                    {t.ltv}
-                  </span>
-                  <span className="text-[11px] uppercase tracking-[0.12em] text-[var(--ink-faint)]">
-                    {t.grades}
-                  </span>
+            <Reveal key={t.tier} delay={i * 80} className="h-full">
+              <div
+                className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-[var(--bg-elevated)] shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] ${
+                  t.lead
+                    ? "border-[var(--accent)]/45"
+                    : "border-[var(--hairline)]"
+                }`}
+              >
+                {/* Header band */}
+                <div
+                  className={`flex items-start justify-between gap-4 border-b px-5 py-4 sm:px-6 sm:py-5 ${
+                    t.lead
+                      ? "border-[var(--accent)]/25 bg-[var(--accent-dim)]/50"
+                      : "border-[var(--hairline)] bg-[var(--surface)]"
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-display text-lg font-medium tracking-[-0.01em] sm:text-xl">
+                        {t.tier}
+                      </span>
+                      {t.lead && (
+                        <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--accent-ink)]">
+                          Top tier
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-[13px]">
+                      {t.blurb}
+                    </p>
+                    <div className="mt-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
+                      {t.grades}
+                    </div>
+                  </div>
+                  <div className="flex-none text-right">
+                    <div className="font-display tabular text-3xl font-medium leading-none tracking-[-0.03em] text-[var(--accent-deep)] sm:text-4xl">
+                      {t.ltv}
+                      <span className="text-xl sm:text-2xl">%</span>
+                    </div>
+                    <div className="mt-1.5 text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                      Max LTV
+                    </div>
+                  </div>
                 </div>
-                <ul className="mt-4 flex flex-col gap-2">
+
+                {/* Terms strip — the same three facts the memecoin and
+                    tokenized-stock cards lead with: how much, how long,
+                    what it costs. */}
+                <div className="grid grid-cols-2 divide-x divide-[var(--hairline)] border-b border-[var(--hairline)] bg-[var(--surface)]/40">
+                  <div className="px-5 py-3 sm:px-6">
+                    <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                      Term
+                    </div>
+                    <div className="mt-1 font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
+                      {t.term}
+                    </div>
+                  </div>
+                  <div className="px-5 py-3 sm:px-6">
+                    <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                      Rate
+                    </div>
+                    <div className="mt-1 font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
+                      {t.rate}
+                    </div>
+                  </div>
+                </div>
+
+                {/* One ruled row per accepted card */}
+                <ul className="flex flex-1 flex-col divide-y divide-[var(--hairline)]">
                   {t.items.map((it) => (
                     <li
-                      key={it}
-                      className="flex items-start gap-2.5 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm"
+                      key={it.card}
+                      className="flex items-baseline justify-between gap-3 px-5 py-3 sm:px-6"
                     >
-                      <span aria-hidden className="mt-[2px] text-emerald-400">
-                        ✓
+                      <span className="text-[13px] font-medium text-[var(--ink)] sm:text-sm">
+                        {it.card}
                       </span>
-                      <span>{it}</span>
+                      <span className="flex-none text-right text-[11px] tracking-[0.02em] text-[var(--ink-faint)] sm:text-[12px]">
+                        {it.meta}
+                      </span>
                     </li>
                   ))}
                 </ul>
+
+                <div className="border-t border-[var(--hairline)] px-5 py-3 text-[11px] leading-relaxed text-[var(--ink-faint)] sm:px-6 sm:text-[12px]">
+                  Fixed rate, fixed term · no origination fee · no margin calls
+                </div>
               </div>
             </Reveal>
           ))}
         </div>
+
+        <p className="mx-auto mt-5 max-w-2xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
+          Terms are design targets while collectibles are in design — not a live
+          offer. Renewals re-appraise the card rather than rolling over automatically.
+        </p>
 
         <Reveal>
           <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-5 sm:mt-8 sm:p-6">
             <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
               Not accepted
             </div>
-            <ul className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-x-6">
+            <ul className="mt-4 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
               {EXCLUDED.map((e) => (
-                <li
-                  key={e}
-                  className="flex items-start gap-2.5 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm"
-                >
-                  <span aria-hidden className="mt-[1px] text-[var(--ink-faint)]">
+                <li key={e.t} className="flex items-start gap-3">
+                  <span
+                    aria-hidden
+                    className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[10px] text-[var(--ink-faint)]"
+                  >
                     ✕
                   </span>
-                  <span>{e}</span>
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-medium text-[var(--ink)] sm:text-sm">
+                      {e.t}
+                    </div>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-[13px]">
+                      {e.d}
+                    </p>
+                  </div>
                 </li>
               ))}
             </ul>
