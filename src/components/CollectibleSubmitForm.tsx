@@ -303,6 +303,12 @@ export function CollectibleSubmitForm() {
             ))}
           </ul>
 
+          <p className="mt-5 text-[11px] leading-relaxed text-[var(--ink-faint)]">
+            This is an eligibility check, not an authentication or a valuation. It
+            doesn&apos;t verify your card is genuine and it doesn&apos;t price it —
+            never treat it as proof of either.
+          </p>
+
           {result.next.length > 0 && (
             <div className="mt-5 rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-4 sm:p-5">
               <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
