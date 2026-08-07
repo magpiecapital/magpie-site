@@ -108,6 +108,8 @@ const ALLOWLIST = [
     blurb: "Blue-chip vintage — the deepest, most consistent sales records.",
     ltv: "50",
     grades: "PSA / CGC / BGS 9–10",
+    term: "30–60 days",
+    rate: "~10–12% APR",
     items: [
       { card: "Charizard #4", meta: "Base Set · 1999" },
       { card: "Blastoise #2", meta: "Base Set · 1999" },
@@ -122,6 +124,8 @@ const ALLOWLIST = [
     blurb: "Liquid, a notch thinner — same standard, wider safety margin.",
     ltv: "40",
     grades: "Grades 8–10",
+    term: "30–90 days",
+    rate: "~12–14% APR",
     items: [
       { card: "Base Set holo rares", meta: "Zapdos · Chansey · Mewtwo · Alakazam" },
       { card: "Jungle & Fossil holos", meta: "1st Edition · 1999" },
@@ -133,7 +137,7 @@ const ALLOWLIST = [
 ];
 
 // Platforms that already vault + tokenize graded cards. These are INDEPENDENT
-// businesses, not partners — we link out and use each mark nominatively, to
+// businesses. We link out and use each mark nominatively, to
 // identify where a collector's card already lives. Marks are mirrored locally
 // from each platform's own public site assets rather than hotlinked.
 // Phygitals blocks automated requests, so we have no logo file for it yet and
@@ -330,8 +334,7 @@ export default function CollectiblesPage() {
           ))}
         </div>
         <p className="mx-auto mt-5 max-w-xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
-          Independent platforms, listed because they vault and tokenize graded cards.
-          Not partnerships or endorsements — Magpie tokenizes nothing itself.
+          The platforms collectors already use to vault and tokenize graded cards.
         </p>
       </section>
 
@@ -429,6 +432,28 @@ export default function CollectiblesPage() {
                   </div>
                 </div>
 
+                {/* Terms strip — the same three facts the memecoin and
+                    tokenized-stock cards lead with: how much, how long,
+                    what it costs. */}
+                <div className="grid grid-cols-2 divide-x divide-[var(--hairline)] border-b border-[var(--hairline)] bg-[var(--surface)]/40">
+                  <div className="px-5 py-3 sm:px-6">
+                    <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                      Term
+                    </div>
+                    <div className="mt-1 font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
+                      {t.term}
+                    </div>
+                  </div>
+                  <div className="px-5 py-3 sm:px-6">
+                    <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                      Rate
+                    </div>
+                    <div className="mt-1 font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
+                      {t.rate}
+                    </div>
+                  </div>
+                </div>
+
                 {/* One ruled row per accepted card */}
                 <ul className="flex flex-1 flex-col divide-y divide-[var(--hairline)]">
                   {t.items.map((it) => (
@@ -445,10 +470,19 @@ export default function CollectiblesPage() {
                     </li>
                   ))}
                 </ul>
+
+                <div className="border-t border-[var(--hairline)] px-5 py-3 text-[11px] leading-relaxed text-[var(--ink-faint)] sm:px-6 sm:text-[12px]">
+                  Fixed rate, fixed term · no origination fee · no margin calls
+                </div>
               </div>
             </Reveal>
           ))}
         </div>
+
+        <p className="mx-auto mt-5 max-w-2xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
+          Terms are design targets while collectibles are in design — not a live
+          offer. Renewals re-appraise the card rather than rolling over automatically.
+        </p>
 
         <Reveal>
           <div className="mx-auto mt-6 max-w-4xl rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-5 sm:mt-8 sm:p-6">
