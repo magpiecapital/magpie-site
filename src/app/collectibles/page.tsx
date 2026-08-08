@@ -226,7 +226,7 @@ export default function CollectiblesPage() {
       </section>
 
       {/* ── What you can borrow against ── */}
-      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-20">
+      <section className="mx-auto max-w-6xl px-5 pt-10 pb-8 sm:px-6 sm:pt-14 sm:pb-10 md:pt-20 md:pb-12">
         <Reveal>
           <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
             Approved collateral
@@ -382,35 +382,14 @@ export default function CollectiblesPage() {
           card is still checked against live sold data when the loan is made.
         </p>
         <div className="mt-6 text-center">
-          <a href="#submit" className="btn-accent text-sm">
+          <a href="#submit" className="btn-ghost text-sm">
             Don&apos;t see your card? Check it<span aria-hidden>↓</span>
           </a>
         </div>
       </section>
 
-      {/* ── Submit a card ── */}
-      <section id="submit" className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
-        <Reveal>
-          <div className="mx-auto max-w-lg text-center">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-deep)]">
-              Not on the list?
-            </div>
-            <h2 className="mt-2 font-display text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
-              Submit your card
-            </h2>
-            <p className="mt-3 text-[14px] text-[var(--ink-soft)] sm:text-base">
-              We run it through the same checks the list was built from and tell you
-              exactly where it stands — including why, if the answer is no.
-            </p>
-          </div>
-        </Reveal>
-        <div className="mt-8 md:mt-10">
-          <CollectibleSubmitForm />
-        </div>
-      </section>
-
       {/* ── Why borrow instead of selling ── */}
-      <section className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
+      <section className="mx-auto max-w-6xl px-5 pt-8 pb-10 sm:px-6 sm:pt-10 sm:pb-14 md:pt-12 md:pb-16">
         <Reveal>
           <h2 className="font-display text-center text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
             Why borrow instead of selling?
@@ -460,6 +439,27 @@ export default function CollectiblesPage() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Submit a card ── */}
+      <section id="submit" className="mx-auto max-w-6xl px-5 py-10 sm:px-6 sm:py-14 md:py-16">
+        <Reveal>
+          <div className="mx-auto max-w-lg text-center">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-deep)]">
+              Not on the list?
+            </div>
+            <h2 className="mt-2 font-display text-2xl font-medium tracking-[-0.02em] sm:text-3xl md:text-4xl">
+              Submit your card
+            </h2>
+            <p className="mt-3 text-[14px] text-[var(--ink-soft)] sm:text-base">
+              We run it through the same checks the list was built from and tell you
+              exactly where it stands — including why, if the answer is no.
+            </p>
+          </div>
+        </Reveal>
+        <div className="mt-8 md:mt-10">
+          <CollectibleSubmitForm />
         </div>
       </section>
 
