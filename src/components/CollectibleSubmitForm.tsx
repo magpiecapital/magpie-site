@@ -303,11 +303,23 @@ export function CollectibleSubmitForm() {
             ))}
           </ul>
 
-          <p className="mt-5 text-[11px] leading-relaxed text-[var(--ink-faint)]">
-            This is an eligibility check, not an authentication or a valuation. It
-            doesn&apos;t verify your card is genuine and it doesn&apos;t price it —
-            never treat it as proof of either.
-          </p>
+          {/* [T-22] A scammer screenshotting this result to sell a fake card to
+              someone else is the sharpest risk on this surface — it costs a
+              stranger money using our name. That makes this the one line that
+              MUST survive a screenshot, so it's a visible notice rather than
+              the faintest text in the panel, which is what it used to be. */}
+          <div className="mt-5 flex items-start gap-2.5 rounded-xl border border-[var(--hairline-strong)] bg-[var(--surface)] px-3.5 py-3">
+            <span aria-hidden className="mt-[1px] text-sm text-[var(--ink-faint)]">
+              ⓘ
+            </span>
+            <p className="text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-[13px]">
+              This is an <span className="font-semibold text-[var(--ink)]">eligibility
+              check</span> — not an authentication and not a valuation. It does not
+              verify your card is genuine and it does not price it.{" "}
+              <span className="font-semibold text-[var(--ink)]">Never treat it as
+              proof of either.</span>
+            </p>
+          </div>
 
           {result.next.length > 0 && (
             <div className="mt-5 rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] p-4 sm:p-5">
