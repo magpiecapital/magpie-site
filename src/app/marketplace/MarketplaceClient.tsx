@@ -190,11 +190,16 @@ function ClassPanel({ variant, tokenCountInClass = 0, topLtv = 0, topDays = 0, f
       sub: "Borrow against graded trading cards — without selling.",
       chipAccent: "amber" as "amber" | "slate",
       staticChips: ["Pokémon", "Sports", "Top TCG"],
+      // Mirrors what /collectibles publishes: Tier A tops out at 50% LTV, and
+      // 90d is the longest term across both tiers. Same labels as the memecoin
+      // and RWA panels so the three columns read as one system — this said
+      // "Term: Fixed", which was both vaguer than what we publish elsewhere and
+      // a different label from its siblings.
       stats: [
-        { k: "Max LTV", v: "≤50%" },
-        { k: "Term", v: "Fixed" },
+        { k: "Max LTV", v: "50%" },
+        { k: "Longest term", v: "90d" },
       ],
-      meta: "Priced on real sales · fixed-term",
+      meta: "Priced on real sales · no margin calls",
       primary: { href: "/collectibles", label: "See how it works" },
       secondaryHref: "/collectibles",
       secondaryLabel: "Read the design",
