@@ -125,20 +125,32 @@ export function CollectibleSubmissions({ wallet }: { wallet: string | null }) {
                       .join(" · ")}
                   </div>
                 </div>
-                <div className="flex flex-none flex-col items-end gap-1">
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
+                <div className="flex flex-none items-start gap-2">
+                  <div className="flex flex-col items-end gap-1">
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${
                       v.tone === "ok"
                         ? "bg-[var(--accent-dim,#3b3520)] text-[var(--accent-deep,#e0b340)]"
                         : v.tone === "warn"
                           ? "border border-[var(--d-hairline,#26252a)] text-[var(--d-ink-soft,#b8b3a4)]"
                           : "border border-[var(--d-hairline,#26252a)] text-[var(--d-ink-faint,#6e6a60)]"
                     }`}
+                    >
+                      {v.label}
+                    </span>
+                    <span className="text-[11px] text-[var(--d-ink-faint,#6e6a60)]">
+                      {STATUS_LABEL[r.status] ?? r.status}
+                    </span>
+                  </div>
+                  {/* Without this, nothing indicated the row opens — the checks
+                      and next steps were there but undiscoverable. */}
+                  <span
+                    aria-hidden
+                    className={`mt-1 text-[10px] text-[var(--d-ink-faint,#6e6a60)] transition-transform ${
+                      isOpen ? "rotate-180" : ""
+                    }`}
                   >
-                    {v.label}
-                  </span>
-                  <span className="text-[11px] text-[var(--d-ink-faint,#6e6a60)]">
-                    {STATUS_LABEL[r.status] ?? r.status}
+                    ▼
                   </span>
                 </div>
               </button>
