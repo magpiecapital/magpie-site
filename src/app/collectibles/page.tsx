@@ -569,31 +569,42 @@ export default function CollectiblesPage() {
             <span className="text-[var(--bg-elevated)]/70">In design — building it in the open</span>
           </div>
           <h2 className="font-display mx-auto max-w-2xl text-[2rem] font-medium leading-[1.1] tracking-[-0.03em] text-[var(--bg-elevated)] sm:text-4xl md:text-5xl">
-            Your cards stay in the vault.
+            Find out where
             <br />
-            <span className="italic text-[var(--accent)]">The SOL is borrowed against them.</span>
+            <span className="italic text-[var(--accent)]">your card stands.</span>
           </h2>
-          <p className="mx-auto mt-4 max-w-md text-[15px] text-[var(--bg-elevated)]/70 sm:text-base">
-            Not live yet — follow along as it ships.
+          {/* The lending pool isn't live, but the vetting gate is — and it's the
+              one thing a collector can actually do today. Closing on "not live
+              yet, come back later" wasted the page's only real action. */}
+          <p className="mx-auto mt-4 max-w-lg text-[15px] text-[var(--bg-elevated)]/70 sm:text-base">
+            Lending is still in design — but the vetting gate is live now. Run your
+            card through the real checks and see exactly where it stands, including
+            why if the answer is no.
           </p>
           <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+            <a href="#submit" className="btn-accent text-base">
+              Check my card<span aria-hidden>→</span>
+            </a>
             <a
               href={TELEGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-accent text-base"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
             >
-              Follow on Telegram<span aria-hidden>→</span>
+              Follow on Telegram
             </a>
+          </div>
+          <p className="mt-6 text-[13px] text-[var(--bg-elevated)]/50">
             <a
               href={DESIGN_REPO}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--bg-elevated)]/15 bg-[var(--bg-elevated)]/5 px-6 py-[0.9rem] text-base font-semibold text-[var(--bg-elevated)] backdrop-blur transition hover:border-[var(--bg-elevated)]/30 hover:bg-[var(--bg-elevated)]/10"
+              className="underline underline-offset-4 transition hover:text-[var(--bg-elevated)]/80"
             >
-              See the full design
-            </a>
-          </div>
+              Read the full design
+            </a>{" "}
+            — the vetting standard, economics and threat model, in the open.
+          </p>
         </div>
       </section>
 
