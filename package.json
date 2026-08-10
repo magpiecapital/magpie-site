@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "check:gate": "node --experimental-strip-types scripts/check-collectible-gate.mjs",
-    "render:collectibles": "node scripts/render-check-collectibles.mjs"
+    "render:collectibles": "node scripts/render-check-collectibles.mjs",
+    "check:ratelimit": "node --experimental-strip-types scripts/check-rate-limit.mjs"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

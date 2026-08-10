@@ -6,12 +6,14 @@ on:
   pull_request:
     paths:
       - "src/lib/collectible-vetting.ts"
+      - "src/app/api/submit-collectible/route.ts"
       - "scripts/check-collectible-gate.mjs"
       - ".github/workflows/collectible-gate.yml"
   push:
     branches: [main]
     paths:
       - "src/lib/collectible-vetting.ts"
+      - "src/app/api/submit-collectible/route.ts"
       - "scripts/check-collectible-gate.mjs"
 jobs:
   gate:

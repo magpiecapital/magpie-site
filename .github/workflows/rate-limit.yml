@@ -1,0 +1,32 @@
+# The routes that build wallet transactions call RPC directly, bypassing the
+# hardened /api/rpc proxy. Audit S2 bounded spend on that proxy; this guards the
+# same property on the routes it never reached.
+#
+# The failure that matters most here is NOT "an attacker got through" — it is
+# "a real borrower got blocked". The guard asserts the fail-open properties.
+name: rate-limit
+on:
+  pull_request:
+    paths:
+      - "src/lib/rate-limit.ts"
+      - "src/app/api/v1/lp/**"
+      - "src/app/api/submit-token/route.ts"
+      - "scripts/check-rate-limit.mjs"
+      - ".github/workflows/rate-limit.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/lib/rate-limit.ts"
+      - "src/app/api/v1/lp/**"
+      - "scripts/check-rate-limit.mjs"
+jobs:
+  ratelimit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # Dependency-free on purpose, like the collectible gate — it can never be
+      # skipped because a lockfile broke.
+      - run: node --experimental-strip-types scripts/check-rate-limit.mjs

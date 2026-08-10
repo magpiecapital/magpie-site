@@ -31,6 +31,7 @@
  */
 import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import {
   buildLiquidateTransaction,
   fetchLiquidatableLoan,
@@ -42,6 +43,11 @@ const connection = new Connection(
 );
 
 export async function POST(req: Request) {
+  // Audit S2 extended here: RPC blockhash + account reads per request. Unauthenticated and previously
+  // unthrottled, so a loop billed us. Generous ceiling, fails OPEN.
+  { const rl = rateLimit(req, "lp_build_liquidate", 30);
+    if (rl.limited) return tooManyRequests(rl.retryAfter); }
+
   let body: unknown;
   try {
     body = await req.json();
