@@ -62,4 +62,4 @@ check("left-most XFF entry is used as the client",
   clientIp(new Request("https://x/y", { headers: { "x-forwarded-for": "9.9.9.9, 10.0.0.1" } })) === "9.9.9.9");
 
 if (failed) { console.error(`\n[rate-limit] ${failed} check(s) failed.`); process.exit(1); }
-console.log("\n[rate-limit] OK — limiter bounds abuse and never blocks an unattributable or unrelated caller.");
+console.log("\n[rate-limit] OK — fail-open properties hold. NOTE: per-instance only; see src/lib/rate-limit.ts — measured ineffective alone in production.");
