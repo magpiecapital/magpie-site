@@ -20,6 +20,7 @@
  */
 import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import {
   buildWithdrawTransaction,
   computeMaxSafeWithdrawShares,
@@ -33,6 +34,11 @@ const connection = new Connection(
 );
 
 export async function POST(req: Request) {
+  // Audit S2 extended here: ~5 RPC calls per request (sweeps V1-V4 + blockhash). Unauthenticated and previously
+  // unthrottled, so a loop billed us. Generous ceiling, fails OPEN.
+  { const rl = rateLimit(req, "lp_build_withdraw", 30);
+    if (rl.limited) return tooManyRequests(rl.retryAfter); }
+
   let body: unknown;
   try {
     body = await req.json();
