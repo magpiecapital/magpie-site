@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createHash } from "node:crypto";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { query } from "@/lib/db";
-import { vetSubmission, GATE_VERSION, type Submission } from "@/lib/collectible-vetting";
+import { vetSubmission, GATE_VERSION, normGrader, type Submission } from "@/lib/collectible-vetting";
 
 /**
  * Collector-facing submission endpoint for the collectibles book.
@@ -35,6 +35,15 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN ?? "";
  * address is trivially reversible by brute force.
  */
 const HASH_SALT = process.env.SUBMISSION_HASH_SALT ?? "";
+
+/**
+ * The rate limiter keys on the SALTED ip hash, so no salt means no key means no
+ * limit. That must never happen quietly on a public write endpoint: the salt is
+ * a deploy-time secret and removing it would otherwise turn throttling off with
+ * nothing in the logs. This is the explicit flag the limiter is gated on, and
+ * POST refuses outright when it is false.
+ */
+const RATE_LIMITING_ENABLED = HASH_SALT.length > 0;
 
 const MAX_FIELD = 120;
 
@@ -128,8 +137,17 @@ export async function GET(req: Request) {
   try {
     // Explicit column list — internal columns are not in scope here by
     // construction, so a future internal column can't leak by accident.
+    // NOTE: passing ?wallet= is a CLAIM, not proof — nothing here verifies the
+    // caller controls that wallet, and wallets are public. So this must not
+    // return anything that turns a public address into a targeting record for a
+    // valuable physical object. The cert is the slab's unique identifier, so it
+    // is masked to the last 4 digits: enough for the owner to tell their own
+    // submissions apart, useless for enumerating someone else's collection.
+    // The real fix is a signed-message login; until then, mask.
     const { rows } = await query(
-      `SELECT id, card, card_set, card_year, grader, cert, grade, auto_grade,
+      `SELECT id, card, card_set, card_year, grader,
+              RIGHT(regexp_replace(cert, '\\D', '', 'g'), 4) AS cert_last4,
+              grade, auto_grade,
               platform, verdict, tier, status, checks, next_steps, created_at
          FROM collectible_submissions
         WHERE wallet = $1
@@ -182,9 +200,20 @@ export async function POST(req: Request) {
   );
   const uaHash = saltedHash(req.headers.get("user-agent"));
 
-  // Rate limit before doing any real work. Counts by IP hash, so it only
-  // engages when the salt is configured — a missing salt must not silently
-  // disable the limiter without anyone noticing, hence the explicit flag.
+  // Fail CLOSED when throttling is unavailable. An unthrottled public endpoint
+  // that writes rows is worse than a form that is briefly unavailable, and the
+  // pool is not live, so nothing time-critical depends on this path.
+  if (!RATE_LIMITING_ENABLED) {
+    await notifyAdmin(
+      "*Collectible submissions PAUSED* — `SUBMISSION_HASH_SALT` is unset, so the rate limiter has no key\\. Submissions are refused until it is restored\\.",
+    );
+    return NextResponse.json(
+      { error: "Submissions are briefly unavailable. Please try again shortly." },
+      { status: 503 },
+    );
+  }
+
+  // Rate limit before doing any real work.
   if (ipHash) {
     try {
       const { rows } = await query(
@@ -213,13 +242,22 @@ export async function POST(req: Request) {
   try {
     const digits = sub.cert.replace(/\D/g, "");
     if (digits) {
-      const { rows } = await query(
-        `SELECT wallet, created_at
+      // Match on the cert DIGITS only, then compare graders in JS through the
+      // same normalisation the gate uses. Matching `grader = $1` in SQL meant
+      // "PSA" and "psa" were different graders, so re-submitting the same slab
+      // under a different capitalisation evaded the very signal this exists to
+      // raise. Legacy rows hold un-normalised graders, which this also handles.
+      const { rows: certRows } = await query(
+        `SELECT wallet, grader, created_at
            FROM collectible_submissions
-          WHERE grader = $1 AND regexp_replace(cert, '\\D', '', 'g') = $2
+          WHERE regexp_replace(cert, '\\D', '', 'g') = $1
           ORDER BY created_at DESC
-          LIMIT 5`,
-        [sub.grader, digits],
+          LIMIT 20`,
+        [digits],
+      );
+      const wantGrader = normGrader(sub.grader);
+      const rows = certRows.filter(
+        (r: { grader: string | null }) => normGrader(r.grader ?? "") === wantGrader,
       );
       if (rows.length) {
         flags.cert_seen_before = true;
@@ -245,7 +283,7 @@ export async function POST(req: Request) {
       [
         wallet || null,
         sub.contact || null,
-        sub.grader,
+        normGrader(sub.grader), // canonical, so the duplicate-cert signal can't be dodged
         sub.cert,
         sub.card,
         sub.set || null,

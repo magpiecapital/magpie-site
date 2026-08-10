@@ -18,6 +18,7 @@
  * Usage: node --experimental-strip-types scripts/check-collectible-gate.mjs
  * Exit:  0 clean · 1 a rule regressed
  */
+import { readFileSync } from "node:fs";
 import { vetSubmission } from "../src/lib/collectible-vetting.ts";
 
 const VAULT = "Collector Crypt";
@@ -147,6 +148,47 @@ for (const c of CASES) {
     failed++;
     console.error(`✕ a verdict emitted a dollar value: ${c.why}`);
   }
+}
+
+// ── Route-level invariants (static source checks) ────────────────────────────
+// The gate logic above is pure and testable; these three live in the ROUTE, and
+// each one is a defect that was found live rather than a hypothetical.
+const ROUTE = readFileSync(
+  new URL("../src/app/api/submit-collectible/route.ts", import.meta.url),
+  "utf8",
+);
+
+// 1. The limiter keys on the salted IP hash. No salt -> no key -> no limit, so a
+//    public write endpoint must REFUSE rather than run unthrottled.
+const limiterDefined = /const RATE_LIMITING_ENABLED\s*=/.test(ROUTE);
+const limiterEnforced = /if\s*\(\s*!RATE_LIMITING_ENABLED\s*\)/.test(ROUTE);
+const refuses503 = /status:\s*503\b/.test(ROUTE);
+if (!limiterDefined || !limiterEnforced || !refuses503) {
+  failed++;
+  console.error(
+    "✕ POST must fail CLOSED when rate limiting is unavailable (RATE_LIMITING_ENABLED + 503).",
+  );
+}
+
+// 2. ?wallet= is a CLAIM, not proof — nothing verifies the caller controls it.
+//    So GET must never hand back a full cert number for an arbitrary wallet.
+const getSelect = ROUTE.slice(ROUTE.indexOf("export async function GET"), ROUTE.indexOf("export async function POST"));
+if (!/cert_last4/.test(getSelect) || /\bcert,\s*$/m.test(getSelect)) {
+  failed++;
+  console.error("✕ GET must return a MASKED cert (cert_last4), never the full cert number.");
+}
+
+// 3. The duplicate-cert fraud signal must not be evadable by capitalisation:
+//    filtering `grader = $1` in SQL made "PSA" and "psa" different graders.
+if (/WHERE grader = \$1/.test(ROUTE)) {
+  failed++;
+  console.error(
+    "✕ the cert-collision query must not filter grader in SQL — normalise via normGrader() instead.",
+  );
+}
+if (!/normGrader/.test(ROUTE)) {
+  failed++;
+  console.error("✕ the route must use normGrader() so stored graders are canonical.");
 }
 
 if (failed) {

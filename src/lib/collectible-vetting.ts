@@ -108,7 +108,13 @@ const EXCLUSIONS: { re: RegExp; why: string }[] = [
 
 /* ── Helpers ──────────────────────────────────────────────────────────── */
 
-function normGrader(g: string): string {
+/**
+ * Canonicalise a grader string. EXPORTED because the submission route must use
+ * the SAME normalisation when it stores a row and when it looks for a cert that
+ * has been claimed before — otherwise "PSA" and "psa" are different graders and
+ * the duplicate-cert fraud signal is evadable by changing capitalisation.
+ */
+export function normGrader(g: string): string {
   const s = (g || "").trim().toUpperCase();
   if (s.startsWith("PSA")) return "PSA"; // covers "PSA/DNA"
   if (s.startsWith("CGC")) return "CGC";
