@@ -22,7 +22,7 @@ interface Submission {
   card_set: string | null;
   card_year: string | null;
   grader: string;
-  cert: string;
+  cert_last4?: string | null;
   grade: string | null;
   auto_grade: string | null;
   platform: string | null;
@@ -116,7 +116,7 @@ export function CollectibleSubmissions({ wallet }: { wallet: string | null }) {
                     {[
                       r.card_set,
                       r.card_year,
-                      `${r.grader} ${r.cert}`,
+                      r.cert_last4 ? `${r.grader} ···${r.cert_last4}` : r.grader,
                       r.grade ? `grade ${r.grade}` : null,
                       r.auto_grade ? `auto ${r.auto_grade}` : null,
                       r.platform || "not vaulted",
