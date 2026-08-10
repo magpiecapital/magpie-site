@@ -26,15 +26,27 @@
  *     is worse than the abuse it prevents — so limits are generous, and any
  *     internal error FAILS OPEN (allows the request).
  *  2. Same shape as the accepted `/api/rpc` limiter: an in-memory per-instance
- *     counter. Vercel spawns many instances, so this is a per-instance cap
- *     rather than a global one — deliberately, because the alternative (a DB
- *     round-trip per request) would add cost to the very path we are protecting
- *     from cost. It bounds a single attacker IP, which is the realistic case.
+ *     counter. No DB round-trip, because that would add cost to the very path
+ *     we are protecting from cost.
+ *
+ *     ⚠️ MEASURED IN PRODUCTION 2026-08-10, AND IT IS WEAKER THAN IT LOOKS.
+ *     70 sequential requests against /api/v1/lp/position (limit 60/min) all
+ *     returned 200 — ZERO were limited. Vercel spread them across instances,
+ *     and each instance keeps its own counter. Sequential is the FAVOURABLE
+ *     case (most likely to reuse one warm instance); a parallel attacker fans
+ *     out further and engages it even less.
+ *
+ *     So treat this as a backstop against a naive single-connection loop, NOT
+ *     as an effective control. The real fix is a platform-level Vercel Firewall
+ *     rate-limit rule: it sees every request regardless of instance, costs no
+ *     compute, and cannot be forgotten when a new route ships. `vercel firewall
+ *     overview` currently reports "Firewall: Not configured".
+ *     Do not let this file's existence be mistaken for that being handled.
  *  3. No new dependency, no new infrastructure.
  *
- * The complete fix is a platform-level rule (Vercel Firewall), which costs no
- * compute and cannot be forgotten when a new route ships. This is the in-code
- * layer of that, not a replacement for it.
+ * The complete fix is a platform-level rule (Vercel Firewall). This is the
+ * in-code layer of that, and per the measurement above it is the WEAK layer —
+ * not a replacement for it, and not sufficient on its own.
  */
 
 type Bucket = { count: number; resetAt: number };
