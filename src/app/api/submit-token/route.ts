@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { query } from "@/lib/db";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const connection = new Connection(
   process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
@@ -137,6 +138,11 @@ async function notifyAdmin(text: string, replyMarkup?: unknown) {
 // ── POST handler ──
 
 export async function POST(req: Request) {
+  // Audit S2 extended here: RPC + DB write per request. Unauthenticated and previously
+  // unthrottled, so a loop billed us. Generous ceiling, fails OPEN.
+  { const rl = rateLimit(req, "submit_token", 20);
+    if (rl.limited) return tooManyRequests(rl.retryAfter); }
+
   try {
     const body = await req.json();
     let input = (body.mint || "").trim();

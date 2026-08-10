@@ -23,6 +23,7 @@
 import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { buildDepositTransaction, DEPOSIT_VERSION } from "@/lib/solana/pool";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 
 const connection = new Connection(
   process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
@@ -32,6 +33,11 @@ const connection = new Connection(
 const MIN_DEPOSIT_LAMPORTS = 10_000_000n; // 0.01 SOL — anti-dust floor
 
 export async function POST(req: Request) {
+  // Audit S2 extended here: RPC blockhash + account reads per request. Unauthenticated and previously
+  // unthrottled, so a loop billed us. Generous ceiling, fails OPEN.
+  { const rl = rateLimit(req, "lp_build_deposit", 30);
+    if (rl.limited) return tooManyRequests(rl.retryAfter); }
+
   let body: unknown;
   try {
     body = await req.json();

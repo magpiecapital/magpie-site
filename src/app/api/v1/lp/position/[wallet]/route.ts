@@ -13,6 +13,7 @@
  */
 import { NextResponse } from "next/server";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { rateLimit, tooManyRequests } from "@/lib/rate-limit";
 import {
   fetchAllDepositorPositions,
   fetchPoolStats,
@@ -27,9 +28,14 @@ const connection = new Connection(
 const CACHE = { "Cache-Control": "public, max-age=10, s-maxage=10" };
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ wallet: string }> },
 ) {
+  // Audit S2 extended here: sweeps V1-V4 per request; caller-supplied wallet defeats caching. Unauthenticated and previously
+  // unthrottled, so a loop billed us. Generous ceiling, fails OPEN.
+  { const rl = rateLimit(req, "lp_position", 60);
+    if (rl.limited) return tooManyRequests(rl.retryAfter); }
+
   const { wallet } = await ctx.params;
   let walletPk: PublicKey;
   try {
