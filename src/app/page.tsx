@@ -69,7 +69,7 @@ const FAQ = [
   },
   {
     q: "What happens if the price drops?",
-    a: "Nothing automatic — a price drop does NOT liquidate you. Magpie loans are fixed-term: keep your collateral through any volatility as long as you repay before the term ends. No margin calls, no health-factor liquidation. Repay, partial-repay, or extend anytime.",
+    a: "Nothing automatic — a price drop does NOT liquidate you. Magpie loans are fixed-term: keep your collateral through any volatility as long as you repay before the term ends. No margin calls, no health-factor liquidation. Repay, partial-repay, or extend anytime. The trade-off is that the due date is a hard deadline: if the term ends without repayment, you forfeit the collateral — including any value above the loan.",
   },
   {
     q: "Is it custodial?",
