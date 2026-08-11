@@ -1,0 +1,30 @@
+# The loan card tells a borrower how much liquid SOL they need to close.
+# Two regressions here are unacceptable and neither would fail a type check:
+#   - saying "you're covered" when the repay guard would refuse
+#   - displaying a shortfall rounded DOWN, so following it still leaves them short
+name: repay-readiness
+on:
+  pull_request:
+    paths:
+      - "src/lib/repay-readiness.ts"
+      - "src/components/RepayReadinessNote.tsx"
+      - "src/app/dashboard/page.tsx"
+      - "scripts/check-repay-readiness.mjs"
+      - ".github/workflows/repay-readiness.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/lib/repay-readiness.ts"
+      - "src/components/RepayReadinessNote.tsx"
+      - "scripts/check-repay-readiness.mjs"
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # Dependency-free, like the other guards — can never be skipped by a
+      # broken lockfile.
+      - run: node --experimental-strip-types scripts/check-repay-readiness.mjs

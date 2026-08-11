@@ -4,11 +4,13 @@ import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from "rea
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Mark, Wordmark } from "@/components/Logo";
+import { RepayReadinessNote } from "@/components/RepayReadinessNote";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
+import { TX_FEE_RESERVE_LAMPORTS } from "@/lib/repay-readiness";
 import { LOAN_TIERS, chooseProgramId, PROGRAM_ID_V4 } from "@/lib/solana/constants";
 import { isOnChainFeedBorrowable } from "@/lib/solana/feed-freshness";
 import { fetchAllDepositorPositions, type DepositorInfo } from "@/lib/solana/pool";
@@ -823,6 +825,11 @@ function DashboardPageInner() {
     reward_pct: number;
   } | null>(null);
   const [solBalance, setSolBalance] = useState<number>(0);
+  // Raw lamports from the SAME getBalance calls below. Kept separately so the
+  // repay-readiness note compares exact integers against an exact owed amount —
+  // converting the SOL float back to lamports would reintroduce rounding on the
+  // very comparison that decides whether we tell someone they're covered.
+  const [solBalanceLamports, setSolBalanceLamports] = useState<bigint | null>(null);
   const [holdings, setHoldings] = useState<TokenHolding[]>([]);
   // Tier ladders fetched from the bot's /api/v1/loan-tiers endpoint.
   // Falls back to hardcoded constants if the fetch fails (e.g. before
@@ -1374,12 +1381,12 @@ function DashboardPageInner() {
   // Fetch SOL balance — poll every 20s. With Helius RPC the request cost
   // is tiny (1 credit each) and the user expects the dashboard to feel live.
   useEffect(() => {
-    if (!connected || !publicKey) { setSolBalance(0); return; }
+    if (!connected || !publicKey) { setSolBalance(0); setSolBalanceLamports(null); return; }
     let cancelled = false;
     const fetchBalance = () => {
       connRef.current.getBalance(publicKey)
         .then((lamports) => {
-          if (!cancelled) setSolBalance(lamports / LAMPORTS_PER_SOL);
+          if (!cancelled) { setSolBalance(lamports / LAMPORTS_PER_SOL); setSolBalanceLamports(BigInt(lamports)); }
         })
         .catch((err) => {
           // Don't zero on transient failure — keep last good value so a single
@@ -2445,7 +2452,7 @@ function DashboardPageInner() {
       //  • Activity feed
       //  • Referrer's earnings (if applicable)
       // forceRefresh bumps refreshTrigger which all the effects watch.
-      connection.getBalance(publicKey).then((lamports) => setSolBalance(lamports / LAMPORTS_PER_SOL)).catch(() => {});
+      connection.getBalance(publicKey).then((lamports) => { setSolBalance(lamports / LAMPORTS_PER_SOL); setSolBalanceLamports(BigInt(lamports)); }).catch(() => {});
       forceRefresh();
     } catch (err) {
       // Deploy-window shield class — distinct copy that explains the
@@ -2634,7 +2641,10 @@ function DashboardPageInner() {
       // 0.005 SOL reserve to cover both the tx fee and that small drift.
       const owedRaw = BigInt(loan.loan.original_amount_lamports ?? "0");
       const repayLamportsExpected = pct === 100 ? owedRaw : (owedRaw * BigInt(pct)) / 100n;
-      const TX_FEE_RESERVE = 5_000_000n; // 0.005 SOL — priority fee + drift buffer
+      // Shared with the card's early warning (src/lib/repay-readiness.ts) so the
+      // two can never drift. A card that says "you're covered" while this guard
+      // refuses would be worse than showing nothing at all.
+      const TX_FEE_RESERVE = TX_FEE_RESERVE_LAMPORTS;
       const userBalance = BigInt(await connection.getBalance(publicKey));
       const needed = repayLamportsExpected + TX_FEE_RESERVE;
       if (userBalance < needed) {
@@ -3989,6 +3999,7 @@ function DashboardPageInner() {
                                     )}
                                   </div>
                                 </div>
+                                <div className="flex flex-col gap-0 sm:items-end">
                                 <div className="flex items-center justify-between gap-2 sm:text-right sm:justify-end">
                                   <div>
                                     <div className="text-[13px] font-semibold">{owedSol.toFixed(4)} SOL</div>
@@ -4029,6 +4040,12 @@ function DashboardPageInner() {
                                       </div>
                                     );
                                   })()}
+                                </div>
+                                <RepayReadinessNote
+                                  owedLamports={l.loan.original_amount_lamports}
+                                  balanceLamports={solBalanceLamports}
+                                  vaultSolLamports={l.collateral.sol_proceeds_lamports}
+                                />
                                 </div>
                                 </div>
                                 {l.loan_id && (
