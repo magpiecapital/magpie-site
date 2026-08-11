@@ -960,9 +960,12 @@ export function MarketplaceClient({
           <h4 className="font-display text-lg font-bold text-[var(--ink)]">How the loan ends</h4>
           <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">
             <strong>Two outcomes.</strong> You repay (full or partial) before the term ends — collateral comes back
-            the same instant. Or the term ends without repayment — the keeper network liquidates the loan and
-            the collateral is sold to repay the LPs. Liquidation is term-based: as long as the loan is repaid
-            on time, a temporary price drop does not auto-liquidate you.
+            the same instant. Or the term ends without repayment and{" "}
+            <strong>you forfeit the collateral</strong>: the keeper network liquidates the loan, and the full
+            remaining collateral is distributed as a keeper bounty plus a residual that recovers the pool&apos;s
+            principal. <strong>There is no surplus refund</strong> — if the collateral is worth more than the
+            loan, you do not get the difference back. That is the trade for a fixed term with no margin calls:
+            a temporary price drop cannot liquidate you mid-term, but the due date is a hard deadline.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
             <strong>If price moves against you mid-term</strong>, you have three protections:
