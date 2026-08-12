@@ -1,0 +1,38 @@
+# For a site-only borrower this notice is the ONLY expiry warning that exists —
+# their Magpie account has no Telegram behind it, so the DM always fails. In
+# August 2026 nine borrowers were liquidated having received no warning at all,
+# and every one of them was site-only.
+#
+# The regressions this catches are the silent kind, and none would fail a type
+# check:
+#   - a threshold narrowed so a loan hours from liquidation renders calmly
+#   - a boundary that renders NOTHING at all
+#   - a duration rounded UP, telling someone they have more time than they do
+#   - drift away from the bot's 24h/6h checkpoints, so the dashboard and the DM
+#     contradict each other about the same loan
+name: loan-expiry
+on:
+  pull_request:
+    paths:
+      - "src/lib/loan-expiry.ts"
+      - "src/components/LoanExpiryNotice.tsx"
+      - "src/app/dashboard/page.tsx"
+      - "scripts/check-loan-expiry.mjs"
+      - ".github/workflows/loan-expiry.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/lib/loan-expiry.ts"
+      - "src/components/LoanExpiryNotice.tsx"
+      - "scripts/check-loan-expiry.mjs"
+jobs:
+  expiry:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      # Dependency-free, like the other guards — can never be skipped by a
+      # broken lockfile.
+      - run: node --experimental-strip-types scripts/check-loan-expiry.mjs
