@@ -45,6 +45,18 @@ function pct(n: number, decimals = 1): string {
   return (n * 100).toFixed(decimals) + "%";
 }
 
+/**
+ * Minimum pool size (in SOL) before we show "Pool TVL" as a trust signal.
+ *
+ * An instantaneous balance swings with a single deposit or withdrawal and says
+ * nothing about track record — a small number actively undersells the pool.
+ * Below this we show LIFETIME FEES instead: it only goes up, and it is earned
+ * rather than parked, which is the thing a prospective LP is actually asking
+ * about. Nothing is hidden — the pool balance stays public on-chain and via the
+ * API; this is only about which number leads.
+ */
+const TVL_DISPLAY_MIN_SOL = Number(process.env.NEXT_PUBLIC_TVL_DISPLAY_MIN_SOL ?? 250);
+
 const MODE_KEY = "magpie-earn-mode";
 
 /* ───────────────────────── PAGE ───────────────────────── */
@@ -79,7 +91,7 @@ export default function EarnPage() {
     event: "borrow" | "repay" | "liquidation";
   };
   const [poolApi, setPoolApi] = useState<{
-    fees?: { last_7d_lamports: string; last_30d_lamports: string };
+    fees?: { last_7d_lamports: string; last_30d_lamports: string; lifetime_lamports?: string };
     recent_loans?: RecentLoanEvent[];
   } | null>(null);
   const recentLoanEvents = poolApi?.recent_loans ?? [];
@@ -661,12 +673,31 @@ export default function EarnPage() {
                     on-chain + bot API and are present even when disconnected. */}
                 {pool && (
                   <div className="mt-5 grid grid-cols-2 gap-3 text-left">
-                    <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3">
-                      <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Pool TVL</div>
-                      <div className="mt-0.5 font-mono text-base text-[var(--ink)]">
-                        {solStr(pool.totalDeposits, 2)} SOL
+                    {/* Pool TVL is a trust signal only when it reads as one. A
+                        small instantaneous balance understates the pool — it
+                        swings with a single deposit or withdrawal and says
+                        nothing about track record. Below the threshold we show
+                        LIFETIME FEES instead, which is the more honest signal
+                        of whether this pool actually does anything: it only
+                        goes up, and it is earned rather than parked.
+                        Tune with NEXT_PUBLIC_TVL_DISPLAY_MIN_SOL. */}
+                    {pool.totalDeposits >= TVL_DISPLAY_MIN_SOL * LAMPORTS_PER_SOL ? (
+                      <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3">
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Pool TVL</div>
+                        <div className="mt-0.5 font-mono text-base text-[var(--ink)]">
+                          {solStr(pool.totalDeposits, 2)} SOL
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3">
+                        <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Fees · lifetime</div>
+                        <div className="mt-0.5 font-mono text-base text-[var(--ink)]">
+                          {poolApi?.fees?.lifetime_lamports
+                            ? `${solStr(Number(poolApi.fees.lifetime_lamports), 1)} SOL`
+                            : "—"}
+                        </div>
+                      </div>
+                    )}
                     <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface)] px-4 py-3">
                       <div className="text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Fees · last 7d</div>
                       <div className="mt-0.5 font-mono text-base text-[var(--ink)]">
