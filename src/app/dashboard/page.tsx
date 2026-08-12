@@ -3794,6 +3794,7 @@ function DashboardPageInner() {
                   <LinkToTelegram
                     wallet={publicKey.toBase58()}
                     botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    activeLoanCount={activeLoans.length}
                   />
                 )}
 
@@ -5486,12 +5487,34 @@ function Metric({ label, value, danger }: { label: string; value: string; danger
  * in @magpie_capital_bot as /link <code>; site polls /link/status to detect
  * the redeem and updates the UI.
  *
- * Phantom-first users can skip this — the site already serves the full
- * loan lifecycle without it. Linking adds value only when the user wants
- * to (a) see their TG-tied referral code / holder history on the site,
- * or (b) sign actions in TG against a wallet they connected via Phantom.
+ * Phantom-first users can skip this for everything EXCEPT one thing, and
+ * that exception turned out to be expensive.
+ *
+ * Loan-expiry warnings are sent by Telegram DM and by nothing else. A
+ * site-native user has a synthetic negative telegram_id with no real
+ * account behind it, so every warning DM to them fails `chat not found`.
+ * Measured over 90 days: of borrowers who reached the 24h warning window,
+ * 68 of 71 Telegram users were warned versus 1 of 72 site-only users, and
+ * all nine borrowers liquidated with no warning at all were site-only.
+ *
+ * This card used to read "Connect Telegram (optional)" over the subtitle
+ * "Backup auth surface + emergency lock + unified loans across surfaces" —
+ * jargon, explicitly labelled optional, and silent about the one
+ * consequence a borrower would actually act on. So nobody linked.
+ *
+ * It now escalates ONLY when the user has an active loan, because that is
+ * the only time the stake is real. With no loan open the original quiet
+ * optional card is correct and nagging would be worse than useless.
  */
-function LinkToTelegram({ wallet, botApiUrl }: { wallet: string; botApiUrl: string }) {
+function LinkToTelegram({
+  wallet,
+  botApiUrl,
+  activeLoanCount = 0,
+}: {
+  wallet: string;
+  botApiUrl: string;
+  activeLoanCount?: number;
+}) {
   // `linked` = wallet has a Magpie account (always true after the
   // bot's auto-bootstrap). `telegram_linked` = real TG bond (positive
   // telegram_id). We only treat the latter as "linked to TG" in the UI.
@@ -5583,11 +5606,48 @@ function LinkToTelegram({ wallet, botApiUrl }: { wallet: string; botApiUrl: stri
     );
   }
 
+  // With a loan open, the stake is concrete: no Telegram means no warning
+  // before the collateral is sold. Say that plainly and nothing else — the
+  // referral/auth benefits are real but they are not why this matters here,
+  // and burying the consequence under a feature list is what failed before.
+  if (activeLoanCount > 0) {
+    return (
+      <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2.5">
+        {/* Stacks on mobile: this card carries far more copy than the quiet
+            variant, and side-by-side would squeeze the text into a column
+            barely wide enough to read on a 375px screen. */}
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+          <div>
+            <div className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+              <span aria-hidden="true">⚠️</span> We can&apos;t reach you before{" "}
+              {activeLoanCount === 1 ? "your loan expires" : "your loans expire"}
+            </div>
+            <div className="mt-0.5 text-[10px] leading-relaxed text-[var(--d-ink-soft)]">
+              Expiry reminders are sent on Telegram, and this wallet isn&apos;t connected to an
+              account. Right now the only warning you&apos;ll get is on this page — if you
+              don&apos;t open it, your collateral can be sold without you hearing from us.
+              Connecting takes about 30 seconds.
+            </div>
+          </div>
+          <button
+            onClick={requestCode}
+            disabled={requesting}
+            className="w-full shrink-0 rounded-md bg-[var(--d-accent)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--d-accent-ink)] transition hover:brightness-110 disabled:opacity-50 sm:w-auto sm:py-1"
+          >
+            {requesting ? "…" : "Connect"}
+          </button>
+        </div>
+        {err && <div className="mt-1 text-[10px] text-red-500">{err}</div>}
+      </div>
+    );
+  }
+
+  // No loan open — nothing is at stake, so stay quiet and optional.
   return (
     <div className="rounded-lg border border-[var(--d-border)] bg-[var(--d-bg-card)] px-3 py-2 flex items-center justify-between gap-3">
       <div>
         <div className="text-[11px] font-semibold text-[var(--d-ink)]">Connect Telegram (optional)</div>
-        <div className="text-[10px] text-[var(--d-ink-soft)]">Backup auth surface + emergency lock + unified loans across surfaces</div>
+        <div className="text-[10px] text-[var(--d-ink-soft)]">Get expiry reminders when you borrow · backup auth · emergency lock</div>
       </div>
       <button
         onClick={requestCode}
