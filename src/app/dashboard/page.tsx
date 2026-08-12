@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Mark, Wordmark } from "@/components/Logo";
 import { RepayReadinessNote } from "@/components/RepayReadinessNote";
 import { LoanExpiryNotice } from "@/components/LoanExpiryNotice";
+import { PushNotifyCard } from "@/components/PushNotifyCard";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
@@ -3794,6 +3795,19 @@ function DashboardPageInner() {
                   <LinkToTelegram
                     wallet={publicKey.toBase58()}
                     botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || ""}
+                    activeLoanCount={activeLoans.length}
+                  />
+                )}
+
+                {/* Browser notifications — the push channel for borrowers the
+                    bot cannot DM. Renders nothing unless a loan is actually
+                    open; asking for notification permission with no stake
+                    attached is how people learn to hit "Block", and a blocked
+                    permission can only be undone by the user in browser
+                    settings, which would make the gap permanent. */}
+                {connected && publicKey && (
+                  <PushNotifyCard
+                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
                     activeLoanCount={activeLoans.length}
                   />
                 )}
