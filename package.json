@@ -10,7 +10,8 @@
     "check:gate": "node --experimental-strip-types scripts/check-collectible-gate.mjs",
     "render:collectibles": "node scripts/render-check-collectibles.mjs",
     "check:ratelimit": "node --experimental-strip-types scripts/check-rate-limit.mjs",
-    "check:repay-readiness": "node --experimental-strip-types scripts/check-repay-readiness.mjs"
+    "check:repay-readiness": "node --experimental-strip-types scripts/check-repay-readiness.mjs",
+    "check:loan-expiry": "node --experimental-strip-types scripts/check-loan-expiry.mjs"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
