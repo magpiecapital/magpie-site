@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Mark, Wordmark } from "@/components/Logo";
 import { RepayReadinessNote } from "@/components/RepayReadinessNote";
+import { LoanExpiryNotice } from "@/components/LoanExpiryNotice";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
@@ -4041,6 +4042,27 @@ function DashboardPageInner() {
                                     );
                                   })()}
                                 </div>
+                                {/*
+                                  The deadline comes FIRST: it is the only thing
+                                  on this card with a hard consequence attached.
+                                  Site-only borrowers get no warning DM at all
+                                  (their stub user row has no real Telegram
+                                  account, so every DM fails "chat not found"),
+                                  and all nine unwarned liquidations in the last
+                                  90 days were site-only. For those borrowers
+                                  this notice is the ONLY warning that exists.
+                                */}
+                                <LoanExpiryNotice
+                                  dueAt={l.timestamps?.due_at}
+                                  onRepay={
+                                    SITE_REPAY_ENABLED
+                                      ? () => { setRepayPct(100); setRepayConfirmFor(l); }
+                                      : undefined
+                                  }
+                                  onExtend={
+                                    SITE_REPAY_ENABLED ? () => setExtendConfirmFor(l) : undefined
+                                  }
+                                />
                                 <RepayReadinessNote
                                   owedLamports={l.loan.original_amount_lamports}
                                   balanceLamports={solBalanceLamports}
