@@ -164,7 +164,7 @@ function ClassPanel({ variant, tokenCountInClass = 0, topLtv = 0, topDays = 0, f
       eyebrowFg: "#fff",
       status: null,
       heading: "Tokenized stocks",
-      sub: "Borrow against AAPL, NVDA, TSLA, COIN, MSTR & more.",
+      sub: "Borrow against AAPL, NVDA, TSLA & more — plus tokenized gold and silver.",
       chipAccent: "slate" as "amber" | "slate",
       staticChips: null,
       stats: [
@@ -468,7 +468,7 @@ function LoanCalculator({ memeTiers, rwaTiers, hasRwa }: LoanCalculatorProps) {
                   : "text-[var(--ink-soft)] hover:text-[var(--ink)]"
               }`}
             >
-              {c === "memecoin" ? "Memecoins" : "Tokenized stocks"}
+              {c === "memecoin" ? "Memecoins" : "Stocks & metals"}
             </button>
           ))}
         </div>
