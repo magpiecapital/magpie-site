@@ -2,8 +2,9 @@
  * Magpie brand mark — flat silhouette.
  *
  * Light mode: black bird with amber coin (original brand).
- * Dark mode: soft baby blue silhouette so the mark stays visible
- *            against the near-black background.
+ * Dark mode: cool glacier-blue silhouette (#8fc2ea) so the mark stays
+ *            clearly visible against the near-black background
+ *            (operator 2026-08-14: the black bird blended into dark bg).
  *
  * Pass `variant="static"` to keep the mark its original black
  * silhouette even in dark mode — useful for hero placements where
@@ -25,7 +26,7 @@ export function Mark({
   const tintClass =
     variant === "static"
       ? "text-[#0a0a0a]"
-      : "text-[#0a0a0a] dark:text-[#9bc7e0]";
+      : "text-[#0a0a0a] dark:text-[#8fc2ea]";
   return (
     <svg
       width={size}
