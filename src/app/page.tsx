@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
 import { LiveProtocolTicker } from "@/components/LiveProtocolTicker";
 import { CollateralChooser } from "@/components/CollateralChooser";
+import { DemoPlayer } from "@/components/DemoPlayer";
 import { getTokenStats } from "@/lib/db";
 import { TELEGRAM_URL } from "@/lib/telegram-links";
 
@@ -189,6 +190,30 @@ export default async function Home() {
           {/* Live protocol ticker — auto-loads; renders nothing if unavailable. */}
           <LiveProtocolTicker />
         </div>
+      </section>
+
+      {/* ══════════ SEE HOW IT WORKS ══════════
+          The collateral section answers WHAT you can borrow against; this
+          answers HOW, in 60 captioned seconds, before any prose. A native
+          scripted walkthrough (not an <video>): brand-matched, crisp at
+          every size, dark-mode for free, and can't drift stale vs. the
+          real product. Captions are the narration — no sound needed. */}
+      <section className="mx-auto max-w-6xl px-5 py-12 sm:px-6 md:py-16">
+        <Reveal>
+          <div className="mb-6 text-center">
+            <h2 className="font-display text-3xl tracking-[-0.03em] md:text-4xl">
+              From bag to borrowed <span className="italic">in about a minute.</span>
+            </h2>
+            <p className="mx-auto mt-2 max-w-lg text-sm text-[var(--ink-soft)] sm:text-base">
+              Watch the whole flow — pick collateral, set terms, sign, track, repay. Captioned, no sound.
+            </p>
+          </div>
+        </Reveal>
+        <Reveal>
+          <div className="mx-auto max-w-3xl">
+            <DemoPlayer />
+          </div>
+        </Reveal>
       </section>
 
       {/* ══════════ COLLECTIBLES SPOTLIGHT ══════════ */}
