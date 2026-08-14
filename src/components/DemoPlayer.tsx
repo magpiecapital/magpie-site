@@ -17,7 +17,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 /* ─── Script: scenes + captions (single source of truth) ─────────── */
 
-export const DEMO_DURATION_MS = 66_000;
+export const DEMO_DURATION_MS = 79_000;
 
 type Caption = { from: number; to: number; text: string };
 export const CAPTIONS: Caption[] = [
@@ -26,8 +26,9 @@ export const CAPTIONS: Caption[] = [
   { from: 15_000, to: 26_000, text: "Choose how much to borrow. LTV, duration, and the fee are shown up front — no surprises, no margin calls on fixed terms." },
   { from: 26_000, to: 37_000, text: "Sign once. Your collateral locks in the on-chain vault, and SOL lands in your wallet — usually within seconds." },
   { from: 37_000, to: 50_000, text: "Track everything on your dashboard. We remind you before expiry, and /autoextend can renew the loan automatically." },
-  { from: 50_000, to: 59_000, text: "Repay any time to unlock your collateral. It returns to your wallet in the same transaction." },
-  { from: 59_000, to: 66_000, text: "Collateral that can still sell itself. Start at magpie.capital — or earn yield on the other side at /earn." },
+  { from: 50_000, to: 63_000, text: "Our flagship — V4 exit orders. Arm a stop-loss, take-profit, or a laddered exit. They fire inside the vault, so your loan stays active." },
+  { from: 63_000, to: 72_000, text: "Repay any time to unlock your collateral. It returns to your wallet in the same transaction." },
+  { from: 72_000, to: 79_000, text: "Collateral that can still sell itself. Start at magpie.capital — or earn yield on the other side at /earn." },
 ];
 
 const SCENES = [
@@ -36,8 +37,9 @@ const SCENES = [
   { at: 15_000, label: "Set your loan" },
   { at: 26_000, label: "Sign & receive" },
   { at: 37_000, label: "Track & manage" },
-  { at: 50_000, label: "Repay & reclaim" },
-  { at: 59_000, label: "Done" },
+  { at: 50_000, label: "V4 exit orders" },
+  { at: 63_000, label: "Repay & reclaim" },
+  { at: 72_000, label: "Done" },
 ];
 
 /* ─── tiny timeline helpers ──────────────────────────────────────── */
@@ -296,8 +298,53 @@ function SceneTrack({ t }: { t: number }) {
   );
 }
 
-function SceneRepay({ t }: { t: number }) {
+function SceneV4({ t }: { t: number }) {
   const local = t - 50_000;
+  const armed = local > 6_500;
+  return (
+    <Frame>
+      <div className="flex h-full flex-col justify-start gap-1.5 p-3 pt-2 pb-12">
+        <div style={enter(local, 200)} className="flex items-baseline justify-between">
+          <span className="text-sm font-semibold">Protect the position — exit orders</span>
+          <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-[var(--accent-ink)]">
+            V4 flagship
+          </span>
+        </div>
+        <div style={enter(local, 900)} className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-2.5 py-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold">🛑 Stop-loss</span>
+            <span className="text-[var(--ink-soft)]">price −25% → sell enough to cover the loan</span>
+          </div>
+        </div>
+        <div style={enter(local, 2_100)} className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-2.5 py-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold">🎯 Take-profit</span>
+            <span className="text-[var(--ink-soft)]">price +40% → sell 50%, bank the gain</span>
+          </div>
+        </div>
+        <div style={enter(local, 3_300)} className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-2.5 py-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold">🪜 Ladder</span>
+            <span className="text-[var(--ink-soft)]">25% @ +20% · 25% @ +40% · 50% @ +80%</span>
+          </div>
+          <div className="mt-1.5 flex gap-1">
+            <div className="h-1.5 flex-1 rounded-full bg-[var(--accent-dim)]" />
+            <div className="h-1.5 flex-1 rounded-full bg-[var(--accent)]" />
+            <div className="h-1.5 flex-[2] rounded-full bg-[var(--accent-deep)]" />
+          </div>
+        </div>
+        {armed && (
+          <div style={enter(local, 6_500, 350)} className="rounded-xl border border-[var(--accent-deep)] bg-[var(--accent-dim)] px-2.5 py-2 text-center text-[11px]">
+            <span className="font-semibold">✓ Armed — orders fire in-vault.</span> Loan stays <b>Active</b> · no margin calls.
+          </div>
+        )}
+      </div>
+    </Frame>
+  );
+}
+
+function SceneRepay({ t }: { t: number }) {
+  const local = t - 63_000;
   const done = local > 3_600;
   return (
     <Frame>
@@ -332,7 +379,7 @@ function SceneRepay({ t }: { t: number }) {
 }
 
 function SceneOutro({ t }: { t: number }) {
-  const local = t - 59_000;
+  const local = t - 72_000;
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
       <div style={enter(local, 300)} className="font-display text-2xl tracking-[-0.03em] sm:text-3xl">
@@ -360,8 +407,9 @@ function Scenes({ t }: { t: number }) {
       {idx === 2 && <SceneTerms t={t} />}
       {idx === 3 && <SceneSign t={t} />}
       {idx === 4 && <SceneTrack t={t} />}
-      {idx === 5 && <SceneRepay t={t} />}
-      {idx === 6 && <SceneOutro t={t} />}
+      {idx === 5 && <SceneV4 t={t} />}
+      {idx === 6 && <SceneRepay t={t} />}
+      {idx === 7 && <SceneOutro t={t} />}
     </>
   );
 }
