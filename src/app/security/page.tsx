@@ -389,28 +389,32 @@ export default function SecurityPage() {
             In addition to this internal review, the V4 on-chain program has
             undergone an independent security assessment by{" "}
             <span className="font-semibold">Sec3</span> (formerly Soteria), a
-            Solana-native security firm. Sec3&apos;s assessment is complete, and
-            their second review of our fixes has come back.
+            Solana-native security firm. That assessment is{" "}
+            <span className="font-semibold">complete</span> &mdash; Sec3
+            delivered their final report on August 9, 2026, against audited
+            commit 33ebdc5.
           </p>
           <p className="mt-4 max-w-3xl text-base text-[var(--ink-soft)]">
             Across the engagement there are{" "}
-            <span className="font-semibold">24 findings</span>. That second
-            review confirmed{" "}
-            <span className="font-semibold">18 resolved</span> and{" "}
+            <span className="font-semibold">24 findings</span>:{" "}
+            <span className="font-semibold">20 resolved</span>,{" "}
             <span className="font-semibold">4 acknowledged</span> (accepted with
-            documented rationale). Two came back for further work &mdash; one of
-            them an issue introduced by our own earlier fix, which Sec3&apos;s
-            re-review caught. Both have since been addressed and resubmitted for
-            the final round.
+            documented rationale), and{" "}
+            <span className="font-semibold">none left open</span>. Both
+            High-severity findings are resolved. The four acknowledged items are
+            design trade-offs Sec3 reviewed and accepted &mdash; not outstanding
+            bugs.
           </p>
           <p className="mt-4 max-w-3xl text-base text-[var(--ink-soft)]">
-            The fixes live on a dedicated fix branch and will deploy at a new
-            program ID once signed off &mdash; they are not on the live program
-            yet. The audited program repositories stay private during
-            pre-audit review, with Sec3 holding read-only access; reports are
-            published at github.com/magpiecapital/audits once cleared. The protocol is not
-            &ldquo;audited&rdquo; &mdash; we will not claim that until Sec3
-            publishes the final, re-checked report, and an audit reduces risk
+            One thing we want to be precise about: the remediated build deploys
+            at a new program ID once signed off, so the audited code is{" "}
+            <span className="font-semibold">not the live program yet</span>.
+            That is why we say V4&apos;s security assessment is complete rather
+            than describing Magpie as &ldquo;audited&rdquo; &mdash; we will use
+            that word when the audited build is the one you are borrowing
+            against. The audited program repositories stay private during
+            review, with Sec3 holding read-only access; reports are published at
+            github.com/magpiecapital/audits once cleared. An audit reduces risk
             rather than eliminating it.
           </p>
         </Reveal>

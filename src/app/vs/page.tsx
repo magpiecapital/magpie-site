@@ -103,7 +103,7 @@ const ROWS: Comparison[] = [
   },
   {
     feature: "Audit",
-    magpie: "Sec3 (V4): assessment done, in re-review",
+    magpie: "Sec3 (V4): assessment complete — final report Aug 2026",
     marginfi: "Audited (OtterSec, Trail of Bits)",
     kamino: "Audited (OtterSec)",
     mango: "Audited",
