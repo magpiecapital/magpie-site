@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AuditBadge } from "@/components/AuditBadge";
 import { Mark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
@@ -123,10 +124,11 @@ export default async function WhitepaperPage() {
             <p className="mt-2 max-w-xl text-xl font-medium tracking-tight text-[var(--accent-deep)]">
               Memecoin-Collateralized Lending on Solana
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap items-center gap-3">
               <Link href="/docs" className="btn-ghost text-sm">
                 Technical Docs &rarr;
               </Link>
+              <AuditBadge />
             </div>
           </div>
 
@@ -443,6 +445,10 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 Security is a core design constraint, not a feature bolted on after the fact.
                 Every layer of the stack is built to minimize trust assumptions and attack surface.
               </P>
+
+              <div className="mt-5">
+                <AuditBadge />
+              </div>
 
               <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {[
