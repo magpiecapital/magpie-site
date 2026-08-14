@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuditBadge } from "@/components/AuditBadge";
 import { Wordmark } from "@/components/Logo";
 import { TELEGRAM_BOT, TELEGRAM_COMMUNITY } from "@/lib/telegram-links";
 
@@ -61,7 +62,10 @@ export function Footer() {
             <FooterLink href="/links">All official links</FooterLink>
           </FooterCol>
         </div>
-        <div className="mt-8 flex flex-col items-start justify-between gap-3 border-t border-[var(--hairline)] pt-5 sm:mt-14 sm:gap-4 sm:pt-6 md:flex-row md:items-center">
+        <div className="mt-8 border-t border-[var(--hairline)] pt-5 sm:mt-14 sm:pt-6">
+          <AuditBadge variant="compact" />
+        </div>
+        <div className="mt-5 flex flex-col items-start justify-between gap-3 sm:gap-4 md:flex-row md:items-center">
           <div className="text-xs text-[var(--ink-soft)]">
             &copy; {new Date().getFullYear()} Magpie &middot; Built on Solana
           </div>

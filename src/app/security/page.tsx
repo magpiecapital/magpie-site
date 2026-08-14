@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AuditBadge } from "@/components/AuditBadge";
 import { Mark } from "@/components/Logo";
 import { Reveal } from "@/components/Reveal";
 import { Header } from "@/components/Header";
@@ -385,6 +386,9 @@ export default function SecurityPage() {
             Internal Security <span className="italic">Audit.</span>
           </h2>
           <p className="mt-4 text-lg text-[var(--ink-soft)]">April 17, 2026</p>
+          <div className="mt-6">
+            <AuditBadge />
+          </div>
           <p className="mt-4 max-w-3xl text-base text-[var(--ink-soft)]">
             In addition to this internal review, the V4 on-chain program has
             undergone an independent security assessment by{" "}
