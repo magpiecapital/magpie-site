@@ -5,7 +5,9 @@ import Image from "next/image";
  * Sec3 audit badge.
  *
  * Uses Sec3's OFFICIAL "Audited by Sec3" mark — the badge they publish in their
- * own reports repository for audited projects to display. Self-hosted at
+ * own reports repository for audited projects to display. Sec3 confirmed our
+ * use of it directly (2026-08-14), so this is cleared, not merely assumed from
+ * the fact that they publish it. Self-hosted at
  * /badges/audited-by-sec3.png rather than hotlinked from
  * user-images.githubusercontent.com: a hotlink can rot, adds a third-party
  * request on every page, and depends on a host we do not control.
