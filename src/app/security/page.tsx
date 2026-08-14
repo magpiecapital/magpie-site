@@ -414,7 +414,9 @@ export default function SecurityPage() {
             that word when the audited build is the one you are borrowing
             against. The audited program repositories stay private during
             review, with Sec3 holding read-only access; reports are published at
-            github.com/magpiecapital/audits once cleared. An audit reduces risk
+            github.com/magpiecapital/audits once cleared. Sec3 publishes their own
+            report set at github.com/sec3-service/reports, so our summary can be
+            cross-checked against the auditor directly. An audit reduces risk
             rather than eliminating it.
           </p>
         </Reveal>
