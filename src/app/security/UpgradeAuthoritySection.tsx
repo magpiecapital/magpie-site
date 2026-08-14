@@ -128,6 +128,110 @@ async function readMultisigConfig(
   };
 }
 
+/**
+ * A queued multisig proposal, decoded live from Solana.
+ *
+ * Proposal PDA seeds: ["multisig", multisig, "transaction", index_le_u64, "proposal"].
+ * Account layout (Squads V4, borsh): discriminator 8 | multisig Pubkey |
+ * transaction_index u64 | status (u8 kind + i64 timestamp for all kinds
+ * except Executing) | …
+ */
+type ProposalInfo = {
+  index: bigint;
+  statusKind: string;
+  statusTimestamp: number | null;
+  executableAt: number | null; // unix seconds — Approved only
+  targetProgram: ProgramEntry | null;
+  proposalPda: string;
+  transactionPda: string;
+};
+
+const PROPOSAL_STATUS_KINDS = [
+  "Draft",
+  "Active",
+  "Rejected",
+  "Approved",
+  "Executing",
+  "Executed",
+  "Cancelled",
+] as const;
+
+function proposalPdas(index: bigint): { proposalPda: PublicKey; transactionPda: PublicKey } {
+  const indexLe = Buffer.alloc(8);
+  indexLe.writeBigUInt64LE(index);
+  const [transactionPda] = PublicKey.findProgramAddressSync(
+    [Buffer.from("multisig"), MULTISIG_PDA.toBuffer(), Buffer.from("transaction"), indexLe],
+    SQUADS_PROGRAM,
+  );
+  const [proposalPda] = PublicKey.findProgramAddressSync(
+    [
+      Buffer.from("multisig"),
+      MULTISIG_PDA.toBuffer(),
+      Buffer.from("transaction"),
+      indexLe,
+      Buffer.from("proposal"),
+    ],
+    SQUADS_PROGRAM,
+  );
+  return { proposalPda, transactionPda };
+}
+
+async function readProposal(
+  connection: Connection,
+  index: bigint,
+  timeLock: number,
+): Promise<ProposalInfo | null> {
+  const { proposalPda, transactionPda } = proposalPdas(index);
+  const [propInfo, txInfo] = await Promise.all([
+    connection.getAccountInfo(proposalPda, "confirmed"),
+    connection.getAccountInfo(transactionPda, "confirmed"),
+  ]);
+  if (!propInfo) return null;
+  const data = propInfo.data;
+  let o = 8 + 32; // discriminator + multisig
+  o += 8; // transaction_index (already known)
+  const kindByte = data.readUInt8(o);
+  o += 1;
+  const statusKind = PROPOSAL_STATUS_KINDS[kindByte] ?? `Unknown(${kindByte})`;
+  const hasTimestamp = statusKind !== "Executing" && kindByte < PROPOSAL_STATUS_KINDS.length;
+  const statusTimestamp = hasTimestamp ? Number(data.readBigInt64LE(o)) : null;
+  const executableAt =
+    statusKind === "Approved" && statusTimestamp != null
+      ? statusTimestamp + timeLock
+      : null;
+  // Identify which of OUR programs the stored vault transaction touches by
+  // scanning its raw bytes for the program ids — layout-agnostic on purpose.
+  let targetProgram: ProgramEntry | null = null;
+  if (txInfo) {
+    for (const p of PROGRAMS) {
+      if (txInfo.data.includes(new PublicKey(p.id).toBuffer())) {
+        targetProgram = p;
+        break;
+      }
+    }
+  }
+  return {
+    index,
+    statusKind,
+    statusTimestamp,
+    executableAt,
+    targetProgram,
+    proposalPda: proposalPda.toBase58(),
+    transactionPda: transactionPda.toBase58(),
+  };
+}
+
+function formatDuration(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h >= 1) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function formatUtc(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toISOString().replace("T", " ").slice(0, 16) + " UTC";
+}
+
 function shorten(pubkey: string): string {
   return `${pubkey.slice(0, 6)}…${pubkey.slice(-4)}`;
 }
@@ -159,6 +263,7 @@ export async function UpgradeAuthoritySection(): Promise<React.ReactElement> {
     ProgramEntry & { authority: string | null; lastDeployedSlot: number | null }
   > = [];
   let multisigConfig: MultisigConfig | null = null;
+  let proposals: ProposalInfo[] = [];
   let fetchError: string | null = null;
 
   try {
@@ -179,6 +284,20 @@ export async function UpgradeAuthoritySection(): Promise<React.ReactElement> {
     ]);
     authorities = a;
     multisigConfig = m;
+
+    // Decode the most recent proposals (up to 5) so a queued upgrade is
+    // visible here with its real status and countdown, not just a Solscan link.
+    if (m && m.transactionIndex > 0n) {
+      const newest = m.transactionIndex;
+      const oldest = newest > 4n ? newest - 4n : 1n;
+      const indexes: bigint[] = [];
+      for (let i = newest; i >= oldest; i--) indexes.push(i);
+      proposals = (
+        await Promise.all(
+          indexes.map((i) => readProposal(connection, i, m.timeLock).catch(() => null)),
+        )
+      ).filter((p): p is ProposalInfo => p !== null);
+    }
   } catch (err) {
     fetchError = (err as Error).message ?? "unknown";
   }
@@ -345,18 +464,98 @@ export async function UpgradeAuthoritySection(): Promise<React.ReactElement> {
         </div>
       </div>
 
-      {/* Pending upgrades */}
+      {/* Pending upgrades — decoded live from the Squads proposal accounts */}
       <div className="mt-12 rounded-3xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 md:p-8">
         <div className="text-base font-semibold tracking-tight">
           Pending upgrades
         </div>
-        <p className="mt-1 text-sm text-[var(--ink-soft)]">
-          {!multisigConfig
-            ? "Live check unavailable."
-            : pendingActivity
-              ? `The multisig has queued ${multisigConfig.transactionIndex.toString()} transaction(s) over its lifetime. To inspect any currently-pending upgrade and its 48h execution window, view the multisig on Solscan.`
-              : "No upgrades have been queued through the multisig. Any future upgrade will appear here with a 48-hour countdown to execution."}
-        </p>
+        {(() => {
+          const nowSec = Math.floor(Date.now() / 1000);
+          const open = proposals.filter((p) =>
+            ["Draft", "Active", "Approved", "Executing"].includes(p.statusKind),
+          );
+          const recentExecuted = proposals.filter((p) => p.statusKind === "Executed");
+          if (!multisigConfig) {
+            return (
+              <p className="mt-1 text-sm text-[var(--ink-soft)]">
+                Live check unavailable.
+              </p>
+            );
+          }
+          if (open.length === 0) {
+            return (
+              <p className="mt-1 text-sm text-[var(--ink-soft)]">
+                {pendingActivity
+                  ? `Nothing is currently queued. The multisig has processed ${multisigConfig.transactionIndex.toString()} proposal(s) over its lifetime${recentExecuted.length > 0 ? ", most recently executed " + formatUtc(recentExecuted[0].statusTimestamp ?? 0) : ""}.`
+                  : "No upgrades have been queued through the multisig. Any future upgrade will appear here with a 48-hour countdown to execution."}
+              </p>
+            );
+          }
+          return (
+            <div className="mt-4 grid grid-cols-1 gap-3">
+              {open.map((p) => {
+                const remaining =
+                  p.executableAt != null ? p.executableAt - nowSec : null;
+                const statusLabel =
+                  p.statusKind === "Approved"
+                    ? remaining != null && remaining > 0
+                      ? `In timelock — executable in ~${formatDuration(remaining)}`
+                      : "Timelock cleared — awaiting execution"
+                    : p.statusKind === "Active"
+                      ? "Awaiting signatures"
+                      : p.statusKind === "Executing"
+                        ? "Executing"
+                        : "Draft";
+                return (
+                  <div
+                    key={p.proposalPda}
+                    className="flex flex-col gap-3 rounded-2xl border border-[var(--hairline)] p-5 md:flex-row md:items-center md:justify-between"
+                  >
+                    <div>
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-lg font-semibold tracking-tight">
+                          {p.targetProgram
+                            ? `${p.targetProgram.name} program upgrade`
+                            : `Proposal #${p.index.toString()}`}
+                        </span>
+                        <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-xs font-medium text-[var(--bg)]">
+                          {statusLabel}
+                        </span>
+                      </div>
+                      {p.targetProgram && (
+                        <div className="mt-1 text-sm text-[var(--ink-soft)]">
+                          {p.targetProgram.note} ·{" "}
+                          <PubkeyLink pubkey={p.targetProgram.id} />
+                        </div>
+                      )}
+                      {p.statusKind === "Approved" && p.statusTimestamp != null && (
+                        <div className="mt-1 text-xs text-[var(--ink-faint)]">
+                          Approved {formatUtc(p.statusTimestamp)}
+                          {p.executableAt != null &&
+                            ` · executable after ${formatUtc(p.executableAt)}`}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-sm md:text-right">
+                      <div className="text-xs uppercase tracking-wider text-[var(--ink-faint)]">
+                        Verify on-chain
+                      </div>
+                      <div className="mt-1 flex gap-3 md:justify-end">
+                        <PubkeyLink pubkey={p.proposalPda} label="proposal" />
+                        <PubkeyLink pubkey={p.transactionPda} label="payload" />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <p className="text-xs leading-relaxed text-[var(--ink-faint)]">
+                Countdown refreshes with the page (about once a minute). The
+                payload account holds the exact upgrade instruction the vault
+                will execute — nothing else can be substituted after approval.
+              </p>
+            </div>
+          );
+        })()}
         <div className="mt-4">
           <a
             href={`https://solscan.io/account/${MULTISIG_PDA.toBase58()}`}
