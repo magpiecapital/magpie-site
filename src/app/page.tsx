@@ -140,7 +140,7 @@ export default async function Home() {
 
           <div className="pointer-events-none absolute right-8 top-32 hidden opacity-90 lg:block">
             <div className="hop">
-              <Mark size={240} variant="static" />
+              <Mark size={240} variant="adaptive" />
             </div>
           </div>
         </div>

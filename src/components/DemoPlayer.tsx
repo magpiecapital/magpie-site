@@ -129,7 +129,7 @@ function SceneChoose({ t }: { t: number }) {
   const picked = local > 5_200;
   return (
     <Frame>
-      <div className="flex h-full flex-col justify-center gap-3 p-4">
+      <div className="flex h-full flex-col justify-center gap-3 p-4 pb-8">
         <div style={enter(local, 200)} className="text-sm font-semibold">
           Marketplace — three collateral classes
         </div>
