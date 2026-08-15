@@ -14,13 +14,17 @@ async function borrowPages(now: Date): Promise<MetadataRoute.Sitemap> {
     });
     if (!res.ok) return [];
     const d = (await res.json()) as { tokens?: Array<{ symbol: string }> };
-    const seen = new Set<string>();
+    // Collided symbols are excluded entirely — the borrow page refuses
+    // to guess between two tokens sharing a ticker, so their URLs 404.
+    const counts = new Map<string, number>();
+    for (const t of d.tokens ?? []) {
+      const s = t.symbol.toLowerCase();
+      counts.set(s, (counts.get(s) ?? 0) + 1);
+    }
     return (d.tokens ?? [])
       .filter((t) => {
         const s = t.symbol.toLowerCase();
-        if (!/^[a-z0-9$._-]{1,20}$/.test(s) || seen.has(s)) return false;
-        seen.add(s);
-        return true;
+        return /^[a-z0-9$._-]{1,20}$/.test(s) && counts.get(s) === 1;
       })
       .map((t) => ({
         url: `${SITE_URL}/borrow/${encodeURIComponent(t.symbol.toLowerCase())}`,

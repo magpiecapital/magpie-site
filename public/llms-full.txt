@@ -17,7 +17,7 @@ borrowed against. Magpie describes this as "collateral that can still sell itsel
 ## What users can borrow against (three collateral classes, one protocol)
 
 1. Memecoins — 200+ Solana tokens, each screened for real liquidity and capped for safety
-   (e.g. WIF, BONK, POPCAT, PENGU). Prices are cross-sourced (Jupiter-primary) and every
+   (e.g. WIF, POPCAT, PENGU, FARTCOIN). Prices are cross-sourced (Jupiter-primary) and every
    borrow is valued against an on-chain price attestation.
 2. Tokenized stocks & real-world assets — 25+ assets including xStocks equities (e.g. xTSLA,
    xAAPL, xNVDA) and tokenized precious metals (gold, silver). No margin calls, no taxable
