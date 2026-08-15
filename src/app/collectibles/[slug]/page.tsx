@@ -185,8 +185,15 @@ export default async function CollectibleAssetPage(
                     href={p.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center rounded-lg border border-[var(--hairline-strong)] px-3 py-2 font-medium underline-offset-4 hover:underline"
+                    className="inline-flex items-center gap-2 rounded-lg border border-[var(--hairline-strong)] px-3 py-2 font-medium underline-offset-4 hover:underline"
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.logo}
+                      alt=""
+                      aria-hidden
+                      className="h-5 w-5 rounded-[5px] object-contain"
+                    />
                     {p.name} ↗
                   </a>
                 ))}

@@ -51,25 +51,32 @@ export const CATEGORY_LABELS: Record<CatalogCategoryKey, string> = {
 };
 
 /** Which vaulting platforms support each category (design repo doc 46). */
+const PLATFORM_DEFS = {
+  collectorCrypt: {
+    name: "Collector Crypt",
+    href: "https://collectorcrypt.com",
+    logo: "/collectibles/platforms/collector-crypt.svg",
+  },
+  phygitals: {
+    name: "Phygitals",
+    href: "https://www.phygitals.com",
+    logo: "/collectibles/platforms/phygitals.png",
+  },
+  courtyard: {
+    name: "Courtyard",
+    href: "https://courtyard.io",
+    logo: "/collectibles/platforms/courtyard.png",
+  },
+} as const;
+
 export const CATEGORY_PLATFORMS: Record<
   CatalogCategoryKey,
-  { name: string; href: string }[]
+  { name: string; href: string; logo: string }[]
 > = {
-  pokemon: [
-    { name: "Collector Crypt", href: "https://collectorcrypt.com" },
-    { name: "Phygitals", href: "https://www.phygitals.com" },
-    { name: "Courtyard", href: "https://courtyard.io" },
-  ],
-  sports: [
-    { name: "Collector Crypt", href: "https://collectorcrypt.com" },
-    { name: "Phygitals", href: "https://www.phygitals.com" },
-    { name: "Courtyard", href: "https://courtyard.io" },
-  ],
-  onepiece: [
-    { name: "Collector Crypt", href: "https://collectorcrypt.com" },
-    { name: "Phygitals", href: "https://www.phygitals.com" },
-  ],
-  yugioh: [{ name: "Collector Crypt", href: "https://collectorcrypt.com" }],
+  pokemon: [PLATFORM_DEFS.collectorCrypt, PLATFORM_DEFS.phygitals, PLATFORM_DEFS.courtyard],
+  sports: [PLATFORM_DEFS.collectorCrypt, PLATFORM_DEFS.phygitals, PLATFORM_DEFS.courtyard],
+  onepiece: [PLATFORM_DEFS.collectorCrypt, PLATFORM_DEFS.phygitals],
+  yugioh: [PLATFORM_DEFS.collectorCrypt],
 };
 
 export function ebaySoldUrl(query: string): string {
