@@ -171,7 +171,7 @@ export default function RootLayout({
                     {
                       "@type": "Question",
                       name: "What can I borrow against on Magpie?",
-                      acceptedAnswer: { "@type": "Answer", text: "Three collateral classes: 200+ screened Solana memecoins (WIF, BONK and others), 25+ tokenized stocks and real-world assets (xStocks equities, tokenized gold and silver), and tokenized graded collectibles (in design, via partners like Collector Crypt)." },
+                      acceptedAnswer: { "@type": "Answer", text: "Three collateral classes: 200+ screened Solana memecoins (WIF, POPCAT and others), 25+ tokenized stocks and real-world assets (xStocks equities, tokenized gold and silver), and tokenized graded collectibles (in design, via partners like Collector Crypt)." },
                     },
                     {
                       "@type": "Question",

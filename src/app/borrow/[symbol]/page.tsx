@@ -86,7 +86,10 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { symbol } = await params;
   const token = await resolveToken(symbol);
-  if (!token) return { title: "Token not supported | Magpie" };
+  // notFound() here (not just in the page) so unsupported symbols get a
+  // real 404 status — thrown from the page alone, the response can
+  // already be streaming with a 200.
+  if (!token) notFound();
   const tiers = await getLoanTiers(tierCategory(token.category));
   const maxLtv = Math.max(...tiers.map((t) => t.ltv_pct));
   const title = `Borrow SOL against $${token.symbol} — instant ${categoryNoun(token.category)} loan | Magpie`;
