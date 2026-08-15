@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { CATALOG } from "@/lib/collectibles-catalog";
+import { FULL_CATALOG } from "@/lib/collectibles-catalog";
 
 const SITE_URL = "https://www.magpie.capital";
 
@@ -41,7 +41,7 @@ async function borrowPages(now: Date): Promise<MetadataRoute.Sitemap> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const tokenPages = await borrowPages(now);
-  const collectiblePages: MetadataRoute.Sitemap = CATALOG.map((i) => ({
+  const collectiblePages: MetadataRoute.Sitemap = FULL_CATALOG.map((i) => ({
     url: `${SITE_URL}/collectibles/${i.slug}`,
     lastModified: now,
     changeFrequency: "weekly" as const,
