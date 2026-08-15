@@ -130,6 +130,7 @@ const ALLOWLIST = [
       { card: "Evolving Skies alt-art VMAX", meta: "Sylveon · Glaceon · Rayquaza · 2021" },
       { card: "Modern chase staples", meta: "151 Charizard ex SIR · Crown Zenith GG" },
       { card: "Blue-Eyes White Dragon", meta: "LOB-001 · 1st Edition · 2002" },
+      { card: "Event & crossover promos", meta: "One Piece US Voyage college basketball · Bandai" },
       { card: "Modern rookie benchmarks", meta: "Wembanyama · Luka · Mahomes · Prizm PSA 10" },
       { card: "LeBron James #111", meta: "Topps Chrome · 2003-04" },
       { card: "Grade 8 of any Tier A card", meta: "Same cards, lower grade" },
