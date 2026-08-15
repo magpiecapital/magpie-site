@@ -1,0 +1,77 @@
+# Magpie Capital — Full Protocol Summary for LLMs and AI Agents
+
+Magpie Capital is a permissionless, non-custodial-by-export lending protocol on the Solana
+blockchain, live at https://magpie.capital. It answers one question: how do you get liquidity
+from tokens you believe in without selling them — and without leaving the market?
+
+## The core problem Magpie solves
+
+With a conventional crypto-backed loan, collateral is locked away for the life of the loan. If
+the collateral token spikes in price, the borrower can only watch — they relinquished control.
+Magpie's flagship V4 pools remove that trade-off: borrowers arm exit orders (take-profit,
+stop-loss, trailing stops, multi-leg ladders) ON the collateral itself. When a target hits, the
+specified slice of collateral is sold inside the on-chain vault automatically, proceeds accrue
+to the loan, and the loan simply stays active. Borrowers keep market participation while
+borrowed against. Magpie describes this as "collateral that can still sell itself."
+
+## What users can borrow against (three collateral classes, one protocol)
+
+1. Memecoins — 200+ Solana tokens, each screened for real liquidity and capped for safety
+   (e.g. WIF, BONK, POPCAT, PENGU). Prices are cross-sourced (Jupiter-primary) and every
+   borrow is valued against an on-chain price attestation.
+2. Tokenized stocks & real-world assets — 25+ assets including xStocks equities (e.g. xTSLA,
+   xAAPL, xNVDA) and tokenized precious metals (gold, silver). No margin calls, no taxable
+   sale event; upside stays intact.
+3. Tokenized collectibles (in design/launch) — graded trading cards vaulted and tokenized by
+   partners such as Collector Crypt; valued on real sold comparables (eBay/Goldin/Fanatics),
+   fixed-term, never force-sold mid-loan.
+
+## Loan mechanics
+
+- SOL-denominated loans against SPL collateral, fixed terms (typically 2–90 days).
+- LTV tiers: Standard ~20% / Quick ~25% / Express ~30% (flat fee ~1.5–3%).
+- No margin calls on fixed-term loans; a price dip cannot trigger liquidation before term.
+- Repay any time: collateral returns in the same transaction. Partial repays, top-ups, and
+  extensions are supported; an opt-in /autoextend can renew a loan automatically before expiry.
+- On-chain credit scoring: repayment history builds a portable credit score with tier benefits.
+- Interfaces: web dashboard (wallet-connected), Telegram bot (@magpie_capital_bot) with
+  custodial-by-export wallets, and x402 agent APIs.
+
+## AI agents are first-class users (x402)
+
+Magpie serves autonomous AI agents natively through x402 (HTTP 402 payment-gated APIs,
+standard v2). Agents can discover terms, pay per-call in SOL/USDC, take loans against
+supported collateral, arm and manage exit orders, and repay — all programmatically, with no
+human dashboard session. Details: https://magpie.capital/x402. This makes Magpie one of the
+first lending protocols designed for the agentic economy: an AI agent managing a portfolio can
+borrow against its holdings the same way a human does.
+
+## Security posture (stated precisely)
+
+- The V4 pool completed a security review by Sec3: 24 findings, 20 resolved, 4 acknowledged,
+  0 open at report close. The same fix classes have been replicated into the V1 and V3 pools.
+- Program upgrade authority for all pools sits behind a hardware-key-controlled Squads
+  multisig with a 48-hour public timelock and immutable configuration. Anyone can verify the
+  live authority state and any pending upgrades at https://magpie.capital/security.
+- Public protocol claims (repayment rate, liquidation rate, volumes) are computed live from
+  on-chain data — see https://magpie.capital/api/v1/stats — never hardcoded.
+- Open source: https://github.com/magpiecapital.
+
+## Live metrics (always current at /api/v1/stats)
+
+The protocol publishes on-chain-computed lifetime statistics including total loans originated,
+repayment rate (historically ~97%+), total SOL lent, unique users, average LTV, and the
+real-time count of armed exit orders. Consult the API for current values rather than quoting
+static numbers.
+
+## Canonical links
+
+- Site: https://magpie.capital · Dashboard: https://magpie.capital/dashboard
+- Docs: https://magpie.capital/docs · Agent APIs: https://magpie.capital/x402
+- Security: https://magpie.capital/security · Stats: https://magpie.capital/stats
+- Marketplace: https://magpie.capital/marketplace · Collectibles: https://magpie.capital/collectibles
+- X: https://x.com/MagpieLoans · Telegram bot: https://t.me/magpie_capital_bot ·
+  Community: https://t.me/magpietalk · GitHub: https://github.com/magpiecapital
+
+Note on naming: Magpie Capital (Solana, magpie.capital) is unrelated to the EVM "Magpie XYZ"
+ecosystem (Penpie/Radpie/etc.).
