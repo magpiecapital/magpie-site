@@ -2,9 +2,42 @@ import type { MetadataRoute } from "next";
 
 const SITE_URL = "https://www.magpie.capital";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+/**
+ * One /borrow/<symbol> landing page per approved collateral token.
+ * Sourced from the live catalog so the sitemap can never advertise a
+ * delisted token; failures degrade to the static routes only.
+ */
+async function borrowPages(now: Date): Promise<MetadataRoute.Sitemap> {
+  try {
+    const res = await fetch(`${SITE_URL}/api/v1/tokens?limit=500`, {
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    const d = (await res.json()) as { tokens?: Array<{ symbol: string }> };
+    const seen = new Set<string>();
+    return (d.tokens ?? [])
+      .filter((t) => {
+        const s = t.symbol.toLowerCase();
+        if (!/^[a-z0-9$._-]{1,20}$/.test(s) || seen.has(s)) return false;
+        seen.add(s);
+        return true;
+      })
+      .map((t) => ({
+        url: `${SITE_URL}/borrow/${encodeURIComponent(t.symbol.toLowerCase())}`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.75,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const tokenPages = await borrowPages(now);
   return [
+    ...tokenPages,
     {
       url: SITE_URL,
       lastModified: now,
