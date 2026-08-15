@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { Mark } from "@/components/Logo";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+
+export const metadata: Metadata = {
+  title: "Page not found | Magpie",
+  robots: { index: false, follow: false },
+};
 
 export default function NotFound() {
   return (
