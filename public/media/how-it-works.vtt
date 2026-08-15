@@ -5,33 +5,37 @@ WEBVTT
 Magpie lets you borrow SOL against tokens you already hold — without selling them.
 
 2
-00:08.200 --> 00:14.260
+00:08.570 --> 00:14.690
 This is magpie.capital. Three collateral classes: memecoins, tokenized stocks & RWAs, and collectibles.
 
 3
-00:14.460 --> 00:22.770
+00:14.890 --> 00:23.300
 Hit Dashboard and connect your wallet. Everything lives in one place.
 
 4
-00:23.170 --> 00:27.530
+00:23.700 --> 00:28.000
 Balances, eligible collateral, active loans, and your credit score — all live.
 
 5
-00:27.930 --> 00:30.730
-A live loan: 7.7 SOL against WIF — fixed term, no margin calls.
+00:28.400 --> 00:31.800
+A live loan: 7.7 SOL against WIF. Now watch this.
 
 6
-00:30.930 --> 00:41.030
-Our flagship — V4 exit orders. A 3-leg take-profit ladder + a stop-loss, armed. They fire in-vault while your loan stays active.
+00:32.100 --> 00:41.080
+The V4 ladder: at $2.60, 25% sells automatically — in-vault. At $3.20, another 25%. At $4.65, the rest. A stop-loss guards the downside.
 
 7
-00:43.510 --> 00:47.180
-Repay any time — and build credit as you go.
+00:41.380 --> 00:50.320
+That's the innovation: tokens catch random green candles. Take the loan, spend the SOL — and never miss a candle. You never leave the market.
 
 8
-00:47.880 --> 00:56.480
-Prefer chat? The Telegram bot does everything the dashboard does — borrow, extend, repay — right from your phone.
+00:50.620 --> 00:53.500
+Repay any time — collateral back, credit built.
 
 9
-00:57.380 --> 01:03.180
+00:54.100 --> 01:02.700
+Prefer chat? The Telegram bot does everything the dashboard does — borrow, extend, repay — right from your phone.
+
+10
+01:03.600 --> 01:09.400
 Collateral that can still sell itself. Start today at magpie.capital.
