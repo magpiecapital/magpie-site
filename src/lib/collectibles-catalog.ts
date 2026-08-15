@@ -428,7 +428,7 @@ export const CATALOG: CatalogItem[] = [
   },
 ];
 
-import { CATALOG_EXPANSION } from "./collectibles-catalog-expansion";
+import { CATALOG_EXPANSION } from "./collectibles-catalog-expansion.ts";
 
 /** Core + expansion, one browsable catalog. */
 export const FULL_CATALOG: CatalogItem[] = [...CATALOG, ...CATALOG_EXPANSION];
