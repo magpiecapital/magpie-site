@@ -12,12 +12,17 @@ import {
   CATALOG,
   CATEGORY_LABELS,
   CATEGORY_PLATFORMS,
+  compsAreFresh,
   ebaySoldUrl,
+  fmtUsd,
   getCatalogItem,
   priceChartingUrl,
+  TIER_LTV,
 } from "@/lib/collectibles-catalog";
 
 export const dynamicParams = false;
+// Re-render daily so the comp stale-guard actually fires between deploys.
+export const revalidate = 86400;
 
 export function generateStaticParams(): Array<{ slug: string }> {
   return CATALOG.map((i) => ({ slug: i.slug }));
@@ -126,6 +131,69 @@ export default async function CollectibleAssetPage(
               {terms.grades} · fixed term, no margin calls · design targets while
               collectibles are in design — not a live offer.
             </div>
+
+            {/* Estimated value & loan — the number a collector came for.
+                Stale-guarded: if the estimates haven't been refreshed inside
+                the freshness window they vanish and the live-comp links below
+                become the only price surface. */}
+            {item.comps && compsAreFresh(item.comps) && (
+              <section className="mt-6 overflow-hidden rounded-2xl border border-[var(--accent)]/40 bg-[var(--bg-elevated)]">
+                <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] bg-[var(--accent-dim)]/40 px-4 py-3 sm:px-5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-deep)]">
+                    Estimated value &amp; loan
+                  </div>
+                  <div className="text-[10px] text-[var(--ink-faint)]">
+                    as of {new Date(item.comps.asOf + "T00:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                        <th className="px-4 pt-3 pb-1.5 font-medium sm:px-5">Grade</th>
+                        <th className="px-4 pt-3 pb-1.5 font-medium sm:px-5">Est. value</th>
+                        <th className="px-4 pt-3 pb-1.5 font-medium sm:px-5">
+                          Borrow up to <span className="normal-case">({Math.round(TIER_LTV[item.tier] * 100)}% LTV)</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {item.comps.bands.map((b) => (
+                        <tr key={b.label} className="border-t border-[var(--hairline)]">
+                          <td className="px-4 py-2.5 font-semibold sm:px-5">{b.label}</td>
+                          <td className="px-4 py-2.5 tabular-nums sm:px-5">
+                            {b.low === b.high ? fmtUsd(b.low) : `${fmtUsd(b.low)} – ${fmtUsd(b.high)}`}
+                          </td>
+                          <td className="px-4 py-2.5 tabular-nums font-semibold text-[var(--accent-deep)] sm:px-5">
+                            {b.low === b.high
+                              ? `~${fmtUsd(b.low * TIER_LTV[item.tier])}`
+                              : `~${fmtUsd(b.low * TIER_LTV[item.tier])} – ${fmtUsd(b.high * TIER_LTV[item.tier])}`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="border-t border-[var(--hairline)] px-4 py-2.5 text-[11px] leading-relaxed text-[var(--ink-faint)] sm:px-5">
+                  {item.comps.note && <>{item.comps.note}{" "}</>}
+                  Estimates from {item.comps.source} — your exact card is comped live
+                  at loan time against realized sales. Not an offer.
+                </div>
+              </section>
+            )}
+            {item.comps === null && (
+              <section className="mt-6 rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-4 py-3.5 sm:px-5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                  Estimated value &amp; loan
+                </div>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--ink-soft)]">
+                  Values in this group vary item by item, so we don&apos;t quote a single
+                  range — your exact card is comped against realized sales and the loan
+                  sized at {Math.round(TIER_LTV[item.tier] * 100)}% of that value, on the
+                  terms above.
+                </p>
+              </section>
+            )}
 
             {/* Description */}
             <div className="mt-6 space-y-3">

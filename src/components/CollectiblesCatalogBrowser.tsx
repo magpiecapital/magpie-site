@@ -10,8 +10,23 @@ import Link from "next/link";
 import {
   CATALOG,
   CATEGORY_LABELS,
+  compsAreFresh,
+  fmtUsd,
+  TIER_LTV,
   type CatalogCategoryKey,
+  type CatalogItem,
 } from "@/lib/collectibles-catalog";
+
+/** Compact "Est. $X – $Y · borrow to ~$Z" line for a tile; null when stale/varies. */
+function tileEstimate(i: CatalogItem): { value: string; borrow: string } | null {
+  if (!i.comps || !compsAreFresh(i.comps)) return null;
+  const low = Math.min(...i.comps.bands.map((b) => b.low));
+  const high = Math.max(...i.comps.bands.map((b) => b.high));
+  return {
+    value: low === high ? fmtUsd(low) : `${fmtUsd(low)} – ${fmtUsd(high)}`,
+    borrow: `~${fmtUsd(high * TIER_LTV[i.tier])}`,
+  };
+}
 
 const CATEGORY_ORDER: CatalogCategoryKey[] = ["pokemon", "sports", "onepiece", "yugioh"];
 
@@ -144,6 +159,20 @@ export function CollectiblesCatalogBrowser() {
                 <div className="mt-0.5 truncate text-[11px] text-[var(--ink-faint)]">
                   {i.meta}
                 </div>
+                {(() => {
+                  const est = tileEstimate(i);
+                  return est ? (
+                    <div className="mt-1.5 truncate text-[11px] tabular-nums">
+                      <span className="font-semibold text-[var(--ink)]">Est. {est.value}</span>
+                      <span className="text-[var(--ink-faint)]"> · borrow to </span>
+                      <span className="font-semibold text-[var(--accent-deep)]">{est.borrow}</span>
+                    </div>
+                  ) : (
+                    <div className="mt-1.5 truncate text-[11px] text-[var(--ink-faint)]">
+                      Comped per item at loan time
+                    </div>
+                  );
+                })()}
                 <div className="mt-auto pt-2 text-[11px] font-medium text-[var(--accent-deep)] opacity-0 transition group-hover:opacity-100">
                   View asset →
                 </div>
