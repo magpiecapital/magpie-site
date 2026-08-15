@@ -64,6 +64,8 @@ export default async function CollectibleAssetPage(
           <span className="mx-2">/</span>
           <span>{CATEGORY_LABELS[item.category]}</span>
           <span className="mx-2">/</span>
+          <span>{item.sub}</span>
+          <span className="mx-2">/</span>
           <span className="text-[var(--ink-soft)]">{item.name}</span>
         </nav>
 
