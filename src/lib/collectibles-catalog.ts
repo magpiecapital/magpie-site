@@ -63,6 +63,10 @@ export interface CatalogItem {
   category: CatalogCategoryKey;
   /** Brand / collection-type sub-category (eBay-style drill-down). */
   sub: string;
+  /** Sport (sports category only) — the sub-sub level. */
+  sport?: string;
+  /** Player (sports category only) — the deepest facet. */
+  player?: string;
   tier: "A" | "B";
   /** Grid thumbnail (public path). */
   thumb: string;
@@ -294,6 +298,8 @@ export const CATALOG: CatalogItem[] = [
     meta: "Fleer · 1986 · Rookie",
     category: "sports",
     sub: "Fleer vintage",
+    sport: "Basketball",
+    player: "Michael Jordan",
     tier: "A",
     thumb: `${C}/thumb-x-jordan-fleer-86.webp`,
     image: `${C}/full-x-jordan-fleer-86.webp`,
@@ -311,6 +317,8 @@ export const CATALOG: CatalogItem[] = [
     meta: "Topps Chrome · 2003-04 · Rookie",
     category: "sports",
     sub: "Topps Chrome",
+    sport: "Basketball",
+    player: "LeBron James",
     tier: "B",
     thumb: `${C}/thumb-x-lebron-topps-chrome.webp`,
     image: `${C}/full-x-lebron-topps-chrome.webp`,
@@ -328,6 +336,8 @@ export const CATALOG: CatalogItem[] = [
     meta: "Wembanyama · Luka · Mahomes · Prizm base PSA 10",
     category: "sports",
     sub: "Panini Prizm",
+    sport: "Multi-sport",
+    player: "Multiple",
     tier: "B",
     thumb: `${C}/thumb-x-prizm-rookie-benchmarks.webp`,
     image: `${C}/full-x-prizm-rookie-benchmarks.webp`,
@@ -345,6 +355,8 @@ export const CATALOG: CatalogItem[] = [
     meta: "PSA/DNA · auto grade 9–10 · iconic players",
     category: "sports",
     sub: "Autographs",
+    sport: "Multi-sport",
+    player: "Multiple",
     tier: "B",
     thumb: "/collectibles/cards/thumb-x-prizm-rookie-benchmarks.webp",
     image: "/collectibles/cards/full-x-prizm-rookie-benchmarks.webp",
