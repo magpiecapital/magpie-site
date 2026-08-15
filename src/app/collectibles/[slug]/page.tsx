@@ -9,7 +9,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import {
-  CATALOG,
+  FULL_CATALOG,
   CATEGORY_LABELS,
   CATEGORY_PLATFORMS,
   compsAreFresh,
@@ -25,7 +25,7 @@ export const dynamicParams = false;
 export const revalidate = 86400;
 
 export function generateStaticParams(): Array<{ slug: string }> {
-  return CATALOG.map((i) => ({ slug: i.slug }));
+  return FULL_CATALOG.map((i) => ({ slug: i.slug }));
 }
 
 const TIER_TERMS = {

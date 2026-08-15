@@ -8,7 +8,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  CATALOG,
+  FULL_CATALOG,
   CATEGORY_LABELS,
   compsAreFresh,
   fmtUsd,
@@ -52,13 +52,13 @@ export function CollectiblesCatalogBrowser() {
     () =>
       cat === "all"
         ? []
-        : [...new Set(CATALOG.filter((i) => i.category === cat).map((i) => i.sub))],
+        : [...new Set(FULL_CATALOG.filter((i) => i.category === cat).map((i) => i.sub))],
     [cat],
   );
 
   const items = useMemo(() => {
     const needle = q.trim().toLowerCase();
-    return CATALOG.filter((i) => {
+    return FULL_CATALOG.filter((i) => {
       if (cat !== "all" && i.category !== cat) return false;
       if (sub !== "all" && i.sub !== sub) return false;
       if (tier !== "all" && i.tier !== tier) return false;
@@ -121,7 +121,7 @@ export function CollectiblesCatalogBrowser() {
 
       {/* Result count */}
       <div className="mt-4 text-[12px] text-[var(--ink-faint)]">
-        {items.length} of {CATALOG.length} approved{" "}
+        {items.length} of {FULL_CATALOG.length} approved{" "}
         {items.length === 1 ? "asset" : "assets"}
       </div>
 

@@ -17,7 +17,7 @@
  * Bumped whenever a gate rule changes. Stored alongside every verdict so an
  * old decision stays interpretable after the rules move on.
  */
-export const GATE_VERSION = "v2";
+export const GATE_VERSION = "v3";
 
 export const GRADERS = ["PSA", "CGC", "BGS", "SGC"] as const;
 export const SUPPORTED_PLATFORMS = [
@@ -80,12 +80,18 @@ const TIER_A_PATTERNS: { re: RegExp; label: string; notIf?: RegExp }[] = [
 ];
 
 const TIER_B_PATTERNS: { re: RegExp; label: string }[] = [
-  { re: /\bzapdos\b|\bchansey\b|\bmewtwo\b|\balakazam\b/i, label: "Base Set holo rare" },
-  { re: /\bjungle\b|\bfossil\b/i, label: "Jungle / Fossil 1st Edition holo" },
+  { re: /\bzapdos\b|\bchansey\b|\bmewtwo\b|\balakazam\b|\bninetales\b|\bgyarados\b|\braichu\b|\bclefairy\b|\bhitmonchan\b|\bmagneton\b|\bpoliwrath\b|\bnidoking\b/i, label: "Base Set holo rare" },
+  { re: /\bjungle\b|\bfossil\b|\bsnorlax\b|\bvaporeon\b|\bjolteon\b|\bscyther\b|\bgengar\b|\barticuno\b|\baerodactyl\b|\blapras\b/i, label: "Jungle / Fossil holo" },
+  { re: /\bdark\s+charizard\b|\btyphlosion\b/i, label: "WOTC-era vintage holo (Team Rocket / Neo)" },
+  { re: /\b(umbreon|lugia|giratina|charizard)\s*v\b(?![a-z])/i, label: "modern alt-art V" },
+  { re: /\b(blastoise|venusaur)\s*ex\b/i, label: "151 special illustration rare" },
+  { re: /\b(kobe|kevin\s+durant|giannis|jayson\s+tatum|jokic|lamelo|anthony\s+edwards|damian\s+lillard|devin\s+booker|barkley|patrick\s+ewing|dwyane\s+wade|carmelo|justin\s+herbert|joe\s+burrow|josh\s+allen|lamar\s+jackson|justin\s+jefferson|aaron\s+rodgers|peyton\s+manning|drew\s+brees|joe\s+montana|griffey|mike\s+trout|ohtani|mariano\s+rivera|rickey\s+henderson|mattingly|mcgwire|frank\s+thomas|chipper|tony\s+gwynn|wade\s+boggs|kirby\s+puckett|sidney\s+crosby|connor\s+mcdavid|auston\s+matthews|patrick\s+roy|mbappe|lionel\s+messi)\b/i, label: "verified sports benchmark (catalog)" },
+  { re: /\bdark\s+magician(\s+girl)?\b|\bexodia\b/i, label: "vintage Yu-Gi-Oh first-print icon" },
+  { re: /\bnami\b|\b(roronoa\s+)?zoro\b|\bluffy\b[\s\S]*\b(alt|op01)\b/i, label: "One Piece alt art" },
   { re: /\b(sylveon|glaceon|rayquaza)\s*vmax\b/i, label: "Evolving Skies alt-art VMAX" },
   { re: /\b151\b[\s\S]*\bcharizard\b|\bcharizard\s*ex\b|\bcrown\s*zenith\b/i, label: "modern chase staple (151 Charizard ex · Crown Zenith)" },
   { re: /\bshanks\b|\bgear\s*5\b|\b(one\s*piece|op-?\d{2})\b[\s\S]*\b(manga|alt)\b/i, label: "One Piece manga rare / alt art" },
-  { re: /\bblue[- ]?eyes\b[\s\S]*\b(lob|legend)\b|\blob-?001\b/i, label: "Blue-Eyes White Dragon LOB-001 1st Edition" },
+  { re: /\bblue[- ]?eyes\b[\s\S]*\b(lob|legend|sdk)\b|\blob-?001\b|\bsdk-?001\b/i, label: "Blue-Eyes White Dragon (LOB / SDK first prints)" },
   { re: /\bvoyage\b[\s\S]*\b(college|basketball)\b|\bone\s*piece\b[\s\S]*\bpromo\b/i, label: "One Piece event / crossover promo" },
   { re: /\b(wembanyama|wemby|doncic|luka|mahomes)\b[\s\S]*\bprizm\b|\bprizm\b[\s\S]*\b(wembanyama|wemby|doncic|luka|mahomes)\b/i, label: "modern rookie benchmark (Prizm base)" },
   { re: /\blebron\b/i, label: "LeBron James #111 Topps Chrome" },
