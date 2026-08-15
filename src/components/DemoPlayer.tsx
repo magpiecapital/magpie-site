@@ -17,29 +17,31 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 /* ─── Script: scenes + captions (single source of truth) ─────────── */
 
-export const DEMO_DURATION_MS = 79_000;
+export const DEMO_DURATION_MS = 82_000;
 
 type Caption = { from: number; to: number; text: string };
 export const CAPTIONS: Caption[] = [
   { from: 0, to: 5_500, text: "Magpie lets you borrow SOL against tokens you already hold — without selling them." },
-  { from: 5_500, to: 15_000, text: "Pick your collateral. Three collateral classes, one protocol: memecoins, tokenized stocks & RWAs, and collectibles." },
-  { from: 15_000, to: 26_000, text: "Choose how much to borrow. LTV, duration, and the fee are shown up front — no surprises, no margin calls on fixed terms." },
-  { from: 26_000, to: 37_000, text: "Sign once. Your collateral locks in the on-chain vault, and SOL lands in your wallet — usually within seconds." },
-  { from: 37_000, to: 50_000, text: "Track everything on your dashboard. We remind you before expiry, and /autoextend can renew the loan automatically." },
-  { from: 50_000, to: 63_000, text: "Our flagship — V4 exit orders. Arm a stop-loss, take-profit, or a laddered exit. They fire inside the vault, so your loan stays active." },
-  { from: 63_000, to: 72_000, text: "Repay any time to unlock your collateral. It returns to your wallet in the same transaction." },
-  { from: 72_000, to: 79_000, text: "Collateral that can still sell itself. Start at magpie.capital — or earn yield on the other side at /earn." },
+  { from: 5_500, to: 12_000, text: "Start at magpie.capital and hit Dashboard. Everything lives in one place — borrowing, positions, and exits." },
+  { from: 12_000, to: 21_000, text: "Pick your collateral. Three collateral classes, one protocol: memecoins, tokenized stocks & RWAs, and collectibles." },
+  { from: 21_000, to: 31_500, text: "Choose how much to borrow. LTV, duration, and the fee are shown up front — no surprises, no margin calls on fixed terms." },
+  { from: 31_500, to: 42_000, text: "Sign once. Your collateral locks in the on-chain vault, and SOL lands in your wallet — usually within seconds." },
+  { from: 42_000, to: 54_000, text: "Track everything in Positions. We remind you before expiry, and /autoextend can renew the loan automatically." },
+  { from: 54_000, to: 66_500, text: "Our flagship — V4 exit orders. Arm a stop-loss, take-profit, or a laddered exit. They fire inside the vault, so your loan stays active." },
+  { from: 66_500, to: 75_000, text: "Repay any time to unlock your collateral. It returns to your wallet in the same transaction." },
+  { from: 75_000, to: 82_000, text: "Collateral that can still sell itself. Start at magpie.capital — or earn yield on the other side at /earn." },
 ];
 
 const SCENES = [
   { at: 0, label: "Intro" },
-  { at: 5_500, label: "Choose collateral" },
-  { at: 15_000, label: "Set your loan" },
-  { at: 26_000, label: "Sign & receive" },
-  { at: 37_000, label: "Track & manage" },
-  { at: 50_000, label: "V4 exit orders" },
-  { at: 63_000, label: "Repay & reclaim" },
-  { at: 72_000, label: "Done" },
+  { at: 5_500, label: "Open the Dashboard" },
+  { at: 12_000, label: "Choose collateral" },
+  { at: 21_000, label: "Set your loan" },
+  { at: 31_500, label: "Sign & receive" },
+  { at: 42_000, label: "Track & manage" },
+  { at: 54_000, label: "V4 exit orders" },
+  { at: 66_500, label: "Repay & reclaim" },
+  { at: 75_000, label: "Done" },
 ];
 
 /* ─── tiny timeline helpers ──────────────────────────────────────── */
@@ -66,19 +68,55 @@ function sceneIndexAt(t: number): number {
 
 /* ─── Scene chrome: a stylized app frame ─────────────────────────── */
 
-function Frame({ children }: { children: React.ReactNode }) {
+function Frame({
+  children,
+  url = "magpie.capital/dashboard",
+  nav,
+}: {
+  children: React.ReactNode;
+  url?: string;
+  nav?: "Overview" | "Borrow" | "Positions" | "Earn";
+}) {
+  const NAV_ITEMS: Array<{ label: "Overview" | "Borrow" | "Positions" | "Earn"; icon: string }> = [
+    { label: "Overview", icon: "▦" },
+    { label: "Borrow", icon: "↧" },
+    { label: "Positions", icon: "◎" },
+    { label: "Earn", icon: "✦" },
+  ];
   return (
-    <div className="absolute inset-0 flex items-center justify-center p-[4%]">
+    <div className="absolute inset-0 flex items-center justify-center p-[3.5%]">
       <div className="relative h-full w-full max-w-[560px] overflow-hidden rounded-2xl border border-[var(--hairline-strong)] bg-[var(--bg)] shadow-xl">
         <div className="flex h-8 items-center gap-1.5 border-b border-[var(--hairline)] bg-[var(--bg-elevated)] px-3">
           <span className="h-2.5 w-2.5 rounded-full bg-[var(--hairline-strong)]" />
           <span className="h-2.5 w-2.5 rounded-full bg-[var(--hairline-strong)]" />
           <span className="h-2.5 w-2.5 rounded-full bg-[var(--hairline-strong)]" />
           <span className="mx-auto rounded-md bg-[var(--bg)] px-3 py-0.5 text-[10px] text-[var(--ink-faint)]">
-            magpie.capital
+            {url}
           </span>
         </div>
-        <div className="relative h-[calc(100%-2rem)]">{children}</div>
+        <div className="flex h-[calc(100%-2rem)]">
+          {nav && (
+            <aside className="flex w-[86px] shrink-0 flex-col gap-0.5 border-r border-[var(--hairline)] bg-[var(--bg-elevated)] p-1.5 pt-2">
+              {NAV_ITEMS.map((item) => (
+                <div
+                  key={item.label}
+                  className={`flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10px] font-medium ${
+                    item.label === nav
+                      ? "bg-[var(--accent-dim)] text-[var(--ink)]"
+                      : "text-[var(--ink-faint)]"
+                  }`}
+                >
+                  <span aria-hidden>{item.icon}</span>
+                  {item.label}
+                </div>
+              ))}
+              <div className="mt-auto rounded-lg px-2 py-1.5 text-[9px] text-[var(--ink-faint)]">
+                7xF2…9kQd
+              </div>
+            </aside>
+          )}
+          <div className="relative flex-1">{children}</div>
+        </div>
       </div>
     </div>
   );
@@ -87,7 +125,7 @@ function Frame({ children }: { children: React.ReactNode }) {
 function Chip({ children, active = false }: { children: React.ReactNode; active?: boolean }) {
   return (
     <div
-      className={`rounded-xl border px-3 py-2 text-left text-xs font-medium transition-colors ${
+      className={`rounded-xl border px-2 py-2 text-left text-[11px] font-medium whitespace-nowrap transition-colors ${
         active
           ? "border-[var(--accent-deep)] bg-[var(--accent-dim)] text-[var(--ink)]"
           : "border-[var(--hairline)] bg-[var(--bg-elevated)] text-[var(--ink-soft)]"
@@ -124,11 +162,80 @@ function SceneIntro({ t }: { t: number }) {
   );
 }
 
-function SceneChoose({ t }: { t: number }) {
+function SceneNavigate({ t }: { t: number }) {
   const local = t - 5_500;
+  const clicked = local > 3_600;
+  // cursor glides from lower-left toward the Dashboard button
+  const p = ease(seg(local, 800, 3_400));
+  const cx = 18 + p * 66; // percent
+  const cy = 72 - p * 58;
+  return (
+    <Frame url={clicked ? "magpie.capital/dashboard" : "magpie.capital"}>
+      <div className="relative flex h-full flex-col p-4">
+        {/* mini homepage header */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-semibold tracking-tight">magpie</span>
+          <span
+            className={`rounded-full px-3 py-1 text-[11px] font-semibold transition-all ${
+              clicked
+                ? "bg-[var(--accent)] text-[var(--accent-ink)] ring-2 ring-[var(--accent-deep)]"
+                : "bg-[var(--accent)] text-[var(--accent-ink)]"
+            }`}
+          >
+            Dashboard →
+          </span>
+        </div>
+        {!clicked ? (
+          <div className="flex flex-1 flex-col items-start justify-center gap-2">
+            <div style={enter(local, 300)} className="font-display text-xl tracking-[-0.03em]">
+              Liquidity without <span className="italic">selling your bag.</span>
+            </div>
+            <div style={enter(local, 900)} className="text-[11px] text-[var(--ink-soft)]">
+              magpie.capital — then one click to your dashboard.
+            </div>
+          </div>
+        ) : (
+          <div style={enter(local, 3_700, 350)} className="flex flex-1 flex-col justify-center gap-2">
+            <div className="text-sm font-semibold">Dashboard</div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-2 text-center">
+                <div className="text-sm font-semibold">0</div>
+                <div className="text-[9px] text-[var(--ink-faint)]">Active loans</div>
+              </div>
+              <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-2 text-center">
+                <div className="text-sm font-semibold">59.5</div>
+                <div className="text-[9px] text-[var(--ink-faint)]">SOL collateral value</div>
+              </div>
+              <div className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-2 text-center">
+                <div className="text-sm font-semibold">—</div>
+                <div className="text-[9px] text-[var(--ink-faint)]">Exit orders</div>
+              </div>
+            </div>
+            <div className="text-center text-[10px] text-[var(--accent-deep)]">
+              Ready to borrow — let&apos;s go ↓
+            </div>
+          </div>
+        )}
+        {/* cursor */}
+        {!clicked && (
+          <div
+            className="pointer-events-none absolute z-10 text-base"
+            style={{ left: `${cx}%`, top: `${cy}%` }}
+            aria-hidden
+          >
+            <span className="drop-shadow">↖</span>
+          </div>
+        )}
+      </div>
+    </Frame>
+  );
+}
+
+function SceneChoose({ t }: { t: number }) {
+  const local = t - 12_000;
   const picked = local > 5_200;
   return (
-    <Frame>
+    <Frame nav="Borrow">
       <div className="flex h-full flex-col justify-center gap-3 p-4 pb-8">
         <div style={enter(local, 200)} className="text-sm font-semibold">
           Marketplace — three collateral classes
@@ -184,12 +291,12 @@ function SceneChoose({ t }: { t: number }) {
 }
 
 function SceneTerms({ t }: { t: number }) {
-  const local = t - 15_000;
+  const local = t - 21_000;
   const slide = ease(seg(local, 1_200, 5_000)); // amount slider filling
   const amount = (3 + slide * 4.7).toFixed(1); // 3 → 7.7 SOL
   return (
-    <Frame>
-      <div className="flex h-full flex-col justify-center gap-3 p-4">
+    <Frame nav="Borrow">
+      <div className="flex h-full flex-col justify-center gap-2.5 p-4 pb-8">
         <div style={enter(local, 200)} className="text-sm font-semibold">
           Set your loan — WIF collateral
         </div>
@@ -215,8 +322,7 @@ function SceneTerms({ t }: { t: number }) {
         </div>
         <div style={enter(local, 3_000)} className="rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-3">
           <div className="space-y-1.5">
-            <Row k="Duration" v="7 days — fixed term" />
-            <Row k="Due date" v="shown before you sign" />
+            <Row k="Duration" v="7 days — fixed term, due date shown up front" />
             <Row k="Margin calls" v="none on fixed terms" strong />
           </div>
         </div>
@@ -226,11 +332,11 @@ function SceneTerms({ t }: { t: number }) {
 }
 
 function SceneSign({ t }: { t: number }) {
-  const local = t - 26_000;
+  const local = t - 31_500;
   const signed = local > 3_800;
   const landed = local > 6_400;
   return (
-    <Frame>
+    <Frame nav="Borrow">
       <div className="flex h-full flex-col items-center justify-center gap-3 p-4">
         {!signed && (
           <div style={enter(local, 400)} className="w-full max-w-[300px] rounded-xl border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] p-4 text-center shadow-md">
@@ -264,10 +370,10 @@ function SceneSign({ t }: { t: number }) {
 }
 
 function SceneTrack({ t }: { t: number }) {
-  const local = t - 37_000;
+  const local = t - 42_000;
   const dm = local > 5_000;
   return (
-    <Frame>
+    <Frame nav="Positions">
       <div className="flex h-full flex-col justify-center gap-3 p-4">
         <div style={enter(local, 200)} className="text-sm font-semibold">
           Your loan dashboard
@@ -299,10 +405,10 @@ function SceneTrack({ t }: { t: number }) {
 }
 
 function SceneV4({ t }: { t: number }) {
-  const local = t - 50_000;
+  const local = t - 54_000;
   const armed = local > 6_500;
   return (
-    <Frame>
+    <Frame nav="Positions">
       <div className="flex h-full flex-col justify-start gap-1.5 p-3 pt-2 pb-12">
         <div style={enter(local, 200)} className="flex items-baseline justify-between">
           <span className="text-sm font-semibold">Protect the position — exit orders</span>
@@ -344,10 +450,10 @@ function SceneV4({ t }: { t: number }) {
 }
 
 function SceneRepay({ t }: { t: number }) {
-  const local = t - 63_000;
+  const local = t - 66_500;
   const done = local > 3_600;
   return (
-    <Frame>
+    <Frame nav="Positions">
       <div className="flex h-full flex-col items-center justify-center gap-3 p-4">
         {!done && (
           <div style={enter(local, 300)} className="w-full max-w-[300px] rounded-xl border border-[var(--hairline-strong)] bg-[var(--bg-elevated)] p-4 text-center shadow-md">
@@ -379,7 +485,7 @@ function SceneRepay({ t }: { t: number }) {
 }
 
 function SceneOutro({ t }: { t: number }) {
-  const local = t - 72_000;
+  const local = t - 75_000;
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center">
       <div style={enter(local, 300)} className="font-display text-2xl tracking-[-0.03em] sm:text-3xl">
@@ -403,13 +509,14 @@ function Scenes({ t }: { t: number }) {
   return (
     <>
       {idx === 0 && <SceneIntro t={t} />}
-      {idx === 1 && <SceneChoose t={t} />}
-      {idx === 2 && <SceneTerms t={t} />}
-      {idx === 3 && <SceneSign t={t} />}
-      {idx === 4 && <SceneTrack t={t} />}
-      {idx === 5 && <SceneV4 t={t} />}
-      {idx === 6 && <SceneRepay t={t} />}
-      {idx === 7 && <SceneOutro t={t} />}
+      {idx === 1 && <SceneNavigate t={t} />}
+      {idx === 2 && <SceneChoose t={t} />}
+      {idx === 3 && <SceneTerms t={t} />}
+      {idx === 4 && <SceneSign t={t} />}
+      {idx === 5 && <SceneTrack t={t} />}
+      {idx === 6 && <SceneV4 t={t} />}
+      {idx === 7 && <SceneRepay t={t} />}
+      {idx === 8 && <SceneOutro t={t} />}
     </>
   );
 }
