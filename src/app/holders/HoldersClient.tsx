@@ -181,7 +181,7 @@ export default function HoldersClient() {
           </div>
           <div className="grid gap-6 md:grid-cols-3">
             <Step n={1} title="Loans pay fees">
-              Every borrow + extend on Magpie charges a fee. Per MGP-001 (passed 2026-06-13), the split is 70% to $MAGPIE holders, 10% to LP loyalty, 10% to referrers, 10% to the protocol reserve. When a loan has no referrer, that 10% rolls into the holder pool — so holders earn 80% on non-referral loans, and 100% of every fee is always distributed.
+              Every borrow and extend pays a fee, split 70/10/10/10: holders, LP loyalty, referrers, reserve (MGP-001). No referrer? That 10% rolls to holders — 80% on those loans. 100% of every fee is always distributed.
             </Step>
             <Step n={2} title="Periodic snapshots">
               The protocol snapshots every wallet holding $MAGPIE on-chain (excluding
@@ -208,11 +208,9 @@ export default function HoldersClient() {
                 Holder-first. Real revenue, real on-chain.
               </h2>
               <p className="mt-4 max-w-xl text-base text-[var(--ink-soft)]">
-                Per MGP-001 (ratified 2026-06-13), every loan fee splits 70/10/10/10
-                across $MAGPIE holders, LP loyalty, referrers, and the protocol reserve.
-                Holders get the largest slice — paid in real SOL, sourced from real
-                loan activity. Snapshot fires on a 5–10 day random cadence; SOL lands
-                in any wallet holding $MAGPIE at snapshot time.
+                Every loan fee splits 70/10/10/10 — holders, LP loyalty, referrers,
+                reserve (MGP-001). Hold $MAGPIE at snapshot, get real SOL from real
+                loans. Snapshots fire randomly every 5–10 days.
               </p>
             </div>
             <div className="rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-6 sm:p-8">
@@ -237,16 +235,13 @@ export default function HoldersClient() {
               on-chain balances directly — no staking contract, no lockup.
             </Faq>
             <Faq q="How do I receive my SOL?">
-              Automatically. On a randomized 5–10 day cadence the protocol snapshots
-              all $MAGPIE holders and sends each their pro-rata share via on-chain
-              transfer. SOL just appears in the wallet that holds $MAGPIE — no claim
-              button, no signing, no bot account needed.
+              Automatically. Every 5–10 days the protocol snapshots all holders and
+              sends each their pro-rata SOL on-chain. It just appears — no claiming,
+              no signing, no account.
             </Faq>
             <Faq q="When do distributions happen?">
-              Periodically. Snapshots fire at random within an internal window — the
-              exact time isn't published, on purpose. This stops mercenary holders from
-              buying just before a snapshot and dumping right after. Long-term holders
-              catch more snapshots and earn proportionally more.
+              At random, on purpose — unpublished timing stops snapshot-sniping.
+              Long-term holders catch more snapshots and earn more.
             </Faq>
             <Faq q="Which wallets are eligible?">
               Every on-chain $MAGPIE holder is eligible except: DEX pool accounts
@@ -259,7 +254,7 @@ export default function HoldersClient() {
               flakiness.
             </Faq>
             <Faq q="How are LPs compensated under MGP-001?">
-              LPs receive the 10% LP loyalty slice of every loan fee, distributed by shares × time held on the same snapshot cadence. Pre-MGP-001 LPs kept 80% as share-price growth; voters chose to reweight more heavily toward $MAGPIE holders (the 70% slice) when MGP-001 passed 2026-06-13. The lending pool is still safety-stacked the same way — LP capital still backs the loan book.
+              LPs earn the 10% loyalty slice, weighted by shares × time held, on the same cadence. (MGP-001 reweighted fees toward holders; LP capital still backs the loan book exactly as before.)
             </Faq>
           </div>
           <div className="mt-12 flex flex-wrap items-center gap-3">

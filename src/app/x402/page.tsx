@@ -15,7 +15,7 @@ const SOLSCAN_URL = `https://solscan.io/token/${MAGPIE_MINT}`;
 export const metadata: Metadata = {
   title: "magpie-x402 · Permissionless agent lending on Solana | Magpie",
   description:
-    "An autonomous agent takes a permissionless loan against its OWN assets — borrow SOL against memecoin (V1) or tokenized-RWA (V3) collateral, arm in-vault take-profit/stop-loss exits (V4), repay. No signup, no API key, zero custody. A governance-set 70% target of protocol fees (MGP-001) is allocated to $MAGPIE holders.",
+    "Agents borrow SOL against their OWN assets — memecoins (V1) or tokenized RWAs (V3) — arm in-vault exits (V4), repay. No signup, no API key, zero custody. 70% of protocol fees flow to $MAGPIE holders (MGP-001).",
   openGraph: {
     title: "magpie-x402 · Permissionless agent lending on Solana",
     description:
@@ -60,7 +60,7 @@ const WHY_AGENT_NATIVE = [
   },
   {
     title: "Same protections humans get.",
-    desc: "Every gate the human borrow flow runs — ban registry, TWAP price-impact, pool liquidity floor, per-token exposure cap, cross-source price agreement, RWA-only enforcement, imported-wallet cooldown, exploit auto-detector — runs on agent borrows too. No exemptions. The protocol treats agents and humans identically.",
+    desc: "Agents pass every gate humans do — ban registry, TWAP impact, liquidity floors, exposure caps, cross-source pricing, cooldowns, exploit detection. No exemptions.",
   },
 ];
 

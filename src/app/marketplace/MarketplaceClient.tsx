@@ -1023,19 +1023,16 @@ export function MarketplaceClient({
                   Magpie Credit Score
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
-                  Every borrower starts at 500. On-time repayments raise your score; missed terms lower it.
-                  Your score is tied to your wallet and follows you across every Magpie surface (dashboard,
-                  Telegram, Pip) — it&rsquo;s the closest thing the protocol has to a permissionless reputation
-                  primitive.
+                  Start at 500. Repay on time, it rises; miss a term, it falls. Tied to your
+                  wallet, visible on every Magpie surface — permissionless reputation.
                 </p>
                 <div className="mt-4 text-sm text-[var(--ink-soft)]">
                   <strong className="text-[var(--ink)]">What it does today:</strong> tracks reputation,
                   gates per-user borrow-size limits, shows up on the leaderboard and your /stats card.
                 </div>
                 <div className="mt-2 text-sm text-[var(--ink-soft)]">
-                  <strong className="text-[var(--ink)]">What it doesn&rsquo;t do yet:</strong> change your
-                  tier LTV, fee, or term length. The three tier options shown above are the same for every
-                  wallet — Bronze through Platinum. Credit-gated tier upgrades are on the roadmap.
+                  <strong className="text-[var(--ink)]">What it doesn&rsquo;t do yet:</strong> change your LTV,
+                  fee, or term — those are identical for every wallet today. Credit-gated upgrades are on the roadmap.
                 </div>
                 <div className="mt-4 text-sm text-[var(--ink-soft)]">
                   <strong className="text-[var(--ink)]">Score factors:</strong> Repayment history (40%), Loan volume (20%),
