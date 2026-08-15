@@ -1089,7 +1089,7 @@ export default function EarnPage() {
               <h3 className="font-display text-base font-semibold mb-3 sm:text-lg sm:mb-4">How LP yield works in detail</h3>
               <div className="space-y-3 text-sm text-[var(--ink-soft)]">
                 <p>
-                  Post-MGP-001 (ratified 2026-06-13), 100% of every loan fee is routed off to four separate distribution pools (70/10/10/10: holders / LP loyalty / referrer / protocol reserve). The lending pool itself doesn&apos;t retain interest, so share value tracks principal not yield. Your LP yield comes through the <span className="font-semibold text-[var(--ink)]">10% LP loyalty distribution</span> instead — a snapshot-based payout in SOL.
+                  Every loan fee routes 70/10/10/10 to holders / LP loyalty / referrers / reserve (MGP-001), so share value tracks principal. Your yield is the <span className="font-semibold text-[var(--ink)]">10% LP loyalty payout</span> — SOL, snapshot-based.
                 </p>
                 <div className="rounded-xl border border-[var(--hairline)] bg-[var(--surface)] p-3 font-mono text-[12px] text-[var(--ink)] sm:text-[13px]">
                   withdraw = your_shares × (current_vault_balance / total_shares)
@@ -1119,7 +1119,7 @@ export default function EarnPage() {
                   </li>
                 </ul>
                 <p>
-                  Longer-tenured LPs always earn proportionally more. The mechanism is share-weighted-by-time, not share-price growth. This change happened when MGP-001 passed 2026-06-13 — voters chose to reweight more aggressively toward $MAGPIE holders (the 70% slice).
+                  Longer-tenured LPs earn more: payouts weight shares × time held, not share-price growth (per MGP-001).
                 </p>
               </div>
             </div>

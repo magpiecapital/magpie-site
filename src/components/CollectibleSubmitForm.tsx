@@ -295,9 +295,8 @@ export function CollectibleSubmitForm() {
         </div>
 
         <p className="mt-4 text-[12px] leading-relaxed text-[var(--ink-faint)]">
-          Everything here is checked. We verify the cert against the grader&apos;s own
-          records and confirm on-chain that you hold the card before any loan — so
-          details that don&apos;t match the slab simply won&apos;t clear.
+          Everything is checked: the cert against the grader&apos;s records, ownership
+          on-chain before any loan. Details that don&apos;t match the slab won&apos;t clear.
         </p>
 
         {error && (
