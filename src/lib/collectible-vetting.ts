@@ -17,7 +17,7 @@
  * Bumped whenever a gate rule changes. Stored alongside every verdict so an
  * old decision stays interpretable after the rules move on.
  */
-export const GATE_VERSION = "v1";
+export const GATE_VERSION = "v2";
 
 export const GRADERS = ["PSA", "CGC", "BGS", "SGC"] as const;
 export const SUPPORTED_PLATFORMS = [
@@ -63,17 +63,31 @@ export interface VettingResult {
 
 /* ── The launch allowlist, keyed for matching (mirrors doc 26) ────────── */
 
-const TIER_A_PATTERNS: { re: RegExp; label: string }[] = [
-  { re: /\bcharizard\b/i, label: "Base Set Charizard #4" },
-  { re: /\bblastoise\b/i, label: "Base Set Blastoise #2" },
-  { re: /\bvenusaur\b/i, label: "Base Set Venusaur #15" },
-  { re: /\blugia\b/i, label: "Neo Genesis Lugia #9" },
+/**
+ * Modern-set markers. The vintage Tier A patterns are guarded by this so a
+ * "151 Charizard ex" or a Charizard VMAX cannot ride the vintage Charizard
+ * pattern into Tier A — the modern printing is its own (Tier B) market.
+ */
+const MODERN_MARKERS = /\b(151|ex|gx|vmax|vstar|sir|crown\s*zenith|paldea|obsidian|paradox|temporal)\b/i;
+
+const TIER_A_PATTERNS: { re: RegExp; label: string; notIf?: RegExp }[] = [
+  { re: /\bcharizard\b/i, label: "Base Set Charizard #4", notIf: MODERN_MARKERS },
+  { re: /\bblastoise\b/i, label: "Base Set Blastoise #2", notIf: MODERN_MARKERS },
+  { re: /\bvenusaur\b/i, label: "Base Set Venusaur #15", notIf: MODERN_MARKERS },
+  { re: /\blugia\b/i, label: "Neo Genesis Lugia #9", notIf: MODERN_MARKERS },
+  { re: /\bumbreon\s*vmax\b|\bmoonbreon\b/i, label: "Evolving Skies Umbreon VMAX #215 alt art" },
   { re: /\b(michael\s+)?jordan\b/i, label: "1986 Fleer Jordan #57" },
 ];
 
 const TIER_B_PATTERNS: { re: RegExp; label: string }[] = [
   { re: /\bzapdos\b|\bchansey\b|\bmewtwo\b|\balakazam\b/i, label: "Base Set holo rare" },
   { re: /\bjungle\b|\bfossil\b/i, label: "Jungle / Fossil 1st Edition holo" },
+  { re: /\b(sylveon|glaceon|rayquaza)\s*vmax\b/i, label: "Evolving Skies alt-art VMAX" },
+  { re: /\b151\b[\s\S]*\bcharizard\b|\bcharizard\s*ex\b|\bcrown\s*zenith\b/i, label: "modern chase staple (151 Charizard ex · Crown Zenith)" },
+  { re: /\bshanks\b|\bgear\s*5\b|\b(one\s*piece|op-?\d{2})\b[\s\S]*\b(manga|alt)\b/i, label: "One Piece manga rare / alt art" },
+  { re: /\bblue[- ]?eyes\b[\s\S]*\b(lob|legend)\b|\blob-?001\b/i, label: "Blue-Eyes White Dragon LOB-001 1st Edition" },
+  { re: /\bvoyage\b[\s\S]*\b(college|basketball)\b|\bone\s*piece\b[\s\S]*\bpromo\b/i, label: "One Piece event / crossover promo" },
+  { re: /\b(wembanyama|wemby|doncic|luka|mahomes)\b[\s\S]*\bprizm\b|\bprizm\b[\s\S]*\b(wembanyama|wemby|doncic|luka|mahomes)\b/i, label: "modern rookie benchmark (Prizm base)" },
   { re: /\blebron\b/i, label: "LeBron James #111 Topps Chrome" },
 ];
 
@@ -219,8 +233,12 @@ export function vetSubmission(sub: Submission): VettingResult {
   // A signed slab is its own market. Never comped against unsigned sales.
   const isAuto = autoOk && !numericOk;
 
-  // V-5/V-6 — allowlist match sets the provisional tier.
-  const aHit = TIER_A_PATTERNS.find((p) => p.re.test(haystack));
+  // V-5/V-6 — allowlist match sets the provisional tier. A vintage Tier A
+  // pattern is skipped when its modern-marker guard fires (the modern
+  // printing is a different, Tier B market).
+  const aHit = TIER_A_PATTERNS.find(
+    (p) => p.re.test(haystack) && !(p.notIf && p.notIf.test(haystack)),
+  );
   const bHit = TIER_B_PATTERNS.find((p) => p.re.test(haystack));
 
   let tier: "A" | "B" | null = null;
