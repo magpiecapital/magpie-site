@@ -302,7 +302,7 @@ export const CATALOG: CatalogItem[] = [
     image: `${C}/full-op01-120-shanks.webp`,
     description: [
       "The chase tier of the fastest-growing TCG of the decade. One Piece manga rares and alt arts — OP01 Shanks, Gear 5 Luffy and peers — sell in dense, continuous volume in graded form.",
-      "The band is exactly our sweet spot: most of these trade between the low hundreds and low thousands, with fresh comps weekly.",
+      "Sales are dense and continuous in graded form, with fresh comps landing weekly — exactly the sold-record depth our vetting standard requires.",
     ],
     compQuery: "OP01-120 Shanks manga rare PSA 10",
     compNote: "English and Japanese printings are comped separately.",
