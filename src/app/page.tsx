@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 import { CountUp } from "@/components/CountUp";
 import { LiveProtocolTicker } from "@/components/LiveProtocolTicker";
 import { CollateralChooser } from "@/components/CollateralChooser";
-import { DemoPlayer } from "@/components/DemoPlayer";
+import { HowItWorksVideo } from "@/components/HowItWorksVideo";
 import { getTokenStats } from "@/lib/db";
 import { TELEGRAM_URL } from "@/lib/telegram-links";
 
@@ -205,13 +205,13 @@ export default async function Home() {
               From bag to borrowed <span className="italic">in about a minute.</span>
             </h2>
             <p className="mx-auto mt-2 max-w-lg text-sm text-[var(--ink-soft)] sm:text-base">
-              Watch the whole flow — pick collateral, set terms, sign, track, repay. Captioned, no sound.
+              Real footage of the real product — narrated and captioned. Pick collateral, set terms, sign, track, arm exits, repay.
             </p>
           </div>
         </Reveal>
         <Reveal>
           <div className="mx-auto max-w-3xl">
-            <DemoPlayer />
+            <HowItWorksVideo />
           </div>
         </Reveal>
       </section>
