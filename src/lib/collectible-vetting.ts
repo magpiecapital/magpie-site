@@ -309,7 +309,8 @@ export function vetSubmission(sub: Submission): VettingResult {
       headline: "Promising — but it needs to be vaulted and tokenized first.",
       checks,
       next: [
-        "Vault and tokenize the card on Collector Crypt, Courtyard, Phygitals or Beezie.",
+        "Follow the guided path at magpie.capital/collectibles/tokenize — pick a vaulting platform (Collector Crypt, Phygitals, …), ship the slab, receive the token.",
+        "Then come back: once the token is in your wallet, the loan is waiting.",
         soldCompStep,
       ],
       tier,

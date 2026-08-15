@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { CATALOG } from "@/lib/collectibles-catalog";
 
 const SITE_URL = "https://www.magpie.capital";
 
@@ -40,8 +41,15 @@ async function borrowPages(now: Date): Promise<MetadataRoute.Sitemap> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
   const tokenPages = await borrowPages(now);
+  const collectiblePages: MetadataRoute.Sitemap = CATALOG.map((i) => ({
+    url: `${SITE_URL}/collectibles/${i.slug}`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
   return [
     ...tokenPages,
+    ...collectiblePages,
     {
       url: SITE_URL,
       lastModified: now,
@@ -220,6 +228,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.8,
+    },
+    {
+      // Tokenize-to-borrow funnel — approved-but-unvaulted submissions
+      // route here; the partner story in product form.
+      url: `${SITE_URL}/collectibles/tokenize`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.75,
     },
     {
       url: `${SITE_URL}/status`,

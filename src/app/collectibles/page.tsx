@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { CollectibleSubmitForm } from "@/components/CollectibleSubmitForm";
+import { CollectiblesCatalogBrowser } from "@/components/CollectiblesCatalogBrowser";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
 
@@ -116,96 +117,9 @@ const TIER_TERMS = [
   },
 ] as const;
 
-// The catalog, organized the way a collector shops: by category. Status
-// is honest — "live" categories are on the launch list today; "watchlist"
-// are being vetted against the same sold-comp standard; "soon" are next
-// in the design queue and not yet accepted anywhere.
-type CategoryStatus = "live" | "watchlist" | "soon";
-interface CategoryItem { name: string; meta: string; tier: "A" | "B" }
-interface Category {
-  key: string;
-  name: string;
-  status: CategoryStatus;
-  tagline: string;
-  items: CategoryItem[];
-}
+// The browsable catalog lives in lib/collectibles-catalog + the
+// CollectiblesCatalogBrowser client component (filters, images, per-asset pages).
 
-const CATEGORIES: Category[] = [
-  {
-    key: "pokemon",
-    name: "Pokémon",
-    status: "live",
-    tagline: "The deepest sold histories in the hobby — vintage Base Set to modern alt-art chase.",
-    items: [
-      { name: "Charizard #4", meta: "Base Set · 1999", tier: "A" },
-      { name: "Blastoise #2 · Venusaur #15", meta: "Base Set · 1999", tier: "A" },
-      { name: "Lugia #9", meta: "Neo Genesis · 2000", tier: "A" },
-      { name: "Umbreon VMAX #215 alt art", meta: "Evolving Skies · 2021", tier: "A" },
-      { name: "Base Set holo rares", meta: "Zapdos · Chansey · Mewtwo · Alakazam", tier: "B" },
-      { name: "Jungle & Fossil holos", meta: "1st Edition · 1999", tier: "B" },
-      { name: "Evolving Skies alt-art VMAX", meta: "Sylveon · Glaceon · Rayquaza", tier: "B" },
-      { name: "Modern chase staples", meta: "151 Charizard ex SIR · Crown Zenith GG", tier: "B" },
-    ],
-  },
-  {
-    key: "sports",
-    name: "Sports Cards",
-    status: "live",
-    tagline: "Basketball, football & baseball — vintage grails to modern rookie benchmarks.",
-    items: [
-      { name: "Michael Jordan #57", meta: "Fleer · 1986", tier: "A" },
-      { name: "LeBron James #111", meta: "Topps Chrome · 2003-04", tier: "B" },
-      { name: "Modern rookie benchmarks", meta: "Wembanyama · Luka · Mahomes · Prizm PSA 10", tier: "B" },
-      { name: "Autographed rookies", meta: "PSA/DNA · auto 9–10", tier: "B" },
-    ],
-  },
-  {
-    key: "onepiece",
-    name: "One Piece TCG",
-    status: "live",
-    tagline: "High-velocity manga rares, alt arts and official event promos.",
-    items: [
-      { name: "Manga rares & alt arts", meta: "OP01 Shanks · Gear 5 Luffy · PSA 9–10", tier: "B" },
-      { name: "Event & crossover promos", meta: "US Voyage college basketball · Bandai", tier: "B" },
-    ],
-  },
-  {
-    key: "yugioh",
-    name: "Yu-Gi-Oh!",
-    status: "live",
-    tagline: "The icons with two decades of sales behind them.",
-    items: [
-      { name: "Blue-Eyes White Dragon", meta: "LOB-001 · 1st Edition · 2002", tier: "B" },
-    ],
-  },
-  {
-    key: "mtg",
-    name: "Magic: The Gathering",
-    status: "watchlist",
-    tagline: "Mapping the liquid mid-band now. Trophy pieces like Alpha rarities stay excluded — no population, no comps.",
-    items: [],
-  },
-  {
-    key: "lorcana",
-    name: "Disney Lorcana",
-    status: "watchlist",
-    tagline: "Enchanted rares are building a graded sales record — vetting against the same sold-comp standard.",
-    items: [],
-  },
-  {
-    key: "comics",
-    name: "Comics — CGC keys",
-    status: "soon",
-    tagline: "Modern keys with dense sold histories — next in the design queue once a vaulting partner supports them.",
-    items: [],
-  },
-];
-
-const STATUS_CHIP: Record<CategoryStatus, { label: string; cls: string }> = {
-  live: { label: "On the list", cls: "bg-emerald-500/12 text-emerald-500" },
-  watchlist: { label: "Watchlist", cls: "bg-amber-400/15 text-amber-500" },
-  soon: { label: "Coming soon", cls: "bg-[var(--surface-strong)] text-[var(--ink-faint)]" },
-};
 
 // Platforms that already vault + tokenize graded cards. These are INDEPENDENT
 // businesses. We link out and use each mark nominatively, to
@@ -399,71 +313,20 @@ export default function CollectiblesPage() {
           </div>
         </Reveal>
 
-        {/* ── The catalog, by category ── */}
+        {/* ── The catalog: filterable, image-led, every asset clickable ── */}
         <div className="mx-auto mt-10 max-w-6xl sm:mt-14">
           <Reveal>
             <h3 className="font-display text-center text-xl font-medium tracking-[-0.02em] sm:text-2xl">
               Browse the catalog
             </h3>
             <p className="mx-auto mt-2 max-w-md text-center text-[13px] text-[var(--ink-soft)] sm:text-sm">
-              Organized the way you shop — by category. Every item carries the
-              tier that sets its terms.
+              Filter by category or tier, search anything, and open any asset for
+              its full profile — description, live sale comps and where it&apos;s
+              tokenized.
             </p>
           </Reveal>
-          <div className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:mt-8 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
-            {CATEGORIES.map((c, i) => (
-              <Reveal key={c.key} delay={i * 60} className="h-full">
-                <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)]">
-                  <div className="flex items-start justify-between gap-3 border-b border-[var(--hairline)] bg-[var(--surface)] px-5 py-4">
-                    <div className="min-w-0">
-                      <div className="font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
-                        {c.name}
-                      </div>
-                      <p className="mt-1 text-[11px] leading-relaxed text-[var(--ink-soft)] sm:text-[12px]">
-                        {c.tagline}
-                      </p>
-                    </div>
-                    <span
-                      className={`mt-0.5 flex-none rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${STATUS_CHIP[c.status].cls}`}
-                    >
-                      {STATUS_CHIP[c.status].label}
-                    </span>
-                  </div>
-                  {c.items.length > 0 ? (
-                    <ul className="flex flex-1 flex-col divide-y divide-[var(--hairline)]">
-                      {c.items.map((it) => (
-                        <li key={it.name} className="flex items-center gap-3 px-5 py-2.5">
-                          <span
-                            className={`flex h-5 w-5 flex-none items-center justify-center rounded-md text-[10px] font-bold ${
-                              it.tier === "A"
-                                ? "bg-[var(--accent)]/18 text-[var(--accent-deep)]"
-                                : "bg-[var(--surface-strong)] text-[var(--ink-soft)]"
-                            }`}
-                            title={`Tier ${it.tier}`}
-                          >
-                            {it.tier}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[13px] font-medium text-[var(--ink)] sm:text-sm">
-                              {it.name}
-                            </span>
-                            <span className="block truncate text-[11px] tracking-[0.02em] text-[var(--ink-faint)]">
-                              {it.meta}
-                            </span>
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <div className="flex flex-1 items-center px-5 py-4 text-[12px] leading-relaxed text-[var(--ink-faint)]">
-                      {c.status === "watchlist"
-                        ? "Being vetted against the same sold-comp standard as every live category."
-                        : "Not accepted yet — on the design roadmap."}
-                    </div>
-                  )}
-                </div>
-              </Reveal>
-            ))}
+          <div className="mt-6 sm:mt-8">
+            <CollectiblesCatalogBrowser />
           </div>
         </div>
 
