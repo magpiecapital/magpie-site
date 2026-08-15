@@ -49,6 +49,35 @@ export async function generateMetadata(
   };
 }
 
+interface TokenizedPlatformCount {
+  platform: string;
+  count: number;
+}
+
+/**
+ * Live on-chain inventory: how many copies of this exact asset are
+ * tokenized at each partner right now, from the bot's ongoing DAS sweeps.
+ * Fail-soft: any error renders the generic partner panel.
+ */
+async function fetchTokenizedCounts(slug: string): Promise<TokenizedPlatformCount[]> {
+  try {
+    const res = await fetch(
+      `https://www.magpie.capital/api/v1/collectibles/tokenized?slug=${encodeURIComponent(slug)}`,
+      { next: { revalidate: 900 } },
+    );
+    if (!res.ok) return [];
+    const d = (await res.json()) as { platforms?: TokenizedPlatformCount[] };
+    return (d.platforms ?? []).filter((p) => p.count > 0);
+  } catch {
+    return [];
+  }
+}
+
+const PLATFORM_MARKET_URL: Record<string, (q: string) => string> = {
+  "Collector Crypt": (q) => `https://collectorcrypt.com/marketplace?search=${encodeURIComponent(q)}`,
+  Phygitals: (q) => `https://www.phygitals.com/marketplace?search=${encodeURIComponent(q)}`,
+};
+
 export default async function CollectibleAssetPage(
   { params }: { params: Promise<{ slug: string }> },
 ) {
@@ -56,6 +85,7 @@ export default async function CollectibleAssetPage(
   const item = getCatalogItem(slug)!;
   const terms = TIER_TERMS[item.tier];
   const platforms = CATEGORY_PLATFORMS[item.category];
+  const tokenized = await fetchTokenizedCounts(slug);
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
@@ -238,10 +268,38 @@ export default async function CollectibleAssetPage(
               </p>
             </section>
 
-            {/* Tokenization */}
+            {/* Tokenization — live on-chain inventory first, referral second */}
+            {tokenized.length > 0 && (
+              <section className="mt-4 rounded-2xl border border-emerald-500/35 bg-emerald-500/[0.04] p-5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-500">
+                  Tokenized on-chain right now
+                </div>
+                <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-soft)]">
+                  Our indexer watches the partner vaults on-chain continuously —
+                  copies of this exact card are tokenized today:
+                </p>
+                <div className="mt-3 flex flex-wrap gap-3 text-sm">
+                  {tokenized.map((t) => (
+                    <a
+                      key={t.platform}
+                      href={(PLATFORM_MARKET_URL[t.platform] ?? (() => "#"))(item.name)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 px-3 py-2 font-medium underline-offset-4 hover:underline"
+                    >
+                      <span className="tabular-nums font-semibold text-emerald-500">{t.count}</span>
+                      on {t.platform} — view ↗
+                    </a>
+                  ))}
+                </div>
+                <p className="mt-3 text-[12px] text-[var(--ink-faint)]">
+                  Hold one of these tokens? It can back a loan the day lending goes live.
+                </p>
+              </section>
+            )}
             <section className="mt-4 rounded-2xl border border-[var(--hairline)] p-5">
               <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-                Vaulted &amp; tokenized on
+                {tokenized.length > 0 ? "Not vaulted yet? Tokenize yours" : "Vaulted & tokenized on"}
               </div>
               <p className="mt-2 text-[13px] leading-relaxed text-[var(--ink-soft)]">
                 To back a loan, the physical card sits insured in a partner vault and
