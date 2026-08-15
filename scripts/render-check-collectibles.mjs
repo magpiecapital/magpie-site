@@ -25,8 +25,10 @@
  */
 import WebSocket from "ws";
 import { writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 
-const OUT = "/private/tmp/claude-501/-Users-bradleylubetkin/3495abd1-c689-4af3-9237-7e738406537d/scratchpad";
+// Output dir for screenshots — override with RENDER_CHECK_OUT.
+const OUT = process.env.RENDER_CHECK_OUT || tmpdir();
 
 const targets = await (await fetch("http://127.0.0.1:9222/json")).json();
 let page = targets.find((t) => t.type === "page");
