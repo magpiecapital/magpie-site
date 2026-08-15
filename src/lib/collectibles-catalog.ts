@@ -22,6 +22,39 @@ export type CatalogCategoryKey =
   | "onepiece"
   | "yugioh";
 
+/**
+ * Grade-band comp estimate. low === high renders as a single figure;
+ * different values render as a range. Every set of bands carries its
+ * asOf date — the UI STALE-GUARDS: past COMPS_MAX_AGE_DAYS the numbers
+ * disappear and the page falls back to live comp links only, so a
+ * forgotten refresh can never silently mis-quote the market.
+ */
+export interface CompBand {
+  label: string;
+  low: number;
+  high: number;
+}
+export interface CompEstimate {
+  asOf: string; // ISO date the figures were pulled
+  source: string;
+  bands: CompBand[];
+  note?: string;
+}
+
+export const COMPS_MAX_AGE_DAYS = 45;
+
+export function compsAreFresh(c: CompEstimate): boolean {
+  const age = (Date.now() - new Date(c.asOf + "T00:00:00Z").getTime()) / 86_400_000;
+  return Number.isFinite(age) && age >= 0 && age <= COMPS_MAX_AGE_DAYS;
+}
+
+export const TIER_LTV: Record<"A" | "B", number> = { A: 0.5, B: 0.4 };
+
+export function fmtUsd(n: number): string {
+  if (n >= 10_000) return `$${Math.round(n / 100) / 10}k`.replace(".0k", "k");
+  return `$${Math.round(n).toLocaleString("en-US")}`;
+}
+
 export interface CatalogItem {
   slug: string;
   name: string;
@@ -43,6 +76,8 @@ export interface CatalogItem {
   compQuery: string;
   /** Extra notes rendered under the comp links (velocity, market caveats). */
   compNote: string;
+  /** Dated grade-band estimates; null = heterogeneous group, comped per item. */
+  comps: CompEstimate | null;
 }
 
 export const CATEGORY_LABELS: Record<CatalogCategoryKey, string> = {
@@ -108,6 +143,7 @@ export const CATALOG: CatalogItem[] = [
     compQuery: "Charizard Base Set 4/102 PSA",
     compNote:
       "Grade and printing (shadowless / unlimited / 1st Ed) are separate markets — comps are always keyed to the exact variant on the slab.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 1330, high: 1330 }, { label: "Grade 9", low: 3071, high: 3071 }, { label: "PSA 10", low: 28145, high: 28145 }], },
   },
   {
     slug: "blastoise-base-set",
@@ -124,6 +160,7 @@ export const CATALOG: CatalogItem[] = [
     ],
     compQuery: "Blastoise Base Set 2/102 PSA",
     compNote: "Shadowless and unlimited printings are comped separately.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 377, high: 377 }, { label: "Grade 9", low: 958, high: 958 }, { label: "PSA 10", low: 7600, high: 7600 }], },
   },
   {
     slug: "venusaur-base-set",
@@ -140,6 +177,7 @@ export const CATALOG: CatalogItem[] = [
     ],
     compQuery: "Venusaur Base Set 15/102 PSA",
     compNote: "Shadowless and unlimited printings are comped separately.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 270, high: 270 }, { label: "Grade 9", low: 640, high: 640 }, { label: "PSA 10", low: 3140, high: 3140 }], },
   },
   {
     slug: "lugia-neo-genesis",
@@ -156,6 +194,7 @@ export const CATALOG: CatalogItem[] = [
     ],
     compQuery: "Lugia Neo Genesis 9/111 PSA",
     compNote: "1st Edition and unlimited are separate markets.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 1198, high: 1198 }, { label: "Grade 9", low: 1580, high: 1580 }, { label: "PSA 10", low: 19651, high: 19651 }], },
   },
   {
     slug: "umbreon-vmax-alt",
@@ -173,6 +212,7 @@ export const CATALOG: CatalogItem[] = [
     compQuery: "Umbreon VMAX 215/203 Evolving Skies PSA 10",
     compNote:
       "The alt art (#215) is its own market — never comped against the regular VMAX printing.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 1855, high: 1855 }, { label: "Grade 9", low: 2181, high: 2181 }, { label: "PSA 10", low: 4201, high: 4201 }], },
   },
 
   // ── Pokémon · Tier B ──
@@ -192,6 +232,7 @@ export const CATALOG: CatalogItem[] = [
     compQuery: "Base Set holo PSA 9 1999",
     compNote:
       "Comps are per-card, per-grade — the group label just sets the terms tier.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 103, high: 175 }, { label: "Grade 9", low: 178, high: 405 }, { label: "PSA 10", low: 1890, high: 4200 }], note: "Range across the group (Zapdos → Mewtwo); each card is comped individually.", },
   },
   {
     slug: "jungle-fossil-holos",
@@ -208,6 +249,7 @@ export const CATALOG: CatalogItem[] = [
     ],
     compQuery: "Jungle 1st Edition holo PSA 1999",
     compNote: "1st Edition and unlimited are separate markets, per card.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 126, high: 283 }, { label: "Grade 9", low: 227, high: 685 }, { label: "PSA 10", low: 1980, high: 12800 }], note: "Range across the group (Flareon → Fossil Dragonite); each card is comped individually.", },
   },
   {
     slug: "evolving-skies-alt-vmax",
@@ -224,6 +266,7 @@ export const CATALOG: CatalogItem[] = [
     ],
     compQuery: "Rayquaza VMAX 218/203 Evolving Skies PSA 10",
     compNote: "Each alt art is its own market; comped per card, per grade.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 260, high: 870 }, { label: "Grade 9", low: 293, high: 1231 }, { label: "PSA 10", low: 547, high: 2700 }], note: "Range across Glaceon, Sylveon and Rayquaza VMAX alts.", },
   },
   {
     slug: "modern-chase-staples",
@@ -241,6 +284,7 @@ export const CATALOG: CatalogItem[] = [
     compQuery: "Charizard ex 199/165 151 PSA 10",
     compNote:
       "Modern populations still grow; comps use a recent window, not lifetime averages.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 350, high: 350 }, { label: "Grade 9", low: 400, high: 400 }, { label: "PSA 10", low: 1497, high: 1497 }], note: "Representative: 151 Charizard ex SIR — other chase staples comp individually.", },
   },
 
   // ── Sports ──
@@ -260,6 +304,7 @@ export const CATALOG: CatalogItem[] = [
     ],
     compQuery: "1986 Fleer Michael Jordan 57 PSA",
     compNote: "Grade is everything here — comps are strictly per-grade.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 18580, high: 18580 }, { label: "Grade 9", low: 38868, high: 38868 }, { label: "PSA 10", low: 263750, high: 263750 }], },
   },
   {
     slug: "lebron-topps-chrome",
@@ -277,6 +322,7 @@ export const CATALOG: CatalogItem[] = [
     ],
     compQuery: "2003 Topps Chrome LeBron James 111 PSA",
     compNote: "Base only. Parallels are separate, thinner markets.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 3275, high: 3275 }, { label: "Grade 9", low: 5295, high: 5295 }, { label: "PSA 10", low: 16033, high: 16033 }], },
   },
   {
     slug: "prizm-rookie-benchmarks",
@@ -294,6 +340,7 @@ export const CATALOG: CatalogItem[] = [
     ],
     compQuery: "Wembanyama Prizm base rookie PSA 10",
     compNote: "Base Prizm only — parallels excluded by rule.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 52, high: 911 }, { label: "Grade 9", low: 69, high: 1467 }, { label: "PSA 10", low: 208, high: 7125 }], note: "Range across Luka → Mahomes; Wembanyama sits mid-band. Base Prizm only.", },
   },
   {
     slug: "autographed-rookies",
@@ -311,6 +358,7 @@ export const CATALOG: CatalogItem[] = [
     compQuery: "Stephen Curry rookie auto PSA/DNA",
     compNote:
       "Signed and unsigned are separate markets; comps use the signed record only.",
+    comps: null,
   },
 
   // ── One Piece ──
@@ -329,6 +377,7 @@ export const CATALOG: CatalogItem[] = [
     ],
     compQuery: "OP01-120 Shanks manga rare PSA 10",
     compNote: "English and Japanese printings are comped separately.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 53, high: 53 }, { label: "Grade 9", low: 90, high: 90 }, { label: "PSA 10", low: 291, high: 291 }], note: "Floor: OP01 Shanks alt art — manga-rare parallels comp well above this, priced per exact variant.", },
   },
   {
     slug: "one-piece-event-promos",
@@ -346,6 +395,7 @@ export const CATALOG: CatalogItem[] = [
     compQuery: "One Piece US Voyage promo PSA",
     compNote:
       "Comped per promo card; fixed event supply keeps populations stable.",
+    comps: null,
   },
 
   // ── Yu-Gi-Oh ──
@@ -365,6 +415,7 @@ export const CATALOG: CatalogItem[] = [
     compQuery: "Blue-Eyes White Dragon LOB-001 1st Edition PSA",
     compNote:
       "LOB-001 only — reprints are separate (and far cheaper) markets.",
+    comps: { asOf: "2026-08-15", source: "PriceCharting sold data", bands: [{ label: "Grade 8", low: 3965, high: 3965 }, { label: "Grade 9", low: 8600, high: 8600 }, { label: "PSA 10", low: 45000, high: 45000 }], },
   },
 ];
 
