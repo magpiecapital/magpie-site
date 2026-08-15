@@ -1,6 +1,6 @@
 # Magpie Capital — Site
 
-The web app for [Magpie Capital](https://magpie.capital) — a permissionless Solana lending protocol. Borrow SOL against approved memecoins and tokenized stocks, manage loans, deposit into the LP pool, and verify protocol state on-chain.
+The web app for [Magpie Capital](https://magpie.capital) — a permissionless Solana lending protocol. Borrow SOL against **memecoins, tokenized stocks & RWAs, and tokenized collectibles** — three collateral classes, one protocol — on fixed terms with no margin calls. The flagship **V4 pools** let borrowers arm take-profit ladders and stop-losses on the collateral itself: exits fire in-vault while the loan stays active, so you never miss market upside while borrowed against. AI agents are served natively via [x402 APIs](https://magpie.capital/x402). Live stats: [/stats](https://magpie.capital/stats) · LLM summary: [/llms.txt](https://magpie.capital/llms.txt).
 
 ## Official accounts
 
