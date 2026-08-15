@@ -115,6 +115,43 @@ const CASES = [
     verdict: "CANDIDATE_REVIEW",
     tier: null,
   },
+  // ── Gate v2: the expanded allowlist (doc 26 A-6, B-6..B-10) ──
+  {
+    why: "Umbreon VMAX alt art (Moonbreon) is Tier A",
+    sub: { ...base, card: "Evolving Skies Umbreon VMAX #215 alt art", grade: "10" },
+    verdict: "PROVISIONAL_TIER_A",
+    tier: "A",
+  },
+  {
+    why: "a MODERN Charizard printing never rides the vintage pattern into Tier A",
+    sub: { ...base, card: "151 Charizard ex SIR", grade: "10" },
+    verdict: "PROVISIONAL_TIER_B",
+    tier: "B",
+  },
+  {
+    why: "One Piece manga rare lands at Tier B",
+    sub: { ...base, card: "OP01 Shanks manga rare alt art", grade: "10" },
+    verdict: "PROVISIONAL_TIER_B",
+    tier: "B",
+  },
+  {
+    why: "Blue-Eyes LOB-001 lands at Tier B",
+    sub: { ...base, card: "Blue-Eyes White Dragon LOB-001 1st Edition", grade: "9" },
+    verdict: "PROVISIONAL_TIER_B",
+    tier: "B",
+  },
+  {
+    why: "EvS alt-art VMAX (non-Umbreon) is Tier B",
+    sub: { ...base, card: "Evolving Skies Rayquaza VMAX alt art", grade: "10" },
+    verdict: "PROVISIONAL_TIER_B",
+    tier: "B",
+  },
+  {
+    why: "Prizm rookie benchmark is Tier B",
+    sub: { ...base, card: "2023 Panini Prizm Victor Wembanyama base rookie", grade: "10" },
+    verdict: "PROVISIONAL_TIER_B",
+    tier: "B",
+  },
 ];
 
 let failed = 0;
