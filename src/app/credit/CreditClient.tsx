@@ -602,12 +602,10 @@ export default function CreditClient() {
               Climb higher. <span className="italic text-[var(--ink-soft)]">Build reputation.</span>
             </h2>
             <p className="mt-5 max-w-3xl text-sm leading-relaxed text-[var(--ink-soft)] md:text-base">
-              <strong className="text-[var(--ink)]">Honest note on tier perks today:</strong> the on-chain lending program currently
-              charges the same LTV, fee, and term to every borrower (30% max LTV · 1.5–3% fee · 2–7 days). Tier today
-              is a <em>reputation signal</em> — written to the public credit oracle, visible on your dashboard, queryable
-              by other protocols. Tier-gated economic perks (boosted LTV, lower fees, longer terms) require a program
-              upgrade we&apos;ll ship once volume justifies the audit. Until then, climbing the tiers is reputation,
-              not rate.
+              <strong className="text-[var(--ink)]">Honest note:</strong> today every borrower gets the same terms
+              (30% max LTV · 1.5–3% fee · 2–7 days). Your tier is a <em>reputation signal</em> — on the public credit
+              oracle, queryable by other protocols. Tier-gated rates need a program upgrade that ships once volume
+              justifies the audit. Until then: reputation, not rate.
             </p>
           </Reveal>
 

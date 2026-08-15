@@ -268,11 +268,9 @@ export default function XStocksPage() {
                 Tokenized-stock oracles run 24/5, not 24/7.
               </h3>
               <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
-                Chainlink Data Streams cover Monday 8:30 ET through Friday 4:00 ET. From
-                Friday close to Monday open, the on-chain price doesn&apos;t update against
-                a real market. If a stock drops 8% on weekend news (earnings beat, Fed
-                announcement, geopolitical event), the lender&apos;s safety model is
-                blind for 64 hours.
+                Oracles cover Monday 8:30 ET – Friday 4:00 ET. Over the weekend the
+                on-chain price is frozen — a stock can gap 8% on news while every
+                lender&apos;s safety model is blind for 64 hours.
               </p>
               <p className="mt-3 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
                 When the oracle wakes up Monday morning, naive lenders liquidate at the

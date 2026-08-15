@@ -138,10 +138,9 @@ export default function TokenizePage() {
               Pick your vaulting platform
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-center text-[14px] text-[var(--ink-soft)] sm:text-base">
-              Independent platforms collectors already use. Each authenticates,
-              insures and vaults the physical card, and issues the token that can
-              back your loan. Details and fees are theirs — check their sites for
-              the current process.
+              Each authenticates, insures and vaults your card, then issues the
+              token that backs your loan. Fees and process are theirs — check
+              their sites.
             </p>
           </Reveal>
           <div className="mx-auto mt-8 grid max-w-4xl grid-cols-1 items-stretch gap-4 sm:grid-cols-3 sm:gap-5">
@@ -179,9 +178,8 @@ export default function TokenizePage() {
             ))}
           </div>
           <p className="mx-auto mt-5 max-w-2xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
-            These are independent businesses; we link to them because that&apos;s where
-            collectors&apos; cards already live. Vaulting fees, timelines and redemption
-            terms are set by each platform.
+            Independent businesses — vaulting fees, timelines and redemption terms
+            are set by each platform.
           </p>
         </section>
 
@@ -192,11 +190,10 @@ export default function TokenizePage() {
               Why we built this path
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-[14px] leading-relaxed text-[var(--ink-soft)] sm:text-[15px]">
-              Our goal is simple: more real-world assets on-chain. A collector who
-              tokenizes a card to unlock a loan makes the whole ecosystem stronger —
-              the vaulting platforms grow, the on-chain market deepens, and the next
-              collector has one more reason to follow. We&apos;d rather be the reason
-              assets get tokenized than just another place they end up.
+              More real-world assets on-chain — that&apos;s the goal. Every card
+              tokenized for a loan grows the vaults, deepens the market, and pulls
+              the next collector in. We&apos;d rather be the reason assets get
+              tokenized than just another place they end up.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Link href="/collectibles#submit" className="btn-accent text-sm">
