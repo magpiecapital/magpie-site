@@ -155,6 +155,18 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@graph": [
                 {
+                  "@type": "VideoObject",
+                  "@id": "https://magpie.capital/#how-it-works-video",
+                  name: "How Magpie works — borrow SOL without leaving the market",
+                  description:
+                    "60-second walkthrough of the real Magpie dashboard: borrow SOL against your tokens, arm a take-profit ladder and stop-loss on the collateral itself, and never miss a market spike — the loan stays active while exits fire in-vault.",
+                  thumbnailUrl: "https://magpie.capital/media/how-it-works-poster.jpg",
+                  contentUrl: "https://magpie.capital/media/how-it-works.mp4",
+                  uploadDate: "2026-08-15",
+                  duration: "PT70S",
+                  publisher: { "@id": "https://magpie.capital/#organization" },
+                },
+                {
                   "@type": "Organization",
                   "@id": "https://magpie.capital/#organization",
                   name: "Magpie Capital",
@@ -162,7 +174,7 @@ export default function RootLayout({
                   url: "https://magpie.capital",
                   logo: "https://magpie.capital/icon-512.png",
                   description:
-                    "Permissionless Solana lending protocol. Borrow SOL against memecoins and tokenized stocks. Custodial-by-export, open source, on-chain verifiable.",
+                    "Permissionless Solana lending protocol. Borrow SOL against memecoins, tokenized stocks & RWAs, and collectibles — three collateral classes, one protocol. Fixed terms, in-vault exit orders, on-chain verifiable.",
                   sameAs: [
                     "https://x.com/MagpieLoans",
                     "https://t.me/magpie_capital_bot",
