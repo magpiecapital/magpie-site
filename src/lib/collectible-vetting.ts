@@ -17,7 +17,7 @@
  * Bumped whenever a gate rule changes. Stored alongside every verdict so an
  * old decision stays interpretable after the rules move on.
  */
-export const GATE_VERSION = "v3";
+export const GATE_VERSION = "v4";
 
 export const GRADERS = ["PSA", "CGC", "BGS", "SGC"] as const;
 export const SUPPORTED_PLATFORMS = [
@@ -62,6 +62,45 @@ export interface VettingResult {
 }
 
 /* ── The launch allowlist, keyed for matching (mirrors doc 26) ────────── */
+
+import { FULL_CATALOG } from "./collectibles-catalog.ts";
+
+/**
+ * Catalog-driven matching (gate v4): before the hand-written patterns, a
+ * submission is matched against the live catalog itself — significant name
+ * tokens of a catalog item all present in the submission text puts the
+ * submission provisionally at that item's tier. This scales to any catalog
+ * size with zero per-item regexes and can never drift out of sync with the
+ * public list. Hand-written patterns below remain as a safety net for
+ * phrasings token matching misses.
+ */
+const STOP = new Set(["the", "of", "and", "a", "an", "de", "d", "jr", "sr", "ii", "iii"]);
+function tokens(s: string): string[] {
+  return s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .split(" ")
+    .filter((t) => t.length >= 2 && !STOP.has(t) && !/^\d{1,2}$/.test(t));
+}
+function catalogMatch(haystack: string): { tier: "A" | "B"; label: string } | null {
+  const h = " " + tokens(haystack).join(" ") + " ";
+  let best: { tier: "A" | "B"; label: string; score: number } | null = null;
+  for (const item of FULL_CATALOG) {
+    const nameToks = tokens(item.name);
+    if (nameToks.length === 0) continue;
+    if (!nameToks.every((t) => h.includes(" " + t + " "))) continue;
+    // Name matched fully; meta tokens refine confidence (set/year/brand).
+    const metaToks = tokens(item.meta);
+    const metaHits = metaToks.filter((t) => h.includes(" " + t + " ")).length;
+    // Short names (one significant token, e.g. "Charizard #4") are too
+    // ambiguous alone — a "151 Charizard ex" must not ride the vintage
+    // Charizard into Tier A. Require set/era corroboration for them.
+    if (nameToks.length < 2 && metaHits === 0) continue;
+    const score = nameToks.length * 2 + metaHits;
+    if (!best || score > best.score) best = { tier: item.tier, label: item.name + " (" + item.meta + ")", score };
+  }
+  return best ? { tier: best.tier, label: best.label } : null;
+}
 
 /**
  * Modern-set markers. The vintage Tier A patterns are guarded by this so a
@@ -239,17 +278,19 @@ export function vetSubmission(sub: Submission): VettingResult {
   // A signed slab is its own market. Never comped against unsigned sales.
   const isAuto = autoOk && !numericOk;
 
-  // V-5/V-6 — allowlist match sets the provisional tier. A vintage Tier A
-  // pattern is skipped when its modern-marker guard fires (the modern
-  // printing is a different, Tier B market).
+  // V-5/V-6 — catalog-driven match first (gate v4), then the hand-written
+  // patterns as a fallback. A vintage Tier A pattern is skipped when its
+  // modern-marker guard fires (the modern printing is a Tier B market).
+  const catHit = catalogMatch(haystack);
   const aHit = TIER_A_PATTERNS.find(
     (p) => p.re.test(haystack) && !(p.notIf && p.notIf.test(haystack)),
   );
   const bHit = TIER_B_PATTERNS.find((p) => p.re.test(haystack));
 
   let tier: "A" | "B" | null = null;
-  let matched = aHit?.label ?? bHit?.label ?? null;
-  if (aHit) tier = "A";
+  let matched = catHit?.label ?? aHit?.label ?? bHit?.label ?? null;
+  if (catHit) tier = catHit.tier;
+  else if (aHit) tier = "A";
   else if (bHit) tier = "B";
 
   // Authenticated autographs. A signature does not create a market on its
