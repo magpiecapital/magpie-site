@@ -15,6 +15,14 @@ import { getLoanTiers, type LoanTier, type LoanTierCategory } from "@/lib/db";
 
 export const revalidate = 3600;
 
+// Valid symbols are enumerated at build time and everything else 404s at
+// the routing layer. notFound() thrown during render can't set the
+// status on this Next version — the shell has already streamed with a
+// 200, which is a soft-404 for crawlers. New listings get their page on
+// the next deploy (site deploys are frequent; the catalog-driven
+// sitemap and page content still revalidate hourly).
+export const dynamicParams = false;
+
 const SITE_URL = "https://www.magpie.capital";
 
 interface CatalogToken {
@@ -47,6 +55,19 @@ async function resolveToken(symbol: string): Promise<CatalogToken | null> {
   // through, prefer nothing rather than guessing which token the
   // visitor means.
   return matches.length === 1 ? matches[0] : null;
+}
+
+export async function generateStaticParams(): Promise<Array<{ symbol: string }>> {
+  const tokens = await fetchCatalog();
+  const counts = new Map<string, number>();
+  for (const t of tokens) {
+    const s = t.symbol.toLowerCase();
+    counts.set(s, (counts.get(s) ?? 0) + 1);
+  }
+  return tokens
+    .map((t) => t.symbol.toLowerCase())
+    .filter((s) => /^[a-z0-9$._-]{1,20}$/.test(s) && counts.get(s) === 1)
+    .map((symbol) => ({ symbol }));
 }
 
 interface Scorecard {
