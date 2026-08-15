@@ -429,9 +429,10 @@ export const CATALOG: CatalogItem[] = [
 ];
 
 import { CATALOG_EXPANSION } from "./collectibles-catalog-expansion.ts";
+import { CATALOG_WAVE2 } from "./collectibles-catalog-wave2.ts";
 
-/** Core + expansion, one browsable catalog. */
-export const FULL_CATALOG: CatalogItem[] = [...CATALOG, ...CATALOG_EXPANSION];
+/** Core + all expansion waves, one browsable catalog. */
+export const FULL_CATALOG: CatalogItem[] = [...CATALOG, ...CATALOG_EXPANSION, ...CATALOG_WAVE2];
 
 export function getCatalogItem(slug: string): CatalogItem | undefined {
   return FULL_CATALOG.find((i) => i.slug === slug);
