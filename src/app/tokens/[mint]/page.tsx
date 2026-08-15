@@ -301,7 +301,11 @@ export default async function TokenScorecardPage(
         <div className="text-xs text-[var(--ink-faint)] text-center">
           <Link href="/tokens" className="underline">← All approved tokens</Link>
           <span className="mx-2">·</span>
-          <Link href="/dashboard" className="underline">Borrow against this token</Link>
+          <Link href={`/borrow/${token.symbol.toLowerCase()}`} className="underline">
+            Borrow against ${token.symbol}
+          </Link>
+          <span className="mx-2">·</span>
+          <Link href="/dashboard" className="underline">Dashboard</Link>
         </div>
       </main>
       <Footer />
