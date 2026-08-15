@@ -419,6 +419,11 @@ export const CATALOG: CatalogItem[] = [
   },
 ];
 
+import { CATALOG_EXPANSION } from "./collectibles-catalog-expansion";
+
+/** Core + expansion, one browsable catalog. */
+export const FULL_CATALOG: CatalogItem[] = [...CATALOG, ...CATALOG_EXPANSION];
+
 export function getCatalogItem(slug: string): CatalogItem | undefined {
-  return CATALOG.find((i) => i.slug === slug);
+  return FULL_CATALOG.find((i) => i.slug === slug);
 }

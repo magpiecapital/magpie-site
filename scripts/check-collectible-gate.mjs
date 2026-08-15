@@ -152,6 +152,30 @@ const CASES = [
     verdict: "PROVISIONAL_TIER_B",
     tier: "B",
   },
+  // ── Gate v3: expansion-wave coverage ──
+  {
+    why: "expansion: Fossil Gengar lands at Tier B",
+    sub: { ...base, card: "Fossil Gengar #5 Holo", grade: "9" },
+    verdict: "PROVISIONAL_TIER_B",
+    tier: "B",
+  },
+  {
+    why: "expansion: verified sports benchmark (Giannis Prizm) is Tier B",
+    sub: { ...base, card: "2013 Panini Prizm Giannis Antetokounmpo #290", grade: "10" },
+    verdict: "PROVISIONAL_TIER_B",
+    tier: "B",
+  },
+  {
+    why: "expansion: Dark Magician first print is Tier B",
+    sub: { ...base, card: "Dark Magician LOB-005 1st Edition", grade: "9" },
+    verdict: "PROVISIONAL_TIER_B",
+    tier: "B",
+  },
+  {
+    why: "band-rejected moderns are NOT on the list (Zion Prizm goes to review)",
+    sub: { ...base, card: "2019 Panini Prizm Zion Williamson #248", grade: "10" },
+    verdict: "CANDIDATE_REVIEW",
+  },
 ];
 
 let failed = 0;
