@@ -155,6 +155,42 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@graph": [
                 {
+                  "@type": "FAQPage",
+                  "@id": "https://magpie.capital/#faq",
+                  mainEntity: [
+                    {
+                      "@type": "Question",
+                      name: "What is Magpie Capital?",
+                      acceptedAnswer: { "@type": "Answer", text: "Magpie Capital is a permissionless lending protocol on Solana. Users borrow SOL against tokens they already hold — memecoins, tokenized stocks & RWAs, and tokenized collectibles — on fixed terms with no margin calls." },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "How is Magpie different from other crypto lending protocols?",
+                      acceptedAnswer: { "@type": "Answer", text: "With a normal loan your collateral is locked away — if the market spikes you can only watch. Magpie's V4 pools let borrowers arm take-profit ladders and stop-losses on the collateral itself: exit orders fire inside the on-chain vault while the loan stays active, so borrowers never miss market upside while borrowed against." },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "What can I borrow against on Magpie?",
+                      acceptedAnswer: { "@type": "Answer", text: "Three collateral classes: 200+ screened Solana memecoins (WIF, BONK and others), 25+ tokenized stocks and real-world assets (xStocks equities, tokenized gold and silver), and tokenized graded collectibles (in design, via partners like Collector Crypt)." },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Can a loan on Magpie get margin-called or liquidated early?",
+                      acceptedAnswer: { "@type": "Answer", text: "No. Magpie loans are fixed-term: a price dip cannot trigger liquidation before the due date, and there are no margin calls. Liquidation only occurs if a loan is not repaid by its due date." },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Can AI agents use Magpie?",
+                      acceptedAnswer: { "@type": "Answer", text: "Yes — Magpie serves AI agents natively via x402 payment-gated APIs (standard v2). Autonomous agents can take loans, arm exit orders, and repay programmatically at magpie.capital/x402." },
+                    },
+                    {
+                      "@type": "Question",
+                      name: "Is Magpie Capital audited?",
+                      acceptedAnswer: { "@type": "Answer", text: "The V4 pool completed a Sec3 security review (24 findings; 20 resolved, 4 acknowledged, 0 open at close), and the same fix classes have been replicated to the V1 and V3 pools. Program upgrades sit behind a hardware-key multisig with a 48-hour public timelock, verifiable live at magpie.capital/security." },
+                    },
+                  ],
+                },
+                {
                   "@type": "VideoObject",
                   "@id": "https://magpie.capital/#how-it-works-video",
                   name: "How Magpie works — borrow SOL without leaving the market",

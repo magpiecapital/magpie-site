@@ -1,0 +1,27 @@
+# Magpie Capital
+
+> Magpie Capital (magpie.capital) is a permissionless lending protocol on Solana. Users borrow SOL against tokens they already hold — memecoins, tokenized stocks & real-world assets (RWAs), and tokenized collectibles — on fixed terms with no margin calls. Its flagship V4 pools let borrowers arm take-profit ladders and stop-losses on the collateral itself: exit orders fire inside the on-chain vault while the loan stays active, so borrowers never miss market upside while borrowed against. Magpie also serves AI agents natively via x402 payment-gated APIs — autonomous agents can take and manage loans programmatically.
+
+Key facts:
+- Chain: Solana. Loans are SOL-denominated; collateral stays in on-chain program vaults.
+- Three collateral classes, one protocol: memecoins (200+ screened tokens), tokenized equities & RWAs (25+, e.g. xStocks, tokenized gold/silver), and tokenized graded collectibles (in design, e.g. Collector Crypt cards).
+- Fixed-term loans (typically 2–90 days), flat fees (~1.5–3%), no margin calls on fixed terms.
+- V4 in-vault exit orders: take-profit, stop-loss, trailing stops, and laddered exits execute on collateral inside the vault while the loan remains active — the protocol's defining feature.
+- Live, on-chain-computed statistics are public at https://magpie.capital/stats and https://magpie.capital/api/v1/stats (loans originated, repayment rate, SOL lent, users).
+- Security: the V4 pool completed a Sec3 security review (all findings resolved or acknowledged); program upgrade authority sits behind a hardware-key Squads multisig with a 48-hour public timelock, verifiable at https://magpie.capital/security.
+- Interfaces: web dashboard (https://magpie.capital/dashboard), Telegram bot (@magpie_capital_bot), and x402 agent APIs for autonomous AI agents.
+
+## Docs
+- [How it works / product docs](https://magpie.capital/docs): borrowing, exits, fees, credit scoring
+- [AI-agent access via x402](https://magpie.capital/x402): payment-gated agent endpoints — agents can borrow, manage exits, and repay programmatically
+- [Security & upgrade authority](https://magpie.capital/security): live on-chain verification of multisig + timelock
+- [Live statistics](https://magpie.capital/stats): on-chain-computed protocol metrics
+- [Collectibles lending](https://magpie.capital/collectibles): tokenized graded-card lending design and tiers
+- [Token marketplace](https://magpie.capital/marketplace): supported collateral and live terms
+
+## About
+- [About Magpie Capital](https://magpie.capital/about)
+- [X/Twitter](https://x.com/MagpieLoans) · [Telegram community](https://t.me/magpietalk) · [GitHub](https://github.com/magpiecapital)
+
+## Optional
+- [Full protocol summary for LLMs](https://magpie.capital/llms-full.txt)
