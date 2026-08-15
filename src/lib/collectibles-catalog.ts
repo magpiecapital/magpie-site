@@ -430,9 +430,10 @@ export const CATALOG: CatalogItem[] = [
 
 import { CATALOG_EXPANSION } from "./collectibles-catalog-expansion.ts";
 import { CATALOG_WAVE2 } from "./collectibles-catalog-wave2.ts";
+import { CATALOG_WAVE3 } from "./collectibles-catalog-wave3.ts";
 
 /** Core + all expansion waves, one browsable catalog. */
-export const FULL_CATALOG: CatalogItem[] = [...CATALOG, ...CATALOG_EXPANSION, ...CATALOG_WAVE2];
+export const FULL_CATALOG: CatalogItem[] = [...CATALOG, ...CATALOG_EXPANSION, ...CATALOG_WAVE2, ...CATALOG_WAVE3];
 
 export function getCatalogItem(slug: string): CatalogItem | undefined {
   return FULL_CATALOG.find((i) => i.slug === slug);
