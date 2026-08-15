@@ -293,26 +293,6 @@ export default function CollectiblesPage() {
           ))}
         </div>
 
-        {/* The sweet-spot band — the acceptance policy in one line. Blue-chip
-            vintage above the band stays Tier A where markets remain deep. */}
-        <Reveal>
-          <div className="mx-auto mt-6 flex max-w-3xl flex-col items-center gap-2 rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] px-5 py-4 text-center sm:mt-8 sm:flex-row sm:gap-5 sm:px-6 sm:text-left">
-            <div className="flex-none">
-              <div className="font-display text-2xl font-medium tracking-[-0.02em] text-[var(--accent-deep)] sm:text-3xl">
-                $50 – $3,000
-              </div>
-              <div className="mt-0.5 text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-                The sweet spot
-              </div>
-            </div>
-            <p className="text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-[13px]">
-              We focus on collectibles that sell continuously in this range — where
-              sold comps are dense and an exit executes in days, not months. Blue-chip
-              vintage above the band qualifies for Tier A where markets stay just as deep.
-            </p>
-          </div>
-        </Reveal>
-
         {/* ── The catalog: filterable, image-led, every asset clickable ── */}
         <div className="mx-auto mt-10 max-w-6xl sm:mt-14">
           <Reveal>
