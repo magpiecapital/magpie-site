@@ -5,12 +5,11 @@ import { Reveal } from "@/components/Reveal";
 import { CollectibleSubmitForm } from "@/components/CollectibleSubmitForm";
 
 const TELEGRAM_URL = "https://t.me/magpie_capital_bot";
-const DESIGN_REPO = "https://github.com/magpiecapital/magpie-collectibles-lending";
 
 export const metadata: Metadata = {
   title: "Borrow against graded trading cards | Magpie",
   description:
-    "Borrow SOL against your graded trading cards without selling them — priced on real sales, fixed-term, keep your card. In design; see how it works.",
+    "Borrow SOL against graded Pokémon, sports cards, One Piece, Yu-Gi-Oh and more — without selling. Priced on real sold comps from liquid marketplaces, fixed-term, keep your card. In design.",
   openGraph: {
     title: "Borrow against your graded cards | Magpie",
     description:
@@ -27,7 +26,7 @@ const STEPS = [
   {
     n: "2",
     t: "See its value",
-    d: "We price it on what cards like yours actually sold for recently — not asking prices.",
+    d: "We build a precise comp from what cards like yours actually sold for recently on liquid marketplaces — never asking prices.",
   },
   {
     n: "3",
@@ -59,7 +58,7 @@ const HERO_FAN = [
 
 const ACCEPT = [
   "Graded by PSA, CGC, BGS or SGC",
-  "Cards that actually sell — Pokémon, sports & top TCG",
+  "Collectibles that actually sell — Pokémon, sports, One Piece, Yu-Gi-Oh & more",
   "Already vaulted & tokenized on a platform we support",
 ];
 
@@ -93,51 +92,120 @@ const WHY = [
   },
 ];
 
-// The launch allowlist, mirrored from the design repo (doc 26). Types only —
-// every individual cert is still re-checked against live sold data at loan
-// time, and we quote no dollar values because real values come from the
+// Loan terms are defined once per tier; every approved item carries a tier
+// badge. Mirrored from the design repo (doc 26). Types only — every
+// individual cert is still re-checked against live sold data at loan time,
+// and we quote no dollar valuations because real values come from the
 // licensed feeds at onboarding, not from a hardcoded table.
-const ALLOWLIST = [
+const TIER_TERMS = [
   {
-    tier: "Tier A",
-    lead: true,
-    blurb: "Blue-chip vintage — the deepest, most consistent sales records.",
+    tier: "A",
+    blurb: "Blue-chip — the deepest, most consistent sales records.",
     ltv: "50",
     grades: "PSA / CGC / BGS 9–10",
     term: "30–60 days",
     rate: "~10–12% APR",
-    items: [
-      { card: "Charizard #4", meta: "Base Set · 1999" },
-      { card: "Blastoise #2", meta: "Base Set · 1999" },
-      { card: "Venusaur #15", meta: "Base Set · 1999" },
-      { card: "Lugia #9", meta: "Neo Genesis · 2000" },
-      { card: "Umbreon VMAX #215 alt art", meta: "Evolving Skies · 2021 · the most-traded modern card" },
-      { card: "Michael Jordan #57", meta: "Fleer · 1986" },
-    ],
   },
   {
-    tier: "Tier B",
-    lead: false,
+    tier: "B",
     blurb: "Liquid, a notch thinner — same standard, wider safety margin.",
     ltv: "40",
     grades: "Grades 8–10 · authenticated autos",
     term: "30–90 days",
     rate: "~12–14% APR",
+  },
+] as const;
+
+// The catalog, organized the way a collector shops: by category. Status
+// is honest — "live" categories are on the launch list today; "watchlist"
+// are being vetted against the same sold-comp standard; "soon" are next
+// in the design queue and not yet accepted anywhere.
+type CategoryStatus = "live" | "watchlist" | "soon";
+interface CategoryItem { name: string; meta: string; tier: "A" | "B" }
+interface Category {
+  key: string;
+  name: string;
+  status: CategoryStatus;
+  tagline: string;
+  items: CategoryItem[];
+}
+
+const CATEGORIES: Category[] = [
+  {
+    key: "pokemon",
+    name: "Pokémon",
+    status: "live",
+    tagline: "The deepest sold histories in the hobby — vintage Base Set to modern alt-art chase.",
     items: [
-      { card: "Base Set holo rares", meta: "Zapdos · Chansey · Mewtwo · Alakazam" },
-      { card: "Jungle & Fossil holos", meta: "1st Edition · 1999" },
-      { card: "One Piece manga rares & alt arts", meta: "OP01 Shanks · Gear 5 Luffy · PSA 9–10" },
-      { card: "Evolving Skies alt-art VMAX", meta: "Sylveon · Glaceon · Rayquaza · 2021" },
-      { card: "Modern chase staples", meta: "151 Charizard ex SIR · Crown Zenith GG" },
-      { card: "Blue-Eyes White Dragon", meta: "LOB-001 · 1st Edition · 2002" },
-      { card: "Event & crossover promos", meta: "One Piece US Voyage college basketball · Bandai" },
-      { card: "Modern rookie benchmarks", meta: "Wembanyama · Luka · Mahomes · Prizm PSA 10" },
-      { card: "LeBron James #111", meta: "Topps Chrome · 2003-04" },
-      { card: "Grade 8 of any Tier A card", meta: "Same cards, lower grade" },
-      { card: "Autographed rookies", meta: "PSA/DNA · auto 9–10" },
+      { name: "Charizard #4", meta: "Base Set · 1999", tier: "A" },
+      { name: "Blastoise #2 · Venusaur #15", meta: "Base Set · 1999", tier: "A" },
+      { name: "Lugia #9", meta: "Neo Genesis · 2000", tier: "A" },
+      { name: "Umbreon VMAX #215 alt art", meta: "Evolving Skies · 2021", tier: "A" },
+      { name: "Base Set holo rares", meta: "Zapdos · Chansey · Mewtwo · Alakazam", tier: "B" },
+      { name: "Jungle & Fossil holos", meta: "1st Edition · 1999", tier: "B" },
+      { name: "Evolving Skies alt-art VMAX", meta: "Sylveon · Glaceon · Rayquaza", tier: "B" },
+      { name: "Modern chase staples", meta: "151 Charizard ex SIR · Crown Zenith GG", tier: "B" },
     ],
   },
+  {
+    key: "sports",
+    name: "Sports Cards",
+    status: "live",
+    tagline: "Basketball, football & baseball — vintage grails to modern rookie benchmarks.",
+    items: [
+      { name: "Michael Jordan #57", meta: "Fleer · 1986", tier: "A" },
+      { name: "LeBron James #111", meta: "Topps Chrome · 2003-04", tier: "B" },
+      { name: "Modern rookie benchmarks", meta: "Wembanyama · Luka · Mahomes · Prizm PSA 10", tier: "B" },
+      { name: "Autographed rookies", meta: "PSA/DNA · auto 9–10", tier: "B" },
+    ],
+  },
+  {
+    key: "onepiece",
+    name: "One Piece TCG",
+    status: "live",
+    tagline: "High-velocity manga rares, alt arts and official event promos.",
+    items: [
+      { name: "Manga rares & alt arts", meta: "OP01 Shanks · Gear 5 Luffy · PSA 9–10", tier: "B" },
+      { name: "Event & crossover promos", meta: "US Voyage college basketball · Bandai", tier: "B" },
+    ],
+  },
+  {
+    key: "yugioh",
+    name: "Yu-Gi-Oh!",
+    status: "live",
+    tagline: "The icons with two decades of sales behind them.",
+    items: [
+      { name: "Blue-Eyes White Dragon", meta: "LOB-001 · 1st Edition · 2002", tier: "B" },
+    ],
+  },
+  {
+    key: "mtg",
+    name: "Magic: The Gathering",
+    status: "watchlist",
+    tagline: "Mapping the liquid mid-band now. Trophy pieces like Alpha rarities stay excluded — no population, no comps.",
+    items: [],
+  },
+  {
+    key: "lorcana",
+    name: "Disney Lorcana",
+    status: "watchlist",
+    tagline: "Enchanted rares are building a graded sales record — vetting against the same sold-comp standard.",
+    items: [],
+  },
+  {
+    key: "comics",
+    name: "Comics — CGC keys",
+    status: "soon",
+    tagline: "Modern keys with dense sold histories — next in the design queue once a vaulting partner supports them.",
+    items: [],
+  },
 ];
+
+const STATUS_CHIP: Record<CategoryStatus, { label: string; cls: string }> = {
+  live: { label: "On the list", cls: "bg-emerald-500/12 text-emerald-500" },
+  watchlist: { label: "Watchlist", cls: "bg-amber-400/15 text-amber-500" },
+  soon: { label: "Coming soon", cls: "bg-[var(--surface-strong)] text-[var(--ink-faint)]" },
+};
 
 // Platforms that already vault + tokenize graded cards. These are INDEPENDENT
 // businesses. We link out and use each mark nominatively, to
@@ -167,11 +235,11 @@ const APPROVAL = [
   },
   {
     t: "Proven to sell",
-    d: "We confirm the exact card has actually sold — recently and repeatedly — across multiple marketplaces. No real sales record, no loan.",
+    d: "We confirm the exact card has actually sold — recently and repeatedly — on marketplaces with real liquidity: eBay sold listings, Goldin, Fanatics Collect and the other major venues. No real sales record, no loan.",
   },
   {
-    t: "Independently priced",
-    d: "Its value is cross-checked against sold data from independent sources, so no single market can inflate it.",
+    t: "Precisely comped",
+    d: "The valuation is a precise comp built from those sold prices and cross-checked across independent sources, so no single market — and no asking price — can inflate it.",
   },
   {
     t: "Approved & sized",
@@ -259,40 +327,27 @@ export default function CollectiblesPage() {
           ))}
         </div>
 
-        {/* The launch allowlist as a pair of rating cards: a header band
-            carrying the tier, its character and the max LTV as a display
-            figure, then one ruled row per accepted card with its set and
-            year. Both cards share every dimension so the pair reads level. */}
-        <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 items-stretch gap-4 sm:mt-14 sm:gap-5 md:grid-cols-2">
-          {ALLOWLIST.map((t, i) => (
+        {/* Loan terms, stated ONCE as a level pair of tier cards — every
+            item in the catalog below carries an A or B badge that refers
+            back to these. */}
+        <div className="mx-auto mt-10 grid max-w-3xl grid-cols-1 items-stretch gap-4 sm:mt-12 sm:grid-cols-2 sm:gap-5">
+          {TIER_TERMS.map((t, i) => (
             <Reveal key={t.tier} delay={i * 80} className="h-full">
               <div
-                className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-[var(--bg-elevated)] shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] ${
-                  t.lead
-                    ? "border-[var(--accent)]/45"
-                    : "border-[var(--hairline)]"
+                className={`flex h-full flex-col overflow-hidden rounded-2xl border bg-[var(--bg-elevated)] shadow-[var(--shadow-sm)] ${
+                  t.tier === "A" ? "border-[var(--accent)]/45" : "border-[var(--hairline)]"
                 }`}
               >
-                {/* Header band */}
                 <div
-                  className={`flex items-start justify-between gap-4 border-b px-5 py-4 sm:px-6 sm:py-5 ${
-                    t.lead
-                      ? "border-[var(--accent)]/25 bg-[var(--accent-dim)]/50"
-                      : "border-[var(--hairline)] bg-[var(--surface)]"
+                  className={`flex items-start justify-between gap-4 px-5 py-4 sm:px-6 ${
+                    t.tier === "A" ? "bg-[var(--accent-dim)]/50" : "bg-[var(--surface)]"
                   }`}
                 >
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-display text-lg font-medium tracking-[-0.01em] sm:text-xl">
-                        {t.tier}
-                      </span>
-                      {t.lead && (
-                        <span className="rounded-full bg-[var(--accent)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--accent-ink)]">
-                          Top tier
-                        </span>
-                      )}
+                    <div className="font-display text-lg font-medium tracking-[-0.01em] sm:text-xl">
+                      Tier {t.tier}
                     </div>
-                    <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-[13px]">
+                    <p className="mt-1 text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-[13px]">
                       {t.blurb}
                     </p>
                     <div className="mt-2 text-[10px] uppercase tracking-[0.14em] text-[var(--ink-faint)]">
@@ -309,57 +364,113 @@ export default function CollectiblesPage() {
                     </div>
                   </div>
                 </div>
-
-                {/* Terms strip — the same three facts the memecoin and
-                    tokenized-stock cards lead with: how much, how long,
-                    what it costs. */}
-                <div className="grid grid-cols-2 divide-x divide-[var(--hairline)] border-b border-[var(--hairline)] bg-[var(--surface)]/40">
+                <div className="grid grid-cols-2 divide-x divide-[var(--hairline)] border-t border-[var(--hairline)] bg-[var(--surface)]/40">
                   <div className="px-5 py-3 sm:px-6">
-                    <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-                      Term
-                    </div>
-                    <div className="mt-1 font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
-                      {t.term}
-                    </div>
+                    <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Term</div>
+                    <div className="mt-1 font-display text-base font-medium tracking-[-0.01em] sm:text-lg">{t.term}</div>
                   </div>
                   <div className="px-5 py-3 sm:px-6">
-                    <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
-                      Rate
-                    </div>
-                    <div className="mt-1 font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
-                      {t.rate}
-                    </div>
+                    <div className="text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">Rate</div>
+                    <div className="mt-1 font-display text-base font-medium tracking-[-0.01em] sm:text-lg">{t.rate}</div>
                   </div>
-                </div>
-
-                {/* One ruled row per accepted card */}
-                <ul className="flex flex-1 flex-col divide-y divide-[var(--hairline)]">
-                  {t.items.map((it) => (
-                    <li
-                      key={it.card}
-                      className="flex items-baseline justify-between gap-3 px-5 py-3 sm:px-6"
-                    >
-                      <span className="text-[13px] font-medium text-[var(--ink)] sm:text-sm">
-                        {it.card}
-                      </span>
-                      <span className="flex-none text-right text-[11px] tracking-[0.02em] text-[var(--ink-faint)] sm:text-[12px]">
-                        {it.meta}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="border-t border-[var(--hairline)] px-5 py-3 text-[11px] leading-relaxed text-[var(--ink-faint)] sm:px-6 sm:text-[12px]">
-                  Fixed rate, fixed term · no origination fee · no margin calls
                 </div>
               </div>
             </Reveal>
           ))}
         </div>
 
-        <p className="mx-auto mt-5 max-w-2xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:text-[13px]">
-          Terms are design targets while collectibles are in design — not a live
-          offer. Renewals re-appraise the card rather than rolling over automatically.
+        {/* The sweet-spot band — the acceptance policy in one line. Blue-chip
+            vintage above the band stays Tier A where markets remain deep. */}
+        <Reveal>
+          <div className="mx-auto mt-6 flex max-w-3xl flex-col items-center gap-2 rounded-2xl border border-[var(--hairline)] bg-[var(--surface)] px-5 py-4 text-center sm:mt-8 sm:flex-row sm:gap-5 sm:px-6 sm:text-left">
+            <div className="flex-none">
+              <div className="font-display text-2xl font-medium tracking-[-0.02em] text-[var(--accent-deep)] sm:text-3xl">
+                $50 – $3,000
+              </div>
+              <div className="mt-0.5 text-[9px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                The sweet spot
+              </div>
+            </div>
+            <p className="text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-[13px]">
+              We focus on collectibles that sell continuously in this range — where
+              sold comps are dense and an exit executes in days, not months. Blue-chip
+              vintage above the band qualifies for Tier A where markets stay just as deep.
+            </p>
+          </div>
+        </Reveal>
+
+        {/* ── The catalog, by category ── */}
+        <div className="mx-auto mt-10 max-w-6xl sm:mt-14">
+          <Reveal>
+            <h3 className="font-display text-center text-xl font-medium tracking-[-0.02em] sm:text-2xl">
+              Browse the catalog
+            </h3>
+            <p className="mx-auto mt-2 max-w-md text-center text-[13px] text-[var(--ink-soft)] sm:text-sm">
+              Organized the way you shop — by category. Every item carries the
+              tier that sets its terms.
+            </p>
+          </Reveal>
+          <div className="mt-6 grid grid-cols-1 items-stretch gap-4 sm:mt-8 sm:gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {CATEGORIES.map((c, i) => (
+              <Reveal key={c.key} delay={i * 60} className="h-full">
+                <div className="flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)]">
+                  <div className="flex items-start justify-between gap-3 border-b border-[var(--hairline)] bg-[var(--surface)] px-5 py-4">
+                    <div className="min-w-0">
+                      <div className="font-display text-base font-medium tracking-[-0.01em] sm:text-lg">
+                        {c.name}
+                      </div>
+                      <p className="mt-1 text-[11px] leading-relaxed text-[var(--ink-soft)] sm:text-[12px]">
+                        {c.tagline}
+                      </p>
+                    </div>
+                    <span
+                      className={`mt-0.5 flex-none rounded-full px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] ${STATUS_CHIP[c.status].cls}`}
+                    >
+                      {STATUS_CHIP[c.status].label}
+                    </span>
+                  </div>
+                  {c.items.length > 0 ? (
+                    <ul className="flex flex-1 flex-col divide-y divide-[var(--hairline)]">
+                      {c.items.map((it) => (
+                        <li key={it.name} className="flex items-center gap-3 px-5 py-2.5">
+                          <span
+                            className={`flex h-5 w-5 flex-none items-center justify-center rounded-md text-[10px] font-bold ${
+                              it.tier === "A"
+                                ? "bg-[var(--accent)]/18 text-[var(--accent-deep)]"
+                                : "bg-[var(--surface-strong)] text-[var(--ink-soft)]"
+                            }`}
+                            title={`Tier ${it.tier}`}
+                          >
+                            {it.tier}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[13px] font-medium text-[var(--ink)] sm:text-sm">
+                              {it.name}
+                            </span>
+                            <span className="block truncate text-[11px] tracking-[0.02em] text-[var(--ink-faint)]">
+                              {it.meta}
+                            </span>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="flex flex-1 items-center px-5 py-4 text-[12px] leading-relaxed text-[var(--ink-faint)]">
+                      {c.status === "watchlist"
+                        ? "Being vetted against the same sold-comp standard as every live category."
+                        : "Not accepted yet — on the design roadmap."}
+                    </div>
+                  )}
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+
+        <p className="mx-auto mt-6 max-w-2xl text-center text-[12px] leading-relaxed text-[var(--ink-faint)] sm:mt-8 sm:text-[13px]">
+          Grade 8 copies of Tier A cards are accepted at Tier B terms. Terms are design
+          targets while collectibles are in design — not a live offer. Renewals
+          re-appraise the card rather than rolling over automatically.
         </p>
 
         <Reveal>
@@ -602,15 +713,8 @@ export default function CollectiblesPage() {
             </a>
           </div>
           <p className="mt-6 text-[13px] text-[var(--bg-elevated)]/50">
-            <a
-              href={DESIGN_REPO}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline underline-offset-4 transition hover:text-[var(--bg-elevated)]/80"
-            >
-              Read the full design
-            </a>{" "}
-            — the vetting standard, economics and threat model, in the open.
+            The vetting standard runs live in the checker above — same rules,
+            same sold-comp data, no shortcuts.
           </p>
         </div>
       </section>
