@@ -24,17 +24,33 @@ const PIPELINE = [
 export function CollectiblesCatalogBrowser() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<CatalogCategoryKey | "all">("all");
+  const [sub, setSub] = useState<string | "all">("all");
   const [tier, setTier] = useState<"all" | "A" | "B">("all");
+
+  // eBay-style drill-down: picking a category reveals its sub-categories
+  // (brand / collection type); switching category resets the drill.
+  const pickCat = (k: CatalogCategoryKey | "all") => {
+    setCat(k);
+    setSub("all");
+  };
+  const subs = useMemo(
+    () =>
+      cat === "all"
+        ? []
+        : [...new Set(CATALOG.filter((i) => i.category === cat).map((i) => i.sub))],
+    [cat],
+  );
 
   const items = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return CATALOG.filter((i) => {
       if (cat !== "all" && i.category !== cat) return false;
+      if (sub !== "all" && i.sub !== sub) return false;
       if (tier !== "all" && i.tier !== tier) return false;
-      if (needle && !`${i.name} ${i.meta} ${CATEGORY_LABELS[i.category]}`.toLowerCase().includes(needle)) return false;
+      if (needle && !`${i.name} ${i.meta} ${i.sub} ${CATEGORY_LABELS[i.category]}`.toLowerCase().includes(needle)) return false;
       return true;
     });
-  }, [q, cat, tier]);
+  }, [q, cat, sub, tier]);
 
   const pill = (active: boolean) =>
     `rounded-full border px-3 py-1.5 text-[12px] font-medium transition ${
@@ -56,11 +72,11 @@ export function CollectiblesCatalogBrowser() {
           className="w-full rounded-xl border border-[var(--hairline-strong)] bg-[var(--bg)] px-4 py-2.5 text-sm outline-none placeholder:text-[var(--ink-faint)] focus:border-[var(--accent-deep)]"
         />
         <div className="flex flex-wrap items-center gap-2">
-          <button type="button" className={pill(cat === "all")} onClick={() => setCat("all")}>
+          <button type="button" className={pill(cat === "all")} onClick={() => pickCat("all")}>
             All categories
           </button>
           {CATEGORY_ORDER.map((k) => (
-            <button key={k} type="button" className={pill(cat === k)} onClick={() => setCat(k)}>
+            <button key={k} type="button" className={pill(cat === k)} onClick={() => pickCat(k)}>
               {CATEGORY_LABELS[k]}
             </button>
           ))}
@@ -71,6 +87,21 @@ export function CollectiblesCatalogBrowser() {
             </button>
           ))}
         </div>
+        {subs.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 border-t border-[var(--hairline)] pt-3">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+              {CATEGORY_LABELS[cat as CatalogCategoryKey]}
+            </span>
+            <button type="button" className={pill(sub === "all")} onClick={() => setSub("all")}>
+              All
+            </button>
+            {subs.map((s) => (
+              <button key={s} type="button" className={pill(sub === s)} onClick={() => setSub(s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Result count */}

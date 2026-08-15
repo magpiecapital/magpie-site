@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { GRADERS, SUPPORTED_PLATFORMS } from "@/lib/collectible-vetting";
+import {
+  GRADERS,
+  SUPPORTED_PLATFORMS,
+  vetSubmission,
+} from "@/lib/collectible-vetting";
 
 /**
  * Submit a card to be considered as collateral. The form deliberately asks
@@ -99,6 +104,32 @@ export function CollectibleSubmitForm() {
   }
 
   const style = result ? VERDICT_STYLE[result.verdict] : null;
+
+  // Live pre-check: the vetting gate is pure and synchronous, so we can run
+  // it on every keystroke and show the collector where they stand BEFORE
+  // they submit. The server run stays authoritative (it records the attempt
+  // and does the on-chain ownership check) — this is the same rules, sooner.
+  const preview = useMemo(() => {
+    if (result) return null; // the real verdict replaces the preview
+    if (!form.card.trim() || form.card.trim().length < 4) return null;
+    if (!form.cert.trim()) return null;
+    if (!form.grade.trim() && !form.autoGrade.trim()) return null;
+    try {
+      return vetSubmission({
+        grader: form.grader,
+        cert: form.cert,
+        card: form.card,
+        set: form.set,
+        year: form.year,
+        grade: form.grade,
+        autoGrade: form.autoGrade,
+        platform: form.platform,
+      });
+    } catch {
+      return null;
+    }
+  }, [form, result]);
+  const previewStyle = preview ? VERDICT_STYLE[preview.verdict] : null;
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -216,6 +247,33 @@ export function CollectibleSubmitForm() {
             />
           </Field>
         </div>
+
+        {preview && previewStyle && (
+          <div
+            className="mt-5 flex flex-wrap items-center gap-2.5 rounded-xl border border-[var(--hairline)] bg-[var(--bg-elevated)] px-3.5 py-2.5"
+            aria-live="polite"
+          >
+            <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+              Live pre-check
+            </span>
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] ${
+                previewStyle.tone === "ok"
+                  ? "bg-[var(--accent)] text-[var(--accent-ink)]"
+                  : previewStyle.tone === "warn"
+                    ? "bg-[var(--accent-dim)] text-[var(--accent-deep)]"
+                    : "border border-[var(--hairline-strong)] text-[var(--ink-faint)]"
+              }`}
+            >
+              {previewStyle.label}
+            </span>
+            <span className="text-[12px] text-[var(--ink-soft)]">
+              {preview.verdict === "DECLINED"
+                ? "Same rules as the full check — details on submit."
+                : "Looking good so far — submit to run the full check and record it."}
+            </span>
+          </div>
+        )}
 
         <div className="mt-6 flex flex-wrap items-center gap-4">
           <button type="submit" disabled={busy} className="btn-accent text-sm disabled:opacity-60">
@@ -339,6 +397,20 @@ export function CollectibleSubmitForm() {
                   </li>
                 ))}
               </ul>
+              {/* The verdict decides the door we open — never a dead end. */}
+              <div className="mt-4 flex flex-wrap gap-3">
+                {result.verdict === "NEEDS_VAULTING" && (
+                  <Link href="/collectibles/tokenize" className="btn-accent text-sm">
+                    Start the tokenize path<span aria-hidden>→</span>
+                  </Link>
+                )}
+                {(result.verdict === "PROVISIONAL_TIER_A" ||
+                  result.verdict === "PROVISIONAL_TIER_B") && (
+                  <Link href="/collectibles" className="btn-ghost text-sm">
+                    See assets like yours in the catalog
+                  </Link>
+                )}
+              </div>
             </div>
           )}
         </div>
