@@ -1,32 +1,43 @@
 import { NextResponse } from "next/server";
+import { query } from "@/lib/db";
 
 /**
- * Proxy to the bot's tokenized-collectible inventory counts (fed by the
- * on-chain DAS indexer). Cached at the edge; serves stale on error so a
- * bot restart never blanks the asset pages' live panels.
+ * Live tokenized-collectible counts per catalog slug, read directly from the
+ * inventory table the bot's DAS indexer maintains (12h sweeps). Direct DB —
+ * same pattern as /api/v1/tokens — because the bot host isn't reachable from
+ * Vercel. Edge-cached 5 min, stale on error.
  */
-const BOT_API_URL = process.env.BOT_API_URL ?? "";
-
 const HEADERS = {
   "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600, stale-if-error=86400",
   "X-Powered-By": "Magpie Protocol",
 };
 
+let cache: { at: number; bySlug: Record<string, unknown[]> } | null = null;
+const TTL_MS = 5 * 60 * 1000;
+
 export async function GET(req: Request) {
-  if (!BOT_API_URL) {
-    return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503, headers: HEADERS });
-  }
   const slug = new URL(req.url).searchParams.get("slug");
   try {
-    const upstream = await fetch(
-      `${BOT_API_URL}/api/v1/collectibles/tokenized${slug ? `?slug=${encodeURIComponent(slug)}` : ""}`,
-      { signal: AbortSignal.timeout(10_000), next: { revalidate: 300 } },
-    );
-    if (!upstream.ok) {
-      return NextResponse.json({ ok: false, error: "upstream" }, { status: 502, headers: HEADERS });
+    if (!cache || Date.now() - cache.at > TTL_MS) {
+      const { rows } = await query(
+        `SELECT catalog_slug, platform, COUNT(*)::int AS count, MAX(last_seen_at) AS last_seen
+           FROM collectible_tokenized_inventory
+          WHERE catalog_slug IS NOT NULL
+          GROUP BY catalog_slug, platform`,
+      );
+      const bySlug: Record<string, unknown[]> = {};
+      for (const r of rows) {
+        (bySlug[r.catalog_slug] ??= []).push({
+          platform: r.platform,
+          count: r.count,
+          last_seen: r.last_seen,
+        });
+      }
+      cache = { at: Date.now(), bySlug };
     }
-    return NextResponse.json(await upstream.json(), { headers: HEADERS });
+    if (slug) return NextResponse.json({ ok: true, slug, platforms: cache.bySlug[slug] ?? [] }, { headers: HEADERS });
+    return NextResponse.json({ ok: true, inventory: cache.bySlug }, { headers: HEADERS });
   } catch {
-    return NextResponse.json({ ok: false, error: "timeout" }, { status: 504, headers: HEADERS });
+    return NextResponse.json({ ok: false, error: "unavailable" }, { status: 503, headers: HEADERS });
   }
 }
