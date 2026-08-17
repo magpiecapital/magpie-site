@@ -4,9 +4,13 @@
  * per-asset pages at /collectibles/[slug].
  *
  * Honesty rules baked in:
- *  - NO dollar valuations anywhere. "Sale comps" on asset pages are LIVE
- *    deep-links into sold-listing searches (eBay sold, PriceCharting), so the
- *    numbers a visitor sees are always today's, never a stale hardcode.
+ *  - Dollar figures are only ever shown as STALE-GUARDED estimates. A comp
+ *    block (see CompEstimate) carries an asOf date; past COMPS_MAX_AGE_DAYS
+ *    the figures disappear entirely and the surface falls back to live
+ *    comp links only — a forgotten refresh can never silently mis-quote.
+ *  - Every estimate is paired with LIVE deep-links into sold-listing searches
+ *    (eBay sold, PriceCharting), which are the authoritative number; the exact
+ *    card is always comped live at loan time. Estimates are never an offer.
  *  - Tokenization is stated at the CATEGORY level ("vaulted & tokenized on…"),
  *    because we can verify a platform supports the category — not that any
  *    specific cert is currently vaulted there.
