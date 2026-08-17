@@ -8,6 +8,55 @@ import {
   SUPPORTED_PLATFORMS,
   vetSubmission,
 } from "@/lib/collectible-vetting";
+import {
+  FULL_CATALOG,
+  TIER_LTV,
+  compsAreFresh,
+  fmtUsd,
+} from "@/lib/collectibles-catalog";
+
+/**
+ * Best-effort borrow quote for a submitted card. If the card matches a
+ * catalog asset with fresh comps, returns a dollar range (band × tier LTV);
+ * otherwise null and the UI falls back to the honest "up to X% LTV" line.
+ * All estimates — never a live offer.
+ */
+// Pick the comp band that matches the grade the collector entered, so the
+// quote narrows to THEIR card (e.g. "PSA 10") instead of the full raw→10 span.
+// Our bands only go down to Grade 8; below that we can't narrow honestly, so
+// the caller falls back to the full span.
+function bandForGrade(
+  bands: { label: string; low: number; high: number }[],
+  gradeText: string,
+): { label: string; low: number; high: number } | null {
+  const g = parseFloat(gradeText);
+  if (!isFinite(g)) return null;
+  const want = g >= 10 ? "10" : g >= 9 ? "9" : g >= 8 ? "8" : null;
+  if (!want) return null;
+  return bands.find((b) => b.label.replace(/[^0-9]/g, "") === want) ?? null;
+}
+
+function borrowQuote(cardText: string, setText: string, tier: "A" | "B", gradeText = "") {
+  const hay = ` ${`${cardText} ${setText}`.toLowerCase().replace(/[^a-z0-9]+/g, " ")} `;
+  const toks = (s: string) =>
+    s.toLowerCase().replace(/[^a-z0-9]+/g, " ").split(" ").filter((t) => t.length >= 3);
+  let best:
+    | { low: number; high: number; name: string; slug: string; gradeLabel: string | null }
+    | null = null;
+  for (const item of FULL_CATALOG) {
+    if (item.tier !== tier || !item.comps || !compsAreFresh(item.comps)) continue;
+    const nameToks = toks(item.name);
+    if (nameToks.length === 0 || !nameToks.every((t) => hay.includes(` ${t} `))) continue;
+    const band = bandForGrade(item.comps.bands, gradeText);
+    const low = band ? band.low : Math.min(...item.comps.bands.map((b) => b.low));
+    const high = band ? band.high : Math.max(...item.comps.bands.map((b) => b.high));
+    if (!best || high > best.high)
+      best = { low, high, name: item.name, slug: item.slug, gradeLabel: band ? band.label : null };
+  }
+  if (!best) return null;
+  const ltv = TIER_LTV[tier];
+  return { ...best, borrowLow: best.low * ltv, borrowHigh: best.high * ltv, ltvPct: Math.round(ltv * 100) };
+}
 
 /**
  * Submit a card to be considered as collateral. The form deliberately asks
@@ -272,6 +321,20 @@ export function CollectibleSubmitForm() {
                 ? "Same rules as the full check — details on submit."
                 : "Looking good so far — submit to run the full check and record it."}
             </span>
+            {(preview.verdict === "PROVISIONAL_TIER_A" || preview.verdict === "PROVISIONAL_TIER_B" ||
+              preview.verdict === "NEEDS_VAULTING") && preview.tier && (() => {
+                const q = borrowQuote(form.card, form.set, preview.tier, form.grade);
+                const single = q ? q.borrowLow === q.borrowHigh : false;
+                return q ? (
+                  <span className="w-full text-[12px] text-[var(--ink-soft)]">
+                    {preview.verdict === "NEEDS_VAULTING" ? "Est. borrow once vaulted: " : "Est. borrow: "}
+                    <span className="font-semibold text-[var(--accent-deep)]">
+                      {single ? `~${fmtUsd(q.borrowHigh)}` : `~${fmtUsd(q.borrowLow)} – ${fmtUsd(q.borrowHigh)}`}
+                    </span>{" "}
+                    ({q.gradeLabel ? `${q.gradeLabel} · ` : "by grade · "}{q.ltvPct}% LTV — estimate)
+                  </span>
+                ) : null;
+              })()}
           </div>
         )}
 
@@ -334,6 +397,51 @@ export function CollectibleSubmitForm() {
           <p className="mt-3 font-display text-lg font-medium tracking-[-0.01em] sm:text-xl">
             {result.headline}
           </p>
+
+          {/* Instant borrow quote — the number a collector actually wants.
+              Only for provisional passes; a dollar range only when the card
+              matches a catalog asset with fresh comps, else the honest
+              tier-LTV line. Always framed as an estimate, never an offer. */}
+          {(result.verdict === "PROVISIONAL_TIER_A" || result.verdict === "PROVISIONAL_TIER_B" ||
+            result.verdict === "NEEDS_VAULTING") && result.tier && (() => {
+              const q = borrowQuote(form.card, form.set, result.tier, form.grade);
+              const needsVault = result.verdict === "NEEDS_VAULTING";
+              const single = q ? q.borrowLow === q.borrowHigh : false;
+              return (
+                <div className="mt-4 rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-dim)]/40 p-4 sm:p-5">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-deep)]">
+                    {needsVault ? "What you could borrow (once vaulted)" : "What you could borrow"}
+                  </div>
+                  {q ? (
+                    <>
+                      <div className="mt-1.5 font-display text-2xl font-bold tracking-[-0.02em] text-[var(--accent-deep)] sm:text-3xl">
+                        {single ? `~${fmtUsd(q.borrowHigh)}` : `~${fmtUsd(q.borrowLow)} – ${fmtUsd(q.borrowHigh)}`}
+                      </div>
+                      <p className="mt-1.5 text-[12px] leading-relaxed text-[var(--ink-soft)] sm:text-[13px]">
+                        Estimated at Tier {result.tier} ({q.ltvPct}% LTV) against{" "}
+                        {q.name}&apos;s recent sold {q.gradeLabel ? `${q.gradeLabel} comps` : "range, by grade"}. Your exact card is
+                        comped live at loan time — this is an estimate, not an offer.{" "}
+                        {needsVault ? (
+                          <Link href="/collectibles/tokenize" className="text-[var(--accent-deep)] underline-offset-4 hover:underline">
+                            Vault it to unlock this →
+                          </Link>
+                        ) : (
+                          <Link href={`/collectibles/${q.slug}`} className="text-[var(--accent-deep)] underline-offset-4 hover:underline">
+                            See the breakdown →
+                          </Link>
+                        )}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+                      Up to <span className="font-semibold text-[var(--ink)]">{Math.round(TIER_LTV[result.tier] * 100)}% of your card&apos;s verified value</span>,
+                      fixed term, no margin calls. The exact amount is set from real sold
+                      comps for your specific card and grade at loan time.
+                    </p>
+                  )}
+                </div>
+              );
+            })()}
 
           <ul className="mt-5 flex flex-col divide-y divide-[var(--hairline)]">
             {result.checks.map((c) => (
