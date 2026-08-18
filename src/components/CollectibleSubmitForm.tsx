@@ -11,51 +11,34 @@ import {
 import {
   FULL_CATALOG,
   TIER_LTV,
-  compsAreFresh,
+  borrowEstimate,
   fmtUsd,
 } from "@/lib/collectibles-catalog";
 
 /**
- * Best-effort borrow quote for a submitted card. If the card matches a
- * catalog asset with fresh comps, returns a dollar range (band × tier LTV);
- * otherwise null and the UI falls back to the honest "up to X% LTV" line.
- * All estimates — never a live offer.
+ * Best-effort borrow quote for a submitted card. Fuzzy-matches the card text
+ * against the catalog, then defers to the shared `borrowEstimate` (the single
+ * source of borrow math — narrows to grade, stale-guards) for the figures.
+ * Returns null when nothing matches; the UI then falls back to the honest
+ * "up to X% LTV" line. All estimates — never a live offer.
  */
-// Pick the comp band that matches the grade the collector entered, so the
-// quote narrows to THEIR card (e.g. "PSA 10") instead of the full raw→10 span.
-// Our bands only go down to Grade 8; below that we can't narrow honestly, so
-// the caller falls back to the full span.
-function bandForGrade(
-  bands: { label: string; low: number; high: number }[],
-  gradeText: string,
-): { label: string; low: number; high: number } | null {
-  const g = parseFloat(gradeText);
-  if (!isFinite(g)) return null;
-  const want = g >= 10 ? "10" : g >= 9 ? "9" : g >= 8 ? "8" : null;
-  if (!want) return null;
-  return bands.find((b) => b.label.replace(/[^0-9]/g, "") === want) ?? null;
-}
-
 function borrowQuote(cardText: string, setText: string, tier: "A" | "B", gradeText = "") {
   const hay = ` ${`${cardText} ${setText}`.toLowerCase().replace(/[^a-z0-9]+/g, " ")} `;
   const toks = (s: string) =>
     s.toLowerCase().replace(/[^a-z0-9]+/g, " ").split(" ").filter((t) => t.length >= 3);
   let best:
-    | { low: number; high: number; name: string; slug: string; gradeLabel: string | null }
+    | { name: string; slug: string; est: NonNullable<ReturnType<typeof borrowEstimate>> }
     | null = null;
   for (const item of FULL_CATALOG) {
-    if (item.tier !== tier || !item.comps || !compsAreFresh(item.comps)) continue;
+    if (item.tier !== tier) continue;
     const nameToks = toks(item.name);
     if (nameToks.length === 0 || !nameToks.every((t) => hay.includes(` ${t} `))) continue;
-    const band = bandForGrade(item.comps.bands, gradeText);
-    const low = band ? band.low : Math.min(...item.comps.bands.map((b) => b.low));
-    const high = band ? band.high : Math.max(...item.comps.bands.map((b) => b.high));
-    if (!best || high > best.high)
-      best = { low, high, name: item.name, slug: item.slug, gradeLabel: band ? band.label : null };
+    const est = borrowEstimate(item.comps, tier, gradeText);
+    if (!est) continue;
+    if (!best || est.high > best.est.high) best = { name: item.name, slug: item.slug, est };
   }
   if (!best) return null;
-  const ltv = TIER_LTV[tier];
-  return { ...best, borrowLow: best.low * ltv, borrowHigh: best.high * ltv, ltvPct: Math.round(ltv * 100) };
+  return { name: best.name, slug: best.slug, ...best.est };
 }
 
 /**
@@ -422,7 +405,10 @@ export function CollectibleSubmitForm() {
                         {q.name}&apos;s recent sold {q.gradeLabel ? `${q.gradeLabel} comps` : "range, by grade"}. Your exact card is
                         comped live at loan time — this is an estimate, not an offer.{" "}
                         {needsVault ? (
-                          <Link href="/collectibles/tokenize" className="text-[var(--accent-deep)] underline-offset-4 hover:underline">
+                          <Link
+                            href={`/collectibles/tokenize?card=${encodeURIComponent(q.slug)}${form.grade.trim() ? `&g=${encodeURIComponent(form.grade.trim())}` : ""}`}
+                            className="text-[var(--accent-deep)] underline-offset-4 hover:underline"
+                          >
                             Vault it to unlock this →
                           </Link>
                         ) : (
