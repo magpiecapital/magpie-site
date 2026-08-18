@@ -12,6 +12,12 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
+import {
+  FULL_CATALOG,
+  TIER_LTV,
+  borrowEstimate,
+  fmtUsd,
+} from "@/lib/collectibles-catalog";
 
 export const metadata: Metadata = {
   title: "Tokenize your collectible, then borrow against it | Magpie",
@@ -79,11 +85,61 @@ const PLATFORMS = [
   },
 ];
 
-export default function TokenizePage() {
+// A collector who arrives from a specific card's "vault it to unlock this"
+// link carries context we should honor: which card, and their grade. We
+// recompute the figure SERVER-SIDE from the authoritative catalog (never a
+// URL-supplied dollar amount) so the banner can never be spoofed via the link.
+export default async function TokenizePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const cardSlug = typeof sp.card === "string" ? sp.card : undefined;
+  const grade = typeof sp.g === "string" ? sp.g : "";
+  const item = cardSlug ? FULL_CATALOG.find((i) => i.slug === cardSlug) : undefined;
+  const est = item ? borrowEstimate(item.comps, item.tier, grade) : null;
+  const single = est ? est.borrowLow === est.borrowHigh : false;
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--ink)]">
       <Header />
       <main className="mx-auto max-w-5xl px-5 py-12 sm:px-6 sm:py-16">
+        {item && (
+          <Reveal>
+            <div className="mx-auto mb-8 max-w-2xl rounded-2xl border border-[var(--accent)]/40 bg-[var(--accent-dim)]/40 p-5 text-center sm:mb-10 sm:p-6">
+              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--accent-deep)]">
+                One step away
+              </div>
+              <p className="mt-2 font-display text-lg font-medium tracking-[-0.01em] sm:text-xl">
+                You&apos;re one step from borrowing against your {item.name}.
+              </p>
+              <p className="mx-auto mt-2 max-w-lg text-[13px] leading-relaxed text-[var(--ink-soft)] sm:text-sm">
+                {est ? (
+                  <>
+                    Vault it below and the loan is waiting —{" "}
+                    <span className="font-semibold text-[var(--accent-deep)]">
+                      {single ? `~${fmtUsd(est.borrowHigh)}` : `up to ~${fmtUsd(est.borrowHigh)}`}
+                    </span>{" "}
+                    at Tier {item.tier} ({est.ltvPct}% LTV{est.gradeLabel ? `, ${est.gradeLabel}` : ""}).
+                    An estimate from real sold comps, not an offer — your exact card is comped live at loan time.
+                  </>
+                ) : (
+                  <>
+                    Vault it below and the loan is waiting — up to{" "}
+                    <span className="font-semibold text-[var(--accent-deep)]">
+                      {Math.round(TIER_LTV[item.tier] * 100)}% of its verified value
+                    </span>
+                    , priced on real sold comps at loan time. Not an offer.
+                  </>
+                )}{" "}
+                <Link href={`/collectibles/${item.slug}`} className="font-semibold text-[var(--accent-deep)] underline-offset-4 hover:underline">
+                  See its value breakdown →
+                </Link>
+              </p>
+            </div>
+          </Reveal>
+        )}
         <Reveal>
           <div className="mx-auto max-w-2xl text-center">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--accent-deep)]">

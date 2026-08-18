@@ -59,6 +59,56 @@ export function fmtUsd(n: number): string {
   return `$${Math.round(n).toLocaleString("en-US")}`;
 }
 
+/**
+ * The comp band matching a collector's entered grade, so an estimate narrows
+ * to THEIR card (e.g. "PSA 10") instead of the full raw→10 span. Bands only
+ * go down to Grade 8; below that we can't narrow honestly and return null so
+ * the caller falls back to the full span. Shared source of truth for every
+ * surface that quotes a borrow figure (submit form, tokenize funnel).
+ */
+export function bandForGrade(bands: CompBand[], gradeText: string): CompBand | null {
+  const g = parseFloat(gradeText);
+  if (!Number.isFinite(g)) return null;
+  const want = g >= 10 ? "10" : g >= 9 ? "9" : g >= 8 ? "8" : null;
+  if (!want) return null;
+  return bands.find((b) => b.label.replace(/[^0-9]/g, "") === want) ?? null;
+}
+
+export interface BorrowEstimate {
+  low: number;
+  high: number;
+  gradeLabel: string | null;
+  borrowLow: number;
+  borrowHigh: number;
+  ltvPct: number;
+}
+
+/**
+ * Borrow estimate for a catalog asset at a tier, narrowed to a grade when one
+ * is given. Returns null when comps are missing or stale — so a forgotten
+ * refresh can never surface a number. The single place borrow figures are
+ * computed; UI only formats what this returns.
+ */
+export function borrowEstimate(
+  comps: CompEstimate | null,
+  tier: "A" | "B",
+  gradeText = "",
+): BorrowEstimate | null {
+  if (!comps || !compsAreFresh(comps) || comps.bands.length === 0) return null;
+  const band = bandForGrade(comps.bands, gradeText);
+  const low = band ? band.low : Math.min(...comps.bands.map((b) => b.low));
+  const high = band ? band.high : Math.max(...comps.bands.map((b) => b.high));
+  const ltv = TIER_LTV[tier];
+  return {
+    low,
+    high,
+    gradeLabel: band ? band.label : null,
+    borrowLow: low * ltv,
+    borrowHigh: high * ltv,
+    ltvPct: Math.round(ltv * 100),
+  };
+}
+
 export interface CatalogItem {
   slug: string;
   name: string;
