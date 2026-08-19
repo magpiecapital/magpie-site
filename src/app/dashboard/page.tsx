@@ -1255,6 +1255,7 @@ function DashboardPageInner() {
   // instead of a frozen "Signing…" is the UX half of Just-Ahead Warming.
   // See feedback_first_attempt_loan_success_cost_effective.
   const [borrowWarming, setBorrowWarming] = useState(false);
+  const [borrowWarmInfo, setBorrowWarmInfo] = useState<{ inWindow: number; eta: number } | null>(null);
   const [borrowTx, setBorrowTx] = useState<string | null>(null);
   // After a successful borrow, surface a 1-tap "lock in upside" prompt
   // so the user can arm an autonomous take-profit immediately while
@@ -2243,6 +2244,12 @@ function DashboardPageInner() {
       const exitPlan = computeExitPlan();
 
       const MAX_BLOCKHASH_RETRIES = 2;
+      // Oracle-warming auto-retry budget (separate from blockhash retries).
+      // The bot is told to block at most ~6s in-request; if the feed needs
+      // longer we get an honest oracle_warming 503 with progress + eta and
+      // retry here with live status — no frozen 90s spinner, no wasted
+      // wallet re-prompts (same signed tx is resubmitted).
+      let warmWaitedMs = 0;
       let signature: string | null = null;
       // Pre-signed V4 exit envelope (collected up-front, submitted post-confirm).
       let signedArm: SignedArmBatch | null = null;
@@ -2286,15 +2293,42 @@ function DashboardPageInner() {
         setBorrowLanding(true);
         const partialBase64 = userSigned.serialize({ requireAllSignatures: false }).toString("base64");
 
-        const cosignRes = await fetch(`${botApi}/api/v1/cosign-borrow`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ partialSignedTxBase64: partialBase64 }),
-        });
-        cosignBody = await cosignRes.json();
-        lastStatus = cosignRes.status;
+        let cosignRes: Response;
+        for (;;) {
+          cosignRes = await fetch(`${botApi}/api/v1/cosign-borrow`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              partialSignedTxBase64: partialBase64,
+              // Interactive budget: bot blocks ≤6s, then reports warming
+              // progress instead of holding the request open for 90s.
+              warming_wait_budget_ms: 6000,
+            }),
+          });
+          cosignBody = await cosignRes.json();
+          lastStatus = cosignRes.status;
+          if (
+            cosignRes.status === 503 &&
+            (cosignBody as { oracle_warming?: boolean }).oracle_warming === true &&
+            warmWaitedMs < 60_000
+          ) {
+            const inWindow = Number((cosignBody as { in_window?: number }).in_window ?? 0);
+            const eta = Number((cosignBody as { retry_after_seconds?: number }).retry_after_seconds ?? 10);
+            setBorrowWarming(true);
+            setBorrowWarmInfo({ inWindow, eta });
+            const waitS = Math.min(8, Math.max(3, eta));
+            await new Promise((r) => setTimeout(r, waitS * 1000));
+            warmWaitedMs += waitS * 1000;
+            continue;
+          }
+          break;
+        }
+        setBorrowWarming(false);
+        setBorrowWarmInfo(null);
         if (cosignRes.ok && cosignBody.ok) {
           signature = cosignBody.signature!;
+          const t = (cosignBody as { timings?: Record<string, number> }).timings;
+          if (t) console.info("[borrow] cosign stage timings (ms):", t);
           break;
         }
         // Stale blockhash → refresh + re-sign + retry. Only this specific
@@ -4774,7 +4808,9 @@ function DashboardPageInner() {
                                             {borrowing ? (
                                               <>
                                                 <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
-                                                {borrowWarming ? "Warming price feed…" : borrowLanding ? "Landing your transaction…" : "Signing..."}
+                                                {borrowWarming
+                                                  ? `Warming price oracle… ${borrowWarmInfo ? `${borrowWarmInfo.inWindow}/8 samples · ~${Math.max(1, Math.round(borrowWarmInfo.eta))}s` : ""}`
+                                                  : borrowLanding ? "Landing your transaction…" : "Signing..."}
                                               </>
                                             ) : (
                                               <>
