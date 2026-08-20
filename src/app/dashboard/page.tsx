@@ -1255,7 +1255,16 @@ function DashboardPageInner() {
   // instead of a frozen "Signing…" is the UX half of Just-Ahead Warming.
   // See feedback_first_attempt_loan_success_cost_effective.
   const [borrowWarming, setBorrowWarming] = useState(false);
-  const [borrowWarmInfo, setBorrowWarmInfo] = useState<{ inWindow: number; eta: number } | null>(null);
+  const [borrowWarmInfo, setBorrowWarmInfo] = useState<{ inWindow: number; eta: number; at: number } | null>(null);
+  // 1s ticker so the warming countdown visibly counts DOWN between retry
+  // polls instead of jumping every 3–8s — a moving number reads as progress,
+  // a frozen one reads as a hang (operator escalation 2026-08-20).
+  const [, setWarmTick] = useState(0);
+  useEffect(() => {
+    if (!borrowWarming) return;
+    const t = setInterval(() => setWarmTick((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [borrowWarming]);
   const [borrowTx, setBorrowTx] = useState<string | null>(null);
   // After a successful borrow, surface a 1-tap "lock in upside" prompt
   // so the user can arm an autonomous take-profit immediately while
@@ -2315,7 +2324,7 @@ function DashboardPageInner() {
             const inWindow = Number((cosignBody as { in_window?: number }).in_window ?? 0);
             const eta = Number((cosignBody as { retry_after_seconds?: number }).retry_after_seconds ?? 10);
             setBorrowWarming(true);
-            setBorrowWarmInfo({ inWindow, eta });
+            setBorrowWarmInfo({ inWindow, eta, at: Date.now() });
             const waitS = Math.min(8, Math.max(3, eta));
             await new Promise((r) => setTimeout(r, waitS * 1000));
             warmWaitedMs += waitS * 1000;
@@ -4809,7 +4818,19 @@ function DashboardPageInner() {
                                               <>
                                                 <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeDasharray="31.4 31.4" strokeLinecap="round" /></svg>
                                                 {borrowWarming
-                                                  ? `Warming price oracle… ${borrowWarmInfo ? `${borrowWarmInfo.inWindow}/8 samples · ~${Math.max(1, Math.round(borrowWarmInfo.eta))}s` : ""}`
+                                                  ? (() => {
+                                                      if (!borrowWarmInfo) return "Warming price oracle…";
+                                                      // Live remaining time: eta minus seconds elapsed since the poll
+                                                      // that reported it (ticker above re-renders every 1s).
+                                                      const left = Math.max(1, Math.round(borrowWarmInfo.eta - (Date.now() - borrowWarmInfo.at) / 1000));
+                                                      const mmss = left >= 60 ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` : `${left}s`;
+                                                      // ≥8 samples means the count gate is met and only the 5-min
+                                                      // history span is still building — saying "12/8 samples" there
+                                                      // reads as done-but-stuck. Say what's actually happening.
+                                                      return borrowWarmInfo.inWindow >= 8
+                                                        ? `Building price history… ~${mmss} left`
+                                                        : `Warming price oracle… ${borrowWarmInfo.inWindow}/8 samples · ~${mmss}`;
+                                                    })()
                                                   : borrowLanding ? "Landing your transaction…" : "Signing..."}
                                               </>
                                             ) : (
