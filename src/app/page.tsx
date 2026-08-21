@@ -326,6 +326,41 @@ export default async function Home() {
         </div>
       </section>
 
+      {/* ══════════ For AI agents ══════════ */}
+      <section className="mx-auto max-w-6xl px-5 py-14 sm:px-6 md:py-20">
+        <Reveal>
+          <div className="chip mb-4">For AI agents</div>
+          <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.02em] sm:text-4xl md:text-5xl">
+            Humans get a dashboard. Agents get an economy.
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-relaxed text-[var(--ink-soft)] sm:text-lg">
+            Autonomous agents borrow here with no account, no API key, and no
+            human in the loop — pay-per-call via x402, native tools in any LLM
+            through the official MCP Registry, and an on-chain credit score
+            that turns on-time repayment into portable reputation.
+          </p>
+        </Reveal>
+        <div className="mt-8 grid gap-4 sm:gap-5 md:grid-cols-3">
+          {[
+            { chip: "x402 · pay per call", title: "402 → pay → borrow", desc: "Agents hit a paid endpoint, settle on-chain, retry with the signature. The borrower on every loan is the agent's own wallet." },
+            { chip: "MCP · official registry", title: "One line in any LLM", desc: "io.github.magpiecapital/magpie — live stats, the collateral catalog, and loan terms as native tools in Claude and every MCP client." },
+            { chip: "Credit · on-chain", title: "Reputation that travels", desc: "Repay on time, the score climbs (300–850). Signed attestations any protocol can verify — the first credit history for machines." },
+          ].map((e, i) => (
+            <Reveal key={e.chip} delay={i * 80}>
+              <Link
+                href="/x402"
+                className="group flex h-full flex-col rounded-2xl border border-[var(--hairline)] bg-[var(--bg)] p-6 transition hover:border-[var(--accent)]/40 hover:bg-[var(--surface)]"
+              >
+                <div className="text-[10px] uppercase tracking-[0.2em] text-[var(--ink-faint)]">{e.chip}</div>
+                <div className="mt-3 font-display text-xl font-medium tracking-tight sm:text-2xl">{e.title}</div>
+                <p className="mt-2 text-sm leading-relaxed text-[var(--ink-soft)]">{e.desc}</p>
+                <div className="mt-auto pt-5 text-sm font-semibold text-[var(--accent-deep)]">Watch an agent borrow →</div>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
       {/* ══════════ FAQ ══════════ */}
       <section id="faq" className="mx-auto max-w-6xl px-5 py-14 sm:px-6 md:py-24">
         <Reveal>
