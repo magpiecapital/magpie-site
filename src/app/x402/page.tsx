@@ -170,6 +170,18 @@ async function fetchPools(): Promise<PoolsResponse | null> {
   }
 }
 
+type LeaderRow = { score: number; tier: string; loans_scored: number; username: string };
+async function fetchLeaderboard(): Promise<LeaderRow[]> {
+  try {
+    const res = await fetch(`${X402_BASE}/api/v1/agent/leaderboard`, { next: { revalidate: 120 } });
+    if (!res.ok) return [];
+    const d = (await res.json()) as { leaderboard?: LeaderRow[] };
+    return (d.leaderboard || []).slice(0, 8);
+  } catch {
+    return [];
+  }
+}
+
 // Always-on liveness signal for the status pill — pings the x402 service /health.
 // Cached 60s; reflects last-known status so the page can show "live" / "reconnecting"
 // instead of silently collapsing to a claims-only page when the API blips.
@@ -203,6 +215,7 @@ export default async function X402Page() {
     fetchX402Health(),
   ]);
   const x402metrics = await fetchX402Metrics();
+  const leaders = await fetchLeaderboard();
   return (
     <div className="min-h-screen">
       <Header />
@@ -428,6 +441,58 @@ export default async function X402Page() {
           </div>
         </Reveal>
       </section>
+
+      {/* The machine credit league — live, anonymized, real */}
+      {leaders.length > 0 && (
+        <section className="mx-auto max-w-6xl px-6 pb-20">
+          <Reveal>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)] animate-pulse" />
+              <span className="text-xs uppercase tracking-widest text-[var(--ink-soft)]">
+                Live · anonymized · from the free /agent/leaderboard endpoint
+              </span>
+            </div>
+            <h2 className="font-display text-2xl md:text-3xl tracking-tight mb-2">
+              The machine credit league.
+            </h2>
+            <p className="text-[var(--ink-soft)] mb-6 max-w-2xl">
+              Real wallets, real repayment histories. Every score below was
+              earned the only way possible — by borrowing and paying back, on
+              chain, on time.
+            </p>
+            <div className="rounded-2xl border border-[var(--ink)]/15 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[11px] uppercase tracking-widest text-[var(--ink-soft)] border-b border-[var(--ink)]/10">
+                    <th className="px-4 md:px-5 py-3">#</th>
+                    <th className="px-4 md:px-5 py-3">wallet</th>
+                    <th className="px-4 md:px-5 py-3">tier</th>
+                    <th className="px-4 md:px-5 py-3 text-right">score</th>
+                    <th className="px-4 md:px-5 py-3 text-right hidden sm:table-cell">loans scored</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaders.map((l, i) => (
+                    <tr key={l.username} className="border-b border-[var(--ink)]/5 last:border-0">
+                      <td className="px-4 md:px-5 py-3 text-[var(--ink-soft)]">{i + 1}</td>
+                      <td className="px-4 md:px-5 py-3 font-mono text-[13px]">{l.username}</td>
+                      <td className="px-4 md:px-5 py-3">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[11px] uppercase tracking-wider border ${
+                          l.tier === "gold" ? "border-amber-500/40 text-amber-500" :
+                          l.tier === "silver" ? "border-slate-400/40 text-slate-400" :
+                          "border-orange-800/40 text-orange-700"
+                        }`}>{l.tier}</span>
+                      </td>
+                      <td className="px-4 md:px-5 py-3 text-right font-display text-base">{l.score}</td>
+                      <td className="px-4 md:px-5 py-3 text-right text-[var(--ink-soft)] hidden sm:table-cell">{l.loans_scored.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Reveal>
+        </section>
+      )}
 
       {/* x402 revenue + adoption — only shows once there's data */}
       {x402metrics && x402metrics.calls_24h > 0 && (
