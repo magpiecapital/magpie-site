@@ -16,14 +16,14 @@ export default async function Image() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "80px",
-          background: "linear-gradient(135deg, #07100c 0%, #0b1a13 60%, #0e2418 100%)",
-          color: "#eafff4",
+          background: "linear-gradient(135deg, #0a0a0a 0%, #141208 60%, #1c1808 100%)",
+          color: "#fbfaf3",
           fontFamily: "sans-serif",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 14, height: 14, borderRadius: 999, background: "#2ee6a0" }} />
-          <div style={{ fontSize: 28, letterSpacing: 6, textTransform: "uppercase", color: "#8fb3a3" }}>
+          <div style={{ width: 14, height: 14, borderRadius: 999, background: "#f7c948" }} />
+          <div style={{ fontSize: 28, letterSpacing: 6, textTransform: "uppercase", color: "#a8a49a" }}>
             magpie.capital / x402
           </div>
         </div>
@@ -31,7 +31,7 @@ export default async function Image() {
           <div style={{ fontSize: 76, fontWeight: 700, letterSpacing: -2, lineHeight: 1.05 }}>
             Loans for autonomous agents.
           </div>
-          <div style={{ fontSize: 32, color: "#9fd4bd", lineHeight: 1.4 }}>
+          <div style={{ fontSize: 32, color: "#c9c2ae", lineHeight: 1.4 }}>
             Pay-per-call x402 · native MCP tools · on-chain credit scores.
             No accounts. No API keys. No humans required.
           </div>
@@ -41,11 +41,11 @@ export default async function Image() {
             <div
               key={t}
               style={{
-                border: "1.5px solid rgba(46,230,160,0.45)",
+                border: "1.5px solid rgba(247,201,72,0.5)",
                 borderRadius: 999,
                 padding: "12px 26px",
                 fontSize: 24,
-                color: "#2ee6a0",
+                color: "#f7c948",
               }}
             >
               {t}
