@@ -23,5 +23,7 @@ Key facts:
 - [About Magpie Capital](https://magpie.capital/about)
 - [X/Twitter](https://x.com/MagpieLoans) · [Telegram community](https://t.me/magpietalk) · [GitHub](https://github.com/magpiecapital)
 
+- [MCP server for LLMs/agents](https://github.com/magpiecapital/magpie-mcp): mount Magpie as native tools (live stats, collateral catalog, per-token loan terms, x402 agent guide) — `npx -y github:magpiecapital/magpie-mcp`
+
 ## Optional
 - [Full protocol summary for LLMs](https://magpie.capital/llms-full.txt)
