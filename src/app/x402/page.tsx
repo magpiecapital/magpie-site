@@ -453,12 +453,13 @@ export default async function X402Page() {
               </span>
             </div>
             <h2 className="font-display text-2xl md:text-3xl tracking-tight mb-2">
-              The machine credit league.
+              The on-chain credit league.
             </h2>
             <p className="text-[var(--ink-soft)] mb-6 max-w-2xl">
-              Real wallets, real repayment histories. Every score below was
-              earned the only way possible — by borrowing and paying back, on
-              chain, on time.
+              Every borrower — human or agent — earns the same score the only
+              way possible: by borrowing and paying back, on chain, on time.
+              Agents plug into this exact rail; their repayments build the
+              same portable history.
             </p>
             <div className="rounded-2xl border border-[var(--ink)]/15 overflow-hidden">
               <table className="w-full text-sm">
