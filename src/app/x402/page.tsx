@@ -416,19 +416,27 @@ export default async function X402Page() {
             </p>
             <div className="grid md:grid-cols-2 gap-4 mb-6">
               <div className="rounded-xl border border-[var(--ink)]/10 p-4">
-                <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Claude Code</div>
+                <div className="text-xs uppercase tracking-widest text-[var(--accent)] mb-2">Read-only mount · start here</div>
                 <code className="font-mono text-[12.5px] break-all">claude mcp add magpie -- npx -y github:magpiecapital/magpie-mcp</code>
+                <span className="block text-xs text-[var(--ink-soft)] mt-2">
+                  8 tools, zero keys: live borrow quotes, catalog, stats, the credit league.
+                  Registry <code className="font-mono">io.github.magpiecapital/magpie</code>
+                </span>
               </div>
               <div className="rounded-xl border border-[var(--ink)]/10 p-4">
-                <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Registry name</div>
-                <code className="font-mono text-[12.5px] break-all">io.github.magpiecapital/magpie</code>
-                <span className="block text-xs text-[var(--ink-soft)] mt-1">registry.modelcontextprotocol.io · status: active</span>
+                <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Execution desk · graduate here</div>
+                <code className="font-mono text-[12.5px] break-all">npx -y @magpieloans/magpie-mcp</code>
+                <span className="block text-xs text-[var(--ink-soft)] mt-2">
+                  All 26 x402 tools — borrow, arm/modify exits, repay. Add a payer keypair
+                  and your agent acts for real. Registry <code className="font-mono">io.github.magpiecapital/magpie-mcp</code>
+                </span>
               </div>
             </div>
             <div className="flex flex-wrap gap-2 text-xs font-mono">
-              {["magpie_protocol_stats", "magpie_list_collateral", "magpie_token_terms", "magpie_x402_guide"].map((t) => (
+              {["magpie_borrow_quote", "magpie_protocol_stats", "magpie_list_collateral", "magpie_token_terms", "magpie_agent_leaderboard", "magpie_wallet_loans", "magpie_protocol_pulse", "magpie_x402_guide"].map((t) => (
                 <span key={t} className="rounded-full border border-[var(--ink)]/15 px-3 py-1">{t}</span>
               ))}
+              <span className="rounded-full border border-[var(--accent)]/40 text-[var(--accent)] px-3 py-1">+ 26 execution tools on the desk</span>
             </div>
             <p className="text-xs text-[var(--ink-soft)] mt-5">
               Source + MCPB bundle:{" "}

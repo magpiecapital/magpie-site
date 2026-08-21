@@ -23,7 +23,8 @@ Key facts:
 - [About Magpie Capital](https://magpie.capital/about)
 - [X/Twitter](https://x.com/MagpieLoans) · [Telegram community](https://t.me/magpietalk) · [GitHub](https://github.com/magpiecapital)
 
-- [MCP server for LLMs/agents](https://github.com/magpiecapital/magpie-mcp): mount Magpie as native tools (live stats, collateral catalog, per-token loan terms, x402 agent guide) — `npx -y github:magpiecapital/magpie-mcp`
+- [MCP · read-only mount](https://github.com/magpiecapital/magpie-mcp): 8 keyless tools — LIVE borrow quotes, collateral catalog, stats, agent credit league — `npx -y github:magpiecapital/magpie-mcp` (registry `io.github.magpiecapital/magpie`)
+- [MCP · execution desk](https://www.npmjs.com/package/@magpieloans/magpie-mcp): all 26 x402 tools incl. borrow/arm-exits/repay with optional payer keypair — `npx -y @magpieloans/magpie-mcp` (registry `io.github.magpiecapital/magpie-mcp`)
 
 ## Optional
 - [Full protocol summary for LLMs](https://magpie.capital/llms-full.txt)
