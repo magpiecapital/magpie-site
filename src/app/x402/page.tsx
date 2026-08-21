@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { Reveal } from "@/components/Reveal";
 import { WalletLookupWidget } from "@/components/WalletLookupWidget";
 import { MintAddressCopy } from "@/components/MintAddressCopy";
+import { AgentDemoTerminal } from "@/components/AgentDemoTerminal";
 
 // The $MAGPIE token mint. 44 chars, copied VERBATIM — one wrong character
 // routes a buyer to the wrong token. Single source of truth for this page.
@@ -365,6 +366,68 @@ export default async function X402Page() {
           </Reveal>
         </section>
       )}
+
+      {/* Watch an agent borrow — the demo that says everything */}
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <Reveal>
+          <h2 className="font-display text-2xl md:text-3xl tracking-tight mb-2">
+            Watch an agent borrow.
+          </h2>
+          <p className="text-[var(--ink-soft)] mb-6 max-w-2xl">
+            The whole loop — quote, 402, pay, borrow, build credit — in one
+            session. Simulated replay; every path, price and response field is
+            the exact production shape.
+          </p>
+          <AgentDemoTerminal />
+        </Reveal>
+      </section>
+
+      {/* MCP — mount Magpie inside any LLM */}
+      <section className="mx-auto max-w-6xl px-6 pb-20">
+        <Reveal>
+          <div className="rounded-2xl border border-[var(--ink)]/15 bg-[var(--ink)]/[0.02] p-6 md:p-8">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-[var(--accent)]" />
+              <span className="text-xs uppercase tracking-widest text-[var(--ink-soft)]">
+                Model Context Protocol · listed in the official MCP Registry
+              </span>
+            </div>
+            <h2 className="font-display text-2xl md:text-3xl tracking-tight mb-2">
+              Mount Magpie inside your LLM.
+            </h2>
+            <p className="text-[var(--ink-soft)] mb-6 max-w-2xl">
+              One line gives Claude (or any MCP client) native Magpie tools —
+              live protocol stats, the full collateral catalog, per-token loan
+              terms, and the agent borrowing guide. Read-only: it holds no keys
+              and signs nothing.
+            </p>
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <div className="rounded-xl border border-[var(--ink)]/10 p-4">
+                <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Claude Code</div>
+                <code className="font-mono text-[12.5px] break-all">claude mcp add magpie -- npx -y github:magpiecapital/magpie-mcp</code>
+              </div>
+              <div className="rounded-xl border border-[var(--ink)]/10 p-4">
+                <div className="text-xs uppercase tracking-widest text-[var(--ink-soft)] mb-2">Registry name</div>
+                <code className="font-mono text-[12.5px] break-all">io.github.magpiecapital/magpie</code>
+                <span className="block text-xs text-[var(--ink-soft)] mt-1">registry.modelcontextprotocol.io · status: active</span>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs font-mono">
+              {["magpie_protocol_stats", "magpie_list_collateral", "magpie_token_terms", "magpie_x402_guide"].map((t) => (
+                <span key={t} className="rounded-full border border-[var(--ink)]/15 px-3 py-1">{t}</span>
+              ))}
+            </div>
+            <p className="text-xs text-[var(--ink-soft)] mt-5">
+              Source + MCPB bundle:{" "}
+              <a className="underline hover:text-[var(--ink)]" href="https://github.com/magpiecapital/magpie-mcp" target="_blank" rel="noopener noreferrer">
+                github.com/magpiecapital/magpie-mcp
+              </a>{" "}
+              · LLM crawler docs at{" "}
+              <a className="underline hover:text-[var(--ink)]" href="/llms.txt">/llms.txt</a>
+            </p>
+          </div>
+        </Reveal>
+      </section>
 
       {/* x402 revenue + adoption — only shows once there's data */}
       {x402metrics && x402metrics.calls_24h > 0 && (
