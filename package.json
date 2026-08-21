@@ -30,12 +30,13 @@
     "@types/bn.js": "^5.2.0",
     "bn.js": "^5.2.3",
     "buffer": "^6.0.3",
-    "next": "16.1.6",
+    "next": "^16.3.2",
     "pg": "^8.20.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
