@@ -71,6 +71,7 @@ async function fetchMarketData(
       try {
         const res = await fetch(
           `https://api.dexscreener.com/tokens/v1/solana/${batch.join(",")}`,
+          { signal: AbortSignal.timeout(8000) },
         );
         if (!res.ok) return;
         const pairs: Record<string, unknown>[] = await res.json();
@@ -127,6 +128,7 @@ async function fetchJupiterPrices(mints: string[]): Promise<Map<string, number>>
       try {
         const res = await fetch(
           `https://lite-api.jup.ag/price/v3?ids=${batch.join(",")}`,
+          { signal: AbortSignal.timeout(8000) },
         );
         if (!res.ok) return;
         const data = (await res.json()) as Record<
@@ -311,8 +313,10 @@ export default function TokensClient() {
 
   /* Stats */
   const stats = useMemo(() => {
-    const totalMcap = tokens.reduce((s, t) => s + (t.mcap ?? 0), 0);
-    const totalVol = tokens.reduce((s, t) => s + (t.volume24h ?? 0), 0);
+    const mcapKnown = tokens.some((t) => t.mcap != null);
+    const volKnown = tokens.some((t) => t.volume24h != null);
+    const totalMcap = mcapKnown ? tokens.reduce((s, t) => s + (t.mcap ?? 0), 0) : null;
+    const totalVol = volKnown ? tokens.reduce((s, t) => s + (t.volume24h ?? 0), 0) : null;
     const stockCount = tokens.filter((t) => t.category === "stock").length;
     const etfCount = tokens.filter((t) => t.category === "etf").length;
     const metalCount = tokens.filter((t) => t.category === "metal").length;
