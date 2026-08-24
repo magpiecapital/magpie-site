@@ -11,6 +11,7 @@
  * Renders only for linked users.
  */
 import { useCallback, useEffect, useState } from "react";
+import { formatSol } from "@/lib/format-price";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { siteSetPref, type PrefKey } from "@/lib/solana/site-prefs";
 import { siteMeExport } from "@/lib/solana/site-export";
@@ -50,7 +51,7 @@ function ageStr(iso: string): string {
 
 function fmtSol(lamports: string | null): string {
   if (!lamports) return "—";
-  return (Number(lamports) / 1e9).toFixed(4);
+  return formatSol(Number(lamports) / 1e9);
 }
 
 const TOGGLES: { key: PrefKey; label: string; sublabel: string }[] = [

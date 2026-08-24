@@ -22,6 +22,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatUsd } from "@/lib/format-price";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
   armTakeProfit,
@@ -404,11 +405,7 @@ function LadderCard({
               const slicePct = sliceBps / 100;
               const targetLabel =
                 intent.target_kind === "price_usd"
-                  ? targetUsd >= 1
-                    ? `$${targetUsd.toFixed(2)}`
-                    : targetUsd >= 0.01
-                      ? `$${targetUsd.toFixed(4)}`
-                      : `$${targetUsd.toFixed(8)}`
+                  ? formatUsd(targetUsd)
                   : intent.target_kind === "mc_usd"
                     ? targetUsd >= 1e9
                       ? `$${(targetUsd / 1e9).toFixed(2)}B mc`
