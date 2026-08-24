@@ -25,6 +25,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { formatUsd } from "@/lib/format-price";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
   fetchTakeProfitState, armTakeProfit, cancelTakeProfit, modifyTakeProfit,
@@ -333,9 +334,7 @@ function formatPctMove(pct: number): string {
 }
 
 function formatUsdPerToken(usd: number): string {
-  if (usd >= 1) return `$${usd.toFixed(4)}`;
-  if (usd >= 0.01) return `$${usd.toFixed(6)}`;
-  return `$${usd.toFixed(8)}`;
+  return formatUsd(usd);
 }
 
 function LimitSlot(props: SlotProps) {
@@ -682,9 +681,7 @@ function LimitSlot(props: SlotProps) {
             {armed.trailing_distance_bps != null && armed.peak_price_micros && (
               <span className="opacity-70"> · peak {(() => {
                 const peak = Number(armed.peak_price_micros) / 1e6;
-                if (peak >= 1) return `$${peak.toFixed(4)}`;
-                if (peak >= 0.01) return `$${peak.toFixed(6)}`;
-                return `$${peak.toFixed(8)}`;
+                return formatUsd(peak);
               })()}</span>
             )}
             {distanceLabel && <span className="opacity-70"> · {distanceLabel}</span>}
@@ -1171,7 +1168,7 @@ function formatTrigger(kind: string, valueMicro: string): string {
   }
   if (kind === "price_usd") {
     const usd = n / 1e6;
-    return `$${usd < 0.01 ? usd.toFixed(8) : usd < 1 ? usd.toFixed(6) : usd.toFixed(4)}/token`;
+    return `${formatUsd(usd)}/token`;
   }
   return `${(n / 1e9).toFixed(9)} SOL/token`;
 }

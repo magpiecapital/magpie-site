@@ -17,6 +17,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatUsd } from "@/lib/format-price";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { armTakeProfit } from "@/lib/solana/site-take-profit";
 import type {
@@ -673,9 +674,7 @@ function formatTriggerInline(kind: string, valueMicro: string): string {
   }
   if (kind === "price_usd") {
     const usd = n / 1e6;
-    if (usd >= 1) return `$${usd.toFixed(2)}`;
-    if (usd >= 0.01) return `$${usd.toFixed(4)}`;
-    return `$${usd.toFixed(8)}`;
+    return formatUsd(usd);
   }
   return `${(n / 1e9).toFixed(6)} SOL`;
 }
@@ -821,7 +820,7 @@ function V4SilentArmRecoveryBanner({
     let target: RetryTarget;
     if (intent.target_kind === "price_usd") {
       label =
-        v >= 1 ? `$${v.toFixed(2)}` : v >= 0.01 ? `$${v.toFixed(4)}` : `$${v.toFixed(8)}`;
+        formatUsd(v);
       target = { kind: "price_usd", usd: v };
     } else if (intent.target_kind === "mc_usd") {
       label =

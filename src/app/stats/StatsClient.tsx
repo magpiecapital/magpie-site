@@ -30,6 +30,7 @@ interface TransparencyData {
     new_30d: number;
     lifetime_borrowed_sol: number;
     borrowed_24h_sol: number;
+    active_outstanding_sol: number;
   };
   users: { total: number; new_24h: number; new_7d: number };
   holder_rewards: {
@@ -290,7 +291,7 @@ export default function StatsClient() {
             tag="SOL borrowed"
           />
           <div className="grid grid-cols-2 gap-3 sm:gap-5 md:grid-cols-4">
-            <Stat label="Last 24h" value={data ? fmtSol(data.loans.borrowed_24h_sol) : "—"} sub={data ? `${data.loans.new_24h} loans` : ""} />
+            <Stat label="Out on loan now" value={data ? fmtSol(data.loans.active_outstanding_sol) : "—"} sub={data ? `across ${fmtNum(data.loans.active)} active loans` : ""} />
             <Stat label="Lifetime borrowed" value={data ? fmtSol(data.loans.lifetime_borrowed_sol) : "—"} sub={data ? `${data.loans.total} loans` : ""} />
             <Stat label="Active loans" value={data ? fmtNum(data.loans.active) : "—"} sub="Currently outstanding" />
             <Stat label="Repaid loans" value={data ? fmtNum(data.loans.repaid) : "—"} sub="Successfully closed" />

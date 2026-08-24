@@ -13,6 +13,7 @@
  * all three categories (clean dashboard for new users).
  */
 import { useEffect, useState } from "react";
+import { formatSol } from "@/lib/format-price";
 import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useDashboardData } from "./DashboardContext";
@@ -52,10 +53,7 @@ function bucketTotal(b: Bucket | null): {
 }
 
 function fmtSol(n: number): string {
-  if (n === 0) return "0";
-  if (n < 0.0001) return n.toFixed(8);
-  if (n < 1) return n.toFixed(4);
-  return n.toFixed(3);
+  return formatSol(n);
 }
 
 export default function EarningsCard({ botApiUrl }: { botApiUrl: string }) {

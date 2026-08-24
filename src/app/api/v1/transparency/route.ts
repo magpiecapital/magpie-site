@@ -40,6 +40,7 @@ interface LoansRow {
   new_30d: string;
   lifetime_borrowed_lamports: string;
   borrowed_24h_lamports: string;
+  active_outstanding_lamports: string;
 }
 
 interface UsersRow {
@@ -104,12 +105,16 @@ export async function GET() {
          COALESCE(SUM(loan_amount_lamports::numeric), 0)::text AS lifetime_borrowed_lamports,
          COALESCE(SUM(CASE WHEN start_timestamp > NOW() - INTERVAL '24 hours'
                            THEN loan_amount_lamports::numeric ELSE 0 END), 0)::text
-           AS borrowed_24h_lamports
+           AS borrowed_24h_lamports,
+         COALESCE(SUM(CASE WHEN status = 'active'
+                           THEN loan_amount_lamports::numeric ELSE 0 END), 0)::text
+           AS active_outstanding_lamports
        FROM loans`,
       {
         total: "0", active: "0", repaid: "0", liquidated: "0",
         new_24h: "0", new_7d: "0", new_30d: "0",
         lifetime_borrowed_lamports: "0", borrowed_24h_lamports: "0",
+        active_outstanding_lamports: "0",
       },
     ),
     tryQuery<UsersRow>(
@@ -247,6 +252,7 @@ export async function GET() {
         new_30d: Number(loans.new_30d),
         lifetime_borrowed_sol: Number(loans.lifetime_borrowed_lamports) / 1e9,
         borrowed_24h_sol: Number(loans.borrowed_24h_lamports) / 1e9,
+        active_outstanding_sol: Number(loans.active_outstanding_lamports) / 1e9,
       },
       users: {
         total: Number(users.total_users),
