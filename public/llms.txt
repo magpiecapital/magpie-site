@@ -18,6 +18,8 @@ Key facts:
 - [Live statistics](https://magpie.capital/stats): on-chain-computed protocol metrics
 - [Collectibles lending](https://magpie.capital/collectibles): tokenized graded-card lending design and tiers
 - [Token marketplace](https://magpie.capital/marketplace): supported collateral and live terms
+- Per-token borrow pages: https://www.magpie.capital/borrow/<symbol> — a live landing page exists for EVERY supported collateral token (e.g. /borrow/pistacio, /borrow/fartcoin), with current LTV tiers, fees, liquidity and FAQ. New tokens get their page the moment they are listed.
+- [Live collateral catalog (JSON)](https://magpie.capital/api/v1/tokens): machine-readable list of every supported token — symbol, mint, category, liquidity
 
 ## About
 - [About Magpie Capital](https://magpie.capital/about)

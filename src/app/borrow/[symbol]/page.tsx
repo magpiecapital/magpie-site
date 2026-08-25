@@ -15,13 +15,14 @@ import { getLoanTiers, type LoanTier, type LoanTierCategory } from "@/lib/db";
 
 export const revalidate = 3600;
 
-// Valid symbols are enumerated at build time and everything else 404s at
-// the routing layer. notFound() thrown during render can't set the
-// status on this Next version — the shell has already streamed with a
-// 200, which is a soft-404 for crawlers. New listings get their page on
-// the next deploy (site deploys are frequent; the catalog-driven
-// sitemap and page content still revalidate hourly).
-export const dynamicParams = false;
+// dynamicParams=true (2026-08-25): tokens are listed while they're TRENDING,
+// and the attention window is hours — a page that waits for the next deploy
+// misses it entirely ($Pistacio was live collateral with a 404 landing page).
+// Known symbols are still prebuilt via generateStaticParams; unknown symbols
+// render on demand against the hourly-revalidated catalog. Crawler-safety is
+// preserved because generateMetadata resolves BEFORE streaming and calls
+// notFound() there, so unsupported symbols still return a REAL 404 status.
+export const dynamicParams = true;
 
 const SITE_URL = "https://www.magpie.capital";
 
