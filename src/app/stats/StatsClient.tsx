@@ -63,6 +63,20 @@ interface TransparencyData {
   generated_at: string;
 }
 
+type ProgramRow = {
+  key: string;
+  name: string;
+  status: string;
+  statusKind: "flagship" | "active" | "winding_down" | "retired";
+  audited: boolean;
+  program_id: string;
+  active_loans: number;
+  active_borrowed_sol: number;
+  lifetime_loans: number;
+  repaid_loans: number;
+  pool_liquidity_sol: number | null;
+};
+
 function fmtNum(n: number, opts: Intl.NumberFormatOptions = {}) {
   return n.toLocaleString(undefined, { maximumFractionDigits: 2, ...opts });
 }
@@ -161,6 +175,8 @@ export default function StatsClient() {
     return () => clearInterval(id);
   }, []);
 
+  const [programs, setPrograms] = useState<ProgramRow[] | null>(null);
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -169,11 +185,16 @@ export default function StatsClient() {
         // sections, /stats now also carries the limit-close engine
         // rollup. Either failing shouldn't block the other from
         // rendering, so we Promise.allSettled and degrade per slot.
-        const [tRes, sRes, xRes] = await Promise.allSettled([
+        const [tRes, sRes, xRes, pRes] = await Promise.allSettled([
           fetch("/api/v1/transparency", { cache: "no-store" }),
           fetch("/api/v1/stats", { cache: "no-store" }),
           fetch("/api/v1/x402-metrics", { cache: "no-store" }),
+          fetch("/api/v1/programs", { cache: "no-store" }),
         ]);
+        if (pRes.status === "fulfilled" && pRes.value.ok) {
+          const json = (await pRes.value.json()) as { ok: boolean; programs?: ProgramRow[] };
+          if (!cancelled && json?.ok && Array.isArray(json.programs)) setPrograms(json.programs);
+        }
         if (xRes.status === "fulfilled" && xRes.value.ok) {
           const json = (await xRes.value.json()) as X402Data;
           if (!cancelled && json && typeof json.calls_24h === "number") setX402(json);
@@ -297,6 +318,89 @@ export default function StatsClient() {
             <Stat label="Repaid loans" value={data ? fmtNum(data.loans.repaid) : "—"} sub="Successfully closed" />
           </div>
         </div>
+      </section>
+
+      {/* ── Lending programs (per-pool breakdown) ── */}
+      {/* Every figure computed live: loan aggregates from the protocol DB,
+          pool liquidity read from each program's on-chain vault. Each
+          program is a separate contract custodying its own funds, so
+          risk + liquidity get per-program visibility. */}
+      <section className="mx-auto max-w-6xl px-5 py-8 sm:px-6 sm:py-12 md:py-16">
+        <SectionHead
+          icon={<CoinsIcon className="h-5 w-5" />}
+          title="Lending programs"
+          tag="one contract per pool"
+        />
+        <p className="mb-6 max-w-3xl text-sm leading-relaxed text-[var(--ink-soft)]">
+          Magpie runs parallel on-chain programs, each custodying its own pool.
+          New auto-sell loans run on V4.1 — the Sec3-audited build — while plain
+          borrows use V1 (memecoins) and V3 (tokenized stocks / RWAs). Every
+          number below is computed live and verifiable on Solscan.
+        </p>
+        <div className="overflow-x-auto rounded-2xl border border-[var(--hairline)]">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-[var(--hairline)] bg-[var(--bg-elevated)] text-[10px] uppercase tracking-[0.16em] text-[var(--ink-faint)]">
+                <th className="px-4 py-3 sm:px-5">Program</th>
+                <th className="px-4 py-3 sm:px-5">Role</th>
+                <th className="px-4 py-3 text-right sm:px-5">Pool liquidity</th>
+                <th className="px-4 py-3 text-right sm:px-5">Active loans</th>
+                <th className="px-4 py-3 text-right sm:px-5">On loan</th>
+                <th className="px-4 py-3 text-right sm:px-5">Lifetime</th>
+                <th className="px-4 py-3 sm:px-5">Contract</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--hairline)]">
+              {(programs ?? []).map((p) => (
+                <tr key={p.key} className={p.statusKind === "flagship" ? "bg-[var(--surface)]" : undefined}>
+                  <td className="px-4 py-3.5 sm:px-5">
+                    <div className="flex items-center gap-2 font-medium text-[var(--ink)]">
+                      {p.name.split(" — ")[0]}
+                      {p.audited && (
+                        <span className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[var(--accent)]">
+                          Audited
+                        </span>
+                      )}
+                      {p.statusKind === "winding_down" && (
+                        <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] tracking-wide text-[var(--ink-faint)]">
+                          Winding down
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-0.5 text-xs text-[var(--ink-soft)]">{p.name.split(" — ")[1] ?? ""}</div>
+                  </td>
+                  <td className="max-w-[240px] px-4 py-3.5 text-xs leading-snug text-[var(--ink-soft)] sm:px-5">{p.status}</td>
+                  <td className="px-4 py-3.5 text-right font-display tabular sm:px-5">
+                    {p.pool_liquidity_sol != null ? fmtSol(p.pool_liquidity_sol) : "—"}
+                  </td>
+                  <td className="px-4 py-3.5 text-right font-display tabular sm:px-5">{fmtNum(p.active_loans)}</td>
+                  <td className="px-4 py-3.5 text-right font-display tabular sm:px-5">{fmtSol(p.active_borrowed_sol)}</td>
+                  <td className="px-4 py-3.5 text-right font-display tabular sm:px-5">{fmtNum(p.lifetime_loans)}</td>
+                  <td className="px-4 py-3.5 sm:px-5">
+                    <a
+                      href={`https://solscan.io/account/${p.program_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-xs text-[var(--ink-soft)] underline underline-offset-2 transition hover:text-[var(--ink)]"
+                    >
+                      {p.program_id.slice(0, 4)}…{p.program_id.slice(-4)}
+                    </a>
+                  </td>
+                </tr>
+              ))}
+              {!programs && (
+                <tr>
+                  <td colSpan={7} className="px-5 py-8 text-center text-sm text-[var(--ink-faint)]">Loading live program data…</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-[12px] leading-relaxed text-[var(--ink-faint)]">
+          Pool liquidity is the SOL sitting in each pool&apos;s on-chain vault, available to fund new loans.
+          &ldquo;On loan&rdquo; is the SOL currently out with borrowers of that program. Earlier V4 loans
+          run to term on their original contract — nothing migrates without a borrower&apos;s signature.
+        </p>
       </section>
 
       {/* ── Collateral breakdown — every token currently in use ── */}
