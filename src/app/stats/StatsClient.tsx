@@ -330,7 +330,7 @@ export default function StatsClient() {
           Magpie is borrowable by autonomous AI agents over the{" "}
           <Link href="/x402" className="underline hover:text-[var(--ink)]">x402</Link>{" "}
           protocol — agents pay per API call (in SOL) and borrow against memecoins, tokenized
-          stocks, and RWAs across V1/V3/V4. Live counters below.
+          stocks, and RWAs across V1, V3, and the V4 line — including V4.1, the Sec3-audited program that now serves every new auto-sell loan. Live counters below.
         </p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat
