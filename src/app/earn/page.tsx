@@ -28,7 +28,8 @@ import { sendAndConfirmWithRebroadcast } from "@/lib/solana/send-confirm";
 
 // Human label for a pool version. V4 is the flagship (new deposits).
 function versionLabel(v: LpVersion): string {
-  return v === "v4" ? "V4 (flagship)"
+  return v === "v41" ? "V4.1 (flagship · audited)"
+    : v === "v4" ? "V4 (prior flagship)"
     : v === "v3" ? "V3 (RWA)"
     : v === "v2" ? "V2 (legacy RWA)"
     : "V1 (memecoin)";
@@ -947,7 +948,7 @@ export default function EarnPage() {
                   )}
                   {(activeVersion === "v1" || activeVersion === "v2" || activeVersion === "v3") && (
                     <p className="mt-2 text-xs text-[var(--ink-faint)]">
-                      Your {versionLabel(activeVersion)} deposit is safe and fully withdrawable anytime. New deposits now flow to the V4 flagship pool — your existing position is unaffected.
+                      Your {versionLabel(activeVersion)} deposit is safe and fully withdrawable anytime. New deposits now flow to the V4.1 flagship pool — the Sec3-audited program — and your existing position is unaffected.
                     </p>
                   )}
                 </div>

@@ -35,6 +35,13 @@ export const PROGRAM_ID_V4: PublicKey | null =
     ? new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID_V4)
     : null;
 
+// V4.1 — the Sec3-remediated program (live 2026-08-26). When set, NEW LP
+// deposits flow here; unset ⇒ deposits fall back to V4 exactly as before.
+export const PROGRAM_ID_V4_1: PublicKey | null =
+  process.env.NEXT_PUBLIC_PROGRAM_ID_V4_1
+    ? new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID_V4_1)
+    : null;
+
 export const LENDER_PUBKEY = new PublicKey(
   "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx",
 );
