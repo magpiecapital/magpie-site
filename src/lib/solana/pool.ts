@@ -21,6 +21,7 @@ import {
   PROGRAM_ID_V2,
   PROGRAM_ID_V3,
   PROGRAM_ID_V4,
+  PROGRAM_ID_V4_1,
   LENDER_PUBKEY,
 } from "./constants";
 import { poolPda, loanTokenVaultPda, collateralVaultPda } from "./pdas";
@@ -28,6 +29,7 @@ import idlV1 from "./magpie.json";
 import idlV2 from "./magpie-v2.json";
 import idlV3 from "./magpie-v3.json";
 import idlV4 from "./magpie-v4.json";
+import idlV41 from "./magpie-v4-1.json";
 
 /* ────────────────────────── LP VERSION ROUTING ──────────────────────────
  * V4 is the flagship: NEW LP deposits flow into the V4 in-vault pool.
@@ -45,7 +47,7 @@ import idlV4 from "./magpie-v4.json";
  * `buildDepositTransaction` changes its default (→ V4) — and that only
  * affects NEW deposits, never an existing position.
  */
-export type LpVersion = "v1" | "v2" | "v3" | "v4";
+export type LpVersion = "v1" | "v2" | "v3" | "v4" | "v41";
 
 interface LpVersionCfg {
   version: LpVersion;
@@ -58,6 +60,12 @@ interface LpVersionCfg {
 
 function cfgFor(version: LpVersion): LpVersionCfg {
   switch (version) {
+    case "v41": {
+      if (!PROGRAM_ID_V4_1) {
+        throw new Error("V41_NOT_CONFIGURED: NEXT_PUBLIC_PROGRAM_ID_V4_1 is unset on the site.");
+      }
+      return { version, idl: idlV41, programId: PROGRAM_ID_V4_1, needsChunking: false };
+    }
     case "v4":
       if (!PROGRAM_ID_V4) {
         throw new Error("V4_NOT_CONFIGURED: NEXT_PUBLIC_PROGRAM_ID_V4 is unset on the site.");
@@ -77,11 +85,12 @@ function cfgFor(version: LpVersion): LpVersionCfg {
  * The pool NEW deposits flow into — V4 flagship when configured, else V1
  * (graceful fallback so deposits never hard-break if the env is missing).
  */
-export const DEPOSIT_VERSION: LpVersion = PROGRAM_ID_V4 ? "v4" : "v1";
+export const DEPOSIT_VERSION: LpVersion = PROGRAM_ID_V4_1 ? "v41" : PROGRAM_ID_V4 ? "v4" : "v1";
 
 /** Versions to sweep for a wallet's existing positions — flagship first. */
 export function allLpVersions(): LpVersion[] {
   const versions: LpVersion[] = [];
+  if (PROGRAM_ID_V4_1) versions.push("v41");
   if (PROGRAM_ID_V4) versions.push("v4");
   versions.push("v3", "v2", "v1");
   return versions;
