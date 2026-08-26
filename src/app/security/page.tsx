@@ -410,13 +410,15 @@ export default function SecurityPage() {
             bugs.
           </p>
           <p className="mt-4 max-w-3xl text-base text-[var(--ink-soft)]">
-            One thing we want to be precise about: the remediated build deploys
-            at a new program ID once signed off, so the audited code is{" "}
-            <span className="font-semibold">not the live program yet</span>.
-            That is why we say V4&apos;s security assessment is complete rather
-            than describing Magpie as &ldquo;audited&rdquo; &mdash; we will use
-            that word when the audited build is the one you are borrowing
-            against. The audited program repositories stay private during
+            And as of{" "}
+            <span className="font-semibold">August 26, 2026 the remediated
+            build is live</span> &mdash; deployed at a new program ID, with
+            every new auto-sell loan running on the audited code. Two nuances
+            we keep saying out loud: loans opened before the switch finish out
+            on the prior V4 program, and tokenized-stock/RWA exits stay on V4
+            by design, because the audited custody hardening rejects the token
+            extension regulated RWA issuers use. The V4 audit badge covers the
+            V4 line only &mdash; other programs are not audited. The audited program repositories stay private during
             review, with Sec3 holding read-only access; reports are published at
             github.com/magpiecapital/audits once cleared. Sec3 publishes their own
             report set at github.com/sec3-service/reports, so our summary can be
