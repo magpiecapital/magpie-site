@@ -18,7 +18,11 @@ Canonical: https://magpie.capital/.well-known/security.txt
 # - The Magpie Capital web application at magpie.capital
 # - The Telegram bot at @magpie_capital_bot
 # - The Anchor program at 4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh
-# - The Anchor program at 7tapneCmNwRVEtdeZks4649Q2rf8W1t9tshMN9yHX99P
+# - The Anchor programs:
+#     v1   4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh
+#     v3   B8AwYzFmc3ZB5EWWVtJcJhJtEmKL78W5i3kZrL1uMCmP
+#     v4   HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo
+#     v4.1 FsGXFtStgdRVqHQgik879CFpxM23oBt63URCYEWcxj4z (Sec3-audited)
 # - Both repos at https://github.com/magpiecapital
 
 # Source code
