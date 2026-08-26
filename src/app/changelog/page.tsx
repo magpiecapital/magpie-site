@@ -19,6 +19,19 @@ interface Entry {
 
 const ENTRIES: Entry[] = [
   {
+    date: "August 26, 2026",
+    tag: "Security",
+    title: "V4.1 is live — the Sec3-audited build now runs every new auto-sell loan",
+    bullets: [
+      "The Sec3-remediated V4 program deployed to mainnet at a new program ID (FsGXFtStgdRVqHQgik879CFpxM23oBt63URCYEWcxj4z). The deployed bytecode was hash-verified byte-for-byte against the build Sec3's verification covered — 24 findings, 20 resolved, 4 acknowledged, none open",
+      "Upgrade authority was handed to the hardware-key Squads multisig (48h public timelock) in the same deploy window — the program never sat under a hot key",
+      "Routing flipped the same day: every NEW borrow that attaches an auto-sell (TP / SL / bracket / ladder) lands on V4.1. Loans opened earlier finish out on the prior V4 program, untouched",
+      "Tokenized-stock/RWA auto-sell borrows stay on V4 by design: the audited custody hardening rejects the token extension regulated RWA issuers use, so the RWA lane keeps its dedicated path",
+      "A full mainnet canary preceded the flip: borrow, an engine conversion REFUSED while the loan was un-armed (the audit's core protection, proven live), a borrower-armed 50% conversion with exact fee math, and a clean repay",
+      "New LP deposits on /earn now flow to the V4.1 pool. Existing LP positions on every earlier pool remain exactly where they are, fully withdrawable anytime",
+    ],
+  },
+  {
     date: "July 7, 2026",
     tag: "Governance",
     title: "Reward distribution #4 — 7.76 SOL paid to $MAGPIE holders and LP providers",

@@ -261,10 +261,13 @@ export default async function DocsPage() {
               proceeds reach your wallet only when you repay.
             </P>
             <P>
-              V4 is a parallel lending program that changes how auto-sells
-              (take-profit, stop-loss, bracket, ladder) settle. When a borrow
-              has any auto-sell attached at borrow time, the loan
-              automatically routes to V4 instead of V1 or V3.
+              The V4 line is a parallel set of lending programs that changes
+              how auto-sells (take-profit, stop-loss, bracket, ladder) settle.
+              When a borrow has any auto-sell attached at borrow time, the
+              loan automatically routes to the V4 line instead of V1 or V3 —
+              new memecoin exit loans land on V4.1 (the Sec3-audited build,
+              live August 26, 2026) and tokenized-stock/RWA exit loans use V4.
+              The in-vault mechanics below are identical on both.
             </P>
             <P>
               <strong>What stays the same:</strong> tier ladders (memecoin
