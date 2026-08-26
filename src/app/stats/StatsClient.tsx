@@ -356,11 +356,6 @@ export default function StatsClient() {
                   <td className="px-4 py-3.5 sm:px-5">
                     <div className="flex items-center gap-2 font-medium text-[var(--ink)]">
                       {p.name.split(" — ")[0]}
-                      {p.audited && (
-                        <span className="rounded-full border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-[var(--accent)]">
-                          Audited
-                        </span>
-                      )}
                       {p.statusKind === "winding_down" && (
                         <span className="rounded-full border border-[var(--hairline)] px-2 py-0.5 text-[10px] tracking-wide text-[var(--ink-faint)]">
                           Winding down

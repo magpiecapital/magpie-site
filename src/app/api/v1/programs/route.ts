@@ -58,7 +58,7 @@ function programSet() {
     key: string; name: string; status: string;
     statusKind: ProgramRow["statusKind"]; audited: boolean; id: PublicKey | null;
   }> = [
-    { key: "v41", name: "V4.1 — audited flagship", status: "All new auto-sell loans + new LP deposits", statusKind: "flagship", audited: true, id: PROGRAM_ID_V4_1 },
+    { key: "v41", name: "V4.1 — flagship", status: "All new auto-sell loans + new LP deposits", statusKind: "flagship", audited: true, id: PROGRAM_ID_V4_1 },
     { key: "v4", name: "V4 — prior flagship", status: "Earlier loans to term + RWA auto-sell lane", statusKind: "winding_down", audited: false, id: PROGRAM_ID_V4 },
     { key: "v3", name: "V3 — tokenized stocks / RWA", status: "Plain stock & RWA borrows (Sec3 hardening applied)", statusKind: "active", audited: false, id: PROGRAM_ID_V3 },
     { key: "v1", name: "V1 — memecoin", status: "Plain memecoin borrows (Sec3 hardening applied)", statusKind: "active", audited: false, id: PROGRAM_ID },
