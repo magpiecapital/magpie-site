@@ -587,7 +587,7 @@ export default function SecurityPage() {
                     </a>
                   </div>
                   <div className="mt-2 text-[var(--ink-faint)]">
-                    RFC 9116 machine-readable disclosure file. Programs in scope: Magpie lending v1 (<span className="font-mono">4FEFPeMH…6wmh</span>) and v2 (<span className="font-mono">7tapneCm…X99P</span>). Both repos open source at <a href="https://github.com/magpiecapital" className="underline underline-offset-2 hover:text-[var(--ink)] transition">github.com/magpiecapital</a>.
+                    RFC 9116 machine-readable disclosure file. Programs in scope: Magpie lending v1 (<span className="font-mono">4FEFPeMH…6wmh</span>), v3 (<span className="font-mono">B8AwYzFm…MCmP</span>), v4 (<span className="font-mono">HA1hgvsk…UwNo</span>), and v4.1 (<span className="font-mono">FsGXFtSt…xj4z</span>). Both repos open source at <a href="https://github.com/magpiecapital" className="underline underline-offset-2 hover:text-[var(--ink)] transition">github.com/magpiecapital</a>.
                   </div>
                 </div>
               </div>
