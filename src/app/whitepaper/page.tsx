@@ -186,6 +186,7 @@ export default async function WhitepaperPage() {
                   { label: "Memecoin risk tiers", detail: "Express (30% LTV, 2d), Quick (25% LTV, 3d), Standard (20% LTV, 7d)" },
                   { label: "RWA risk tiers (v3, live)", detail: "Express (50% LTV, 7d), Quick (60% LTV, 15d), Standard (70% LTV, 30d) — tokenized stocks / ETFs / metals" },
                   { label: "V4 in-vault auto-sells (LIVE 2026-06-15)", detail: "Parallel program at HA1hgvsk… handles any borrow with an auto-sell attached. On fire, SOL stays inside the loan vault — loan stays Active until borrower repays. Flat 1% per ladder leg, no per-leg origination fee." },
+                  { label: "V4.1 — the Sec3-audited successor (LIVE 2026-08-26)", detail: "The remediated build from the Sec3 engagement, deployed at FsGXFtSt… with zero open findings. Every new auto-sell loan runs on it; earlier loans finish on V4, and RWA exits stay on V4 by design. Identical in-vault mechanics." },
                   { label: "Tiered origination fees (1.5–5%)", detail: "Memecoin: 3% / 2% / 1.5%. RWA: 2.5% / 3.5% / 5%. No hidden rates, no dynamic APR" },
                   { label: "Non-custodial wallet model", detail: "Exportable keys — import into Phantom, Solflare, any Solana wallet" },
                   { label: "On-chain program (Anchor)", detail: "Deterministic loan execution, collateral custody, and liquidation" },
@@ -455,7 +456,7 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                   { title: "Non-custodial architecture", body: "Users can export private keys anytime. Magpie never controls assets outside of pledged collateral held in loan-scoped PDAs." },
                   { title: "AES-256-GCM encryption", body: "Private keys are encrypted at rest using AES-256-GCM before storage. Keys are never stored in plaintext, never logged, never transmitted unencrypted." },
                   { title: "On-chain liquidation", body: "Liquidation is deterministic, auditable, and has no admin override. The Anchor program logic runs the same path for every loan — no privileged actor can pause, skip, or alter it." },
-                  { title: "Hardware-key upgrade authority", body: "Every change to V1, V3, or V4 must be queued through a Squads V4 multisig that only an offline hardware key can authorize. Every queued upgrade is publicly visible on-chain for 48 hours before it can execute. The multisig configuration is immutable — no signer, no threshold, no timelock can ever be changed." },
+                  { title: "Hardware-key upgrade authority", body: "Every change to V1, V3, V4, or V4.1 must be queued through a Squads V4 multisig that only an offline hardware key can authorize. Every queued upgrade is publicly visible on-chain for 48 hours before it can execute. The multisig configuration is immutable — no signer, no threshold, no timelock can ever be changed." },
                   { title: "Open source", body: "Both the bot and site repositories are publicly available on GitHub. Anyone can audit the protocol logic, verify on-chain programs, and inspect off-chain code." },
                   { title: "Input sanitization & rate limiting", body: "All API endpoints are rate-limited. All user inputs are sanitized to prevent injection, overflow, and replay attacks." },
                   { title: "Internal audit", body: "Internal security audit completed April 2026. Zero secrets in public codebase. SSL/TLS on all external communications." },
@@ -510,7 +511,8 @@ First Loan      = 500 flat bonus`}</CodeBlock>
                 {[
                   { v: "v1 (memecoin)", addr: "4FEFPeMH68BbkrrZW2ak9wWXUS7JCkvXqBkGf5Bg6wmh", role: "Legacy memecoin lending. Existing loans continue here; new memecoin borrows route to v3 (or v4 when an exit is attached)." },
                   { v: "v3 (dual-tier)", addr: "B8AwYzFmc3ZB5EWWVtJcJhJtEmKL78W5i3kZrL1uMCmP", role: "Live since 2026-06-13. Single program serves both memecoin (30/25/20% LTV) and RWA (50/60/70% LTV) borrows with on-chain TWAP oracle gating." },
-                  { v: "v4 (in-vault auto-sells)", addr: "HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo", role: "Live since 2026-06-15 (patched). Routes any borrow that arms an exit (TP / SL / Trailing / Ladder / Bracket). Auto-sell proceeds accumulate inside the per-loan vault — loan stays Active until borrower repays." },
+                  { v: "v4 (in-vault auto-sells)", addr: "HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo", role: "Live since 2026-06-15 (patched). Now serves loans opened before 2026-08-26 plus all tokenized-stock/RWA exit borrows. Auto-sell proceeds accumulate inside the per-loan vault — loan stays Active until borrower repays." },
+                  { v: "v4.1 (audited auto-sells)", addr: "FsGXFtStgdRVqHQgik879CFpxM23oBt63URCYEWcxj4z", role: "Live since 2026-08-26 — the Sec3-remediated build (24 findings, none open). Routes every NEW borrow that arms an exit (TP / SL / Trailing / Ladder / Bracket). Same in-vault model; conversions additionally require the loan be overdue or borrower-armed on-chain." },
                 ].map(({ v, addr, role }) => (
                   <div key={addr} className="grid grid-cols-1 gap-1 md:grid-cols-12 md:gap-4 px-5 py-4 border-t border-[var(--hairline)] text-sm md:items-start">
                     <div className="md:col-span-2 font-medium">{v}</div>

@@ -45,7 +45,12 @@ const PROGRAMS: ProgramEntry[] = [
   {
     name: "V4",
     id: "HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo",
-    note: "Auto-sell + in-vault liquidations",
+    note: "Auto-sell + in-vault liquidations (earlier loans + RWA exits)",
+  },
+  {
+    name: "V4.1",
+    id: "FsGXFtStgdRVqHQgik879CFpxM23oBt63URCYEWcxj4z",
+    note: "Sec3-audited auto-sell program — all new exit loans (live 2026-08-26)",
   },
 ];
 
@@ -319,7 +324,7 @@ export async function UpgradeAuthoritySection(): Promise<React.ReactElement> {
         Hardware-key multisig with a <span className="italic">48-hour public delay.</span>
       </h2>
       <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--ink-soft)]">
-        Every change to V1, V3, or V4 is queued through a Squads multisig
+        Every change to V1, V3, V4, or V4.1 is queued through a Squads multisig
         that only an offline hardware key can authorize, then publicly visible
         on-chain for 48 hours before it can take effect. Nothing can ship in
         secret. Everything below is read live from Solana — no static claims.
@@ -353,7 +358,7 @@ export async function UpgradeAuthoritySection(): Promise<React.ReactElement> {
           </div>
           <p className="mt-3 text-sm leading-relaxed text-[var(--ink-soft)]">
             {allMatch
-              ? "V1, V3, and V4 all currently report the multisig vault as their upgrade authority on-chain."
+              ? "V1, V3, V4, and V4.1 all currently report the multisig vault as their upgrade authority on-chain."
               : fetchError
                 ? "We could not reach the RPC just now. Try again in a moment, or verify directly via Solscan."
                 : "One or more programs are not currently routed to the multisig. This is the expected state during active migration; otherwise, please report it."}
