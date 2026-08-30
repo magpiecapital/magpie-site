@@ -32,15 +32,18 @@ import {
   createSyncNativeInstruction,
 } from "@solana/spl-token";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
-import { LENDER_PUBKEY } from "./constants";
-import { poolPda, loanTokenVaultPda } from "./pdas";
+import { LENDER_PUBKEY, PROGRAM_ID_V4_1 } from "./constants";
+import { poolPda, loanTokenVaultPda, priceFeedPda } from "./pdas";
 import idl from "./magpie.json";
+import idlV41 from "./magpie-v4-1.json";
 
 export interface ExtendParams {
   borrower: PublicKey;
   loanPda: string;
   connection: Connection;
   programId: PublicKey;
+  /** Required for V4.1 loans — extend_loan re-checks collateral health on-chain. */
+  collateralMint?: string | null;
 }
 
 export interface ExtendResult {
@@ -53,21 +56,22 @@ export async function buildExtendTransaction({
   loanPda,
   connection,
   programId,
+  collateralMint,
 }: ExtendParams): Promise<ExtendResult> {
   const loanTokenMintPk = NATIVE_MINT;
   const loanPdaPk = new PublicKey(loanPda);
 
-  // V4.1's extend_loan takes collateral_mint + price_history and needs the
-  // lender authority to co-sign (TWAP re-check on extension). The site has no
-  // cosign-extend path yet, so fail with a clear message instead of an
-  // opaque AccountNotEnoughKeys. Repay + topup + exits all work on V4.1.
-  {
-    const { PROGRAM_ID_V4_1 } = await import("./constants");
-    if (PROGRAM_ID_V4_1 && programId.equals(PROGRAM_ID_V4_1)) {
-      throw new Error(
-        "EXTEND_V41_NOT_YET_ON_SITE: extending a V4.1 loan from the website isn't available yet — use /extend in the Telegram bot for now.",
-      );
-    }
+  // V4.1 (Sec3 M-01): extend_loan re-checks collateral health ON-CHAIN, so it
+  // takes collateral_mint + price_history. The pool authority is an OPTIONAL
+  // co-signer, needed only when the loan is NOT provably healthy (stale feed
+  // or LTV above the loan's tier). A healthy loan self-extends with the
+  // borrower's signature alone — so the site deliberately does NOT route
+  // through a lender co-sign: an unhealthy loan should fail loudly
+  // (ExtendRequiresAuthority) rather than be silently co-signed into an
+  // extension. Caller must warm the feed first (bot /v4/feed-ready).
+  const isV41 = !!PROGRAM_ID_V4_1 && programId.equals(PROGRAM_ID_V4_1);
+  if (isV41 && !collateralMint) {
+    throw new Error("V4.1 extend needs the loan's collateral mint");
   }
   const [pool] = poolPda(LENDER_PUBKEY, programId);
   const [loanTokenVault] = loanTokenVaultPda(pool, programId);
@@ -87,7 +91,7 @@ export async function buildExtendTransaction({
     { commitment: "confirmed" },
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const idlWithAddr = { ...(idl as any), address: programId.toBase58() };
+  const idlWithAddr = { ...((isV41 ? idlV41 : idl) as any), address: programId.toBase58() };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const program = new Program(idlWithAddr as any, provider);
 
@@ -127,6 +131,17 @@ export async function buildExtendTransaction({
     ),
   ];
 
+  // V4.1 extra accounts — mirrors the bot's executeExtend V4.1 branch
+  // (services/loans.js): collateral_mint + pool-bound price_history, and
+  // NO authority (see note above).
+  const v41Accounts: Record<string, PublicKey> = {};
+  if (isV41) {
+    const collateralMintPk = new PublicKey(collateralMint as string);
+    const [priceHistory] = priceFeedPda(collateralMintPk, pool, programId);
+    v41Accounts.collateralMint = collateralMintPk;
+    v41Accounts.priceHistory = priceHistory;
+  }
+
   const tx = await program.methods
     .extendLoan()
     .accounts({
@@ -137,6 +152,7 @@ export async function buildExtendTransaction({
       feeWalletTokenAccount: feeWalletWsolAta,
       borrower,
       loanTokenProgram,
+      ...v41Accounts,
     })
     .preInstructions(preIxs)
     .postInstructions(postIxs)
