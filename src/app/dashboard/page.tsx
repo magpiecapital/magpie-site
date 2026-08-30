@@ -2812,14 +2812,43 @@ function DashboardPageInner() {
     setExtendPendingFor(loan.loan_pda);
     try {
       const { PublicKey } = await import("@solana/web3.js");
-      const { PROGRAM_ID } = await import("@/lib/solana/constants");
+      const { PROGRAM_ID, PROGRAM_ID_V4_1 } = await import("@/lib/solana/constants");
       const { buildExtendTransaction } = await import("@/lib/solana/extend");
       const programId = loan.program_id ? new PublicKey(loan.program_id) : PROGRAM_ID;
+      const isV41Extend = !!PROGRAM_ID_V4_1 && programId.equals(PROGRAM_ID_V4_1);
+      if (isV41Extend) {
+        // V4.1 extend re-checks collateral health on-chain against the
+        // price_history TWAP (Sec3 M-01). A stale feed makes the program demand
+        // a lender co-sign, which the site never provides — so warm the feed
+        // first via the bot's hot-on-select readiness endpoint (same one the
+        // borrow path uses), polling briefly until it reports ready.
+        const botApiForWarm = process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app";
+        const deadline = Date.now() + 60_000;
+        let ready = false;
+        while (Date.now() < deadline) {
+          try {
+            const rc = new AbortController();
+            const rt = setTimeout(() => rc.abort(), 5_000);
+            const hr = await fetch(
+              `${botApiForWarm}/api/v1/v4/feed-ready?mint=${encodeURIComponent(loan.collateral.mint)}`,
+              { signal: rc.signal, cache: "no-store" },
+            );
+            clearTimeout(rt);
+            const body = hr.ok ? await hr.json().catch(() => null) : null;
+            if (body && body.ready === true) { ready = true; break; }
+          } catch { /* transient — keep polling within budget */ }
+          await new Promise((r) => setTimeout(r, 3_000));
+        }
+        if (!ready) {
+          console.warn(`[extend] V4.1 feed for ${loan.collateral.mint.slice(0, 8)} not ready after 60s — submitting anyway; program will refuse if stale`);
+        }
+      }
       const { transaction } = await buildExtendTransaction({
         borrower: publicKey,
         loanPda: loan.loan_pda,
         connection,
         programId,
+        collateralMint: loan.collateral.mint,
       });
       // Robust submit: sign locally, then rebroadcast the signed tx until
       // it lands or its blockhash provably expires — so a repay/extend/topup
@@ -2842,7 +2871,16 @@ function DashboardPageInner() {
       setRepaySuccessSig(sig);
       forceRefresh();
     } catch (e: unknown) {
-      setRepayError(e instanceof Error ? e.message : String(e));
+      const raw = e instanceof Error ? e.message : String(e);
+      // V4.1 on-chain extend outcomes → plain-English (custom error codes from
+      // the V4.1 IDL: 6031 ExtendRequiresAuthority, 6045 LoanOverdueForExtension).
+      let msg = raw;
+      if (/ExtendRequiresAuthority|6031|0x178f/i.test(raw)) {
+        msg = "This loan isn't provably healthy right now (price feed stale or collateral value below the loan's LTV), so it can't self-extend. Add collateral or repay part of the loan, then try again.";
+      } else if (/LoanOverdueForExtension|6045|0x179d/i.test(raw)) {
+        msg = "This loan is past due and can no longer be extended — repay it to reclaim your collateral.";
+      }
+      setRepayError(msg);
     } finally {
       setExtendPendingFor(null);
     }
