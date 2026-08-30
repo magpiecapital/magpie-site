@@ -2875,7 +2875,7 @@ function DashboardPageInner() {
       // V4.1 on-chain extend outcomes → plain-English (custom error codes from
       // the V4.1 IDL: 6031 ExtendRequiresAuthority, 6045 LoanOverdueForExtension).
       let msg = raw;
-      if (/ExtendRequiresAuthority|6031|0x178f/i.test(raw)) {
+      if (/ExtendRequiresAuthority|6031|0x178f|Unauthorized|6008|0x1778/i.test(raw)) {
         msg = "This loan isn't provably healthy right now (price feed stale or collateral value below the loan's LTV), so it can't self-extend. Add collateral or repay part of the loan, then try again.";
       } else if (/LoanOverdueForExtension|6045|0x179d/i.test(raw)) {
         msg = "This loan is past due and can no longer be extended — repay it to reclaim your collateral.";
