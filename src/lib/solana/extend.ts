@@ -100,10 +100,14 @@ export async function buildExtendTransaction({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const liveLoan: any = await (program.account as any).loan.fetch(loanPdaPk);
   const owed = BigInt(liveLoan.repayAmount.toString());
-  const ltv = Number(liveLoan.ltvPercentage ?? liveLoan.ltvBps ?? 0);
-  // ltv stored in pct (30/25/20) — mirror loans.js logic exactly
+  // V1 stores ltv_percentage (30/25/20); V3/V4/V4.1 store ltv_bps (3000/2500/2000).
+  const ltv = Number(
+    liveLoan.ltvPercentage ?? (liveLoan.ltvBps != null ? Number(liveLoan.ltvBps) / 100 : 0),
+  );
+  // mirror loans.js logic exactly (program rounds the fee UP; over-wrap by 1 lamport
+  // and the post-instruction close returns any remainder)
   const feeBps = ltv >= 30 ? 300n : ltv >= 25 ? 200n : 150n;
-  const feeLamports = (owed * feeBps) / 10_000n;
+  const feeLamports = (owed * feeBps + 9_999n) / 10_000n;
   if (feeLamports <= 0n) {
     throw new Error("Computed extend fee is 0 — loan may be too small to extend");
   }
@@ -140,6 +144,12 @@ export async function buildExtendTransaction({
     const [priceHistory] = priceFeedPda(collateralMintPk, pool, programId);
     v41Accounts.collateralMint = collateralMintPk;
     v41Accounts.priceHistory = priceHistory;
+    // Explicit null: Anchor's client auto-fills an omitted optional SIGNER with
+    // the provider wallet (the borrower), which the program rejects as
+    // Unauthorized (6008) instead of the intended ExtendRequiresAuthority
+    // (6031). null encodes "absent" so an unhealthy loan fails with the
+    // right, actionable error. (2026-08-30 mainnet canary)
+    (v41Accounts as Record<string, PublicKey | null>).authority = null;
   }
 
   const tx = await program.methods
