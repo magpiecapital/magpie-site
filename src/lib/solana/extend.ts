@@ -57,6 +57,18 @@ export async function buildExtendTransaction({
   const loanTokenMintPk = NATIVE_MINT;
   const loanPdaPk = new PublicKey(loanPda);
 
+  // V4.1's extend_loan takes collateral_mint + price_history and needs the
+  // lender authority to co-sign (TWAP re-check on extension). The site has no
+  // cosign-extend path yet, so fail with a clear message instead of an
+  // opaque AccountNotEnoughKeys. Repay + topup + exits all work on V4.1.
+  {
+    const { PROGRAM_ID_V4_1 } = await import("./constants");
+    if (PROGRAM_ID_V4_1 && programId.equals(PROGRAM_ID_V4_1)) {
+      throw new Error(
+        "EXTEND_V41_NOT_YET_ON_SITE: extending a V4.1 loan from the website isn't available yet — use /extend in the Telegram bot for now.",
+      );
+    }
+  }
   const [pool] = poolPda(LENDER_PUBKEY, programId);
   const [loanTokenVault] = loanTokenVaultPda(pool, programId);
   const loanTokenProgram = TOKEN_PROGRAM_ID;

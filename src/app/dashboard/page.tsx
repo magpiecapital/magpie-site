@@ -13,7 +13,7 @@ import { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { buildBorrowTransaction } from "@/lib/solana/borrow";
 import { TX_FEE_RESERVE_LAMPORTS } from "@/lib/repay-readiness";
-import { LOAN_TIERS, chooseProgramId, PROGRAM_ID_V4 } from "@/lib/solana/constants";
+import { LOAN_TIERS, chooseProgramId, isV4FamilyStr } from "@/lib/solana/constants";
 import { isOnChainFeedBorrowable } from "@/lib/solana/feed-freshness";
 import { fetchAllDepositorPositions, type DepositorInfo } from "@/lib/solana/pool";
 import { sendAndConfirmWithRebroadcast } from "@/lib/solana/send-confirm";
@@ -2863,7 +2863,7 @@ function DashboardPageInner() {
     setTopupPendingFor(loan.loan_pda);
     try {
       const { PublicKey } = await import("@solana/web3.js");
-      const { PROGRAM_ID, PROGRAM_ID_V4 } = await import("@/lib/solana/constants");
+      const { PROGRAM_ID, isV4Family } = await import("@/lib/solana/constants");
       const { buildTopupTransaction } = await import("@/lib/solana/topup");
       const programId = loan.program_id ? new PublicKey(loan.program_id) : PROGRAM_ID;
 
@@ -2873,7 +2873,7 @@ function DashboardPageInner() {
       // mid-ladder grows the base and makes subsequent fires oversell.
       // The bot enforces this server-side too — this UI gate just gives
       // a friendly error instead of a tx-failed surprise.
-      if (PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4)) {
+      if (isV4Family(programId)) {
         const loanDbId = Number(
           (loan as unknown as { id?: number; loan_db_id?: number }).id ??
           (loan as unknown as { id?: number; loan_db_id?: number }).loan_db_id ??
@@ -3334,8 +3334,7 @@ function DashboardPageInner() {
                   breakdown so the ACTUAL repay amount is unmistakable and
                   the wallet's net number is explained BEFORE the popup. */}
               {(() => {
-                const isV4Loan =
-                  !!PROGRAM_ID_V4 && repayConfirmFor.program_id === PROGRAM_ID_V4.toBase58();
+                const isV4Loan = isV4FamilyStr(repayConfirmFor.program_id);
                 const vaultLamports = BigInt(
                   repayConfirmFor.collateral.sol_proceeds_lamports ?? "0",
                 );

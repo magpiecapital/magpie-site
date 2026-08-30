@@ -20,6 +20,7 @@ import {
   PROGRAM_ID_V2,
   PROGRAM_ID_V3,
   PROGRAM_ID_V4,
+  PROGRAM_ID_V4_1,
   RWA_CATEGORIES,
   chooseProgramIdForCategory,
   chooseProgramId,
@@ -41,6 +42,7 @@ import idlV3 from "./magpie-v3.json";
 // the new convert_collateral_slice instruction the site doesn't call
 // directly (engine-only).
 import idlV4 from "./magpie-v4.json";
+import idlV41 from "./magpie-v4-1.json";
 
 /**
  * Detect the collateral mint's token program AND decimals in one read.
@@ -184,7 +186,9 @@ export async function buildBorrowTransaction({
   const targetProgramId = chooseProgramId(resolvedCategory, { hasExitArming });
   const isV2 = targetProgramId.equals(PROGRAM_ID_V2);
   const isV3 = targetProgramId.equals(PROGRAM_ID_V3);
-  const isV4 = !!PROGRAM_ID_V4 && targetProgramId.equals(PROGRAM_ID_V4);
+  const isV41 = !!PROGRAM_ID_V4_1 && targetProgramId.equals(PROGRAM_ID_V4_1);
+  // V4-family: V4.1's request_and_fund_loan has the identical args + accounts.
+  const isV4 = isV41 || (!!PROGRAM_ID_V4 && targetProgramId.equals(PROGRAM_ID_V4));
   // Programs that require the 5-arg request_and_fund_loan shape (extra
   // `category` u8). V3 introduced it; V4 inherits it.
   const needsCategoryArg = isV3 || isV4;
@@ -238,8 +242,12 @@ export async function buildBorrowTransaction({
     { commitment: "confirmed" },
   );
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // V4.1's shipped IDL carries a placeholder address — always bind it to
+  // the live program id from env.
   const program = new Program(
-    (isV4 ? idlV4 : isV3 ? idlV3 : isV2 ? idlV2 : idl) as any,
+    (isV41
+      ? { ...(idlV41 as any), address: targetProgramId.toBase58() }
+      : isV4 ? idlV4 : isV3 ? idlV3 : isV2 ? idlV2 : idl) as any,
     provider,
   );
 

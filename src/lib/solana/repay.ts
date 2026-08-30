@@ -31,7 +31,7 @@ import {
   createSyncNativeInstruction,
 } from "@solana/spl-token";
 import { AnchorProvider, Program, BN } from "@coral-xyz/anchor";
-import { LENDER_PUBKEY, PROGRAM_ID_V4 } from "./constants";
+import { LENDER_PUBKEY, PROGRAM_ID_V4, PROGRAM_ID_V4_1 } from "./constants";
 import {
   poolPda,
   loanTokenVaultPda,
@@ -39,6 +39,7 @@ import {
 } from "./pdas";
 import idl from "./magpie.json";
 import idlV4 from "./magpie-v4.json";
+import idlV41 from "./magpie-v4-1.json";
 
 async function getMintTokenProgram(
   connection: Connection,
@@ -104,9 +105,10 @@ export async function buildRepayTransaction({
   // for the sol_proceeds_vault init_if_needed). Pick the matching IDL
   // so Anchor's .accounts({}) call validates against the right shape.
   // V1/V2/V3 all share the legacy magpie.json shape.
-  const isV4 = !!PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4);
+  const isV41 = !!PROGRAM_ID_V4_1 && programId.equals(PROGRAM_ID_V4_1);
+  const isV4 = isV41 || (!!PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const baseIdl: any = isV4 ? idlV4 : idl;
+  const baseIdl: any = isV41 ? idlV41 : isV4 ? idlV4 : idl;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const idlWithAddr = { ...(baseIdl as any), address: programId.toBase58() };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

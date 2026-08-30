@@ -35,6 +35,8 @@ import type {
 const PROGRAM_ID_V4 =
   process.env.NEXT_PUBLIC_PROGRAM_ID_V4 ||
   "HA1hgvskN1goEsb33rNHFBcDXBaYyLyyqfGwGMgTUwNo";
+// V4.1 — memecoin exit lane (audited build). Same "must have an exit" rule.
+const PROGRAM_ID_V4_1 = process.env.NEXT_PUBLIC_PROGRAM_ID_V4_1 || null;
 
 interface Props {
   orders: TakeProfitOrder[];
@@ -92,7 +94,9 @@ export function ExitStatusBanner({
   // loud recovery banner with one-click retry CTAs instead of the
   // generic "Exit not set" empty-CTA copy that pretends no intent
   // existed.
-  const isV4Loan = loan?.program_id === PROGRAM_ID_V4;
+  const isV4Loan =
+    loan?.program_id === PROGRAM_ID_V4 ||
+    (!!PROGRAM_ID_V4_1 && loan?.program_id === PROGRAM_ID_V4_1);
   const isSilentArmFailure =
     isV4Loan && state?.kind === "no_exit_set" && !!botApiUrl && !!loanIdChain;
 

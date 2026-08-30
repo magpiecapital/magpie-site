@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import { poolPda, priceFeedPda } from "./pdas";
-import { LENDER_PUBKEY, PROGRAM_ID_V3, PROGRAM_ID_V4 } from "./constants";
+import { LENDER_PUBKEY, PROGRAM_ID_V3, PROGRAM_ID_V4, PROGRAM_ID_V4_1 } from "./constants";
 
 // ── On-chain price-feed freshness check (authoritative, client-side) ──
 //
@@ -47,7 +47,8 @@ export async function isOnChainFeedBorrowable(
     const d = info.data;
     const isRingBuffer =
       programId.equals(PROGRAM_ID_V3) ||
-      (!!PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4));
+      (!!PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4)) ||
+      (!!PROGRAM_ID_V4_1 && programId.equals(PROGRAM_ID_V4_1));
 
     if (!isRingBuffer) {
       // V1/V2 PriceAttestation:
@@ -136,7 +137,8 @@ export async function getOnChainAttestedRef(
     const d = info.data;
     const isRingBuffer =
       programId.equals(PROGRAM_ID_V3) ||
-      (!!PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4));
+      (!!PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4)) ||
+      (!!PROGRAM_ID_V4_1 && programId.equals(PROGRAM_ID_V4_1));
 
     if (!isRingBuffer) {
       // PriceAttestation: disc(8)+mint(32)+pool(32)+authority(32)
