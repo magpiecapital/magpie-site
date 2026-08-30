@@ -1,6 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { PROGRAM_ID, PROGRAM_ID_V3, PROGRAM_ID_V4 } from "./constants";
+import { PROGRAM_ID, PROGRAM_ID_V3, PROGRAM_ID_V4, PROGRAM_ID_V4_1 } from "./constants";
 
 // Each PDA helper accepts an optional `programId` so callers can target
 // v1 (memecoin), v2 (legacy RWA), or v3 (live RWA, since 2026-06-13).
@@ -22,7 +22,9 @@ export function priceFeedPda(
   // V4 to "price" surfaces as "Account state mismatch" at borrow time.
   const isV3 = programId.equals(PROGRAM_ID_V3);
   const isV4 = !!PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4);
-  const seedPrefix = (isV3 || isV4) ? "price_v3" : "price";
+  // V4.1 keeps the same "price_v3" seed (verified against its seeds constraint).
+  const isV41 = !!PROGRAM_ID_V4_1 && programId.equals(PROGRAM_ID_V4_1);
+  const seedPrefix = (isV3 || isV4 || isV41) ? "price_v3" : "price";
   return PublicKey.findProgramAddressSync(
     [Buffer.from(seedPrefix), mintPubkey.toBuffer(), poolPubkey.toBuffer()],
     programId,

@@ -42,6 +42,29 @@ export const PROGRAM_ID_V4_1: PublicKey | null =
     ? new PublicKey(process.env.NEXT_PUBLIC_PROGRAM_ID_V4_1)
     : null;
 
+// Operator pool plan (2026-08-30): V4 = exit-armed TOKENIZED STOCKS/RWA,
+// V4.1 = exit-armed MEMECOINS. Mirrors the bot's ROUTE_EXITS_TO_V4_1 —
+// both flags must be flipped together (a site-only gap sent memecoin
+// exit-borrows to old V4 for four days after V4.1 went live).
+export const ROUTE_EXITS_TO_V4_1 =
+  process.env.NEXT_PUBLIC_ROUTE_EXITS_TO_V4_1 === "true";
+
+/** V4 or V4.1 — same lifecycle (in-vault exits, sol_proceeds_vault on repay). */
+export function isV4Family(programId: PublicKey | null | undefined): boolean {
+  if (!programId) return false;
+  return (
+    (!!PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4)) ||
+    (!!PROGRAM_ID_V4_1 && programId.equals(PROGRAM_ID_V4_1))
+  );
+}
+export function isV4FamilyStr(programId: string | null | undefined): boolean {
+  if (!programId) return false;
+  return (
+    (!!PROGRAM_ID_V4 && programId === PROGRAM_ID_V4.toBase58()) ||
+    (!!PROGRAM_ID_V4_1 && programId === PROGRAM_ID_V4_1.toBase58())
+  );
+}
+
 export const LENDER_PUBKEY = new PublicKey(
   "4JSSSaG3xRomQsrxmdQEsahfyFjBVjvuoBKJUUZgzPAx",
 );
@@ -89,6 +112,13 @@ export function chooseProgramId(
 ): PublicKey {
   const { hasExitArming = false } = opts;
   if (hasExitArming) {
+    // Memecoin exits → V4.1 (audited build). RWA exits stay on V4: V4.1's
+    // Sec3 H-01 fix rejects the PermanentDelegate extension every xStock
+    // carries. Same predicate as the bot's exitProgramForCategory().
+    const isRwa = !!category && RWA_CATEGORIES.has(category);
+    if (!isRwa && ROUTE_EXITS_TO_V4_1 && PROGRAM_ID_V4_1) {
+      return PROGRAM_ID_V4_1;
+    }
     if (!PROGRAM_ID_V4) {
       throw new Error(
         "EXIT_ARMING_REQUIRES_V4: exit-armed borrow requested but NEXT_PUBLIC_PROGRAM_ID_V4 is not set on the site.",
