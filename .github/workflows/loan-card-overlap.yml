@@ -1,0 +1,43 @@
+# A live loan card rendered with overlapping text on 2026-09-01 and nothing
+# in CI could have caught it — the card only ever rendered behind a connected
+# wallet. This workflow renders the REAL ActiveLoanCard (via /qa/loan-cards)
+# with hostile fixtures in a real browser at 9 widths and fails on ANY text
+# overlap, clipped text, or horizontal overflow. Cosmetic loan-card breakage
+# is a red X now, not a borrower's surprise.
+name: loan-card-overlap
+on:
+  pull_request:
+    paths:
+      - "src/app/dashboard/**"
+      - "src/components/LoanExpiryNotice.tsx"
+      - "src/components/RepayReadinessNote.tsx"
+      - "src/app/qa/**"
+      - "scripts/check-loan-overlap.mjs"
+      - ".github/workflows/loan-card-overlap.yml"
+      - "package.json"
+  push:
+    branches: [main]
+    paths:
+      - "src/app/dashboard/**"
+      - "src/app/qa/**"
+      - "scripts/check-loan-overlap.mjs"
+jobs:
+  overlap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      # The lockfile is written by npm 11 locally; node 22's bundled npm 10
+      # rejects it ("Missing: utf-8-validate from lock file"). Pin npm 11.
+      - run: npm i -g npm@11
+      - run: npm ci
+      - run: npm run build
+      - name: Start server
+        run: |
+          npx next start -p 3100 &
+          for i in $(seq 1 30); do curl -sf http://localhost:3100/qa/loan-cards >/dev/null && break; sleep 1; done
+      - name: Overlap check
+        run: CHROME_BIN=google-chrome node scripts/check-loan-overlap.mjs

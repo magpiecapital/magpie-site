@@ -26,6 +26,7 @@ import PrefsPanel from "./PrefsPanel";
 import SiteStatusBanner from "./SiteStatusBanner";
 import { ApiHealthBanner } from "@/components/ApiHealthBanner";
 import { TakeProfitCard, useTakeProfitState } from "./TakeProfitCard";
+import { ActiveLoanCard, TokenIcon, formatTokenAmount } from "./loan-card";
 import { armTakeProfit, prepareArmBatch, submitArmBatch } from "@/lib/solana/site-take-profit";
 import type { SignedArmBatch, ArmBatchLegSpec } from "@/lib/solana/site-take-profit";
 import { parseStrike } from "@/lib/strike-price-parser";
@@ -356,49 +357,8 @@ function activityIcon(type: string): string {
   }
 }
 
-/** Format a raw token amount with decimals into a human-readable string */
-function formatTokenAmount(rawAmount: string, decimals: number): string {
-  const num = Number(rawAmount) / Math.pow(10, decimals);
-  if (num >= 1_000_000_000) return `${(num / 1_000_000_000).toFixed(2)}B`;
-  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(2)}M`;
-  if (num >= 1_000) return `${(num / 1_000).toFixed(2)}K`;
-  if (num >= 1) return num.toFixed(2);
-  if (num > 0) return num.toPrecision(4);
-  return "0";
-}
-
-/* ───────────────────────── TOKEN ICON ───────────────────────── */
-
-function TokenIcon({ mint, symbol, size = 28 }: { mint: string; symbol: string; size?: number }) {
-  const [failed, setFailed] = useState(false);
-
-  if (failed) {
-    return (
-      <div
-        className="flex shrink-0 items-center justify-center rounded-full text-[10px] font-bold"
-        style={{ width: size, height: size, background: "var(--d-accent-dim)", color: "var(--d-accent-deep)" }}
-      >
-        {symbol[0]}
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={`https://dd.dexscreener.com/ds-data/tokens/solana/${mint}.png`}
-      alt={symbol}
-      width={size}
-      height={size}
-      // loading="lazy" defers offscreen icons; decoding="async" keeps
-      // image decode off the main render thread on mobile.
-      loading="lazy"
-      decoding="async"
-      className="shrink-0 rounded-full"
-      style={{ width: size, height: size }}
-      onError={() => setFailed(true)}
-    />
-  );
-}
+/* formatTokenAmount + TokenIcon live in ./loan-card — shared with the
+   /qa/loan-cards overlap gallery so CI exercises the exact production code. */
 
 /* ───────────────────────── ANIMATED COUNTER ───────────────────────── */
 
@@ -4011,174 +3971,26 @@ function DashboardPageInner() {
                           )}
                         </div>
                         <div className="divide-y divide-[var(--d-border)]">
-                          {activeLoans.map((l) => {
-                            const owedSol = Number(BigInt(l.loan.original_amount_lamports ?? "0")) / LAMPORTS_PER_SOL;
-                            const due = new Date(l.timestamps.due_at);
-                            const msLeft = due.getTime() - Date.now();
-                            const dueLabel = msLeft <= 0
-                              ? `Overdue by ${Math.floor(-msLeft / 86_400_000)}d`
-                              : msLeft < 86_400_000
-                                ? `Due in ${Math.floor(msLeft / 3_600_000)}h`
-                                : `Due in ${Math.floor(msLeft / 86_400_000)}d`;
-                            const overdue = msLeft <= 0;
-
-                            // Live health snapshot. Color-band the badge so users see
-                            // their risk at a glance: green safe, amber tight, red danger.
-                            // Thresholds: <1.20x = danger (close to 1.10x liquidation),
-                            //             1.20-1.50x = tight, >1.50x = healthy.
-                            const h = l.health?.ratio ?? null;
-                            const healthBand = h == null
-                              ? { txt: "text-[var(--d-ink-faint)]", bg: "bg-transparent", label: "—" }
-                              : h < 1.20
-                                ? { txt: "text-red-500", bg: "bg-red-500/10 border border-red-500/30", label: `${h.toFixed(2)}x · danger` }
-                                : h < 1.50
-                                  ? { txt: "text-amber-500", bg: "bg-amber-500/10 border border-amber-500/30", label: `${h.toFixed(2)}x · tight` }
-                                  : { txt: "text-emerald-500", bg: "bg-emerald-500/10 border border-emerald-500/30", label: `${h.toFixed(2)}x · healthy` };
-
-                            return (
-                              <div
-                                key={l.loan_pda}
-                                id={`loan-${l.loan_id ?? l.loan_pda}`}
-                                data-loan-id={String(l.loan_id ?? l.loan_pda)}
-                                className="px-4 py-3 transition-colors duration-500"
-                              >
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                                <TokenIcon mint={l.collateral.mint} symbol={l.collateral.symbol || "?"} size={32} />
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="font-medium text-[14px]">{l.collateral.symbol || l.collateral.mint.slice(0, 6)}</span>
-                                    <span className="text-[10px] text-[var(--d-ink-faint)]">{l.loan.ltv_percentage}% LTV · {l.loan.duration_days}d</span>
-                                    {h != null && (
-                                      <span
-                                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${healthBand.bg} ${healthBand.txt}`}
-                                        title="Collateral value ÷ amount owed. Below 1.10x triggers auto-liquidation."
-                                      >
-                                        {healthBand.label}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="text-[11px] text-[var(--d-ink-soft)]">
-                                    {(() => {
-                                      // V4 mixed-collateral rendering: when an auto-sell has
-                                      // converted a slice of SPL to SOL, the user's collateral
-                                      // is now (remaining SPL) + (SOL in vault). Both come
-                                      // back to them at repay. The unmixed case (V1/V2/V3 or
-                                      // V4 pre-fire) falls through to the original display.
-                                      const mixed = (l.collateral.auto_sells_fired ?? 0) > 0;
-                                      const decimals = l.collateral.decimals;
-                                      if (decimals === null) return "—";
-                                      if (mixed) {
-                                        const splAmt = l.collateral.current_amount ?? l.collateral.amount;
-                                        const vaultLamports = BigInt(l.collateral.sol_proceeds_lamports ?? "0");
-                                        const vaultSol = Number(vaultLamports) / LAMPORTS_PER_SOL;
-                                        return (
-                                          <>
-                                            {splAmt
-                                              ? formatTokenAmount(splAmt, decimals)
-                                              : "—"} {l.collateral.symbol || ""} + {vaultSol.toFixed(3)} SOL <span className="text-[var(--d-ink-faint)]">vault</span>
-                                          </>
-                                        );
-                                      }
-                                      return l.collateral.amount
-                                        ? <>{formatTokenAmount(l.collateral.amount, decimals)} collateral</>
-                                        : "—";
-                                    })()}
-                                    {l.health?.liquidation_price_sol != null && (
-                                      <>
-                                        {" · "}
-                                        <span className="text-[var(--d-ink-faint)]">
-                                          liq @ {l.health.liquidation_price_sol < 0.000001
-                                            ? l.health.liquidation_price_sol.toExponential(2)
-                                            : l.health.liquidation_price_sol.toFixed(8).replace(/0+$/, "").replace(/\.$/, "")} SOL
-                                        </span>
-                                      </>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="flex flex-col gap-0 sm:items-end">
-                                <div className="flex items-center justify-between gap-2 sm:text-right sm:justify-end">
-                                  <div>
-                                    <div className="text-[13px] font-semibold">{owedSol.toFixed(4)} SOL</div>
-                                    <div className={`text-[10px] ${overdue ? "text-red-500" : "text-[var(--d-ink-faint)]"}`}>{dueLabel}</div>
-                                  </div>
-                                  {SITE_REPAY_ENABLED && (() => {
-                                    const anyPending = repayPendingFor === l.loan_pda || extendPendingFor === l.loan_pda || topupPendingFor === l.loan_pda;
-                                    return (
-                                      <div className="flex flex-col gap-1">
-                                        <button
-                                          onClick={() => { setRepayPct(100); setRepayConfirmFor(l); }}
-                                          disabled={anyPending}
-                                          // text-white on bright accent was too hot in
-                                          // dark mode. Use the accent-ink token which
-                                          // resolves to the proper high-contrast
-                                          // foreground for each theme (dark text on
-                                          // light, light-but-not-white on dark).
-                                          className="rounded-md bg-[var(--d-accent)] px-2.5 py-1 text-[11px] font-semibold text-[var(--d-accent-ink)] transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                          {repayPendingFor === l.loan_pda ? "Repaying…" : "Repay"}
-                                        </button>
-                                        <div className="flex gap-1">
-                                          <button
-                                            onClick={() => setExtendConfirmFor(l)}
-                                            disabled={anyPending}
-                                            className="flex-1 rounded-md border border-[var(--d-border)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-                                          >
-                                            {extendPendingFor === l.loan_pda ? "…" : "Extend"}
-                                          </button>
-                                          <button
-                                            onClick={() => { setTopupAmountStr(""); setTopupMaxRaw(null); setTopupConfirmFor(l); }}
-                                            disabled={anyPending}
-                                            className="flex-1 rounded-md border border-[var(--d-border)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--d-ink-soft)] transition hover:bg-[var(--d-surface-hover)] disabled:opacity-50 disabled:cursor-not-allowed"
-                                          >
-                                            {topupPendingFor === l.loan_pda ? "…" : "Top up"}
-                                          </button>
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-                                </div>
-                                {/*
-                                  The deadline comes FIRST: it is the only thing
-                                  on this card with a hard consequence attached.
-                                  Site-only borrowers get no warning DM at all
-                                  (their stub user row has no real Telegram
-                                  account, so every DM fails "chat not found"),
-                                  and all nine unwarned liquidations in the last
-                                  90 days were site-only. For those borrowers
-                                  this notice is the ONLY warning that exists.
-                                */}
-                                <LoanExpiryNotice
-                                  dueAt={l.timestamps?.due_at}
-                                  onRepay={
-                                    SITE_REPAY_ENABLED
-                                      ? () => { setRepayPct(100); setRepayConfirmFor(l); }
-                                      : undefined
-                                  }
-                                  onExtend={
-                                    SITE_REPAY_ENABLED ? () => setExtendConfirmFor(l) : undefined
-                                  }
-                                />
-                                <RepayReadinessNote
-                                  owedLamports={l.loan.original_amount_lamports}
-                                  balanceLamports={solBalanceLamports}
-                                  vaultSolLamports={l.collateral.sol_proceeds_lamports}
-                                />
-                                </div>
-                                </div>
-                                {l.loan_id && (
-                                  <TakeProfitCard
-                                    botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
-                                    loanIdChain={String(l.loan_id)}
-                                    loanDbId={Number((l as unknown as { id?: number; loan_db_id?: number }).id ?? (l as unknown as { id?: number; loan_db_id?: number }).loan_db_id ?? 0)}
-                                    collateralSymbol={l.collateral.symbol}
-                                    collateralMint={l.collateral.mint}
-                                    state={takeProfitState.state}
-                                    onMutated={takeProfitState.refresh}
-                                  />
-                                )}
-                              </div>
-                            );
-                          })}
+                          {activeLoans.map((l) => (
+                            <ActiveLoanCard
+                              key={l.loan_pda}
+                              loan={l}
+                              siteRepayEnabled={SITE_REPAY_ENABLED}
+                              pending={{
+                                repay: repayPendingFor === l.loan_pda,
+                                extend: extendPendingFor === l.loan_pda,
+                                topup: topupPendingFor === l.loan_pda,
+                              }}
+                              onRepay={() => { setRepayPct(100); setRepayConfirmFor(l); }}
+                              onExtend={() => setExtendConfirmFor(l)}
+                              onTopup={() => { setTopupAmountStr(""); setTopupMaxRaw(null); setTopupConfirmFor(l); }}
+                              solBalanceLamports={solBalanceLamports}
+                              tpState={takeProfitState.state}
+                              onTpMutated={takeProfitState.refresh}
+                              botApiUrl={process.env.NEXT_PUBLIC_BOT_API_URL || "https://magpie-bot-production.up.railway.app"}
+                            />
+                          ))}
+                          
                         </div>
                         <div className="border-t border-[var(--d-border)] bg-[var(--d-bg-card)] px-4 py-3 text-center">
                           <a
