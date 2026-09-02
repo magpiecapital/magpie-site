@@ -13,6 +13,7 @@
     "check:repay-readiness": "node --experimental-strip-types scripts/check-repay-readiness.mjs",
     "check:loan-expiry": "node --experimental-strip-types scripts/check-loan-expiry.mjs",
     "check:comp-freshness": "node scripts/check-comp-freshness.mjs",
+    "check:loan-overlap": "node scripts/check-loan-overlap.mjs",
     "check:catalog-integrity": "node --experimental-strip-types scripts/check-catalog-integrity.mjs",
     "prebuild": "node scripts/check-comp-freshness.mjs && node --experimental-strip-types scripts/check-catalog-integrity.mjs"
   },
