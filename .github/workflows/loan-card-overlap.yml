@@ -30,6 +30,9 @@ jobs:
         with:
           node-version: "22"
           cache: npm
+      # The lockfile is written by npm 11 locally; node 22's bundled npm 10
+      # rejects it ("Missing: utf-8-validate from lock file"). Pin npm 11.
+      - run: npm i -g npm@11
       - run: npm ci
       - run: npm run build
       - name: Start server
