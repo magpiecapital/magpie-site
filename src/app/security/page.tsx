@@ -268,6 +268,114 @@ export default function SecurityPage() {
       {/* Operational Keys — honest framing of the hot-wallet model */}
       <OperationalKeysSection />
 
+      {/* Liquidation Model — clarify duration-based, not health-factor based.
+          Added 2026-06-20 after a user concern conflated Magpie's model with
+          Aave/Marginfi continuous-LTV liquidation. Magpie locks LTV at borrow
+          time, then liquidates only on past-due default. Different threat
+          surface; different mitigations. */}
+      <section className="mx-auto max-w-6xl px-6 py-20 md:py-28">
+        <Reveal>
+          <div className="chip mb-5">Liquidation model</div>
+          <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] md:text-5xl">
+            Duration-based, <span className="italic">not health-factor.</span>
+          </h2>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--ink-soft)]">
+            Magpie loans have a fixed term (typically 7 days). Liquidation triggers
+            on past-due default, not on continuous collateral price tracking — a
+            fundamentally different model from Aave / Marginfi / Kamino.
+          </p>
+        </Reveal>
+
+        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-2">
+          <Reveal>
+            <div className="h-full rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-7">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">At borrow time</div>
+              <div className="font-display text-xl tracking-tight mb-3">LTV gate, once</div>
+              <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
+                Collateral value is checked once at borrow time via on-chain TWAP.
+                If LTV exceeds the tier limit (30–38% depending on credit score),
+                the borrow is refused. Once approved, the loan is open for its
+                fixed duration regardless of collateral price moves.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal delay={100}>
+            <div className="h-full rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-7">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">At liquidation</div>
+              <div className="font-display text-xl tracking-tight mb-3">Past-due trigger</div>
+              <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
+                A permissionless keeper liquidates loans whose <code className="font-mono text-[var(--ink)]">due_timestamp</code> has
+                passed without repayment. The keeper earns a bounty (5% of seized
+                collateral), the rest goes to the lender pool. No "health factor"
+                under/overflow risk because there is no continuous health calculation —
+                the trigger is wall-clock time, not price.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal delay={150}>
+            <div className="h-full rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-7">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">Partial close</div>
+              <div className="font-display text-xl tracking-tight mb-3">V4 in-vault slicing</div>
+              <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
+                On V4 loans with armed exit orders (TP / SL / ladder), the engine
+                slices the collateral mid-loan in <code className="font-mono text-[var(--ink)]">convert_collateral_slice</code> —
+                proceeds accumulate inside a per-loan PDA vault. The loan stays Active.
+                Only borrower-signed repay can drain the vault to user wallet.
+              </p>
+            </div>
+          </Reveal>
+          <Reveal delay={200}>
+            <div className="h-full rounded-2xl border border-[var(--hairline)] bg-[var(--bg-elevated)] p-7">
+              <div className="font-mono text-[10px] uppercase tracking-[0.22em] text-[var(--ink-faint)] mb-3">Bad debt</div>
+              <div className="font-display text-xl tracking-tight mb-3">Lender wallet absorbs</div>
+              <p className="text-sm leading-relaxed text-[var(--ink-soft)]">
+                If seized collateral at default is worth less than the repay amount
+                (e.g., the token collapsed to zero during the loan), the lender
+                wallet absorbs the shortfall. Tracked off-chain in our
+                liquidation_economics ledger. Per-token exposure caps + LTV at
+                borrow time keep this rare.
+              </p>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Verifiable Builds — honest "in progress" status, not "done" */}
+      <section className="border-y border-[var(--hairline)] bg-[var(--surface)]">
+        <div className="mx-auto max-w-6xl px-6 py-20 md:py-28">
+          <Reveal>
+            <div className="chip mb-5">Verifiable builds</div>
+            <h2 className="font-display max-w-3xl text-3xl font-medium tracking-[-0.03em] md:text-5xl">
+              Source <span className="italic">published.</span>
+            </h2>
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-[var(--ink-soft)]">
+              Program source code lives in our public repo under
+              {" "}
+              <Link
+                href="https://github.com/magpiecapital/magpie-bot/tree/main/programs"
+                className="font-mono text-[var(--ink)] underline-offset-4 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                magpiecapital/magpie-bot/programs
+              </Link>
+              {" "}
+              with pinned <code className="font-mono">Cargo.lock</code> for reproducible builds.
+              Independent verification submission to{" "}
+              <Link
+                href="https://verify.osec.io"
+                className="font-mono text-[var(--ink)] underline-offset-4 hover:underline"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                verify.osec.io
+              </Link>
+              {" "}is in progress.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* Architecture Security */}
       <section className="mx-auto max-w-6xl px-6 py-28 md:py-36">
         <Reveal>
