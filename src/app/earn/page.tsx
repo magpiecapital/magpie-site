@@ -127,7 +127,8 @@ export default function EarnPage() {
   };
 
   // Form state
-  const [tab, setTab] = useState<"deposit" | "withdraw">("deposit");
+  // Wind-down (2026-10-21): deposits are closed; the page opens on Withdraw.
+  const [tab, setTab] = useState<"deposit" | "withdraw">("withdraw");
   const [amount, setAmount] = useState("");
   // When the user clicks "Max", we capture the EXACT lamport value here so the
   // submit path can use the precise on-chain amount instead of round-tripping
@@ -517,7 +518,7 @@ export default function EarnPage() {
   const submitButton = (
     <button
       onClick={tab === "deposit" ? handleDeposit : handleWithdraw}
-      disabled={txPending || !amount || parseFloat(amount) <= 0 || poolNotInitialized}
+      disabled={tab === "deposit" || txPending || !amount || parseFloat(amount) <= 0 || poolNotInitialized}
       className="btn-accent w-full py-3.5 text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed"
     >
       {txPending

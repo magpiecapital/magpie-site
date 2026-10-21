@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Inter, Fraunces } from "next/font/google";
 import { ClientProviders } from "@/components/ClientProviders";
+import { WindDownBanner } from "@/components/WindDownBanner";
 import "./globals.css";
 
 const inter = Inter({
@@ -258,6 +259,7 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://dd.dexscreener.com" />
       </head>
       <body>
+        <WindDownBanner />
         <ClientProviders>{children}</ClientProviders>
       </body>
     </html>

@@ -1525,6 +1525,10 @@ function DashboardPageInner() {
     pct: number,
   ) => {
     if (!publicKey || !connected) return;
+    // Wind-down (2026-10-21): no new loans. Existing loans are all closed.
+    setBorrowError("Magpie is winding down and no longer issues loans. Deposits can be withdrawn on the Earn page.");
+    return;
+    // eslint-disable-next-line no-unreachable
     setBorrowing(true);
     setBorrowTx(null);
     setBorrowError(null);
