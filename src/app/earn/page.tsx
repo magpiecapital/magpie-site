@@ -302,6 +302,16 @@ export default function EarnPage() {
       refresh();
       return;
     }
+    // Wind-down (2026-10-21): every remaining V1 depositor was refunded their full
+    // position value directly to their wallet, and the V1 program is being closed.
+    // Pool withdrawals from V1 are therefore closed so nobody is paid twice.
+    if (activeVersion === "v1") {
+      setTxError({
+        title: "V1 deposits have been refunded",
+        body: "Your V1 deposit was returned to this wallet in native SOL on October 21, 2026 (memo: \"Magpie wind-down: refund of your V1 pool deposit\"). Check this wallet's transaction history. V1 pool withdrawals are closed.",
+      });
+      return;
+    }
     if (!amount) return;
 
     // Source of truth: if Max was clicked, use the captured exact lamport
