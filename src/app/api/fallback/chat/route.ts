@@ -153,9 +153,11 @@ export async function POST(req: Request) {
   const latestUserMessage =
     [...messagesRaw].reverse().find((m) => m?.role === "user")?.content ?? "";
 
-  // ── Config check — degrade to static FAQ instead of failing ──
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return staticFaqStream(latestUserMessage, "ANTHROPIC_API_KEY not set");
+  // ── Wind-down (2026-10-23): the live model is OFF. The site answers from the
+  // static FAQ even if an ANTHROPIC_API_KEY is present. Re-enabling requires BOTH
+  // PIP_LIVE_MODEL=enabled and a key, which nobody should set again.
+  if (process.env.PIP_LIVE_MODEL !== "enabled" || !process.env.ANTHROPIC_API_KEY) {
+    return staticFaqStream(latestUserMessage, "wind-down: live model disabled");
   }
   // PERSISTENT rate limit via Postgres (not in-process). Closes the
   // cold-start cost-burn window where an attacker rotating IPs across
